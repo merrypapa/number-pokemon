@@ -8,6 +8,33 @@
 2. 일부 구멍도 뚫려있고, 괴물도 있고, 동굴을 지나서 얼음으로 만들어진 공간이 있게 해주세요.
 3. 포켓몬은 저작권 때문에 나중에 3D 이미지 파일을 별도로 올려서 대체할 예정. 지금은 draft 캐릭터로 OK.
 
+## 지금 바로 플레이 (챕터 1 프로토타입)
+
+- 브라우저에서 열기: **https://merrypapa.github.io/number-pokemon/**
+- 조작: 방향키/WASD 이동, 스페이스 점프, E 액션. 태블릿에서는 화면 버튼이 나옵니다.
+- 할 수 있는 것: 초원 탐험, 하얀 블록 줍기, 몬스터 3마리(꼬물이·폴짝이·뽀글이) 숫자 맞춰 잡기, 둘이·셋이 구출, 큰 구멍에 빠져보기.
+
+로컬에서 실행하려면 저장소 폴더에서 정적 서버를 하나 띄우면 됩니다(빌드 없음).
+
+```
+python3 -m http.server 8000
+# 그 다음 브라우저에서 http://localhost:8000 열기
+```
+
+코드 구조:
+
+| 경로 | 내용 |
+|------|------|
+| `index.html`, `style.css` | 화면(HUD, 잡기 창, 터치 버튼) |
+| `src/main.js` | 게임 루프, 상태, 튜토리얼 |
+| `src/world.js` | 초원 지형(언덕·구멍·나무·꽃) |
+| `src/player.js` | 주인공 이동/점프/구멍 낙하 |
+| `src/creatures.js` | `data/creatures.json`의 draftShape로 드래프트 몬스터 생성, 다가오기 AI |
+| `src/numberblocks.js` | 숫자블록 친구, 파트너 줄지어 따라오기 |
+| `src/catch.js` | 잡기 모드(블록 쌓기, 3번 틀리면 원이가 같이 세기) |
+| `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 |
+| `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
+
 ## 문서 목차
 
 | 문서 | 내용 |

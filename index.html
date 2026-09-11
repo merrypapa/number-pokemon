@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>넘버 몬스터 어드벤처 — 프로토타입</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%272%27 y=%272%27 width=%2728%27 height=%2728%27 rx=%276%27 fill=%27%23ffd93d%27 stroke=%27%23333%27 stroke-width=%273%27/%3E%3Ctext x=%2716%27 y=%2723%27 font-size=%2720%27 font-weight=%27bold%27 text-anchor=%27middle%27 fill=%27%23333%27%3E1%3C/text%3E%3C/svg%3E" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="hud-row"><span class="hud-icon block"></span><span id="hud-blocks">블록 0개</span></div>
+    <div class="hud-row"><span class="hud-icon mon"></span><span id="hud-caught">친구 0/3</span></div>
+    <div class="hud-row"><span class="hud-icon nb"></span><span id="hud-rescued">구출 0/2</span></div>
+  </div>
+
+  <div id="msg" class="hidden">
+    <div id="msg-face">1</div>
+    <div id="msg-text"></div>
+  </div>
+
+  <div id="catch" class="hidden">
+    <div id="catch-card">
+      <div id="catch-title">몬스터가 다가왔어요!</div>
+      <div id="catch-body">
+        <div id="catch-monster">
+          <div id="catch-monster-name"></div>
+          <div id="catch-hint-label">좋아하는 숫자</div>
+          <div id="catch-hint">3</div>
+        </div>
+        <div id="catch-stack-wrap">
+          <div id="catch-stack"></div>
+          <div id="catch-count">0</div>
+        </div>
+      </div>
+      <div id="catch-feedback"></div>
+      <div id="catch-buttons">
+        <button id="btn-minus">− 내리기</button>
+        <button id="btn-plus">+ 올리기</button>
+        <button id="btn-show">보여주기!</button>
+      </div>
+      <div id="catch-help">키보드: ↑ 올리기 · ↓ 내리기 · 엔터 보여주기 · ESC 나중에</div>
+    </div>
+  </div>
+
+  <div id="touch" class="hidden">
+    <div id="dpad">
+      <button data-key="up">▲</button>
+      <button data-key="left">◀</button>
+      <button data-key="right">▶</button>
+      <button data-key="down">▼</button>
+    </div>
+    <div id="touch-actions">
+      <button data-key="action">액션</button>
+      <button data-key="jump">점프</button>
+    </div>
+  </div>
+
+  <div id="title">
+    <div id="title-card">
+      <h1>넘버 몬스터 어드벤처</h1>
+      <p>챕터 1 · 숫자 초원 (프로토타입)</p>
+      <button id="btn-start">시작하기</button>
+      <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션</div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
