@@ -4,14 +4,18 @@ import { rand } from './util.js';
 // 챕터 1 숫자 초원. 언덕은 부드러운 봉우리 함수로, 구멍은 원으로 정의해서
 // 지형 메쉬와 캐릭터 발 높이가 같은 함수를 쓴다.
 export const WORLD = {
-  size: 64,
+  size: 120,
   hills: [
-    { x: -14, z: -8, r: 9, h: 2.2 },
-    { x: 15, z: 6, r: 8, h: 1.8 },
-    { x: 6, z: -18, r: 7, h: 2.6 },
-    { x: -18, z: 14, r: 10, h: 1.4 },
+    { x: -30, z: -18, r: 12, h: 2.6 },
+    { x: 28, z: 14, r: 11, h: 2.2 },
+    { x: 8, z: -32, r: 9, h: 3.0 },
+    { x: -34, z: 26, r: 14, h: 1.8 },
+    { x: 40, z: -30, r: 13, h: 2.4 },
+    { x: -12, z: 44, r: 12, h: 2.0 },
+    { x: 44, z: 40, r: 10, h: 1.6 },
+    { x: -48, z: -40, r: 14, h: 2.8 },
   ],
-  hole: { x: 0, z: -26, r: 5 },
+  hole: { x: 0, z: -50, r: 6 },
 };
 
 export function terrainHeight(x, z) {
@@ -31,17 +35,17 @@ export function inHole(x, z) {
 export function buildWorld(scene) {
   // 하늘/안개/빛
   scene.background = new THREE.Color(0x8fd3ff);
-  scene.fog = new THREE.Fog(0x8fd3ff, 40, 90);
+  scene.fog = new THREE.Fog(0x8fd3ff, 60, 150);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 1.4));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(20, 30, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 100 });
-  scene.add(sun);
+  Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 120 });
+  scene.add(sun, sun.target); // 그림자 범위가 주인공을 따라가도록 main 에서 sun/target 위치를 옮긴다
 
   // 지형
-  const S = WORLD.size, seg = 96;
+  const S = WORLD.size, seg = 160;
   const geo = new THREE.PlaneGeometry(S, S, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -84,7 +88,13 @@ export function buildWorld(scene) {
   // 나무
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9d3a });
-  const treeSpots = [[-26, -20], [-24, 6], [26, -14], [24, 20], [-8, 26], [10, 26], [28, 2], [-28, 22], [20, -26], [-20, -27]];
+  const treeSpots = [];
+  while (treeSpots.length < 46) {
+    const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
+    if (Math.hypot(x, z - 8) < 14 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4) continue; // 시작 지점·구멍 근처 비움
+    if (treeSpots.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 7)) continue;
+    treeSpots.push([x, z]);
+  }
   for (const [x, z] of treeSpots) {
     const t = new THREE.Group();
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 1.6, 8), trunkMat);
@@ -102,8 +112,8 @@ export function buildWorld(scene) {
   // 꽃
   const petalColors = [0xff6b9d, 0xffd93d, 0xffffff, 0xff8c42, 0xb388ff];
   const stemMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
-  for (let i = 0; i < 90; i++) {
-    const x = rand(-30, 30), z = rand(-30, 30);
+  for (let i = 0; i < 320; i++) {
+    const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
     if (inHole(x, z)) continue;
     const f = new THREE.Group();
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 5), stemMat);
@@ -118,7 +128,12 @@ export function buildWorld(scene) {
   // 풀숲 (몬스터가 숨는 곳)
   const bushMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
   const bushes = [];
-  const bushSpots = [[8, 4], [-6, 10], [12, -8], [-12, -14], [4, 14], [-4, -4]];
+  const bushSpots = [];
+  while (bushSpots.length < 22) {
+    const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
+    if (Math.hypot(x, z - 8) < 5 || inHole(x, z)) continue;
+    bushSpots.push([x, z]);
+  }
   for (const [x, z] of bushSpots) {
     const b = new THREE.Group();
     for (let k = 0; k < 3; k++) {
@@ -134,16 +149,16 @@ export function buildWorld(scene) {
 
   // 구름
   const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 16; i++) {
     const c = new THREE.Group();
     for (let k = 0; k < 4; k++) {
       const s = new THREE.Mesh(new THREE.SphereGeometry(rand(1, 2), 10, 8), cloudMat);
       s.position.set(k * 1.6, rand(-0.3, 0.3), rand(-0.5, 0.5));
       c.add(s);
     }
-    c.position.set(rand(-40, 40), rand(14, 20), rand(-40, 20));
+    c.position.set(rand(-70, 70), rand(14, 22), rand(-70, 40));
     scene.add(c);
   }
 
-  return { ground, bushes };
+  return { ground, bushes, sun };
 }

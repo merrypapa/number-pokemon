@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { addFace, lerpAngle } from './util.js';
 import { terrainHeight, inHole, WORLD } from './world.js';
 
-const SPEED = 6, JUMP = 7, GRAVITY = -20;
+const SPEED = 6.5, JUMP = 7, GRAVITY = -20, ACCEL = 14; // ACCEL: 조이스틱처럼 부드럽게 가속/감속
 
 export class Player {
   constructor(scene) {
@@ -25,6 +25,8 @@ export class Player {
 
     this.group.position.set(0, 0, 8);
     this.vy = 0;
+    this.vx = 0;
+    this.vz = 0;
     this.onGround = true;
     this.facing = 0;
     this.moved = false;
@@ -38,23 +40,21 @@ export class Player {
 
   update(dt, input) {
     const p = this.group.position;
-    let dx = 0, dz = 0;
-    if (input.isHeld('up')) dz -= 1;
-    if (input.isHeld('down')) dz += 1;
-    if (input.isHeld('left')) dx -= 1;
-    if (input.isHeld('right')) dx += 1;
-    const moving = dx !== 0 || dz !== 0;
+    const axis = input.getAxis(); // 키보드도 조이스틱처럼: 목표 속도로 부드럽게 가속
+    const k = Math.min(1, ACCEL * dt);
+    this.vx += (axis.x * SPEED - this.vx) * k;
+    this.vz += (axis.y * SPEED - this.vz) * k;
+    const speed = Math.hypot(this.vx, this.vz);
+    const moving = speed > 0.4;
+    p.x += this.vx * dt;
+    p.z += this.vz * dt;
     if (moving) {
-      const len = Math.hypot(dx, dz);
-      dx /= len; dz /= len;
-      p.x += dx * SPEED * dt;
-      p.z += dz * SPEED * dt;
-      this.facing = lerpAngle(this.facing, Math.atan2(dx, dz), 0.25);
+      this.facing = lerpAngle(this.facing, Math.atan2(this.vx, this.vz), 0.3);
       this.moved = true;
-      this.walkT += dt * 12;
+      this.walkT += dt * 2 * speed;
     }
     this.group.rotation.y = this.facing;
-    this.body.rotation.z = moving ? Math.sin(this.walkT) * 0.12 : 0;
+    this.body.rotation.z = moving ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0;
 
     // 경계
     const lim = WORLD.size / 2 - 2;

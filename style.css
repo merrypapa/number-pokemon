@@ -38,11 +38,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #catch-help { font-size: 13px; color: #888; margin-top: 10px; }
 
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 7; }
-#dpad { position: absolute; left: 16px; bottom: 90px; display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px; gap: 4px; pointer-events: auto; }
-#dpad button:nth-child(1) { grid-column: 2; grid-row: 1; }
-#dpad button:nth-child(2) { grid-column: 1; grid-row: 2; }
-#dpad button:nth-child(3) { grid-column: 3; grid-row: 2; }
-#dpad button:nth-child(4) { grid-column: 2; grid-row: 2; }
+#joy-zone { position: absolute; left: 0; bottom: 0; width: 50%; height: 65%; pointer-events: auto; touch-action: none; }
+#joy-base { position: absolute; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; background: rgba(255,255,255,.25); border: 3px solid rgba(255,255,255,.7); pointer-events: none; }
+#joy-knob { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
 #touch-actions { position: absolute; right: 16px; bottom: 90px; display: flex; gap: 10px; pointer-events: auto; }
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 #touch-actions button { width: 72px; height: 72px; }
