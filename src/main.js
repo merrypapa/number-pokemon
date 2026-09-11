@@ -27,7 +27,7 @@ window.addEventListener('resize', () => {
 });
 
 const input = new Input();
-const { sun } = buildWorld(scene);
+const { sun, boulder, animate: animateWorld } = buildWorld(scene);
 const player = new Player(scene);
 const chain = new FollowChain(player);
 
@@ -55,14 +55,16 @@ const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 
 // 원이(1)는 말풍선으로 안내하는 친구. 주운 블록은 하나의 숫자블록이 되어 주인공 뒤를 따라온다(setBlocks).
 
-// 초원 몬스터 3마리
-const spawn = { m01: [-20, 6], m02: [26, -16], m03: [16, -6] };
+// 초원 몬스터 3마리 + 보스 아레나의 쿵쿵이
+const spawn = { m01: [-20, 4], m02: [24, -14], m03: [14, -4], m13: [WORLD.arena.x, WORLD.arena.z] };
 const creatures = creatureData.creatures
-  .filter((c) => c.zone === 'meadow')
-  .map((c) => new Creature(scene, c, new THREE.Vector3(spawn[c.id][0], 0, spawn[c.id][1])));
+  .filter((c) => c.zone === 'meadow' || c.id === 'm13')
+  .map((c) => new Creature(scene, c.id === 'm13' ? { ...c, scale: 2.6 } : c, new THREE.Vector3(spawn[c.id][0], 0, spawn[c.id][1])));
+const meadowCreatures = creatures.filter((c) => !c.isBoss);
+const boss = creatures.find((c) => c.isBoss);
 
 // 구출할 숫자블록: 둘이(언덕 위), 셋이(꽃밭). 구출하면 따라오고, 자기 숫자만큼 블록을 나눠준다.
-const rescueSpots = { nb02: [-30, -18], nb03: [30, 20] };
+const rescueSpots = { nb02: [-30, -18], nb03: [22, 34] };
 const numberblocks = ['nb02', 'nb03'].map((id) => new Numberblock(scene, nbById[id], { x: rescueSpots[id][0], z: rescueSpots[id][1] }));
 
 // ?showcase 로 열면 숫자블록 친구 1~10이 시작 지점 앞에 한 줄로 선다 (디자인 확인용)
@@ -78,7 +80,7 @@ if (location.search.includes('showcase')) {
 
 // 주울 수 있는 블록 10개
 const pickups = [];
-const pickupSpots = [[0, 3], [-4, 6], [6, -6], [-9, -2], [10, 8], [-2, -12], [14, -14], [-16, 4], [2, 16], [-12, 14], [22, 4], [-24, -8], [8, -24], [-8, 28], [26, 28], [-36, 10], [36, -6], [-20, -30]];
+const pickupSpots = [[0, 3], [-4, 6], [6, -6], [-9, -2], [10, 8], [-2, -12], [14, -14], [-16, 4], [2, 16], [-12, 14], [22, 4], [-24, -8], [8, -24], [-8, 30], [20, 18], [-36, 10], [36, -6], [-20, -30], [-34, -28], [-12, -40], [30, -30], [-42, 4], [12, 40]];
 for (const [x, z] of pickupSpots) {
   const m = makeBlockMesh(0xffffff);
   m.position.set(x, terrainHeight(x, z) + 0.6, z);
@@ -114,16 +116,18 @@ function setBlocks(n) {
   }
   refreshHud();
 }
-if (location.search.includes('debug')) { window.__game = { player, state, creatures, setBlocks, input }; }
+if (location.search.includes('debug')) { window.__game = { player, state, creatures, setBlocks, input, boss, renderer }; }
 const hudBlocks = document.getElementById('hud-blocks');
 const hudCaught = document.getElementById('hud-caught');
 const hudRescued = document.getElementById('hud-rescued');
+const hudBoss = document.getElementById('hud-boss');
 const hudBlockIcon = document.querySelector('.hud-icon.block');
 function refreshHud() {
   hudBlocks.textContent = `블록 ${state.blocks}개`;
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
-  hudCaught.textContent = `친구 ${state.caught}/${creatures.length}`;
+  hudCaught.textContent = `친구 ${state.caught}/${meadowCreatures.length}`;
   hudRescued.textContent = `구출 ${state.rescued}/${numberblocks.length}`;
+  hudBoss.textContent = `보스 ${state.bossDone ? 1 : 0}/1`;
 }
 refreshHud();
 if (location.search.includes('debug')) setBlocks(10); // 테스트용: ?debug 로 열면 블록 10개로 시작
@@ -135,14 +139,18 @@ function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! 더 모으면 숫자가 커져. 몬스터가 오면 좋아하는 숫자만큼 나눠 주자!', { sec: 7 }); }
-  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 서쪽 언덕 위 둘이와 동쪽 꽃밭의 셋이도 찾아줘. 가까이 가서 E(액션)!', { sec: 6 }); }
+  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 서쪽 언덕 위 둘이와 동쪽 연못가의 셋이도 찾아줘. 가까이 가서 E(액션)!', { sec: 6 }); }
 }
 
 function checkChapterDone() {
   if (state.done) return;
-  if (state.caught >= creatures.length && state.rescued >= numberblocks.length) {
+  if (state.caught >= meadowCreatures.length && state.rescued >= numberblocks.length && !state.bossHintTold) {
+    state.bossHintTold = true;
+    say('친구를 다 모았어! 서북쪽 돌기둥 아레나에 커다란 쿵쿵이가 있대. 블록 10개를 모아서 가 보자!', { sec: 8 });
+  }
+  if (state.caught >= meadowCreatures.length && state.rescued >= numberblocks.length && state.bossDone) {
     state.done = true;
-    say('챕터 1 완료! 초원 끝의 큰 구멍은… 블록을 더하면 다리가 될지도 몰라! (다음 챕터는 준비 중)', { sec: 12 });
+    say('챕터 1 완료! 동굴 입구의 바위가 치워졌어. (동굴 챕터는 준비 중)', { sec: 12 });
   }
 }
 
@@ -205,22 +213,22 @@ function frame() {
       if (c.state === 'caught') continue;
       const ev = c.update(dt, player.position);
       if (ev === 'meet') {
-        c.hint.visible = false;
         const need = c.data.favoriteNumber;
-        if (state.blocks < need) {
-          // 블록이 모자라면 잡기 화면을 열지 않는다. 원이가 알려주고 몬스터는 잠시 물러난다.
-          c.becomeShy();
-          say(`${c.data.name}은(는) ${need}을(를) 좋아해! 블록이 ${need - state.blocks}개 모자라. 하얀 블록을 더 주워오자!`, { sec: 6 });
-          break;
-        }
-        say(`${c.data.name}은(는) ${need}을(를) 좋아해!`, { sec: 3 });
+        say(c.isBoss ? `쿵쿵이다! 커다란 쿵쿵이는 ${need}을(를) 좋아해!` : `${c.data.name}은(는) ${need}을(를) 좋아해!`, { sec: 3 });
         catchMode.open(c, state.blocks, (result, used) => {
           if (result === 'caught') {
             c.becomeFriend();
             chain.add(c.mesh);
-            state.caught++;
             setBlocks(state.blocks - used);
-            say(`${c.data.name}에게 블록 ${used}개를 줬어. 남은 블록은 ${state.blocks}개!`, { sec: 5 });
+            if (c.isBoss) {
+              state.bossDone = true;
+              scene.remove(boulder); // 동굴 입구가 열린다
+              say(`쿵쿵이가 친구가 됐어! 쿵! 하고 동굴 입구 바위를 치워줬어!`, { sec: 7 });
+            } else {
+              state.caught++;
+              say(`${c.data.name}에게 블록 ${used}개를 줬어. 남은 블록은 ${state.blocks}개!`, { sec: 5 });
+            }
+            refreshHud();
             checkChapterDone();
           } else {
             c.becomeShy();
@@ -269,6 +277,8 @@ function frame() {
     }
     tutorial();
   }
+
+  animateWorld(t);
 
   // 그림자 광원이 주인공을 따라간다 (큰 맵에서도 그림자 선명)
   sun.position.set(player.position.x + 20, 30, player.position.z + 10);

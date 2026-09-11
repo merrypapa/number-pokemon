@@ -8,6 +8,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 .hud-icon { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
 .hud-icon.block { background: #fff; border: 2px solid #999; }
 .hud-icon.mon { background: #ffd93d; border-radius: 50%; }
+.hud-icon.boss { background: #a569bd; border-radius: 30%; border: 2px solid #20232e; }
 .hud-icon.nb { background: linear-gradient(#f7cf3e 0 33%, #f2872f 33% 66%, #e8453c 66%); border: 2px solid #20232e; }
 
 #msg { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.95); border-radius: 18px; padding: 10px 18px 10px 10px; max-width: min(92vw, 640px); box-shadow: 0 4px 14px rgba(0,0,0,.2); z-index: 6; }
@@ -35,6 +36,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #catch-buttons button:active { transform: translateY(2px); box-shadow: none; }
 #btn-show { background: #ffd93d !important; }
 #btn-later { background: #eee !important; color: #666 !important; font-size: 16px !important; }
+#btn-later.primary { background: #57b947 !important; color: #fff !important; font-size: 20px !important; }
+#catch-buttons button:disabled { opacity: .35; cursor: default; }
 #catch-help { font-size: 13px; color: #888; margin-top: 10px; }
 
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 7; }

@@ -74,6 +74,10 @@ export class Creature {
     this.target = home.clone();
     this.state = 'wander'; // wander | approach | caught | shy
     this.shyTimer = 0;
+    this.cooldown = 0;        // 결투 화면을 닫은 직후 잠깐은 다시 열리지 않음
+    this.isBoss = !!data.boss;
+    this.approachRange = this.isBoss ? 11 : 7;
+    this.leash = this.isBoss ? 5 : 6;
     this.t = rand(0, 10);
     this.hint = makeNumberSprite(data.favoriteNumber);
     this.hint.position.y = 1.7 * (data.scale || 1);
@@ -86,7 +90,7 @@ export class Creature {
 
   pickTarget() {
     for (let i = 0; i < 10; i++) {
-      const x = this.home.x + rand(-6, 6), z = this.home.z + rand(-6, 6);
+      const x = this.home.x + rand(-this.leash, this.leash), z = this.home.z + rand(-this.leash, this.leash);
       if (!inHole(x, z) && Math.abs(x) < WORLD.size / 2 - 3 && Math.abs(z) < WORLD.size / 2 - 3) {
         this.target.set(x, 0, z);
         return;
@@ -107,9 +111,18 @@ export class Creature {
   }
 
   // 아직 안 잡힌 몬스터: 돌아다니다가 플레이어가 가까이 오면 다가온다.
+  // 어떤 상태든 플레이어와 닿으면 결투('meet')가 열린다 (쿨다운 중 제외).
   update(dt, playerPos) {
     this.t += dt;
+    this.cooldown = Math.max(0, this.cooldown - dt);
     const p = this.mesh.position;
+    const touchDist = 1.7 + (this.data.scale || 1) * 0.5;
+    if (this.cooldown <= 0 && p.distanceTo(playerPos) < touchDist) {
+      this.hint.visible = false;
+      return 'meet';
+    }
+    // 보스는 아레나(집) 근처에 플레이어가 와야 반응한다
+    const playerNear = this.isBoss ? playerPos.distanceTo(this.home) < this.approachRange : p.distanceTo(playerPos) < this.approachRange;
     let bob = 0;
     if (this.state === 'shy') {
       this.shyTimer -= dt;
@@ -120,12 +133,11 @@ export class Creature {
       const d = this.moveToward(this.target.x, this.target.z, 1.2, dt);
       if (d < 0.3 && Math.random() < 0.02) this.pickTarget();
       bob = Math.abs(Math.sin(this.t * 6)) * 0.08;
-      if (p.distanceTo(playerPos) < 7) this.state = 'approach';
+      if (playerNear) this.state = 'approach';
     } else if (this.state === 'approach') {
-      const d = this.moveToward(playerPos.x, playerPos.z, 2.6, dt);
-      bob = Math.abs(Math.sin(this.t * 10)) * 0.15;
-      if (d > 14) this.state = 'wander';
-      if (d < 1.7) return 'meet';
+      const d = this.moveToward(playerPos.x, playerPos.z, this.isBoss ? 1.8 : 2.6, dt);
+      bob = this.isBoss ? Math.abs(Math.sin(this.t * 5)) * 0.35 : Math.abs(Math.sin(this.t * 10)) * 0.15; // 보스는 쿵쿵 크게
+      if (!playerNear && d > 14) this.state = 'wander';
     }
     this.hint.visible = this.state === 'approach';
     p.y = terrainHeight(p.x, p.z) + bob;
@@ -134,7 +146,8 @@ export class Creature {
 
   becomeShy() {
     this.state = 'shy';
-    this.shyTimer = 5;
+    this.shyTimer = this.isBoss ? 2 : 5;
+    this.cooldown = 3;
     this.hint.visible = false;
   }
 

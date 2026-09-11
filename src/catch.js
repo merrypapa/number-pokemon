@@ -37,6 +37,7 @@ class Preview {
     this.model = mesh;
     if (!mesh) return;
     this.scene.add(mesh);
+    this.baseScale = mesh.scale.x; // 보스처럼 기본 크기가 큰 모델도 유지
     this.pop = 1;
     const box = new THREE.Box3().setFromObject(mesh);
     const size = box.getSize(new THREE.Vector3());
@@ -58,7 +59,7 @@ class Preview {
       this.model.rotation.y = Math.sin(this.t * 1.2) * 0.45;
       if (this.pop > 0) {
         this.pop = Math.max(0, this.pop - dt * 4);
-        const s = 1 + Math.sin(this.pop * Math.PI) * 0.18;
+        const s = (1 + Math.sin(this.pop * Math.PI) * 0.18) * (this.baseScale || 1);
         this.model.scale.setScalar(s);
       }
     }
@@ -85,7 +86,9 @@ export class CatchMode {
     document.getElementById('btn-plus').onclick = () => this.change(1);
     document.getElementById('btn-minus').onclick = () => this.change(-1);
     document.getElementById('btn-show').onclick = () => this.show();
-    document.getElementById('btn-later').onclick = () => this.close('later');
+    this.laterBtn = document.getElementById('btn-later');
+    this.laterBtn.onclick = () => this.close('later');
+    this.stackBtns = [document.getElementById('btn-plus'), document.getElementById('btn-minus'), document.getElementById('btn-show')];
   }
 
   open(creature, blocksOwned, onDone) {
@@ -103,6 +106,16 @@ export class CatchMode {
     this.input.endFrame(); // 걷던 중 누른 키가 블록 올리기로 들어가지 않게
     this.monPreview.setModel(buildDraftMesh(creature.data));
     this.render();
+    // 블록이 모자라면: 화면은 열리지만 쌓기는 잠그고, 나가서 주워오도록 안내
+    this.short = blocksOwned < creature.data.favoriteNumber;
+    for (const b of this.stackBtns) b.disabled = this.short;
+    this.laterBtn.textContent = this.short ? '블록 주우러 가기' : '나중에';
+    this.laterBtn.classList.toggle('primary', this.short);
+    if (this.short) {
+      this.fbEl.className = '';
+      this.fbEl.textContent = `블록이 ${creature.data.favoriteNumber - blocksOwned}개 모자라요. 하얀 블록을 더 주워오자!`;
+    }
+    document.getElementById('catch-title').textContent = creature.data.boss ? '보스가 나타났다!' : '몬스터가 다가왔어요!';
     this.el.classList.remove('hidden');
   }
 
@@ -117,7 +130,7 @@ export class CatchMode {
   }
 
   change(d) {
-    if (!this.active || this.locked) return;
+    if (!this.active || this.locked || this.short) return;
     const next = this.count + d;
     if (next < 0) return;
     if (next > this.max) {
@@ -139,7 +152,7 @@ export class CatchMode {
   }
 
   show() {
-    if (!this.active || this.locked) return;
+    if (!this.active || this.locked || this.short) return;
     const want = this.creature.data.favoriteNumber;
     if (this.count === want) {
       this.locked = true;
