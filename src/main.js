@@ -3,7 +3,8 @@ import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, WORLD } from './world.js';
 import { Player } from './player.js';
 import { Creature } from './creatures.js';
-import { Numberblock, FollowChain, buildNumberblockMesh } from './numberblocks.js';
+import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
+import { NUMBER_COLORS } from './palette.js';
 import { CatchMode } from './catch.js';
 import { makeBlockMesh, rand } from './util.js';
 
@@ -38,6 +39,9 @@ let msgTimer = 0;
 function say(text, { face = '1', sec = 4 } = {}) {
   msgText.textContent = text;
   msgFace.textContent = face;
+  const col = NUMBER_COLORS[Number(face)];
+  msgFace.style.background = col ? col.base : '#fff';
+  msgFace.style.color = col ? '#fff' : '#333';
   msgEl.classList.remove('hidden');
   msgTimer = sec;
 }
@@ -64,6 +68,17 @@ const creatures = creatureData.creatures
 // 구출할 숫자블록: 둘이(언덕 위), 셋이(꽃밭)
 const rescueSpots = { nb02: [-14, -8], nb03: [16, 12] };
 const numberblocks = ['nb02', 'nb03'].map((id) => new Numberblock(scene, nbById[id], { x: rescueSpots[id][0], z: rescueSpots[id][1] }));
+
+// ?showcase 로 열면 숫자블록 친구 1~10이 시작 지점 앞에 한 줄로 선다 (디자인 확인용)
+if (location.search.includes('showcase')) {
+  nbData.numberblocks.forEach((nb, i) => {
+    const m = buildNumberblockMesh(nb);
+    const x = -9 + i * 2, z = 3;
+    m.position.set(x, terrainHeight(x, z), z);
+    m.rotation.y = Math.PI * 0.02 * (i - 5);
+    scene.add(m);
+  });
+}
 
 // 주울 수 있는 블록 10개
 const pickups = [];
@@ -169,6 +184,7 @@ function frame() {
       if (nb.rescued) continue;
       nb.t += dt;
       nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 2)) * 0.05;
+      animateNumberblock(nb.mesh, dt, false);
       const d = nb.position.distanceTo(player.position);
       if (d < 2.2 && input.wasPressed('action')) {
         nb.rescued = true;

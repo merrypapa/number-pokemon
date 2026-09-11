@@ -30,7 +30,8 @@ python3 -m http.server 8000
 | `src/world.js` | 초원 지형(언덕·구멍·나무·꽃) |
 | `src/player.js` | 주인공 이동/점프/구멍 낙하 |
 | `src/creatures.js` | `data/creatures.json`의 draftShape로 드래프트 몬스터 생성, 다가오기 AI |
-| `src/numberblocks.js` | 숫자블록 친구, 파트너 줄지어 따라오기 |
+| `src/palette.js` | 숫자별 색 (number-mario 와 동일 팔레트) |
+| `src/numberblocks.js` | 숫자블록 친구(숫자별 색·배치·얼굴·팔다리), 파트너 줄지어 따라오기 |
 | `src/catch.js` | 잡기 모드(블록 쌓기, 3번 틀리면 원이가 같이 세기) |
 | `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 |
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
@@ -58,4 +59,4 @@ python3 -m http.server 8000
 ## 저작권 메모
 
 - **포켓몬**: 게임 안의 몬스터는 전부 이 프로젝트에서 새로 만든 드래프트 캐릭터입니다. 나중에 개인용 3D 파일로 교체할 때는 `assets/models/`에 넣고 `data/creatures.json`의 `model` 값만 바꾸면 됩니다.
-- **넘버블럭스(Numberblocks)**: BBC/Alphablocks Ltd 의 상표·캐릭터입니다. 이 프로젝트에서는 "숫자블록"이라는 이름의 자체 캐릭터(정육면체 블록을 쌓은 숫자 친구들)로 만들고, 색과 얼굴 디자인도 원작과 다르게 잡았습니다. 집에서 아이와 즐기는 개인 프로젝트로는 문제 없지만, 공개 배포 시에는 이름과 디자인이 원작과 겹치지 않게 유지해 주세요.
+- **넘버블럭스(Numberblocks)**: BBC/Alphablocks Ltd 의 상표·캐릭터입니다. 이 프로젝트의 "숫자블록" 친구들은 number-mario 프로젝트와 같은 자체 팔레트(`src/palette.js`)와 코드로 그린 자체 디자인이며, 원작의 이미지·모델 파일은 쓰지 않습니다. 집에서 아이와 즐기는 개인 프로젝트로는 문제 없지만, 공개 배포 시에는 이름과 디자인이 원작과 겹치지 않게 유지해 주세요.

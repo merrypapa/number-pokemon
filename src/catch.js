@@ -1,3 +1,5 @@
+import { colorForCount } from './palette.js';
+
 // 잡기 모드 UI. 블록을 쌓아 몬스터가 좋아하는 숫자를 맞춘다. 벌칙 없음, 3번 틀리면 원이가 같이 세어준다.
 export class CatchMode {
   constructor(input, say) {
@@ -56,10 +58,13 @@ export class CatchMode {
   }
 
   render() {
+    // 블록을 n개 쌓으면 숫자블록 n의 색이 된다 (원이=빨강, 둘이=주황, 셋이=노랑…)
     this.stackEl.innerHTML = '';
+    const color = colorForCount(this.count);
     for (let i = 0; i < this.count; i++) {
       const b = document.createElement('div');
       b.className = 'stack-block';
+      b.style.background = color;
       this.stackEl.appendChild(b);
     }
     this.countEl.textContent = this.count;

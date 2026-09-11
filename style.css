@@ -8,10 +8,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 .hud-icon { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
 .hud-icon.block { background: #fff; border: 2px solid #999; }
 .hud-icon.mon { background: #ffd93d; border-radius: 50%; }
-.hud-icon.nb { background: #ffd1b3; border: 2px solid #c98; }
+.hud-icon.nb { background: linear-gradient(#f7cf3e 0 33%, #f2872f 33% 66%, #e8453c 66%); border: 2px solid #20232e; }
 
 #msg { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.95); border-radius: 18px; padding: 10px 18px 10px 10px; max-width: min(92vw, 640px); box-shadow: 0 4px 14px rgba(0,0,0,.2); z-index: 6; }
-#msg-face { width: 44px; height: 44px; border-radius: 8px; background: #fff; border: 3px solid #333; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
+#msg-face { width: 44px; height: 44px; border-radius: 8px; background: #e8453c; border: 3px solid #20232e; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
 #msg-text { font-size: 20px; font-weight: 700; color: #333; line-height: 1.3; }
 
 #catch { position: fixed; inset: 0; background: rgba(20,40,80,.55); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
@@ -25,7 +25,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #catch-stack-wrap { flex: 1; background: #e8f4ff; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-height: 220px; }
 #catch-stack { display: flex; flex-direction: column-reverse; gap: 3px; min-height: 160px; justify-content: flex-start; }
 .stack-block { width: 40px; height: 40px; background: #fff; border: 3px solid #333; border-radius: 6px; animation: pop .15s ease-out; }
-.stack-block.highlight { background: #ffd93d; }
+.stack-block.highlight { box-shadow: 0 0 0 4px #ffd93d; }
 @keyframes pop { from { transform: scale(.3); } to { transform: scale(1); } }
 #catch-count { font-size: 32px; font-weight: 900; color: #333; margin-top: 8px; }
 #catch-feedback { min-height: 30px; font-size: 20px; font-weight: 700; color: #c0392b; margin: 10px 0; }
