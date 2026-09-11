@@ -66,8 +66,9 @@ export class Input {
       if (j.active) return;
       e.preventDefault();
       j.active = true; j.id = e.pointerId; j.cx = e.clientX; j.cy = e.clientY;
-      base.style.left = `${e.clientX}px`;
-      base.style.top = `${e.clientY}px`;
+      const rect = zone.getBoundingClientRect(); // 영역 기준 좌표로 스틱을 놓는다
+      base.style.left = `${e.clientX - rect.left}px`;
+      base.style.top = `${e.clientY - rect.top}px`;
       base.classList.remove('hidden');
       try { zone.setPointerCapture(e.pointerId); } catch (_) { /* 합성 이벤트 등 */ }
       place(e);

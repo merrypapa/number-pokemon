@@ -105,7 +105,7 @@ function setBlocks(n) {
     if (old) { chain.replace(old, mesh); scene.remove(old); }
     else {
       mesh.position.copy(player.position);
-      mesh.position.z += 1.2;
+      mesh.position.z -= 1.6; // 카메라에서 볼 때 주인공 뒤쪽(안쪽)에 생긴다
       chain.addFirst(mesh);
     }
     scene.add(mesh);

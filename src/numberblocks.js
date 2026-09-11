@@ -210,7 +210,7 @@ export class FollowChain {
       const p = f.mesh.position;
       const dx = prev.x - p.x, dz = prev.z - p.z;
       const dist = Math.hypot(dx, dz);
-      const want = 1.4;
+      const want = 1.8;
       let moving = false;
       if (dist > want) {
         const step = Math.min(dist - want, 7 * dt);
