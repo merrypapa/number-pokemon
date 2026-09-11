@@ -50,12 +50,16 @@ export class Player {
     this.respawnFlash = 0.6;
   }
 
-  update(dt, input) {
+  update(dt, input, camYaw = 0) {
     const p = this.group.position;
     const axis = input.getAxis(); // 키보드도 조이스틱처럼: 목표 속도로 부드럽게 가속
+    // 화면 기준 축을 카메라 방향(camYaw) 기준 월드 방향으로 회전
+    const sy = Math.sin(camYaw), cy = Math.cos(camYaw);
+    const wx = axis.x * cy + axis.y * sy;
+    const wz = axis.y * cy - axis.x * sy;
     const k = Math.min(1, ACCEL * dt);
-    this.vx += (axis.x * SPEED - this.vx) * k;
-    this.vz += (axis.y * SPEED - this.vz) * k;
+    this.vx += (wx * SPEED - this.vx) * k;
+    this.vz += (wz * SPEED - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
     const moving = speed > 0.4;
     p.x += this.vx * dt;

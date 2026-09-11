@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; touch-action: none; }
-#game { display: block; width: 100%; height: 100%; }
+#game { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .hidden { display: none !important; }
 
 #hud { position: fixed; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
@@ -50,8 +50,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 @keyframes bannerIn { from { transform: translateX(-50%) scale(.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 7; }
-#joy-zone { position: absolute; left: 0; bottom: 0; width: 50%; height: 65%; pointer-events: auto; touch-action: none; }
-#joy-base { position: absolute; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; background: rgba(255,255,255,.25); border: 3px solid rgba(255,255,255,.7); pointer-events: none; }
+#joy-zone { position: absolute; left: 24px; bottom: 96px; width: 150px; height: 150px; pointer-events: auto; touch-action: none; }
+#joy-base { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; background: rgba(255,255,255,.22); border: 3px solid rgba(255,255,255,.65); pointer-events: none; transition: background .15s; }
+#joy-base.active { background: rgba(255,255,255,.35); }
 #joy-knob { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
 #touch-actions { position: absolute; right: 16px; bottom: 90px; display: flex; gap: 10px; pointer-events: auto; }
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
@@ -64,3 +65,21 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #btn-start { font-size: 24px; font-weight: 900; padding: 14px 40px; border-radius: 16px; border: 0; background: #ffd93d; color: #333; cursor: pointer; box-shadow: 0 4px 0 #d4b02e; }
 #btn-start:active { transform: translateY(3px); box-shadow: none; }
 #title-help { margin-top: 16px; font-size: 14px; color: #999; }
+
+/* ---------- 도감 ---------- */
+#btn-dex { position: fixed; top: 12px; right: 12px; z-index: 6; font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
+#dex { position: fixed; inset: 0; background: rgba(20,30,50,.6); z-index: 14; display: flex; align-items: center; justify-content: center; padding: 12px; }
+#dex-card { background: #fffbe6; border-radius: 22px; width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
+#dex-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid #f0e6c0; }
+#dex-title { font-size: 22px; font-weight: 900; color: #333; }
+#dex-count { font-weight: 800; color: #777; }
+#btn-dex-close { margin-left: auto; font-size: 16px; font-weight: 800; padding: 8px 14px; border-radius: 12px; border: 0; background: #eee; cursor: pointer; }
+#dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; overflow-y: auto; }
+.dex-item { background: #fff; border-radius: 16px; padding: 8px; text-align: center; border: 3px solid transparent; position: relative; }
+.dex-item.caught { border-color: #ffd93d; }
+.dex-item img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; }
+.dex-item.unknown img { opacity: .55; }
+.dex-item .dex-q { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); font-size: 46px; font-weight: 900; color: #fff; -webkit-text-stroke: 2px #20232e; pointer-events: none; }
+.dex-name { font-size: 16px; font-weight: 900; color: #333; margin-top: 4px; }
+.dex-sub { font-size: 12px; color: #777; margin-top: 2px; }
+.dex-num { display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 8px; color: #fff; font-weight: 900; font-size: 13px; margin-top: 4px; }

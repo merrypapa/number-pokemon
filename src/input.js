@@ -1,4 +1,4 @@
-// 키보드 + 가상 조이스틱 입력. 이동은 아날로그 축(axis), 버튼은 점프/액션 두 개.
+// 키보드 + 고정 가상 조이스틱 + 화면 드래그(카메라 회전). 이동은 아날로그 축(axis), 버튼은 점프/액션.
 const KEYMAP = {
   ArrowUp: 'up', KeyW: 'up',
   ArrowDown: 'down', KeyS: 'down',
@@ -7,6 +7,8 @@ const KEYMAP = {
   Space: 'jump',
   KeyE: 'action', Enter: 'action',
   Escape: 'cancel',
+  KeyQ: 'camLeft', KeyR: 'camRight',
+  KeyB: 'dex',
 };
 
 const JOY_RADIUS = 55; // 스틱이 움직이는 최대 반지름(px)
@@ -17,6 +19,7 @@ export class Input {
     this.pressed = new Set(); // 이번 프레임에 눌린 것
     this.enabled = true;
     this.joy = { active: false, id: null, cx: 0, cy: 0, x: 0, y: 0 };
+    this.look = { dx: 0, dy: 0, id: null, lastX: 0, lastY: 0 }; // 화면 드래그 누적량 (main 이 매 프레임 소비)
 
     window.addEventListener('keydown', (e) => {
       const k = KEYMAP[e.code];
@@ -44,7 +47,7 @@ export class Input {
       btn.addEventListener('pointerleave', up);
     });
 
-    // 가상 조이스틱: 왼쪽 영역 아무 데나 누르면 그 자리에 스틱이 생긴다
+    // 고정 조이스틱: 왼쪽 아래 원 안을 누르고 밀면 움직인다
     const zone = document.getElementById('joy-zone');
     const base = document.getElementById('joy-base');
     const knob = document.getElementById('joy-knob');
@@ -60,25 +63,40 @@ export class Input {
     const release = () => {
       j.active = false; j.id = null; j.x = 0; j.y = 0;
       knob.style.transform = 'translate(0px, 0px)';
-      base.classList.add('hidden');
+      base.classList.remove('active');
     };
     zone.addEventListener('pointerdown', (e) => {
       if (j.active) return;
       e.preventDefault();
-      j.active = true; j.id = e.pointerId; j.cx = e.clientX; j.cy = e.clientY;
-      const rect = zone.getBoundingClientRect(); // 영역 기준 좌표로 스틱을 놓는다
-      base.style.left = `${e.clientX - rect.left}px`;
-      base.style.top = `${e.clientY - rect.top}px`;
-      base.classList.remove('hidden');
+      const rect = base.getBoundingClientRect();
+      j.active = true; j.id = e.pointerId; j.cx = rect.left + rect.width / 2; j.cy = rect.top + rect.height / 2;
+      base.classList.add('active');
       try { zone.setPointerCapture(e.pointerId); } catch (_) { /* 합성 이벤트 등 */ }
       place(e);
     });
     zone.addEventListener('pointermove', (e) => { if (j.active && e.pointerId === j.id) place(e); });
     zone.addEventListener('pointerup', (e) => { if (e.pointerId === j.id) release(); });
     zone.addEventListener('pointercancel', (e) => { if (e.pointerId === j.id) release(); });
+
+    // 화면 드래그 → 카메라 회전 (조이스틱/버튼/패널 위가 아닌 게임 화면)
+    const canvas = document.getElementById('game');
+    const L = this.look;
+    canvas.addEventListener('pointerdown', (e) => {
+      if (L.id !== null) return;
+      L.id = e.pointerId; L.lastX = e.clientX; L.lastY = e.clientY;
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* */ }
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== L.id) return;
+      L.dx += e.clientX - L.lastX; L.dy += e.clientY - L.lastY;
+      L.lastX = e.clientX; L.lastY = e.clientY;
+    });
+    const endLook = (e) => { if (e.pointerId === L.id) L.id = null; };
+    canvas.addEventListener('pointerup', endLook);
+    canvas.addEventListener('pointercancel', endLook);
   }
 
-  /** 이동 축. x: 왼쪽(-1)~오른쪽(+1), y: 위(-1)~아래(+1). 길이는 최대 1. */
+  /** 이동 축(화면 기준). x: 왼쪽(-1)~오른쪽(+1), y: 위(-1)~아래(+1). 길이는 최대 1. */
   getAxis() {
     if (!this.enabled) return { x: 0, y: 0 };
     let x = 0, y = 0;
@@ -93,6 +111,13 @@ export class Input {
     const len = Math.hypot(x, y);
     if (len > 1) { x /= len; y /= len; }
     return { x, y };
+  }
+
+  /** 이번 프레임의 화면 드래그량(px)을 꺼내고 0으로 되돌린다 */
+  takeLook() {
+    const r = { dx: this.look.dx, dy: this.look.dy };
+    this.look.dx = 0; this.look.dy = 0;
+    return r;
   }
 
   isHeld(k) { return this.enabled && this.held.has(k); }

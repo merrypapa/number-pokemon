@@ -8,6 +8,7 @@ import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } fr
 import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
+import { Dex } from './dex.js';
 import { makeBlockMesh, rand } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -19,7 +20,13 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 220);
-const CAM_OFFSET = new THREE.Vector3(0, 9, 11);
+// 카메라: 주인공을 중심으로 회전(camYaw)/기울기(camPitch). 화면 드래그나 Q/R 로 돌린다.
+const cam = { yaw: 0, pitch: 0 };
+function camOffset() {
+  const h = 9 + cam.pitch * 6, d = 11 - cam.pitch * 3;
+  return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
+}
+function camForward() { return new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)); } // 카메라가 보는 지면 방향
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -125,7 +132,9 @@ if (location.search.includes('showcase')) {
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 20;
-const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false };
+const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false, dex: {} };
+const dex = new Dex(creatureData.creatures);
+dex.lastCaught = state.dex;
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
@@ -140,8 +149,7 @@ function setBlocks(n) {
     const mesh = buildNumberblockMesh({ number: n });
     if (old) { chain.replace(old, mesh); zone.scene.remove(old); }
     else {
-      mesh.position.copy(player.position);
-      mesh.position.z -= 1.6;
+      mesh.position.copy(player.position).addScaledVector(camForward(), 1.6); // 카메라 반대편(안쪽)에 생긴다
       chain.addFirst(mesh);
     }
     zone.scene.add(mesh);
@@ -170,7 +178,7 @@ const battle = new Battle({ input, camera, say, sound, particles, confetti });
 
 if (location.search.includes('debug')) {
   setBlocks(10);
-  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, get zone() { return zone; }, battle };
+  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, get zone() { return zone; }, battle, cam, dex };
 }
 
 // ---------- 지역 이동 ----------
@@ -190,7 +198,7 @@ function switchZone(name, spawn, message) {
     player.teleport(spawn.x, spawn.z);
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
     player.lamp.intensity = zone.name === 'cave' ? (state.glow ? 9 : 4.5) : 0;
-    camera.position.copy(player.position).add(CAM_OFFSET);
+    camera.position.copy(player.position).add(camOffset());
     if (message) say(message.text, message);
     setTimeout(() => { fadeEl.classList.remove('on'); switching = false; }, 150);
   }, 480);
@@ -227,10 +235,20 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  if (battle.active) {
+  if (input.wasPressed('dex') && !battle.active) dex.toggle(state.dex);
+  if (dex.open) {
+    if (input.wasPressed('cancel')) dex.hide();
+  } else if (battle.active) {
     battle.update(dt);
   } else if (!switching) {
-    player.update(dt, input);
+    // 카메라 회전: 화면 드래그 또는 Q/R
+    const look = input.takeLook();
+    cam.yaw -= look.dx * 0.006;
+    cam.pitch = Math.max(-0.35, Math.min(0.6, cam.pitch + look.dy * 0.004));
+    if (input.isHeld('camLeft')) cam.yaw += dt * 1.8;
+    if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
+
+    player.update(dt, input, cam.yaw);
 
     // 구멍/동굴 입구 → 동굴, 포탈 → 초원
     if (zone.name === 'meadow') {
@@ -243,7 +261,7 @@ function frame() {
     } else if (zone.name === 'cave') {
       const P = zones.cave.world.portal;
       if (Math.hypot(player.position.x - P.x, player.position.z - P.z) < 1.6) {
-        switchZone('meadow', { x: WORLD.village.x, z: WORLD.village.z - 10 }, { text: '숲마을로 돌아왔어!', sec: 4 });
+        switchZone('meadow', { x: WORLD.village.x, z: WORLD.village.z - 14 }, { text: '숲마을로 돌아왔어!', sec: 4 });
       }
     }
 
@@ -296,6 +314,7 @@ function frame() {
               state.caught++;
               say(`${c.data.name}이(가) 친구가 됐어! 남은 블록은 ${state.blocks}개!`, { sec: 5 });
             }
+            state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 9; player.lamp.distance = 22; zones.cave.scene.fog.far = 75; say('반디가 동굴을 환하게 밝혀줘!', { sec: 5 }); }
             refreshHud();
             checkProgress();
@@ -326,7 +345,7 @@ function frame() {
     chain.update(dt);
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
     for (const f of chain.followers) {
-      const occluding = f.mesh.position.z > player.position.z + 0.3 && f.mesh.position.distanceTo(player.position) < 3.5;
+      const occluding = f.mesh.position.distanceTo(camera.position) < player.position.distanceTo(camera.position) - 0.3 && f.mesh.position.distanceTo(player.position) < 3.5;
       const target = occluding ? 0.35 : 1;
       if (f.mesh.userData.opacity === target) continue;
       f.mesh.userData.opacity = target;
@@ -344,8 +363,8 @@ function frame() {
     tutorial();
 
     // 카메라 따라가기
-    const camTarget = player.position.clone().add(CAM_OFFSET);
-    camera.position.lerp(camTarget, 0.08);
+    const camTarget = player.position.clone().add(camOffset());
+    camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
     camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
   }
 

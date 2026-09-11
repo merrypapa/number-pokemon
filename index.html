@@ -24,6 +24,18 @@
     <div class="hud-row"><span class="hud-icon boss"></span><span id="hud-boss">보스 0/1</span></div>
   </div>
 
+  <button id="btn-dex">📖 도감</button>
+  <div id="dex" class="hidden">
+    <div id="dex-card">
+      <div id="dex-head">
+        <div id="dex-title">몬스터 도감</div>
+        <div id="dex-count"></div>
+        <button id="btn-dex-close">닫기 ✕</button>
+      </div>
+      <div id="dex-grid"></div>
+    </div>
+  </div>
+
   <div id="msg" class="hidden">
     <div id="msg-face">1</div>
     <div id="msg-text"></div>
@@ -57,7 +69,7 @@
 
   <div id="touch" class="hidden">
     <div id="joy-zone">
-      <div id="joy-base" class="hidden"><div id="joy-knob"></div></div>
+      <div id="joy-base"><div id="joy-knob"></div></div>
     </div>
     <div id="touch-actions">
       <button data-key="action">액션</button>
@@ -70,7 +82,7 @@
       <h1>넘버 몬스터 어드벤처</h1>
       <p>챕터 1 · 숫자 초원 (프로토타입)</p>
       <button id="btn-start">시작하기</button>
-      <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션 · 터치는 왼쪽을 눌러 조이스틱</div>
+      <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션 · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
     </div>
   </div>
 
