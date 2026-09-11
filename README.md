@@ -30,12 +30,13 @@ python3 -m http.server 8000
 | `src/world.js` | 초원 지형(언덕·구멍·나무·꽃) |
 | `src/player.js` | 주인공 이동/점프/구멍 낙하 |
 | `src/creatures.js` | `data/creatures.json`의 draftShape로 드래프트 몬스터 생성, 다가오기 AI |
+| `src/models.js` | `assets/models/*.glb` 불러오기(GLTFLoader), 드래프트 도형 → 진짜 모델 교체, 애니메이션 |
 | `src/palette.js` | 숫자별 색 (number-mario 와 동일 팔레트) |
 | `src/numberblocks.js` | 숫자블록 친구(숫자별 색·배치·얼굴·팔다리), 파트너 줄지어 따라오기 |
 | `src/battle.js` | 전투 장면(어깨 뒤 시점, 숫자블록 던지기로 체력 깎기, 숫자볼 캡처, 성공 연출) |
 | `src/cave.js` | 괴물 동굴 지역(수정·야광 버섯·지하 호수·포탈) |
 | `src/effects.js` | 색종이, 별/조각 파티클, 합성 효과음 |
-| `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 |
+| `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 + GLTFLoader/SkeletonUtils 애드온 |
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
 
 ## 문서 목차
@@ -56,7 +57,7 @@ python3 -m http.server 8000
 | [data/creatures.json](data/creatures.json) | 드래프트 몬스터 목록 (3D 모델 파일명, 출현 지역, 좋아하는 숫자) |
 | [data/numberblocks.json](data/numberblocks.json) | 숫자블록 친구 1~10 정보 |
 | [data/zones.json](data/zones.json) | 지역/레벨 정보 |
-| [assets/models/README.md](assets/models/README.md) | 나중에 3D 파일(.glb) 넣는 방법 |
+| [assets/models/README.md](assets/models/README.md) | 3D 파일(.glb) 올리는 방법과 이름 규칙 (`player.glb`, `m03_bbogeul.glb` …) |
 
 ## 저작권 메모
 

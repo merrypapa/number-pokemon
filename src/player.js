@@ -1,12 +1,18 @@
 import * as THREE from 'three';
 import { addFace, lerpAngle } from './util.js';
 import { terrainHeight, inHole, worldSize } from './world.js';
+import { swapDraftWithModel, tickModel } from './models.js';
+
+export const PLAYER_MODEL = 'player.glb'; // assets/models/player.glb 가 있으면 주인공이 이 모델로 바뀐다
 
 const SPEED = 6.5, JUMP = 7, GRAVITY = -20, ACCEL = 14; // ACCEL: 조이스틱처럼 부드럽게 가속/감속
 
 export class Player {
   constructor(scene) {
     this.group = new THREE.Group();
+    const draft = new THREE.Group(); // 드래프트 주인공 부품 (모델이 있으면 통째로 교체)
+    this.group.add(draft);
+    this.group.userData.draft = draft;
     // 몸(파란 옷), 머리, 노란 모자, 가방
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.4, 6, 12), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }));
     body.position.y = 0.55;
@@ -20,8 +26,9 @@ export class Player {
     const bag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.45, 0.25), new THREE.MeshStandardMaterial({ color: 0xe74c3c }));
     bag.position.set(0, 0.7, -0.35);
     for (const m of [body, head, hat, brim, bag]) m.castShadow = true;
-    this.group.add(body, head, hat, brim, bag);
+    draft.add(body, head, hat, brim, bag);
     this.body = body;
+    if (swapDraftWithModel(this.group, PLAYER_MODEL)) this.body = this.group.userData.model; // 걷기 기울임을 모델 전체에
 
     this.group.position.set(0, 0, 8);
     this.vy = 0;
@@ -71,6 +78,7 @@ export class Player {
     }
     this.group.rotation.y = this.facing;
     this.body.rotation.z = moving ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0;
+    tickModel(this.group, dt, moving ? 'walk' : 'idle');
 
     // 경계
     const lim = worldSize() / 2 - 2;

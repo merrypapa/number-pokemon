@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, setActiveTerrain, WORLD } from './world.js';
 import { buildCave } from './cave.js';
-import { Player } from './player.js';
+import { Player, PLAYER_MODEL } from './player.js';
 import { Creature } from './creatures.js';
+import { preloadModels } from './models.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle } from './battle.js';
@@ -59,6 +60,8 @@ const [creatureData, nbData] = await Promise.all([
   fetch('data/numberblocks.json').then((r) => r.json()),
 ]);
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
+// assets/models/ 의 .glb 를 미리 받아 둔다 (없는 파일은 드래프트 도형으로 대체)
+await preloadModels([PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model)]);
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 
 // ---------- 지역(zone) ----------

@@ -1,5 +1,5 @@
 {
-  "_comment": "드래프트 몬스터 목록. model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명을 넣으면 그 모델로 교체됩니다. draftShape 는 드래프트 도형 조합 힌트입니다.",
+  "_comment": "드래프트 몬스터 목록. model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명(예: m03_bbogeul.glb)을 넣으면 그 모델로 교체됩니다. 파일이 없으면 자동으로 드래프트 도형이 나옵니다. draftShape 는 드래프트 도형 조합 힌트입니다.",
   "creatures": [
     { "id": "m01", "name": "꼬물이", "favoriteNumber": 1, "zone": "meadow", "ability": null, "personality": "수줍음", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "sphere", "color": "#7ED957", "eyes": 1 } },
     { "id": "m02", "name": "폴짝이", "favoriteNumber": 2, "zone": "meadow", "ability": "high_jump", "personality": "활발", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "sphere", "color": "#FFA3C7", "ears": 2 } },

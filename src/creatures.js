@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
 import { terrainHeight, inHole, WORLD } from './world.js';
+import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
-// 나중에 model 에 .glb 파일명이 들어오면 여기서 로더로 교체하면 된다.
+// model 에 .glb 파일명이 있고 그 파일을 미리 받아 두었다면(models.js preloadModels) 드래프트 대신 그 모델을 쓴다.
 export function buildDraftMesh(c) {
   const g = new THREE.Group();
+  const draft = new THREE.Group(); // 드래프트 부품은 여기에 모아서 한 번에 교체할 수 있게 한다
+  g.add(draft);
+  g.userData.draft = draft;
   const d = c.draftShape || {};
   const color = new THREE.Color(d.color || '#cccccc');
   const glows = !!(d.glowSegments || d.glow); // 반디, 달빛이처럼 스스로 빛나는 몬스터
@@ -19,8 +23,8 @@ export function buildDraftMesh(c) {
     default: body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 14), mat); body.position.y = 0.55; faceZ = 0.55;
   }
   body.castShadow = true;
-  g.add(body);
-  addFace(g, { y: faceY + 0.05, z: faceZ, eyes: d.eyes ?? 2 });
+  draft.add(body);
+  addFace(draft, { y: faceY + 0.05, z: faceZ, eyes: d.eyes ?? 2 });
 
   // "좋아하는 숫자"가 몸에 무늬로 들어간다 (세어서 맞출 수 있게)
   const accentMat = new THREE.MeshStandardMaterial({ color: color.clone().offsetHSL(0, 0, -0.15) });
@@ -28,7 +32,7 @@ export function buildDraftMesh(c) {
     for (let i = 0; i < d.curls; i++) {
       const s = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), accentMat);
       s.position.set(-0.3 + (0.6 * i) / Math.max(1, d.curls - 1), 1.1, 0);
-      g.add(s);
+      draft.add(s);
     }
   }
   if (d.ears) {
@@ -36,14 +40,14 @@ export function buildDraftMesh(c) {
       const e = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.45, 4, 8), accentMat);
       e.position.set(i === 0 ? -0.25 : 0.25, 1.15, 0);
       e.rotation.z = i === 0 ? 0.2 : -0.2;
-      g.add(e);
+      draft.add(e);
     }
   }
   if (d.paws) {
     for (let i = 0; i < d.paws; i++) {
       const p = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), accentMat);
       p.position.set(i % 2 === 0 ? -0.35 : 0.35, 0.15, i < 2 ? 0.3 : -0.3);
-      g.add(p);
+      draft.add(p);
     }
   }
   if (d.bubbles) {
@@ -51,17 +55,18 @@ export function buildDraftMesh(c) {
       const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
       const a = (i / d.bubbles) * Math.PI * 2;
       b.position.set(Math.cos(a) * 0.7, 0.9 + Math.sin(a * 2) * 0.2, Math.sin(a) * 0.7);
-      g.add(b);
+      draft.add(b);
     }
   }
   if (d.dots) {
     for (let i = 0; i < d.dots; i++) {
       const dot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshStandardMaterial({ color: 0x222222 }));
       dot.position.set(-0.3 + (i % 3) * 0.3, 0.8 - Math.floor(i / 3) * 0.3, 0.51);
-      g.add(dot);
+      draft.add(dot);
     }
   }
   if (glows) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); }
+  if (c.model) swapDraftWithModel(g, c.model); // 진짜 모델이 있으면 드래프트 도형 대신 사용
   g.scale.setScalar(c.scale || 1);
   return g;
 }
@@ -143,6 +148,7 @@ export class Creature {
     }
     this.hint.visible = this.state === 'approach';
     p.y = terrainHeight(p.x, p.z) + bob;
+    tickModel(this.mesh, dt, 'walk'); // walk 클립이 없으면 첫 번째 클립(보통 idle)을 돈다
     return null;
   }
 
