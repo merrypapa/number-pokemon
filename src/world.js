@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { rand } from './util.js';
-import { NUMBER_COLORS } from './palette.js';
+import { NUMBER_COLORS, RAINBOW } from './palette.js';
 
 // 챕터 1 숫자 초원 (120x120).
 //  - 남쪽: 마을(큰 숫자 나무, 표지판), 시작 지점
@@ -135,6 +135,7 @@ export function buildWorld(scene) {
     else if (pd < WORLD.pond.r) c = pondBed;
     else if (pd < WORLD.pond.r + 2.5) c = sand;
     else if (ad < WORLD.arena.r) c = (Math.floor(x / 2) + Math.floor(z / 2)) % 2 === 0 ? stone : stoneDark;
+    else if (Math.hypot(x - WORLD.village.x, z - WORLD.village.z) < 7.5) c = (Math.floor(x / 1.5) + Math.floor(z / 1.5)) % 2 === 0 ? sand : dirt; // 마을 광장
     else if (distToPath(x, z) < 1.8 + Math.random() * 0.5) c = dirt;
     pos.setY(i, y);
     tmp.copy(c);
@@ -221,6 +222,110 @@ export function buildWorld(scene) {
     }
   }
 
+  // ---------- 마을 구조물: 숫자 색 집, 우물, 놀이터, 가랜드, 가로등, 꽃밭 ----------
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0xa5713a });
+  function house(number, x, z, rotY) {
+    const g = new THREE.Group();
+    const col = NUMBER_COLORS[number].base;
+    const w = 3 + number * 0.25, h = 2.2 + number * 0.15;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, 3), new THREE.MeshStandardMaterial({ color: 0xfff4dc }));
+    body.position.y = h / 2;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.8, 1.6, 4), new THREE.MeshStandardMaterial({ color: col }));
+    roof.position.y = h + 0.8; roof.rotation.y = Math.PI / 4;
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.3, 0.1), new THREE.MeshStandardMaterial({ color: NUMBER_COLORS[number].dark }));
+    door.position.set(0, 0.65, 1.52);
+    const win = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.1), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.3 }));
+    win.position.set(w * 0.3, h * 0.6, 1.52);
+    const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: makeTextTexture(String(number)), transparent: true }));
+    badge.position.set(-w * 0.3, h * 0.6, 1.53);
+    body.castShadow = roof.castShadow = true;
+    g.add(body, roof, door, win, badge);
+    g.position.set(x, meadowHeight(x, z), z);
+    g.rotation.y = rotY;
+    return g;
+  }
+  decor.add(house(1, v.x - 13, v.z - 4, 0.5), house(2, v.x + 13, v.z - 4, -0.5), house(3, v.x - 15, v.z + 8, 0.9), house(4, v.x + 15, v.z + 8, -0.9));
+  // 우물
+  {
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.2, 1, 12, 1, true), stoneMat);
+    ring.position.y = 0.5;
+    const waterTop = new THREE.Mesh(new THREE.CircleGeometry(1.0, 12), new THREE.MeshStandardMaterial({ color: 0x4fc3f7 }));
+    waterTop.rotation.x = -Math.PI / 2; waterTop.position.y = 0.7;
+    const postA = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.2, 0.15), woodMat); postA.position.set(-1.0, 1.1, 0);
+    const postB = postA.clone(); postB.position.x = 1.0;
+    const roofW = new THREE.Mesh(new THREE.ConeGeometry(1.7, 0.9, 4), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
+    roofW.position.y = 2.6; roofW.rotation.y = Math.PI / 4;
+    const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8), woodMat); bucket.position.y = 1.4;
+    g.add(ring, waterTop, postA, postB, roofW, bucket);
+    g.position.set(v.x + 7, meadowHeight(v.x + 7, v.z - 9), v.z - 9);
+    decor.add(g);
+  }
+  // 놀이터: 미끄럼틀 + 그네
+  {
+    const g = new THREE.Group();
+    const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 0.15), woodMat); ladder.position.set(-1.6, 1.1, 0);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 1.0), woodMat); top.position.set(-1.0, 2.2, 0);
+    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 3.6), new THREE.MeshStandardMaterial({ color: 0xffd93d }));
+    slide.position.set(0.6, 1.2, 0); slide.rotation.z = Math.PI / 5.2;
+    slide.rotation.y = 0; slide.rotation.set(0, 0, 0); slide.rotation.x = 0; slide.rotation.z = 0;
+    slide.rotation.set(0, 0, -Math.PI / 5.2);
+    slide.geometry = new THREE.BoxGeometry(3.4, 0.12, 0.9);
+    const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.4, 0.12), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 })); frameL.position.set(3.2, 1.2, -1.2);
+    const frameR = frameL.clone(); frameR.position.z = 1.2;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 2.6), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 })); bar.position.set(3.2, 2.4, 0);
+    const seatL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.3), new THREE.MeshStandardMaterial({ color: 0xe8453c })); seatL.position.set(3.2, 0.7, -0.5);
+    const seatR = seatL.clone(); seatR.position.z = 0.5;
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+    for (const sz of [-0.5, 0.5]) for (const sx of [-0.25, 0.25]) {
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.7, 5), ropeMat);
+      rope.position.set(3.2 + sx, 1.55, sz);
+      g.add(rope);
+    }
+    g.add(ladder, top, slide, frameL, frameR, bar, seatL, seatR);
+    g.position.set(v.x - 8, meadowHeight(v.x - 8, v.z - 11), v.z - 11);
+    g.rotation.y = 0.3;
+    decor.add(g);
+  }
+  // 가랜드 (만국기): 광장 둘레 기둥 사이 삼각 깃발
+  {
+    const posts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const x = v.x + Math.cos(a) * 8, z = v.z + Math.sin(a) * 8;
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.2, 8), woodMat);
+      post.position.set(x, meadowHeight(x, z) + 1.6, z);
+      decor.add(post);
+      posts.push(new THREE.Vector3(x, meadowHeight(x, z) + 3.1, z));
+    }
+    const flagGeo = new THREE.PlaneGeometry(0.45, 0.6);
+    for (let i = 0; i < posts.length; i++) {
+      const a = posts[i], b = posts[(i + 1) % posts.length];
+      for (let k = 1; k < 9; k++) {
+        const t = k / 9;
+        const pnt = a.clone().lerp(b, t);
+        pnt.y -= Math.sin(t * Math.PI) * 0.6; // 늘어짐
+        const flag = new THREE.Mesh(flagGeo, new THREE.MeshStandardMaterial({ color: RAINBOW[(i * 3 + k) % RAINBOW.length], side: THREE.DoubleSide }));
+        flag.position.copy(pnt); flag.position.y -= 0.3;
+        flag.lookAt(v.x, flag.position.y, v.z);
+        decor.add(flag);
+      }
+    }
+  }
+  // 가로등 (마을 길가)
+  for (const [x, z] of [[v.x - 3, v.z - 12], [v.x + 3, v.z - 12], [v.x - 3, v.z - 20], [v.x + 3, v.z - 20]]) {
+    const g = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.8, 8), new THREE.MeshStandardMaterial({ color: 0x3a3f4a }));
+    pole.position.y = 1.4;
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfff1b5, emissive: 0xffd36b, emissiveIntensity: 0.9 }));
+    lamp.position.y = 2.95;
+    g.add(pole, lamp);
+    g.position.set(x, meadowHeight(x, z), z);
+    decor.add(g);
+  }
+  // 꽃밭 (마을 옆 둥근 꽃 무더기)
+  const flowerBeds = [[v.x - 10, v.z - 16], [v.x + 10, v.z - 16]];
+
   // ---------- 보스 아레나: 돌기둥 원 + 횃불 ----------
   const ar = WORLD.arena;
   for (let i = 0; i < 10; i++) {
@@ -269,7 +374,7 @@ export function buildWorld(scene) {
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
   const leafMats = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c].map((c) => new THREE.MeshStandardMaterial({ color: c }));
   const avoid = (x, z, extra = 0) =>
-    Math.hypot(x, z - 8) < 6 || Math.hypot(x - v.x, z - v.z) < 11 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
+    Math.hypot(x, z - 8) < 6 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || distToPath(x, z) < 2.5 + extra;
   const treeSpots = [];
@@ -368,6 +473,11 @@ export function buildWorld(scene) {
     if (meadowInHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(x, z) < 2) continue;
     flowerSpots.push([x, meadowHeight(x, z), z]);
   }
+  for (const [bx, bz] of flowerBeds) for (let i = 0; i < 40; i++) {
+    const a = rand(0, Math.PI * 2), r = rand(0, 2.6);
+    const x = bx + Math.cos(a) * r, z = bz + Math.sin(a) * r;
+    flowerSpots.push([x, meadowHeight(x, z), z]);
+  }
   {
     const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 5), stemMat, flowerSpots.length);
     const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff }), flowerSpots.length);
@@ -422,5 +532,5 @@ export function buildWorld(scene) {
     for (const f of flames) f.scale.y = 1 + Math.sin(t * 9 + f.position.x) * 0.2;
   }
 
-  return { ground, bushes, sun, boulder, animate, terrain: MEADOW_TERRAIN };
+  return { ground, bushes, sun, boulder, animate, terrain: MEADOW_TERRAIN, decor };
 }

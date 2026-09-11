@@ -73,7 +73,7 @@ function limb(from, to, radius, mat) {
   return m;
 }
 
-export function buildNumberblockMesh(nb) {
+export function buildNumberblockMesh(nb, { glow = false } = {}) {
   const number = nb.number;
   const cells = shapeFor(number);
   const cols = Math.max(...cells.map((c) => c.col)) + 1;
@@ -83,11 +83,19 @@ export function buildNumberblockMesh(nb) {
   const x0 = -((cols - 1) * BLOCK) / 2;
   const cy = (row) => LEG + BLOCK / 2 + row * BLOCK;
 
-  // 블록
+  // 블록 (glow: 동굴 형광 블록을 들고 있으면 스스로 빛난다)
+  const glowMats = [];
   for (const [index, cell] of cells.entries()) {
     const cube = makeCube(cellColor(number, cell, index));
     cube.position.set(x0 + cell.col * BLOCK, cy(cell.row), 0);
+    if (glow) { cube.material.emissive = cube.material.color.clone(); cube.material.emissiveIntensity = 0.5; glowMats.push(cube.material); }
     g.add(cube);
+  }
+  if (glow) {
+    const light = new THREE.PointLight(0xfff4c0, 3, 8);
+    light.position.y = LEG + (maxRow + 1) * BLOCK * 0.6;
+    g.add(light);
+    g.userData.glow = { mats: glowMats, light };
   }
 
   // 얼굴: 맨 윗줄 중 가운데에 가까운 블록

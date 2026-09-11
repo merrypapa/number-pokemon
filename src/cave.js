@@ -40,6 +40,8 @@ function makeTextTexture(text, bg = '#1f2a3a', fg = '#9fe8ff') {
 
 export function buildCave(scene) {
   const S = CAVE.size;
+  const decor = new THREE.Group();
+  scene.add(decor);
   scene.background = new THREE.Color(0x05070c);
   scene.fog = new THREE.Fog(0x05070c, 14, 48);
   scene.add(new THREE.HemisphereLight(0x6a7ab0, 0x141a22, 0.7));
@@ -85,7 +87,7 @@ export function buildCave(scene) {
     const m = new THREE.Mesh(new THREE.ConeGeometry(rand(3, 5), h, 7), rockMat);
     m.position.set(x, caveHeight(x, z) + h / 2 - 1, z);
     m.rotation.y = rand(0, 3);
-    scene.add(m);
+    decor.add(m);
   }
   // 안쪽 바위 기둥 / 종유석(위로 솟은)
   for (let i = 0; i < 26; i++) {
@@ -95,7 +97,7 @@ export function buildCave(scene) {
     const m = new THREE.Mesh(new THREE.ConeGeometry(rand(0.6, 1.6), h, 6), rockMat);
     m.position.set(x, caveHeight(x, z) + h / 2 - 0.2, z);
     m.castShadow = true;
-    scene.add(m);
+    decor.add(m);
   }
 
   // 수정 (빛남) + 점광원
@@ -119,7 +121,7 @@ export function buildCave(scene) {
     g.add(light);
     g.position.set(x, caveHeight(x, z), z);
     g.userData.phase = rand(0, 6);
-    scene.add(g);
+    decor.add(g);
     crystals.push({ g, light });
   }
   // 야광 버섯
@@ -177,6 +179,7 @@ export function buildCave(scene) {
 
   return {
     sun, animate, terrain: CAVE_TERRAIN, portal: P, spawn: CAVE.spawn,
+    decor,
     creatureSpawns: { m07: [[-16, -6], [14, 4]], m08: [[-24, -22], [8, -30]], m09: [[26, 8], [-6, -16]] },
     pickupSpots: [[4, 4], [-6, 2], [10, -8], [-14, 8], [-18, -14], [16, -22], [-4, -30], [28, -4], [-28, 4], [6, 20], [-20, 20], [20, 24]],
   };

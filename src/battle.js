@@ -46,8 +46,8 @@ export class Battle {
     this.flying = [];
   }
 
-  start({ creature, player, scene, blocksOwned, onThrow, onCaught, onLeave }) {
-    Object.assign(this, { creature, player, scene, blocksOwned, onThrow, onCaught, onLeave });
+  start({ creature, player, scene, blocksOwned, onThrow, onCaught, onLeave, party = [], decor = null }) {
+    Object.assign(this, { creature, player, scene, blocksOwned, onThrow, onCaught, onLeave, party, decor });
     this.active = true;
     this.phase = 'enter';
     this.timer = 0;
@@ -70,10 +70,34 @@ export class Battle {
     player.group.rotation.y = player.facing;
     this.dir = dir;
     const right = new THREE.Vector3(dir.z, 0, -dir.x);
-    // 어깨 위에서 내려다보는 시점 (나무 수관보다 높게)
-    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -3.4).addScaledVector(right, 1.4);
-    this.camPos.y = p.y + 3.8;
-    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.9 * (creature.data.scale || 1), this.stageTo.z);
+    // 주인공 시점: 눈높이에서 몬스터를 마주 본다. 주인공과 뒤따르던 친구들은 전투 동안 숨긴다.
+    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.4);
+    this.camPos.y = p.y + 1.55;
+    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.8 * (creature.data.scale || 1), this.stageTo.z);
+    this.throwFrom = new THREE.Vector3().copy(this.camPos).addScaledVector(dir, 0.9).addScaledVector(right, 0.35);
+    this.throwFrom.y -= 0.45;
+    this.hidden = [];
+    for (const m of [player.group, ...party]) { if (m.visible) { m.visible = false; this.hidden.push(m); } }
+    // 주인공을 숨기면 등불도 꺼지므로 전투 동안 카메라 자리에 같은 등불을 켠다 (동굴)
+    if (player.lamp && player.lamp.intensity > 0) {
+      this.lampLight = new THREE.PointLight(0xffd9a0, player.lamp.intensity, player.lamp.distance);
+      this.lampLight.position.copy(this.camPos);
+      scene.add(this.lampLight);
+    }
+    // 카메라와 몬스터 사이 통로에 있는 나무·바위·풀숲 숨기기
+    if (decor) {
+      const a = this.camPos, b = this.stageTo;
+      const ab = new THREE.Vector3().subVectors(b, a);
+      const len2 = ab.lengthSq();
+      const tmp = new THREE.Vector3();
+      for (const o of decor.children) {
+        if (!o.visible || o.isInstancedMesh) continue;
+        const t = Math.max(0, Math.min(1, tmp.subVectors(o.position, a).dot(ab) / len2));
+        const d = tmp.copy(a).addScaledVector(ab, t).distanceTo(o.position);
+        const rad = o.userData.radius || 3.2;
+        if (d < rad + 0.5 && Math.hypot(o.position.x - b.x, o.position.z - b.z) < 30) { o.visible = false; this.hidden.push(o); }
+      }
+    }
 
     this.n = Math.max(1, Math.min(creature.hp, blocksOwned));
     this.nameEl.textContent = (creature.isBoss ? '보스 ' : '') + creature.data.name;
@@ -124,7 +148,7 @@ export class Battle {
     const n = this.n;
     const mesh = buildNumberblockMesh({ number: n });
     mesh.scale.setScalar(0.7);
-    const from = this.player.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+    const from = this.throwFrom.clone();
     const to = this.targetPoint();
     this.scene.add(mesh);
     this.flying.push({ mesh, from, to, t: 0, dur: 0.65, kind: 'block', n });
@@ -149,7 +173,7 @@ export class Battle {
       const back = buildNumberblockMesh({ number: n });
       back.scale.setScalar(0.7);
       this.scene.add(back);
-      this.flying.push({ mesh: back, from: hitPos, to: this.player.position.clone().add(new THREE.Vector3(0, 1, 0)), t: 0, dur: 0.6, kind: 'return' });
+      this.flying.push({ mesh: back, from: hitPos, to: this.throwFrom.clone(), t: 0, dur: 0.6, kind: 'return' });
       this.shake = 0.3;
       return;
     }
@@ -177,7 +201,7 @@ export class Battle {
   throwBall() {
     if (this.phase !== 'dizzy') return;
     const ball = makeBall(colorForCount(this.creature.data.favoriteNumber));
-    const from = this.player.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+    const from = this.throwFrom.clone();
     this.scene.add(ball);
     this.flying.push({ mesh: ball, from, to: this.targetPoint(), t: 0, dur: 0.7, kind: 'ball' });
     this.ball = ball;
@@ -216,6 +240,9 @@ export class Battle {
     this.creature.mesh.scale.setScalar(this.creature.data.scale || 1);
     this.creature.mesh.rotation.z = 0;
     this.creature.mesh.visible = true;
+    for (const m of this.hidden || []) m.visible = true;
+    this.hidden = [];
+    if (this.lampLight) { this.scene.remove(this.lampLight); this.lampLight = null; }
     this.el.classList.add('hidden');
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');
@@ -252,7 +279,7 @@ export class Battle {
       f.t += dt / f.dur;
       const t = Math.min(1, f.t);
       f.mesh.position.lerpVectors(f.from, f.to, t);
-      f.mesh.position.y += Math.sin(t * Math.PI) * 2.2;
+      f.mesh.position.y += Math.sin(t * Math.PI) * 1.6;
       f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 4;
       if (t >= 1) {
         this.scene.remove(f.mesh);

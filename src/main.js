@@ -86,7 +86,7 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
 }
 function spawnPickup(z, x, zz) {
   const m = makeBlockMesh(0xffffff);
-  if (z.name === 'cave') { m.material.emissive = new THREE.Color(0xffffff); m.material.emissiveIntensity = 0.35; }
+  if (z.name === 'cave') { m.material.emissive = new THREE.Color(0x9fe8ff); m.material.emissiveIntensity = 0.7; m.userData.glow = true; } // 형광 블록
   m.position.set(x, z.terrain.height(x, zz) + 0.6, zz);
   m.userData.t = rand(0, 10);
   z.scene.add(m);
@@ -132,21 +132,23 @@ if (location.search.includes('showcase')) {
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 20;
-const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false, dex: {} };
+const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false, dex: {}, glowBlocks: 0 }; // glowBlocks: 동굴에서 주운 형광 블록 수
 const dex = new Dex(creatureData.creatures);
 dex.lastCaught = state.dex;
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
-function setBlocks(n) {
+function setBlocks(n, { glow = false } = {}) {
   n = Math.max(0, Math.min(MAX_BLOCKS, n));
+  if (n > state.blocks && glow) state.glowBlocks += n - state.blocks; // 형광 블록 획득
   state.blocks = n;
+  state.glowBlocks = Math.min(state.glowBlocks, n);                 // 던져서 줄면 형광 블록도 줄어든다
   const old = myStack.mesh;
   if (n === 0) {
     if (old) { chain.remove(old); zone.scene.remove(old); }
     myStack.mesh = null;
   } else {
-    const mesh = buildNumberblockMesh({ number: n });
+    const mesh = buildNumberblockMesh({ number: n }, { glow: state.glowBlocks > 0 });
     if (old) { chain.replace(old, mesh); zone.scene.remove(old); }
     else {
       mesh.position.copy(player.position).addScaledVector(camForward(), 1.6); // 카메라 반대편(안쪽)에 생긴다
@@ -274,8 +276,9 @@ function frame() {
         if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say('블록이 스무 개! 더는 못 들어. 몬스터에게 던지자!'); } continue; }
         zone.scene.remove(b);
         zone.pickups.splice(i, 1);
-        setBlocks(state.blocks + 1);
+        setBlocks(state.blocks + 1, { glow: !!b.userData.glow });
         sound.pickup();
+        if (b.userData.glow && state.glowBlocks === 1) say('형광 블록이야! 숫자블록이 반짝반짝 빛나!', { sec: 5 });
         if (state.blocks === 5) say('블록 5개! 뒤를 봐, 하늘색 다섯이 모양이 됐어!', { sec: 5 });
         if (state.blocks === 10) say('열 개! 빨강 하나에 하양 아홉, 열이 모양이야!', { sec: 5 });
         if (state.blocks === 11) say('열 개 넘으면 열이 옆에 새 블록이 붙어. 10과 1은 11!', { sec: 5 });
@@ -302,6 +305,7 @@ function frame() {
         say(c.isBoss ? `쿵쿵이다! 체력이 ${need}이나 돼!` : `${c.data.name}이(가) 나타났다! 체력은 ${c.hp ?? need}!`, { sec: 3 });
         battle.start({
           creature: c, player, scene: zone.scene, blocksOwned: state.blocks,
+          party: chain.followers.map((f) => f.mesh), decor: zone.world.decor,
           onThrow: (n) => setBlocks(state.blocks - n),
           onCaught: () => {
             c.becomeFriend();
@@ -359,6 +363,17 @@ function frame() {
     if (myStack.mesh && myStack.pop > 0) {
       myStack.pop = Math.max(0, myStack.pop - dt * 3);
       myStack.mesh.scale.setScalar(1 + Math.sin(myStack.pop * Math.PI) * 0.25);
+    }
+    const glow = myStack.mesh?.userData.glow;
+    if (glow) {
+      const pulse = 0.45 + Math.sin(t * 5) * 0.3;
+      for (const m of glow.mats) m.emissiveIntensity = pulse;
+      glow.light.intensity = 2.5 + Math.sin(t * 5) * 1.5;
+      state.sparkleTimer = (state.sparkleTimer || 0) - dt;
+      if (state.sparkleTimer <= 0) {
+        state.sparkleTimer = 0.9;
+        particles.stars(zone.scene, myStack.mesh.position.clone().add(new THREE.Vector3(rand(-0.5, 0.5), 0.6 + Math.random() * state.blocks * 0.3, rand(-0.5, 0.5))), 3, 0xfff6a0, 0.22);
+      }
     }
     tutorial();
 

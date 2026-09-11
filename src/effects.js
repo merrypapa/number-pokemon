@@ -63,12 +63,12 @@ let starTex = null;
 export class Particles {
   constructor() { this.items = []; }
   /** 별이 사방으로 튀어나온다 */
-  stars(scene, pos, n = 16, color = 0xffd93d) {
+  stars(scene, pos, n = 16, color = 0xffd93d, size = 0.6) {
     starTex = starTex || makeStarTexture();
     for (let i = 0; i < n; i++) {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: starTex, color, transparent: true, depthTest: false }));
       s.position.copy(pos);
-      s.scale.setScalar(0.4 + Math.random() * 0.4);
+      s.scale.setScalar(size * (0.7 + Math.random() * 0.6));
       const a = Math.random() * Math.PI * 2, u = Math.random() * Math.PI;
       const v = new THREE.Vector3(Math.cos(a) * Math.sin(u), Math.cos(u) * 0.8 + 0.6, Math.sin(a) * Math.sin(u)).multiplyScalar(3 + Math.random() * 3);
       scene.add(s);
