@@ -1,0 +1,10 @@
+# 3D 모델은 개인용 파일일 수 있으므로 커밋하지 않음
+assets/models/*.glb
+assets/models/*.gltf
+assets/models/*.fbx
+assets/models/*.obj
+assets/models/*.bin
+
+node_modules/
+dist/
+.DS_Store

@@ -1,0 +1,15 @@
+{
+  "_comment": "숫자블록 친구들. blocks = 블록 개수 = 숫자. model 이 null 이면 코드에서 큐브를 쌓아 만듭니다.",
+  "numberblocks": [
+    { "id": "nb01", "number": 1,  "name": "원이",   "color": "#FFFFFF", "personality": "겁은 많지만 끝까지 함께함", "rescueZone": null,     "minigame": "hint_helper",     "model": null },
+    { "id": "nb02", "number": 2,  "name": "둘이",   "color": "#FFD1B3", "personality": "항상 둘이서 뭐든 함",       "rescueZone": "meadow", "minigame": "pair_match",      "model": null },
+    { "id": "nb03", "number": 3,  "name": "셋이",   "color": "#FFD93D", "personality": "춤추기 좋아함",             "rescueZone": "meadow", "minigame": "rhythm_count",    "model": null },
+    { "id": "nb04", "number": 4,  "name": "넷이",   "color": "#C5E384", "personality": "네모를 좋아하는 꼼꼼이",    "rescueZone": "holes",  "minigame": "square_fit",      "model": null },
+    { "id": "nb05", "number": 5,  "name": "다섯이", "color": "#58D68D", "personality": "하이파이브",                "rescueZone": "holes",  "minigame": "high_five",       "model": null },
+    { "id": "nb06", "number": 6,  "name": "여섯이", "color": "#85C1E9", "personality": "주사위 모양, 굴러다님",     "rescueZone": "cave",   "minigame": "dice_roll",       "model": null },
+    { "id": "nb07", "number": 7,  "name": "일곱이", "color": "#3498DB", "personality": "무지개 스카프, 운이 좋음",  "rescueZone": "cave",   "minigame": "lucky_seven",     "model": null },
+    { "id": "nb08", "number": 8,  "name": "여덟이", "color": "#2E4A9E", "personality": "문어 다리 여덟, 벽 타기",   "rescueZone": "cave",   "minigame": "octopus_legs",    "model": null },
+    { "id": "nb09", "number": 9,  "name": "아홉이", "color": "#9B59B6", "personality": "3x3 네모, 재채기",          "rescueZone": "ice",    "minigame": "bingo_nine",      "model": null },
+    { "id": "nb10", "number": 10, "name": "열이",   "color": "#F1948A", "secondaryColor": "#FFFFFF", "personality": "가장 큰 언니/형, 10 막대로 변신", "rescueZone": "ice", "minigame": "make_ten", "model": null }
+  ]
+}

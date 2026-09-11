@@ -1,0 +1,25 @@
+{
+  "_comment": "드래프트 몬스터 목록. model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명을 넣으면 그 모델로 교체됩니다. draftShape 는 드래프트 도형 조합 힌트입니다.",
+  "creatures": [
+    { "id": "m01", "name": "꼬물이", "favoriteNumber": 1, "zone": "meadow", "ability": null, "personality": "수줍음", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "sphere", "color": "#7ED957", "eyes": 1 } },
+    { "id": "m02", "name": "폴짝이", "favoriteNumber": 2, "zone": "meadow", "ability": "high_jump", "personality": "활발", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "sphere", "color": "#FFA3C7", "ears": 2 } },
+    { "id": "m03", "name": "뽀글이", "favoriteNumber": 3, "zone": "meadow", "ability": "find_hidden_blocks", "personality": "겁 많지만 다정", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "sphere", "color": "#FFD93D", "curls": 3 } },
+    { "id": "m04", "name": "두더구", "favoriteNumber": 4, "zone": "holes_underground", "ability": "dig", "personality": "부지런", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "capsule", "color": "#8B5A2B", "paws": 4 } },
+    { "id": "m05", "name": "방울이", "favoriteNumber": 5, "zone": "holes", "ability": "float_small_holes", "personality": "느긋", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "drop", "color": "#5DADE2", "bubbles": 5 } },
+    { "id": "m06", "name": "데굴이", "favoriteNumber": 6, "zone": "holes", "ability": "ride_on_water", "personality": "무뚝뚝", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "cube", "color": "#9E9E9E", "dots": 6 } },
+    { "id": "m07", "name": "반디", "favoriteNumber": 7, "zone": "cave", "ability": "light", "personality": "밝음", "catchable": true, "model": null, "scale": 0.7, "draftShape": { "body": "capsule", "color": "#C39BD3", "glowSegments": 7 } },
+    { "id": "m08", "name": "바위돌이", "favoriteNumber": 8, "zone": "cave", "ability": "push_rock", "personality": "힘세고 착함", "catchable": true, "model": null, "scale": 1.3, "draftShape": { "body": "cube", "color": "#7F8C8D", "cracks": 8 } },
+    { "id": "m09", "name": "박쥐돌이", "favoriteNumber": 9, "zone": "cave", "ability": "glide", "personality": "장난꾸러기", "catchable": true, "model": null, "scale": 0.9, "draftShape": { "body": "sphere", "color": "#2C3E50", "wingSpots": 9 } },
+    { "id": "m10", "name": "불꽃이", "favoriteNumber": 10, "zone": "ice", "ability": "melt_ice", "personality": "따뜻함", "catchable": true, "model": null, "scale": 0.8, "draftShape": { "body": "cone", "color": "#FF7F11", "flames": 10 } },
+    { "id": "m11", "name": "눈송이", "favoriteNumber": 12, "zone": "ice", "ability": "stop_sliding", "personality": "조용함", "catchable": true, "model": null, "scale": 0.8, "draftShape": { "body": "star6", "color": "#D6EAF8", "points": 12 } },
+    { "id": "m12", "name": "펭구", "favoriteNumber": 15, "zone": "ice", "ability": "no_slip", "personality": "씩씩", "catchable": true, "model": null, "scale": 1.0, "draftShape": { "body": "capsule", "color": "#1B2631", "belly": "#FFFFFF" } },
+    { "id": "m13", "name": "쿵쿵이", "favoriteNumber": 10, "zone": "holes_gate", "ability": "stomp_open_doors", "personality": "소심한 거인", "catchable": true, "boss": "gate", "model": null, "scale": 2.0, "draftShape": { "body": "cube", "color": "#A569BD", "feet": "large" } },
+    { "id": "m14", "name": "우르릉", "favoriteNumber": null, "compareBattle": true, "zone": "cave_boss", "ability": "break_big_rock", "personality": "승부욕", "catchable": true, "boss": "mid", "model": null, "scale": 2.2, "draftShape": { "body": "capsule", "color": "#6E2C00", "ears": "round" } },
+    { "id": "m15", "name": "달빛이", "favoriteNumber": 20, "zone": "free_roam_night", "ability": "reveal_night_blocks", "personality": "신비로움", "catchable": true, "model": null, "scale": 1.2, "draftShape": { "body": "capsule", "color": "#BFC9CA", "glow": true } },
+    { "id": "m16", "name": "빙빙이", "favoriteNumber": null, "sequenceBattle": [1,2,3,4,5,6,7,8,9,10], "zone": "ice_boss", "ability": null, "personality": "외로웠던 아이", "catchable": true, "boss": "final", "model": null, "scale": 3.0, "postEndingScale": 1.0, "draftShape": { "body": "cube", "color": "#AED6F1", "translucent": true } }
+  ],
+  "enemies": [
+    { "id": "e01", "name": "그림자 괴물", "zone": "cave", "count": 3, "numbers": [5, 7, 9], "calmMethod": "subtract", "onCatch": "return_to_checkpoint" },
+    { "id": "e02", "name": "얼음 병정", "zone": "ice", "count": 4, "numbers": [11, 12, 13, 14], "calmMethod": "ten_plus", "onCatch": "return_to_checkpoint" }
+  ]
+}

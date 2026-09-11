@@ -1,0 +1,46 @@
+{
+  "_comment": "지역과 레벨. gate 는 다음 지역으로 가는 조건.",
+  "zones": [
+    {
+      "id": "village", "name": "마을(허브)", "chapter": 0,
+      "features": ["big_number_tree", "playground", "block_storage", "dex_board"]
+    },
+    {
+      "id": "meadow", "name": "숫자 초원", "chapter": 1, "concept": "count_1_5",
+      "creatures": ["m01", "m02", "m03"], "rescues": ["nb02", "nb03"],
+      "levels": ["1-1 첫걸음", "1-2 풀숲 숨바꼭질", "1-3 언덕 위 둘이", "1-4 나비 세기", "1-5 큰 구멍 앞에서"],
+      "gate": { "to": "holes", "require": { "block10": 0, "block5": 1 } }
+    },
+    {
+      "id": "holes", "name": "구멍 뚫린 들판", "chapter": 2, "concept": "add_to_10",
+      "creatures": ["m04", "m05", "m06", "m13"], "rescues": ["nb04", "nb05"],
+      "mechanics": ["addition_bridge", "trap_holes", "underground"],
+      "holeTypes": [
+        { "type": "small", "width": [1, 2], "needsBridge": false },
+        { "type": "medium", "width": [3, 5], "needsBridge": true },
+        { "type": "large", "width": [6, 10], "needsBridge": true, "treasureBelow": true },
+        { "type": "trap", "hidden": true, "leadsTo": "underground" }
+      ],
+      "levels": ["2-1 첫 다리", "2-2 지하 세계", "2-3 넷이 구출", "2-4 방울 들판", "2-5 다섯이의 다섯 구멍", "2-6 동굴 입구, 쿵쿵이"],
+      "gate": { "to": "cave", "require": { "block10": 1, "calmed": "m13" } }
+    },
+    {
+      "id": "cave", "name": "괴물 동굴", "chapter": 3, "concept": "subtract_and_compare",
+      "creatures": ["m07", "m08", "m09", "m14"], "enemies": ["e01"], "rescues": ["nb06", "nb07", "nb08"],
+      "mechanics": ["darkness", "shadow_monsters_subtract", "underground_lake_sequence", "compare_boss"],
+      "levels": ["3-1 캄캄한 입구", "3-2 첫 그림자 괴물", "3-3 여섯이의 광석방", "3-4 지하 호수 징검다리", "3-5 여덟이와 벽 타기", "3-6 우르릉의 방"],
+      "gate": { "to": "ice", "require": { "bossWin": "m14" } }
+    },
+    {
+      "id": "ice", "name": "얼음 궁전", "chapter": 4, "concept": "make_ten_and_count_to_20",
+      "creatures": ["m10", "m11", "m12", "m16"], "enemies": ["e02"], "rescues": ["nb09", "nb10"],
+      "mechanics": ["slippery_floor", "ten_lock_doors", "melt_ice_rescue", "final_sequence_event"],
+      "levels": ["4-1 미끄럼 복도", "4-2 첫 얼음 문", "4-3 아홉이의 얼음방", "4-4 눈송이 정원", "4-5 열이의 탑", "4-6 빙빙왕의 방"],
+      "gate": null
+    },
+    {
+      "id": "free_roam", "name": "자유 탐험", "chapter": 5, "unlockAfter": "ending",
+      "creatures": ["m15"], "features": ["day_night", "golden_blocks"], "goldenBlocksPerZone": 5
+    }
+  ]
+}
