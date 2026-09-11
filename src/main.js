@@ -4,7 +4,7 @@ import { buildWorld, terrainHeight, inHole, WORLD } from './world.js';
 import { Player } from './player.js';
 import { Creature } from './creatures.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
-import { NUMBER_COLORS } from './palette.js';
+import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { CatchMode } from './catch.js';
 import { makeBlockMesh, rand } from './util.js';
 
@@ -92,17 +92,45 @@ for (const [x, z] of pickupSpots) {
 }
 
 // ---------- 게임 상태 ----------
+const MAX_BLOCKS = 20;
 const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false };
-if (location.search.includes('debug')) { state.blocks = 10; window.__game = { player, state, creatures }; } // 테스트용: ?debug 로 열면 블록 10개로 시작
+
+// 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다. 1개면 빨간 1, 2개면 주황 2… 잡기에 쓰면 다시 작아진다.
+const myStack = { mesh: null, pop: 0 };
+function setBlocks(n) {
+  n = Math.max(0, Math.min(MAX_BLOCKS, n));
+  state.blocks = n;
+  const old = myStack.mesh;
+  if (n === 0) {
+    if (old) { chain.remove(old); scene.remove(old); }
+    myStack.mesh = null;
+  } else {
+    const mesh = buildNumberblockMesh({ number: n });
+    if (old) { chain.replace(old, mesh); scene.remove(old); }
+    else {
+      mesh.position.copy(player.position);
+      mesh.position.z += 1.2;
+      chain.addFirst(mesh);
+    }
+    scene.add(mesh);
+    myStack.mesh = mesh;
+    myStack.pop = 1;
+  }
+  refreshHud();
+}
+if (location.search.includes('debug')) { window.__game = { player, state, creatures, setBlocks }; }
 const hudBlocks = document.getElementById('hud-blocks');
 const hudCaught = document.getElementById('hud-caught');
 const hudRescued = document.getElementById('hud-rescued');
+const hudBlockIcon = document.querySelector('.hud-icon.block');
 function refreshHud() {
   hudBlocks.textContent = `블록 ${state.blocks}개`;
+  hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   hudCaught.textContent = `친구 ${state.caught}/${creatures.length}`;
   hudRescued.textContent = `구출 ${state.rescued}/${numberblocks.length}`;
 }
 refreshHud();
+if (location.search.includes('debug')) setBlocks(10); // 테스트용: ?debug 로 열면 블록 10개로 시작
 
 const catchMode = new CatchMode(input, say);
 
@@ -110,13 +138,13 @@ const catchMode = new CatchMode(input, say);
 function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
-  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('몬스터가 다가오면 블록을 좋아하는 숫자만큼 쌓아서 보여주자!', { sec: 6 }); }
+  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! 더 모으면 숫자가 커져. 몬스터가 오면 좋아하는 숫자만큼 나눠 주자!', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 언덕 위 둘이와 꽃밭의 셋이도 찾아줘. 가까이 가서 E(액션)!', { sec: 6 }); }
 }
 
 function checkChapterDone() {
   if (state.done) return;
-  if (state.caught >= creatures.length && state.rescued >= numberblocks.length && state.blocks >= 5) {
+  if (state.caught >= creatures.length && state.rescued >= numberblocks.length) {
     state.done = true;
     say('챕터 1 완료! 초원 끝의 큰 구멍은… 블록을 더하면 다리가 될지도 몰라! (다음 챕터는 준비 중)', { sec: 12 });
   }
@@ -131,12 +159,13 @@ document.getElementById('btn-start').onclick = () => {
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
 let holeTold = false;
+let respawnTimer = 6;
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
   if (catchMode.active) {
-    catchMode.update();
+    catchMode.update(dt);
   } else {
     player.update(dt, input);
     if (player.fellInHole && !holeTold) { holeTold = true; say('뿅! 구멍은 아직 못 건너. 나중에 블록으로 다리를 만들자!'); }
@@ -148,11 +177,28 @@ function frame() {
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
       if (b.position.distanceTo(player.position) < 1.1) {
+        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say('블록이 스무 개! 더는 못 들어. 몬스터한테 나눠 주자!'); } continue; }
         scene.remove(b);
         pickups.splice(i, 1);
-        state.blocks++;
-        refreshHud();
-        if (state.blocks === 5) say('블록 5개! 이제 큰 문도 열 수 있겠어.');
+        setBlocks(state.blocks + 1);
+        if (state.blocks === 5) say('블록 5개! 뒤를 봐, 하늘색 다섯이 모양이 됐어!', { sec: 5 });
+        if (state.blocks === 10) say('열 개! 빨강 하나에 하양 아홉, 열이 모양이야!', { sec: 5 });
+        if (state.blocks === 11) say('열 개 넘으면 열이 옆에 새 블록이 붙어. 10과 1은 11!', { sec: 5 });
+      }
+    }
+    // 블록은 천천히 다시 생긴다 (잡기에 쓴 만큼 다시 모을 수 있게)
+    respawnTimer -= dt;
+    if (respawnTimer <= 0 && pickups.length < 8) {
+      respawnTimer = 6;
+      for (let tries = 0; tries < 20; tries++) {
+        const x = rand(-24, 24), z = rand(-20, 24);
+        if (inHole(x, z) || Math.hypot(x - player.position.x, z - player.position.z) < 6) continue;
+        const m = makeBlockMesh(0xffffff);
+        m.position.set(x, terrainHeight(x, z) + 0.6, z);
+        m.userData.t = rand(0, 10);
+        scene.add(m);
+        pickups.push(m);
+        break;
       }
     }
 
@@ -163,12 +209,13 @@ function frame() {
       if (ev === 'meet') {
         c.hint.visible = false;
         say(`${c.data.name}은(는) ${c.data.favoriteNumber}을(를) 좋아해!`, { sec: 3 });
-        catchMode.open(c, state.blocks, (result) => {
+        catchMode.open(c, state.blocks, (result, used) => {
           if (result === 'caught') {
             c.becomeFriend();
             chain.add(c.mesh);
             state.caught++;
-            refreshHud();
+            setBlocks(state.blocks - used);
+            say(`${c.data.name}에게 블록 ${used}개를 줬어. 남은 블록은 ${state.blocks}개!`, { sec: 5 });
             checkChapterDone();
           } else {
             c.becomeShy();
@@ -197,6 +244,24 @@ function frame() {
     }
 
     chain.update(dt);
+    // 따라오는 친구가 카메라와 주인공 사이에 끼면(주인공보다 앞쪽, +z) 반투명하게
+    for (const f of chain.followers) {
+      const occluding = f.mesh.position.z > player.position.z + 0.3 && f.mesh.position.distanceTo(player.position) < 3.5;
+      const target = occluding ? 0.35 : 1;
+      if (f.mesh.userData.opacity === target) continue;
+      f.mesh.userData.opacity = target;
+      f.mesh.traverse((o) => {
+        if (!o.material || o.isLine) return;
+        if (!o.userData.ownMaterial) { o.material = o.material.clone(); o.userData.ownMaterial = true; } // 공유 재질 보호
+        o.material.transparent = target < 1;
+        o.material.opacity = target;
+      });
+    }
+    if (myStack.mesh && myStack.pop > 0) {
+      myStack.pop = Math.max(0, myStack.pop - dt * 3);
+      const sc = 1 + Math.sin(myStack.pop * Math.PI) * 0.25;
+      myStack.mesh.scale.setScalar(sc);
+    }
     tutorial();
   }
 

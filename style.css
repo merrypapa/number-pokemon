@@ -17,17 +17,17 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #catch { position: fixed; inset: 0; background: rgba(20,40,80,.55); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
 #catch-card { background: #fffbe6; border-radius: 24px; padding: 18px; width: min(560px, 100%); box-shadow: 0 10px 30px rgba(0,0,0,.3); text-align: center; }
 #catch-title { font-size: 24px; font-weight: 900; color: #333; margin-bottom: 10px; }
-#catch-body { display: flex; gap: 16px; align-items: stretch; justify-content: center; }
-#catch-monster { flex: 1; background: #fff; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-#catch-monster-name { font-size: 22px; font-weight: 900; color: #333; }
-#catch-hint-label { font-size: 14px; color: #777; margin-top: 8px; }
-#catch-hint { font-size: 64px; font-weight: 900; color: #e67e22; line-height: 1; }
-#catch-stack-wrap { flex: 1; background: #e8f4ff; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-height: 220px; }
-#catch-stack { display: flex; flex-direction: column-reverse; gap: 3px; min-height: 160px; justify-content: flex-start; }
-.stack-block { width: 40px; height: 40px; background: #fff; border: 3px solid #333; border-radius: 6px; animation: pop .15s ease-out; }
-.stack-block.highlight { box-shadow: 0 0 0 4px #ffd93d; }
-@keyframes pop { from { transform: scale(.3); } to { transform: scale(1); } }
-#catch-count { font-size: 32px; font-weight: 900; color: #333; margin-top: 8px; }
+#catch-body { display: flex; gap: 10px; align-items: stretch; justify-content: center; }
+.catch-panel { flex: 1; min-width: 0; background: #fff; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+#catch-stack-wrap { background: #e8f4ff; }
+.catch-panel-title { font-size: 20px; font-weight: 900; color: #333; }
+.catch-preview { width: 100%; height: 190px; display: block; }
+#catch-vs { align-self: center; font-size: 22px; font-weight: 900; color: #e67e22; }
+#catch-hint-label { font-size: 16px; color: #777; margin-top: 4px; }
+#catch-hint { font-size: 44px; font-weight: 900; color: #e67e22; line-height: 1; margin-left: 4px; vertical-align: middle; }
+#catch-count { font-size: 40px; font-weight: 900; color: #333; line-height: 1; margin-top: 2px; }
+#catch-owned { font-size: 14px; color: #777; margin-top: 4px; }
+@media (max-width: 520px) { .catch-preview { height: 140px; } #catch-card { padding: 12px; } }
 #catch-feedback { min-height: 30px; font-size: 20px; font-weight: 700; color: #c0392b; margin: 10px 0; }
 #catch-feedback.good { color: #27ae60; }
 #catch-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }

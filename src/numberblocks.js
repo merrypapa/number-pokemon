@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { NUMBER_COLORS, RAINBOW, OUTLINE } from './palette.js';
+import { NUMBER_COLORS, RAINBOW, OUTLINE, colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
 
 // 숫자블록 친구: 블록 개수 = 숫자, 숫자마다 고유한 색.
@@ -25,9 +25,21 @@ const darkMat = new THREE.MeshStandardMaterial({ color: OUTLINE, roughness: 0.6 
 const cubeGeo = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK);
 const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
 
-function cellColor(number, cell) {
+// 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채운다.
+function shapeFor(number) {
+  if (SHAPES[number]) return SHAPES[number];
+  const cells = [];
+  for (let i = 0; i < number; i++) cells.push({ col: Math.floor(i / 5), row: i % 5 });
+  return cells;
+}
+
+function cellColor(number, cell, index) {
   if (number === 7) return RAINBOW[cell.row % RAINBOW.length];
   if (number === 10) return cell.col === 0 ? NUMBER_COLORS[10].base : NUMBER_COLORS[10].alt; // 1(빨강) + 0(하양)
+  if (number > 10) {
+    if (index < 10) return cell.col === 0 ? NUMBER_COLORS[10].base : NUMBER_COLORS[10].alt;
+    return colorForCount(number - 10);
+  }
   return (NUMBER_COLORS[number] || NUMBER_COLORS[1]).base;
 }
 
@@ -63,7 +75,7 @@ function limb(from, to, radius, mat) {
 
 export function buildNumberblockMesh(nb) {
   const number = nb.number;
-  const cells = SHAPES[number] || rect(1, number);
+  const cells = shapeFor(number);
   const cols = Math.max(...cells.map((c) => c.col)) + 1;
   const maxRow = Math.max(...cells.map((c) => c.row));
   const g = new THREE.Group();
@@ -72,8 +84,8 @@ export function buildNumberblockMesh(nb) {
   const cy = (row) => LEG + BLOCK / 2 + row * BLOCK;
 
   // 블록
-  for (const cell of cells) {
-    const cube = makeCube(cellColor(number, cell));
+  for (const [index, cell] of cells.entries()) {
+    const cube = makeCube(cellColor(number, cell, index));
     cube.position.set(x0 + cell.col * BLOCK, cy(cell.row), 0);
     g.add(cube);
   }
@@ -182,6 +194,15 @@ export class FollowChain {
     this.followers = []; // { mesh, t }
   }
   add(mesh) { this.followers.push({ mesh, t: Math.random() * 10 }); }
+  addFirst(mesh) { this.followers.unshift({ mesh, t: Math.random() * 10 }); }
+  replace(oldMesh, newMesh) {
+    const f = this.followers.find((x) => x.mesh === oldMesh);
+    if (!f) return;
+    newMesh.position.copy(oldMesh.position);
+    newMesh.rotation.copy(oldMesh.rotation);
+    f.mesh = newMesh;
+  }
+  remove(mesh) { this.followers = this.followers.filter((x) => x.mesh !== mesh); }
   update(dt) {
     let prev = this.leader.position;
     for (const f of this.followers) {

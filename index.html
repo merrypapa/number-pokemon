@@ -32,14 +32,17 @@
     <div id="catch-card">
       <div id="catch-title">몬스터가 다가왔어요!</div>
       <div id="catch-body">
-        <div id="catch-monster">
-          <div id="catch-monster-name"></div>
-          <div id="catch-hint-label">좋아하는 숫자</div>
-          <div id="catch-hint">3</div>
+        <div id="catch-monster" class="catch-panel">
+          <div class="catch-panel-title" id="catch-monster-name"></div>
+          <canvas id="catch-mon" class="catch-preview"></canvas>
+          <div id="catch-hint-label">좋아하는 숫자 <span id="catch-hint">3</span></div>
         </div>
-        <div id="catch-stack-wrap">
-          <div id="catch-stack"></div>
+        <div id="catch-vs">VS</div>
+        <div id="catch-stack-wrap" class="catch-panel">
+          <div class="catch-panel-title">내 숫자블록</div>
+          <canvas id="catch-me" class="catch-preview"></canvas>
           <div id="catch-count">0</div>
+          <div id="catch-owned">가진 블록 0개</div>
         </div>
       </div>
       <div id="catch-feedback"></div>
