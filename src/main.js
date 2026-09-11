@@ -93,7 +93,7 @@ for (const [x, z] of pickupSpots) {
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 20;
-const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false };
+const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0 };
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다. 1개면 빨간 1, 2개면 주황 2… 잡기에 쓰면 다시 작아진다.
 const myStack = { mesh: null, pop: 0 };
@@ -161,6 +161,7 @@ const clock = new THREE.Clock();
 let holeTold = false;
 let respawnTimer = 6;
 function frame() {
+  state.frames++;
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
@@ -208,7 +209,14 @@ function frame() {
       const ev = c.update(dt, player.position);
       if (ev === 'meet') {
         c.hint.visible = false;
-        say(`${c.data.name}은(는) ${c.data.favoriteNumber}을(를) 좋아해!`, { sec: 3 });
+        const need = c.data.favoriteNumber;
+        if (state.blocks < need) {
+          // 블록이 모자라면 잡기 화면을 열지 않는다. 원이가 알려주고 몬스터는 잠시 물러난다.
+          c.becomeShy();
+          say(`${c.data.name}은(는) ${need}을(를) 좋아해! 블록이 ${need - state.blocks}개 모자라. 하얀 블록을 더 주워오자!`, { sec: 6 });
+          break;
+        }
+        say(`${c.data.name}은(는) ${need}을(를) 좋아해!`, { sec: 3 });
         catchMode.open(c, state.blocks, (result, used) => {
           if (result === 'caught') {
             c.becomeFriend();

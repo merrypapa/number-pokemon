@@ -7,8 +7,16 @@ import { buildDraftMesh } from './creatures.js';
 class Preview {
   constructor(canvas) {
     this.canvas = canvas;
-    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.ok = false;
+    try {
+      this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.ok = true;
+    } catch (e) {
+      console.warn('미리보기 WebGL 생성 실패, 미리보기 없이 진행', e);
+      canvas.style.display = 'none';
+      return;
+    }
     this.scene = new THREE.Scene();
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.5));
     const sun = new THREE.DirectionalLight(0xffffff, 1.3);
@@ -21,7 +29,11 @@ class Preview {
   }
 
   setModel(mesh) {
-    if (this.model) this.scene.remove(this.model);
+    if (!this.ok) return;
+    if (this.model) {
+      this.scene.remove(this.model);
+      this.model.traverse((o) => { if (o.material?.map) o.material.map.dispose(); }); // 숫자 배지 텍스처 정리 (지오메트리는 공유하므로 유지)
+    }
     this.model = mesh;
     if (!mesh) return;
     this.scene.add(mesh);
@@ -36,6 +48,7 @@ class Preview {
   }
 
   render(dt) {
+    if (!this.ok) return;
     const w = this.canvas.clientWidth || 200, h = this.canvas.clientHeight || 200;
     if (this.canvas.width !== Math.floor(w * this.renderer.getPixelRatio())) this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
@@ -72,6 +85,7 @@ export class CatchMode {
     document.getElementById('btn-plus').onclick = () => this.change(1);
     document.getElementById('btn-minus').onclick = () => this.change(-1);
     document.getElementById('btn-show').onclick = () => this.show();
+    document.getElementById('btn-later').onclick = () => this.close('later');
   }
 
   open(creature, blocksOwned, onDone) {
@@ -86,15 +100,14 @@ export class CatchMode {
     this.hintEl.textContent = creature.data.favoriteNumber;
     this.fbEl.textContent = '';
     this.fbEl.className = '';
+    this.input.endFrame(); // 걷던 중 누른 키가 블록 올리기로 들어가지 않게
     this.monPreview.setModel(buildDraftMesh(creature.data));
     this.render();
     this.el.classList.remove('hidden');
-    if (blocksOwned < creature.data.favoriteNumber) {
-      this.fbEl.textContent = `블록이 ${creature.data.favoriteNumber - blocksOwned}개 모자라요. 더 주워오자!`;
-    }
   }
 
   close(result) {
+    if (!this.active) return;
     this.active = false;
     this.el.classList.add('hidden');
     const used = result === 'caught' ? this.count : 0;

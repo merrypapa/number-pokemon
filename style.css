@@ -34,6 +34,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #catch-buttons button { font-size: 20px; font-weight: 800; padding: 12px 18px; border-radius: 14px; border: 0; cursor: pointer; background: #fff; color: #333; box-shadow: 0 3px 0 #ccc; }
 #catch-buttons button:active { transform: translateY(2px); box-shadow: none; }
 #btn-show { background: #ffd93d !important; }
+#btn-later { background: #eee !important; color: #666 !important; font-size: 16px !important; }
 #catch-help { font-size: 13px; color: #888; margin-top: 10px; }
 
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 7; }
