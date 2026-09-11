@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, lerpAngle } from './util.js';
-import { terrainHeight, inHole, WORLD } from './world.js';
+import { terrainHeight, inHole, worldSize } from './world.js';
 
 const SPEED = 6.5, JUMP = 7, GRAVITY = -20, ACCEL = 14; // ACCEL: 조이스틱처럼 부드럽게 가속/감속
 
@@ -33,10 +33,22 @@ export class Player {
     this.jumped = false;
     this.walkT = 0;
     this.respawnFlash = 0;
+    // 주인공이 드는 등불 (동굴에서 주변을 밝힌다)
+    this.lamp = new THREE.PointLight(0xffd9a0, 0, 18);
+    this.lamp.position.set(0, 1.6, 0.4);
+    this.group.add(this.lamp);
     scene.add(this.group);
   }
 
   get position() { return this.group.position; }
+
+  /** 지역 이동 시 위치를 옮기고 "뿅" 효과 */
+  teleport(x, z) {
+    this.group.position.set(x, terrainHeight(x, z) + 0.5, z);
+    this.vx = this.vz = 0;
+    this.vy = 2;
+    this.respawnFlash = 0.6;
+  }
 
   update(dt, input) {
     const p = this.group.position;
@@ -57,7 +69,7 @@ export class Player {
     this.body.rotation.z = moving ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0;
 
     // 경계
-    const lim = WORLD.size / 2 - 2;
+    const lim = worldSize() / 2 - 2;
     p.x = Math.max(-lim, Math.min(lim, p.x));
     p.z = Math.max(-lim, Math.min(lim, p.z));
 
@@ -79,14 +91,10 @@ export class Player {
       this.onGround = false;
     }
 
-    // 구멍에 떨어지면 "뿅" 하고 구멍 옆으로
+    // 구멍에 떨어지면 main 이 지역을 바꾼다 (초원 → 동굴)
     if (p.y < -4) {
-      const ang = Math.atan2(p.z - WORLD.hole.z, p.x - WORLD.hole.x);
-      p.x = WORLD.hole.x + Math.cos(ang) * (WORLD.hole.r + 1.5);
-      p.z = WORLD.hole.z + Math.sin(ang) * (WORLD.hole.r + 1.5);
-      p.y = terrainHeight(p.x, p.z) + 2;
-      this.vy = 3;
-      this.respawnFlash = 0.6;
+      p.y = -4;
+      this.vy = 0;
       this.fellInHole = true;
     }
     if (this.respawnFlash > 0) {

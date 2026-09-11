@@ -8,7 +8,8 @@ export function buildDraftMesh(c) {
   const g = new THREE.Group();
   const d = c.draftShape || {};
   const color = new THREE.Color(d.color || '#cccccc');
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: !!d.translucent, opacity: d.translucent ? 0.7 : 1 });
+  const glows = !!(d.glowSegments || d.glow); // 반디, 달빛이처럼 스스로 빛나는 몬스터
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: !!d.translucent, opacity: d.translucent ? 0.7 : 1, emissive: glows ? color : 0x000000, emissiveIntensity: glows ? 0.8 : 0 });
   let body, faceZ = 0.5, faceY = 0.55;
   switch (d.body) {
     case 'cube': body = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat); body.position.y = 0.5; break;
@@ -60,6 +61,7 @@ export function buildDraftMesh(c) {
       g.add(dot);
     }
   }
+  if (glows) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); }
   g.scale.setScalar(c.scale || 1);
   return g;
 }

@@ -33,7 +33,15 @@ export const WORLD = {
   ],
 };
 
-export function terrainHeight(x, z) {
+// ---------- 활성 지형 (초원/동굴 등 지역이 바뀌면 main 이 교체) ----------
+// player/creatures/numberblocks 는 terrainHeight/inHole 만 쓰므로 지역이 바뀌어도 코드가 같다.
+let active = { height: meadowHeight, inHole: meadowInHole, size: WORLD.size };
+export function setActiveTerrain(t) { active = t; }
+export function terrainHeight(x, z) { return active.height(x, z); }
+export function inHole(x, z) { return active.inHole(x, z); }
+export function worldSize() { return active.size; }
+
+export function meadowHeight(x, z) {
   let y = 0;
   for (const h of WORLD.hills) {
     const dx = x - h.x, dz = z - h.z;
@@ -45,10 +53,11 @@ export function terrainHeight(x, z) {
   return y;
 }
 
-export function inHole(x, z) {
+export function meadowInHole(x, z) {
   const dx = x - WORLD.hole.x, dz = z - WORLD.hole.z;
   return dx * dx + dz * dz < WORLD.hole.r * WORLD.hole.r;
 }
+export const MEADOW_TERRAIN = { height: meadowHeight, inHole: meadowInHole, size: WORLD.size };
 
 function distToSegment(px, pz, ax, az, bx, bz) {
   const vx = bx - ax, vz = bz - az;
@@ -85,7 +94,7 @@ function makeSign(text, x, z, rotY = 0) {
   face.position.set(0, 1.5, 0.06);
   post.castShadow = board.castShadow = true;
   g.add(post, board, face);
-  g.position.set(x, terrainHeight(x, z), z);
+  g.position.set(x, meadowHeight(x, z), z);
   g.rotation.y = rotY;
   return g;
 }
@@ -118,11 +127,11 @@ export function buildWorld(scene) {
   const tmp = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
-    let y = terrainHeight(x, z);
+    let y = meadowHeight(x, z);
     let c = Math.random() < 0.5 ? grassA : grassB;
     const pd = Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z);
     const ad = Math.hypot(x - WORLD.arena.x, z - WORLD.arena.z);
-    if (inHole(x, z)) { y = -6; c = dark; }
+    if (meadowInHole(x, z)) { y = -6; c = dark; }
     else if (pd < WORLD.pond.r) c = pondBed;
     else if (pd < WORLD.pond.r + 2.5) c = sand;
     else if (ad < WORLD.arena.r) c = (Math.floor(x / 2) + Math.floor(z / 2)) % 2 === 0 ? stone : stoneDark;
@@ -189,7 +198,7 @@ export function buildWorld(scene) {
     fruit.position.set(Math.cos(a) * 3.6, 6.5 + Math.sin(n * 1.7) * 1.6, Math.sin(a) * 3.6);
     tree.add(fruit);
   }
-  tree.position.set(v.x, terrainHeight(v.x, v.z), v.z);
+  tree.position.set(v.x, meadowHeight(v.x, v.z), v.z);
   decor.add(tree);
   decor.add(makeSign('← 보스 아레나', v.x - 4, v.z - 5, 0.4));
   decor.add(makeSign('연못 →', v.x + 4, v.z - 5, -0.4));
@@ -199,14 +208,14 @@ export function buildWorld(scene) {
     const a = Math.PI * 0.15 + (i / 11) * Math.PI * 0.7;
     const x = v.x + Math.cos(a) * 9, z = v.z + Math.sin(a) * 9;
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.1, 0.25), fenceMat);
-    post.position.set(x, terrainHeight(x, z) + 0.55, z);
+    post.position.set(x, meadowHeight(x, z) + 0.55, z);
     post.castShadow = true;
     decor.add(post);
     if (i < 11) {
       const a2 = Math.PI * 0.15 + ((i + 1) / 11) * Math.PI * 0.7;
       const x2 = v.x + Math.cos(a2) * 9, z2 = v.z + Math.sin(a2) * 9;
       const rail = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(x2 - x, z2 - z), 0.12, 0.12), fenceMat);
-      rail.position.set((x + x2) / 2, terrainHeight((x + x2) / 2, (z + z2) / 2) + 0.8, (z + z2) / 2);
+      rail.position.set((x + x2) / 2, meadowHeight((x + x2) / 2, (z + z2) / 2) + 0.8, (z + z2) / 2);
       rail.rotation.y = -Math.atan2(z2 - z, x2 - x);
       decor.add(rail);
     }
@@ -218,7 +227,7 @@ export function buildWorld(scene) {
     const a = (i / 10) * Math.PI * 2;
     const x = ar.x + Math.cos(a) * ar.r, z = ar.z + Math.sin(a) * ar.r;
     const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.4, rand(2.6, 3.6), 1.4), stoneMat);
-    pillar.position.set(x, terrainHeight(x, z) + pillar.geometry.parameters.height / 2, z);
+    pillar.position.set(x, meadowHeight(x, z) + pillar.geometry.parameters.height / 2, z);
     pillar.rotation.y = a;
     pillar.castShadow = true;
     decor.add(pillar);
@@ -248,10 +257,10 @@ export function buildWorld(scene) {
   arch.rotation.z = Math.PI / 2; arch.rotation.y = Math.PI / 2;
   arch.position.set(0, 1.6, 6.6);
   mountain.add(arch);
-  mountain.position.set(cv.x, terrainHeight(cv.x, cv.z), cv.z);
+  mountain.position.set(cv.x, meadowHeight(cv.x, cv.z), cv.z);
   decor.add(mountain);
   const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(2.1, 1), new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 1 }));
-  boulder.position.set(cv.x, terrainHeight(cv.x, cv.z + 7.5) + 1.6, cv.z + 7.5);
+  boulder.position.set(cv.x, meadowHeight(cv.x, cv.z + 7.5) + 1.6, cv.z + 7.5);
   boulder.castShadow = true;
   scene.add(boulder);
   decor.add(makeSign('괴물 동굴 (쿵쿵이를 친구로!)', cv.x + 5, cv.z + 10, -0.5));
@@ -292,7 +301,7 @@ export function buildWorld(scene) {
     }
     trunk.castShadow = true;
     t.add(trunk);
-    t.position.set(x, terrainHeight(x, z), z);
+    t.position.set(x, meadowHeight(x, z), z);
     decor.add(t);
     if (Math.random() < 0.5) { // 나무 밑 버섯
       const mush = new THREE.Group();
@@ -302,7 +311,7 @@ export function buildWorld(scene) {
       cap.position.y = 0.33;
       mush.add(stem, cap);
       const mx = x + rand(-1.5, 1.5), mz = z + rand(1, 2);
-      mush.position.set(mx, terrainHeight(mx, mz), mz);
+      mush.position.set(mx, meadowHeight(mx, mz), mz);
       decor.add(mush);
     }
   }
@@ -310,7 +319,7 @@ export function buildWorld(scene) {
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.4, 1.1), 0), rockMat);
-    rock.position.set(x, terrainHeight(x, z) + 0.2, z);
+    rock.position.set(x, meadowHeight(x, z) + 0.2, z);
     rock.rotation.set(rand(0, 3), rand(0, 3), 0);
     rock.castShadow = true;
     decor.add(rock);
@@ -332,13 +341,13 @@ export function buildWorld(scene) {
         s.castShadow = true;
         b.add(s);
       }
-      b.position.set(x, terrainHeight(x, z), z);
+      b.position.set(x, meadowHeight(x, z), z);
       decor.add(b);
       bushes.push(b);
     } else { // 키 큰 풀숲 (몬스터가 숨는 곳)
       for (let k = 0; k < 14; k++) {
         const bx = x + rand(-1.4, 1.4), bz = z + rand(-1.4, 1.4), h = rand(0.8, 1.3);
-        bladeTransforms.push([bx, terrainHeight(bx, bz) + h / 2, bz, h, rand(-0.2, 0.2)]);
+        bladeTransforms.push([bx, meadowHeight(bx, bz) + h / 2, bz, h, rand(-0.2, 0.2)]);
       }
     }
   }
@@ -356,8 +365,8 @@ export function buildWorld(scene) {
   const flowerSpots = [];
   for (let i = 0; i < 420; i++) {
     const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
-    if (inHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(x, z) < 2) continue;
-    flowerSpots.push([x, terrainHeight(x, z), z]);
+    if (meadowInHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(x, z) < 2) continue;
+    flowerSpots.push([x, meadowHeight(x, z), z]);
   }
   {
     const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 5), stemMat, flowerSpots.length);
@@ -405,7 +414,7 @@ export function buildWorld(scene) {
       const u = b.userData;
       const a = t * u.speed + u.t;
       const x = u.cx + Math.cos(a) * u.r, z = u.cz + Math.sin(a * 1.3) * u.r;
-      b.position.set(x, terrainHeight(x, z) + 1.2 + Math.sin(a * 3) * 0.3, z);
+      b.position.set(x, meadowHeight(x, z) + 1.2 + Math.sin(a * 3) * 0.3, z);
       const flap = Math.sin(t * 18 + u.t) * 0.9;
       u.wl.rotation.y = flap; u.wr.rotation.y = -flap;
       b.rotation.y = -a;
@@ -413,5 +422,5 @@ export function buildWorld(scene) {
     for (const f of flames) f.scale.y = 1 + Math.sin(t * 9 + f.position.x) * 0.2;
   }
 
-  return { ground, bushes, sun, boulder, animate };
+  return { ground, bushes, sun, boulder, animate, terrain: MEADOW_TERRAIN };
 }

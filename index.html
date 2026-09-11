@@ -29,32 +29,30 @@
     <div id="msg-text"></div>
   </div>
 
-  <div id="catch" class="hidden">
-    <div id="catch-card">
-      <div id="catch-title">몬스터가 다가왔어요!</div>
-      <div id="catch-body">
-        <div id="catch-monster" class="catch-panel">
-          <div class="catch-panel-title" id="catch-monster-name"></div>
-          <canvas id="catch-mon" class="catch-preview"></canvas>
-          <div id="catch-hint-label">좋아하는 숫자 <span id="catch-hint">3</span></div>
-        </div>
-        <div id="catch-vs">VS</div>
-        <div id="catch-stack-wrap" class="catch-panel">
-          <div class="catch-panel-title">내 숫자블록</div>
-          <canvas id="catch-me" class="catch-preview"></canvas>
-          <div id="catch-count">0</div>
-          <div id="catch-owned">가진 블록 0개</div>
-        </div>
-      </div>
-      <div id="catch-feedback"></div>
-      <div id="catch-buttons">
-        <button id="btn-minus">− 내리기</button>
-        <button id="btn-plus">+ 올리기</button>
-        <button id="btn-show">보여주기!</button>
-        <button id="btn-later">나중에</button>
-      </div>
-      <div id="catch-help">키보드: ↑ 올리기 · ↓ 내리기 · 엔터 보여주기 · ESC 나중에</div>
+  <canvas id="fx"></canvas>
+  <div id="fade"></div>
+  <div id="battle-banner" class="hidden"></div>
+  <div id="battle-float" class="hidden"></div>
+
+  <div id="battle" class="hidden">
+    <div id="battle-top">
+      <div id="battle-name"></div>
+      <div id="battle-hp"></div>
+      <div id="battle-hpnum"></div>
     </div>
+    <div id="battle-msg"></div>
+    <div id="battle-controls">
+      <div id="battle-mine"></div>
+      <div id="battle-picker">
+        <button id="btn-n-minus">−</button>
+        <div id="battle-n">1</div>
+        <button id="btn-n-plus">+</button>
+      </div>
+      <button id="btn-throw">블록 1개 던지기!</button>
+      <button id="btn-ball" class="hidden">숫자볼 던지기!</button>
+      <button id="btn-run">나중에</button>
+    </div>
+    <div id="battle-help">↑↓ 개수 · 엔터/스페이스 던지기 · ESC 나중에</div>
   </div>
 
   <div id="touch" class="hidden">

@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
-import { buildWorld, terrainHeight, inHole, WORLD } from './world.js';
+import { buildWorld, terrainHeight, inHole, setActiveTerrain, WORLD } from './world.js';
+import { buildCave } from './cave.js';
 import { Player } from './player.js';
 import { Creature } from './creatures.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
-import { CatchMode } from './catch.js';
+import { Battle } from './battle.js';
+import { Confetti, Particles, Sound } from './effects.js';
 import { makeBlockMesh, rand } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -16,10 +18,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 220);
 const CAM_OFFSET = new THREE.Vector3(0, 9, 11);
-
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -27,9 +27,9 @@ window.addEventListener('resize', () => {
 });
 
 const input = new Input();
-const { sun, boulder, animate: animateWorld } = buildWorld(scene);
-const player = new Player(scene);
-const chain = new FollowChain(player);
+const sound = new Sound();
+const particles = new Particles();
+const confetti = new Confetti(document.getElementById('fx'));
 
 // ---------- 메시지 (원이 말풍선) ----------
 const msgEl = document.getElementById('msg');
@@ -46,77 +46,112 @@ function say(text, { face = '1', sec = 4 } = {}) {
   msgTimer = sec;
 }
 
-// ---------- 데이터 로드 ----------
+// ---------- 데이터 ----------
 const [creatureData, nbData] = await Promise.all([
   fetch('data/creatures.json').then((r) => r.json()),
   fetch('data/numberblocks.json').then((r) => r.json()),
 ]);
+const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 
-// 원이(1)는 말풍선으로 안내하는 친구. 주운 블록은 하나의 숫자블록이 되어 주인공 뒤를 따라온다(setBlocks).
+// ---------- 지역(zone) ----------
+// 각 지역은 자기 scene, 지형, 몬스터, 블록을 가진다. 주인공과 파트너들은 지역을 옮겨 다닌다.
+function makeZone(name, builder) {
+  const scene = new THREE.Scene();
+  const world = builder(scene);
+  return { name, scene, world, terrain: world.terrain, creatures: [], pickups: [], numberblocks: [], respawnTimer: 6 };
+}
+const zones = {
+  meadow: makeZone('meadow', buildWorld),
+  cave: makeZone('cave', buildCave),
+};
+let zone = zones.meadow;
+setActiveTerrain(zone.terrain);
 
-// 초원 몬스터 3마리 + 보스 아레나의 쿵쿵이
-const spawn = { m01: [-20, 4], m02: [24, -14], m03: [14, -4], m13: [WORLD.arena.x, WORLD.arena.z] };
-const creatures = creatureData.creatures
-  .filter((c) => c.zone === 'meadow' || c.id === 'm13')
-  .map((c) => new Creature(scene, c.id === 'm13' ? { ...c, scale: 2.6 } : c, new THREE.Vector3(spawn[c.id][0], 0, spawn[c.id][1])));
-const meadowCreatures = creatures.filter((c) => !c.isBoss);
-const boss = creatures.find((c) => c.isBoss);
+const player = new Player(zone.scene);
+const chain = new FollowChain(player);
 
-// 구출할 숫자블록: 둘이(언덕 위), 셋이(꽃밭). 구출하면 따라오고, 자기 숫자만큼 블록을 나눠준다.
-const rescueSpots = { nb02: [-30, -18], nb03: [22, 34] };
-const numberblocks = ['nb02', 'nb03'].map((id) => new Numberblock(scene, nbById[id], { x: rescueSpots[id][0], z: rescueSpots[id][1] }));
+function spawnCreature(z, speciesId, x, zz, extra = {}) {
+  const data = { ...speciesById[speciesId], ...extra };
+  const c = new Creature(z.scene, data, new THREE.Vector3(x, 0, zz));
+  z.creatures.push(c);
+  return c;
+}
+function spawnPickup(z, x, zz) {
+  const m = makeBlockMesh(0xffffff);
+  if (z.name === 'cave') { m.material.emissive = new THREE.Color(0xffffff); m.material.emissiveIntensity = 0.35; }
+  m.position.set(x, z.terrain.height(x, zz) + 0.6, zz);
+  m.userData.t = rand(0, 10);
+  z.scene.add(m);
+  z.pickups.push(m);
+}
 
-// ?showcase 로 열면 숫자블록 친구 1~10이 시작 지점 앞에 한 줄로 선다 (디자인 확인용)
+// 초원: 6종 15마리 + 보스 쿵쿵이
+{
+  const z = zones.meadow;
+  const spots = {
+    m01: [[-20, 4], [10, 30], [-38, 14]],
+    m02: [[24, -14], [-14, 24], [40, 12]],
+    m03: [[14, -4], [-26, 0], [30, 44]],
+    m04: [[-12, -26], [34, -26]],
+    m05: [[20, 36], [-44, 32]],
+    m06: [[6, -22], [46, -44]],
+  };
+  for (const [id, list] of Object.entries(spots)) for (const [x, zz] of list) spawnCreature(z, id, x, zz);
+  spawnCreature(z, 'm13', WORLD.arena.x, WORLD.arena.z, { scale: 2.6 });
+  for (const [x, zz] of [[0, 3], [-4, 6], [6, -6], [-9, -2], [10, 8], [-2, -12], [14, -14], [-16, 4], [2, 16], [-12, 14], [22, 4], [-24, -8], [8, -24], [-8, 30], [20, 18], [-36, 10], [36, -6], [-20, -30], [-34, -28], [-12, -40], [30, -30], [-42, 4], [12, 40]]) spawnPickup(z, x, zz);
+  for (const [id, [x, zz]] of Object.entries({ nb02: [-30, -18], nb03: [22, 34] })) z.numberblocks.push(new Numberblock(z.scene, nbById[id], { x, z: zz }));
+}
+// 동굴: 3종 6마리
+{
+  const z = zones.cave;
+  setActiveTerrain(z.terrain); // Numberblock/Creature 생성 시 지형 높이를 쓰므로 잠시 전환
+  for (const [id, list] of Object.entries(z.world.creatureSpawns)) for (const [x, zz] of list) spawnCreature(z, id, x, zz);
+  for (const [x, zz] of z.world.pickupSpots) spawnPickup(z, x, zz);
+  setActiveTerrain(zone.terrain);
+}
+const totalCreatures = zones.meadow.creatures.filter((c) => !c.isBoss).length + zones.cave.creatures.length;
+const boulder = zones.meadow.world.boulder;
+
+// ?showcase : 숫자블록 친구 1~10을 시작 지점 앞에 한 줄로
 if (location.search.includes('showcase')) {
   nbData.numberblocks.forEach((nb, i) => {
     const m = buildNumberblockMesh(nb);
-    const x = -9 + i * 2, z = 3;
-    m.position.set(x, terrainHeight(x, z), z);
-    m.rotation.y = Math.PI * 0.02 * (i - 5);
-    scene.add(m);
+    const x = -9 + i * 2, zz = 3;
+    m.position.set(x, terrainHeight(x, zz), zz);
+    zones.meadow.scene.add(m);
   });
-}
-
-// 주울 수 있는 블록 10개
-const pickups = [];
-const pickupSpots = [[0, 3], [-4, 6], [6, -6], [-9, -2], [10, 8], [-2, -12], [14, -14], [-16, 4], [2, 16], [-12, 14], [22, 4], [-24, -8], [8, -24], [-8, 30], [20, 18], [-36, 10], [36, -6], [-20, -30], [-34, -28], [-12, -40], [30, -30], [-42, 4], [12, 40]];
-for (const [x, z] of pickupSpots) {
-  const m = makeBlockMesh(0xffffff);
-  m.position.set(x, terrainHeight(x, z) + 0.6, z);
-  m.userData.t = rand(0, 10);
-  scene.add(m);
-  pickups.push(m);
 }
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 20;
-const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0 };
+const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false };
 
-// 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다. 1개면 빨간 1, 2개면 주황 2… 잡기에 쓰면 다시 작아진다.
+// 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
 function setBlocks(n) {
   n = Math.max(0, Math.min(MAX_BLOCKS, n));
   state.blocks = n;
   const old = myStack.mesh;
   if (n === 0) {
-    if (old) { chain.remove(old); scene.remove(old); }
+    if (old) { chain.remove(old); zone.scene.remove(old); }
     myStack.mesh = null;
   } else {
     const mesh = buildNumberblockMesh({ number: n });
-    if (old) { chain.replace(old, mesh); scene.remove(old); }
+    if (old) { chain.replace(old, mesh); zone.scene.remove(old); }
     else {
       mesh.position.copy(player.position);
-      mesh.position.z -= 1.6; // 카메라에서 볼 때 주인공 뒤쪽(안쪽)에 생긴다
+      mesh.position.z -= 1.6;
       chain.addFirst(mesh);
     }
-    scene.add(mesh);
+    zone.scene.add(mesh);
     myStack.mesh = mesh;
     myStack.pop = 1;
   }
   refreshHud();
+  if (battle.active) battle.setBlocks(n);
 }
-if (location.search.includes('debug')) { window.__game = { player, state, creatures, setBlocks, input, boss, renderer }; }
+
 const hudBlocks = document.getElementById('hud-blocks');
 const hudCaught = document.getElementById('hud-caught');
 const hudRescued = document.getElementById('hud-rescued');
@@ -125,139 +160,171 @@ const hudBlockIcon = document.querySelector('.hud-icon.block');
 function refreshHud() {
   hudBlocks.textContent = `블록 ${state.blocks}개`;
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
-  hudCaught.textContent = `친구 ${state.caught}/${meadowCreatures.length}`;
-  hudRescued.textContent = `구출 ${state.rescued}/${numberblocks.length}`;
+  hudCaught.textContent = `친구 ${state.caught}/${totalCreatures}`;
+  hudRescued.textContent = `구출 ${state.rescued}/2`;
   hudBoss.textContent = `보스 ${state.bossDone ? 1 : 0}/1`;
 }
 refreshHud();
-if (location.search.includes('debug')) setBlocks(10); // 테스트용: ?debug 로 열면 블록 10개로 시작
 
-const catchMode = new CatchMode(input, say);
+const battle = new Battle({ input, camera, say, sound, particles, confetti });
 
-// 튜토리얼: 조작을 한 번씩 해볼 때마다 다음 안내
+if (location.search.includes('debug')) {
+  setBlocks(10);
+  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, get zone() { return zone; }, battle };
+}
+
+// ---------- 지역 이동 ----------
+const fadeEl = document.getElementById('fade');
+let switching = false;
+function partyMeshes() { return [player.group, ...chain.followers.map((f) => f.mesh)]; }
+function switchZone(name, spawn, message) {
+  if (switching || !zones[name]) return;
+  switching = true;
+  fadeEl.classList.add('on');
+  sound.portal();
+  setTimeout(() => {
+    const from = zone;
+    zone = zones[name];
+    setActiveTerrain(zone.terrain);
+    for (const m of partyMeshes()) { from.scene.remove(m); zone.scene.add(m); }
+    player.teleport(spawn.x, spawn.z);
+    for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
+    player.lamp.intensity = zone.name === 'cave' ? (state.glow ? 9 : 4.5) : 0;
+    camera.position.copy(player.position).add(CAM_OFFSET);
+    if (message) say(message.text, message);
+    setTimeout(() => { fadeEl.classList.remove('on'); switching = false; }, 150);
+  }, 480);
+}
+
+// ---------- 튜토리얼/진행 ----------
 function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
-  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! 더 모으면 숫자가 커져. 몬스터가 오면 좋아하는 숫자만큼 나눠 주자!', { sec: 7 }); }
+  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! 몬스터와 만나면 블록을 던져서 체력을 딱 0으로 만들자!', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 서쪽 언덕 위 둘이와 동쪽 연못가의 셋이도 찾아줘. 가까이 가서 E(액션)!', { sec: 6 }); }
 }
-
-function checkChapterDone() {
-  if (state.done) return;
-  if (state.caught >= meadowCreatures.length && state.rescued >= numberblocks.length && !state.bossHintTold) {
-    state.bossHintTold = true;
-    say('친구를 다 모았어! 서북쪽 돌기둥 아레나에 커다란 쿵쿵이가 있대. 블록 10개를 모아서 가 보자!', { sec: 8 });
-  }
-  if (state.caught >= meadowCreatures.length && state.rescued >= numberblocks.length && state.bossDone) {
+function checkProgress() {
+  if (state.rescued >= 2 && state.bossDone && !state.done) {
     state.done = true;
-    say('챕터 1 완료! 동굴 입구의 바위가 치워졌어. (동굴 챕터는 준비 중)', { sec: 12 });
+    say('챕터 1 완료! 동굴 입구가 열렸어. 큰 구멍이나 동굴 입구로 들어가면 어두운 동굴이야!', { sec: 10 });
+  } else if (state.rescued >= 2 && !state.bossDone && !state.bossHintTold) {
+    state.bossHintTold = true;
+    say('둘이 셋이를 다 구했어! 서북쪽 돌기둥 아레나의 커다란 쿵쿵이를 만나러 가자. 블록 10개가 필요해!', { sec: 8 });
   }
 }
 
 // ---------- 시작 ----------
 document.getElementById('btn-start').onclick = () => {
   document.getElementById('title').classList.add('hidden');
+  sound.ensure();
   say('안녕! 난 원이야. 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!', { sec: 6 });
 };
 
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
-let holeTold = false;
-let respawnTimer = 6;
 function frame() {
   state.frames++;
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  if (catchMode.active) {
-    catchMode.update(dt);
-  } else {
+  if (battle.active) {
+    battle.update(dt);
+  } else if (!switching) {
     player.update(dt, input);
-    if (player.fellInHole && !holeTold) { holeTold = true; say('뿅! 구멍은 아직 못 건너. 나중에 블록으로 다리를 만들자!'); }
-    player.fellInHole = false;
+
+    // 구멍/동굴 입구 → 동굴, 포탈 → 초원
+    if (zone.name === 'meadow') {
+      if (player.fellInHole) {
+        player.fellInHole = false;
+        switchZone('cave', zones.cave.world.spawn, { text: '뿅! 어두운 동굴로 떨어졌어. 반디를 찾으면 밝아질 거야. 빛나는 포탈로 숲마을에 돌아갈 수 있어!', sec: 8 });
+      } else if (state.bossDone && Math.hypot(player.position.x - WORLD.cave.x, player.position.z - (WORLD.cave.z + 6.5)) < 2.2) {
+        switchZone('cave', zones.cave.world.spawn, { text: '괴물 동굴에 들어왔어! 포탈로 돌아갈 수 있어.', sec: 6 });
+      }
+    } else if (zone.name === 'cave') {
+      const P = zones.cave.world.portal;
+      if (Math.hypot(player.position.x - P.x, player.position.z - P.z) < 1.6) {
+        switchZone('meadow', { x: WORLD.village.x, z: WORLD.village.z - 10 }, { text: '숲마을로 돌아왔어!', sec: 4 });
+      }
+    }
 
     // 블록 줍기
-    for (let i = pickups.length - 1; i >= 0; i--) {
-      const b = pickups[i];
+    for (let i = zone.pickups.length - 1; i >= 0; i--) {
+      const b = zone.pickups[i];
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
       if (b.position.distanceTo(player.position) < 1.1) {
-        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say('블록이 스무 개! 더는 못 들어. 몬스터한테 나눠 주자!'); } continue; }
-        scene.remove(b);
-        pickups.splice(i, 1);
+        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say('블록이 스무 개! 더는 못 들어. 몬스터에게 던지자!'); } continue; }
+        zone.scene.remove(b);
+        zone.pickups.splice(i, 1);
         setBlocks(state.blocks + 1);
+        sound.pickup();
         if (state.blocks === 5) say('블록 5개! 뒤를 봐, 하늘색 다섯이 모양이 됐어!', { sec: 5 });
         if (state.blocks === 10) say('열 개! 빨강 하나에 하양 아홉, 열이 모양이야!', { sec: 5 });
         if (state.blocks === 11) say('열 개 넘으면 열이 옆에 새 블록이 붙어. 10과 1은 11!', { sec: 5 });
       }
     }
-    // 블록은 천천히 다시 생긴다 (잡기에 쓴 만큼 다시 모을 수 있게)
-    respawnTimer -= dt;
-    if (respawnTimer <= 0 && pickups.length < 14) {
-      respawnTimer = 6;
+    zone.respawnTimer -= dt;
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 14) {
+      zone.respawnTimer = 6;
+      const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
-        const x = player.position.x + rand(-30, 30), z = player.position.z + rand(-30, 30);
-        if (Math.abs(x) > WORLD.size / 2 - 3 || Math.abs(z) > WORLD.size / 2 - 3) continue;
-        if (inHole(x, z) || Math.hypot(x - player.position.x, z - player.position.z) < 6) continue;
-        const m = makeBlockMesh(0xffffff);
-        m.position.set(x, terrainHeight(x, z) + 0.6, z);
-        m.userData.t = rand(0, 10);
-        scene.add(m);
-        pickups.push(m);
+        const x = player.position.x + rand(-30, 30), zz = player.position.z + rand(-30, 30);
+        if (Math.abs(x) > half || Math.abs(zz) > half || inHole(x, zz) || Math.hypot(x - player.position.x, zz - player.position.z) < 6) continue;
+        spawnPickup(zone, x, zz);
         break;
       }
     }
 
-    // 몬스터
-    for (const c of creatures) {
+    // 몬스터: 닿으면 전투
+    for (const c of zone.creatures) {
       if (c.state === 'caught') continue;
       const ev = c.update(dt, player.position);
       if (ev === 'meet') {
         const need = c.data.favoriteNumber;
-        say(c.isBoss ? `쿵쿵이다! 커다란 쿵쿵이는 ${need}을(를) 좋아해!` : `${c.data.name}은(는) ${need}을(를) 좋아해!`, { sec: 3 });
-        catchMode.open(c, state.blocks, (result, used) => {
-          if (result === 'caught') {
+        say(c.isBoss ? `쿵쿵이다! 체력이 ${need}이나 돼!` : `${c.data.name}이(가) 나타났다! 체력은 ${c.hp ?? need}!`, { sec: 3 });
+        battle.start({
+          creature: c, player, scene: zone.scene, blocksOwned: state.blocks,
+          onThrow: (n) => setBlocks(state.blocks - n),
+          onCaught: () => {
             c.becomeFriend();
             chain.add(c.mesh);
-            setBlocks(state.blocks - used);
             if (c.isBoss) {
               state.bossDone = true;
-              scene.remove(boulder); // 동굴 입구가 열린다
-              say(`쿵쿵이가 친구가 됐어! 쿵! 하고 동굴 입구 바위를 치워줬어!`, { sec: 7 });
+              zones.meadow.scene.remove(boulder);
+              say('쿵쿵이가 친구가 됐어! 쿵! 하고 동굴 입구 바위를 치워줬어!', { sec: 7 });
             } else {
               state.caught++;
-              say(`${c.data.name}에게 블록 ${used}개를 줬어. 남은 블록은 ${state.blocks}개!`, { sec: 5 });
+              say(`${c.data.name}이(가) 친구가 됐어! 남은 블록은 ${state.blocks}개!`, { sec: 5 });
             }
+            if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 9; player.lamp.distance = 22; zones.cave.scene.fog.far = 75; say('반디가 동굴을 환하게 밝혀줘!', { sec: 5 }); }
             refreshHud();
-            checkChapterDone();
-          } else {
-            c.becomeShy();
-            say('괜찮아, 나중에 다시 오면 돼!');
-          }
+            checkProgress();
+          },
+          onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 더 모아서 다시 오자!'); },
         });
         break;
       }
     }
 
     // 숫자블록 구출 (가까이 가서 액션)
-    for (const nb of numberblocks) {
+    for (const nb of zone.numberblocks) {
       if (nb.rescued) continue;
       nb.t += dt;
       nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 2)) * 0.05;
       animateNumberblock(nb.mesh, dt, false);
-      const d = nb.position.distanceTo(player.position);
-      if (d < 2.2 && input.wasPressed('action')) {
+      if (nb.position.distanceTo(player.position) < 2.2 && input.wasPressed('action')) {
         nb.rescued = true;
         chain.add(nb.mesh);
         state.rescued++;
         setBlocks(state.blocks + nb.data.number);
+        sound.fanfare();
         say(`${nb.data.name}: 고마워! 블록 ${nb.data.number}개 나눠줄게. 같이 갈래!`, { face: String(nb.data.number), sec: 5 });
-        checkChapterDone();
+        checkProgress();
       }
     }
 
     chain.update(dt);
-    // 따라오는 친구가 카메라와 주인공 사이에 끼면(주인공보다 앞쪽, +z) 반투명하게
+    // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
     for (const f of chain.followers) {
       const occluding = f.mesh.position.z > player.position.z + 0.3 && f.mesh.position.distanceTo(player.position) < 3.5;
       const target = occluding ? 0.35 : 1;
@@ -265,33 +332,31 @@ function frame() {
       f.mesh.userData.opacity = target;
       f.mesh.traverse((o) => {
         if (!o.material || o.isLine) return;
-        if (!o.userData.ownMaterial) { o.material = o.material.clone(); o.userData.ownMaterial = true; } // 공유 재질 보호
+        if (!o.userData.ownMaterial) { o.material = o.material.clone(); o.userData.ownMaterial = true; }
         o.material.transparent = target < 1;
         o.material.opacity = target;
       });
     }
     if (myStack.mesh && myStack.pop > 0) {
       myStack.pop = Math.max(0, myStack.pop - dt * 3);
-      const sc = 1 + Math.sin(myStack.pop * Math.PI) * 0.25;
-      myStack.mesh.scale.setScalar(sc);
+      myStack.mesh.scale.setScalar(1 + Math.sin(myStack.pop * Math.PI) * 0.25);
     }
     tutorial();
+
+    // 카메라 따라가기
+    const camTarget = player.position.clone().add(CAM_OFFSET);
+    camera.position.lerp(camTarget, 0.08);
+    camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
   }
 
-  animateWorld(t);
-
-  // 그림자 광원이 주인공을 따라간다 (큰 맵에서도 그림자 선명)
-  sun.position.set(player.position.x + 20, 30, player.position.z + 10);
-  sun.target.position.copy(player.position);
-
-  // 카메라 따라가기
-  const camTarget = player.position.clone().add(CAM_OFFSET);
-  camera.position.lerp(camTarget, 0.08);
-  camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
-
+  zone.world.animate?.(t);
+  const sun = zone.world.sun;
+  if (sun) { sun.position.set(player.position.x + 20, 30, player.position.z + 10); sun.target.position.copy(player.position); }
+  particles.update(dt);
+  confetti.update(dt);
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
 
-  renderer.render(scene, camera);
+  renderer.render(zone.scene, camera);
   input.endFrame();
   requestAnimationFrame(frame);
 }
