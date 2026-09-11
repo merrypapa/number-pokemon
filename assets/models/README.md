@@ -27,6 +27,15 @@
 | `피카츄.glb` | m03 (3) |
 | `꼬부기.glb` | m05 (5) |
 
+## 용량 줄이기 (로딩 속도)
+
+업로드한 원본은 2048px 텍스처 3~4장이 들어 있어 파일당 3~5MB였습니다. 아래 스크립트가 baseColor 1024px, emissive 512px 로 줄이고 normal/metallicRoughness 맵을 빼서 파일당 0.1~1.3MB 로 만듭니다(전체 23MB → 2.3MB). 새 모델을 올린 뒤 한 번 돌려주세요.
+
+```
+pip install pillow
+python3 tools/shrink_glb.py assets/models/*.glb
+```
+
 ## 규격
 
 - 높이 약 1m, 원점은 발바닥 중앙, 앞 방향 +Z (지금 들어 있는 모델들과 같은 방향. 뒤를 보고 나오면 3D 툴에서 180° 돌려 다시 내보내기). 크기가 달라도 코드에서 높이 1m로 자동 보정하고, 몬스터별 `scale` 값이 그 위에 곱해집니다.

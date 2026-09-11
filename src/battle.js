@@ -228,7 +228,8 @@ export class Battle {
   }
 
   leave() {
-    if (!this.active || this.phase === 'success' || this.phase === 'capture' || this.phase === 'wobble') return;
+    if (!this.active || this.phase === 'capture' || this.phase === 'wobble') return;
+    if (this.phase === 'success') { this.end('caught'); return; } // 성공 연출은 버튼/키로 바로 넘길 수 있다
     this.end('later');
   }
 
@@ -271,6 +272,7 @@ export class Battle {
     if (this.input.wasPressed('action') || this.input.wasPressed('jump')) {
       if (this.phase === 'choose') this.throwBlocks();
       else if (this.phase === 'dizzy') this.throwBall();
+      else if (this.phase === 'success') this.end('caught');
     }
     if (this.input.wasPressed('cancel')) this.leave();
 
@@ -311,23 +313,23 @@ export class Battle {
       if (t >= 1) { m.visible = false; this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; }
     } else if (this.phase === 'wobble') {
       const bt = this.timer - this.wobbleStart;
-      // 공이 땅에 떨어진 뒤 0.7초마다 흔들림 (총 3번)
+      // 공이 땅에 떨어진 뒤 0.5초마다 흔들림 (총 2번)
       const groundY = terrainHeight(this.ball.position.x, this.ball.position.z) + 0.32;
       this.ball.position.y += (groundY - this.ball.position.y) * Math.min(1, dt * 6);
-      const idx = Math.floor((bt - 0.3) / 0.7);
-      const local = ((bt - 0.3) % 0.7) / 0.7;
-      if (bt > 0.3 && idx < 3) {
+      const idx = Math.floor((bt - 0.25) / 0.5);
+      const local = ((bt - 0.25) % 0.5) / 0.5;
+      if (bt > 0.25 && idx < 2) {
         this.ball.rotation.z = Math.sin(local * Math.PI * 2) * 0.5 * (1 - local);
         if (idx > this.wobbles - 1 && local < 0.05) { this.wobbles = idx + 1; this.sound.bounce(); }
       } else this.ball.rotation.z = 0;
-      if (bt > 0.3 + 3 * 0.7 + 0.4) this.startSuccess();
+      if (bt > 0.25 + 2 * 0.5 + 0.25) this.startSuccess();
     } else if (this.phase === 'success') {
       const t = Math.min(1, (this.timer - this.successStart) / 0.5);
       m.visible = true;
       m.scale.setScalar(base * easeOut(t));
       m.position.y = ground + Math.abs(Math.sin(this.timer * 8)) * 0.5;
       m.rotation.z = 0;
-      if (this.timer - this.successStart > 2.4) this.end('caught');
+      if (this.timer - this.successStart > 1.3) this.end('caught');
     }
 
     // 플로팅 텍스트/배너 타이머
@@ -357,7 +359,7 @@ export class Battle {
     this.showBanner(`잡았다! ${c.data.name}!`);
     this.msgEl.textContent = `${c.data.name}이(가) 친구가 되었어요!`;
     this.throwBtn.disabled = true;
-    this.runBtn.disabled = true;
-    setTimeout(() => { this.runBtn.disabled = false; }, 2500);
+    this.runBtn.textContent = '계속하기 ▶';
+    this.runBtn.classList.add('primary');
   }
 }

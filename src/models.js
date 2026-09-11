@@ -11,19 +11,23 @@ const MODEL_DIR = 'assets/models/';
 const loader = new GLTFLoader();
 const loaded = new Map();   // file -> { scene, animations } | null
 
-export function preloadModels(files) {
+export function preloadModels(files, onProgress) {
   const list = [...new Set(files.filter(Boolean))];
+  let done = 0;
+  onProgress?.(0, list.length);
   return Promise.all(list.map(async (file) => {
-    if (loaded.has(file)) return;
-    try {
-      const gltf = await loader.loadAsync(MODEL_DIR + file);
-      normalize(gltf.scene);
-      loaded.set(file, { scene: gltf.scene, animations: gltf.animations || [] });
-      console.info(`[models] ${file} 불러옴`);
-    } catch (e) {
-      loaded.set(file, null);
-      console.warn(`[models] ${file} 을(를) 불러오지 못해 드래프트 도형을 씁니다.`, e?.message || e);
+    if (!loaded.has(file)) {
+      try {
+        const gltf = await loader.loadAsync(MODEL_DIR + file);
+        normalize(gltf.scene);
+        loaded.set(file, { scene: gltf.scene, animations: gltf.animations || [] });
+        console.info(`[models] ${file} 불러옴`);
+      } catch (e) {
+        loaded.set(file, null);
+        console.warn(`[models] ${file} 을(를) 불러오지 못해 드래프트 도형을 씁니다.`, e?.message || e);
+      }
     }
+    onProgress?.(++done, list.length);
   }));
 }
 

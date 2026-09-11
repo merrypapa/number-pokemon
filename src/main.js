@@ -5,6 +5,7 @@ import { buildCave } from './cave.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature } from './creatures.js';
 import { preloadModels } from './models.js';
+import { buildIntro } from './intro.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle } from './battle.js';
@@ -58,16 +59,16 @@ function say(text, { face = '1', sec = 4 } = {}) {
 const startBtn = document.getElementById('btn-start');
 startBtn.disabled = true;
 startBtn.textContent = '불러오는 중…';
-document.getElementById('title-sub').textContent = `챕터 1 · 숫자 초원 · 주인공 ${PLAYER_NAME}`;
 const [creatureData, nbData] = await Promise.all([
   fetch('data/creatures.json').then((r) => r.json()),
   fetch('data/numberblocks.json').then((r) => r.json()),
 ]);
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 // assets/models/ 의 .glb 를 미리 받아 둔다 (없는 파일은 드래프트 도형으로 대체)
-await preloadModels([PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model)]);
+await preloadModels([PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model)], (done, total) => { startBtn.textContent = `불러오는 중… ${done}/${total}`; });
 startBtn.disabled = false;
-startBtn.textContent = '시작하기';
+startBtn.textContent = '모험 시작!';
+document.getElementById('title-sub').textContent = `${PLAYER_NAME}와 ${creatureData.creatures.filter((c) => c.model).map((c) => c.name).join('·')}의 신나는 숫자 모험!`;
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 
 // ---------- 지역(zone) ----------
@@ -233,18 +234,37 @@ function checkProgress() {
 }
 
 // ---------- 시작 ----------
+// 타이틀이 떠 있는 동안은 인트로 무대(주인공·몬스터 친구들)를 그린다
+let intro = buildIntro(creatureData.creatures);
+let snapCam = true; // 다음 프레임에 카메라를 주인공 뒤 제자리로 바로 옮긴다 (시작 직후, 전투 직후)
+document.body.classList.add('intro');
+window.addEventListener('resize', () => intro?.resize());
 document.getElementById('btn-start').onclick = () => {
   document.getElementById('title').classList.add('hidden');
+  document.body.classList.remove('intro');
+  intro?.dispose();
+  intro = null;
+  snapCam = true;
+  confetti.burst(120);
   sound.ensure();
   say(`안녕, ${PLAYER_NAME}! 난 원이야. 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 6 });
 };
 
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
+let prevBattle = false;
 function frame() {
   state.frames++;
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
+
+  if (intro) {
+    intro.update(dt);
+    renderer.render(intro.scene, intro.camera);
+    input.endFrame();
+    requestAnimationFrame(frame);
+    return;
+  }
 
   if (input.wasPressed('dex') && !battle.active) dex.toggle(state.dex);
   if (dex.open) {
@@ -386,11 +406,13 @@ function frame() {
     }
     tutorial();
 
-    // 카메라 따라가기
+    // 카메라 따라가기 (전투가 막 끝났으면 눈높이에서 바로 원래 자리로 복귀)
     const camTarget = player.position.clone().add(camOffset());
-    camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
+    if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
+    else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
     camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
   }
+  prevBattle = battle.active;
 
   zone.world.animate?.(t);
   const sun = zone.world.sun;

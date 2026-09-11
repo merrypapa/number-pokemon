@@ -31,6 +31,8 @@ python3 -m http.server 8000
 | `src/player.js` | 주인공 이동/점프/구멍 낙하 |
 | `src/creatures.js` | `data/creatures.json`의 draftShape로 드래프트 몬스터 생성, 다가오기 AI |
 | `src/models.js` | `assets/models/*.glb` 불러오기(GLTFLoader), 드래프트 도형 → 진짜 모델 교체, 애니메이션 |
+| `src/intro.js` | 시작 화면 3D 무대(주인공·몬스터 친구들·떠다니는 숫자블록) |
+| `tools/shrink_glb.py` | .glb 텍스처 줄이기(로딩 속도) |
 | `src/palette.js` | 숫자별 색 (number-mario 와 동일 팔레트) |
 | `src/numberblocks.js` | 숫자블록 친구(숫자별 색·배치·얼굴·팔다리), 파트너 줄지어 따라오기 |
 | `src/battle.js` | 전투 장면(어깨 뒤 시점, 숫자블록 던지기로 체력 깎기, 숫자볼 캡처, 성공 연출) |

@@ -5,6 +5,7 @@ import { swapDraftWithModel, tickModel } from './models.js';
 
 export const PLAYER_NAME = '인하';
 export const PLAYER_MODEL = '인하.glb'; // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
+export const PLAYER_HEIGHT = 1.9;      // 주인공 모델 키(m). 몬스터(1m 기준)보다 크게
 
 const SPEED = 6.5, JUMP = 7, GRAVITY = -20, ACCEL = 14; // ACCEL: 조이스틱처럼 부드럽게 가속/감속
 
@@ -29,7 +30,10 @@ export class Player {
     for (const m of [body, head, hat, brim, bag]) m.castShadow = true;
     draft.add(body, head, hat, brim, bag);
     this.body = body;
-    if (swapDraftWithModel(this.group, PLAYER_MODEL)) this.body = this.group.userData.model; // 걷기 기울임을 모델 전체에
+    if (swapDraftWithModel(this.group, PLAYER_MODEL)) {
+      this.body = this.group.userData.model; // 걷기 기울임을 모델 전체에
+      this.body.scale.setScalar(PLAYER_HEIGHT);
+    }
 
     this.group.position.set(0, 0, 8);
     this.vy = 0;

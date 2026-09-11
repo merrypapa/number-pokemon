@@ -2,6 +2,7 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; touch-action: none; }
 #game { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .hidden { display: none !important; }
+body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !important; } /* 시작 화면에서는 HUD 숨김 */
 
 #hud { position: fixed; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
 .hud-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 700; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
@@ -58,13 +59,22 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; fon
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 #touch-actions button { width: 72px; height: 72px; }
 
-#title { position: fixed; inset: 0; background: linear-gradient(#8fd3ff, #c8f0c0); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
-#title-card { background: #fff; border-radius: 28px; padding: 32px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.2); max-width: 480px; width: 100%; }
-#title h1 { margin: 0 0 6px; font-size: 32px; color: #333; }
-#title p { margin: 0 0 20px; color: #777; font-weight: 700; }
-#btn-start { font-size: 24px; font-weight: 900; padding: 14px 40px; border-radius: 16px; border: 0; background: #ffd93d; color: #333; cursor: pointer; box-shadow: 0 4px 0 #d4b02e; }
-#btn-start:active { transform: translateY(3px); box-shadow: none; }
-#title-help { margin-top: 16px; font-size: 14px; color: #999; }
+#title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; z-index: 20; padding: 28px 16px 22px; pointer-events: none; background: linear-gradient(rgba(60,120,220,.25), rgba(0,0,0,0) 35%, rgba(0,0,0,0) 65%, rgba(20,60,20,.45)); }
+#title > * { pointer-events: auto; }
+#title-top, #title-bottom { display: flex; flex-direction: column; align-items: center; text-align: center; }
+#title-badge { background: #fff; color: #e8453c; font-weight: 900; font-size: 15px; padding: 6px 16px; border-radius: 999px; box-shadow: 0 3px 0 rgba(0,0,0,.15); letter-spacing: .5px; animation: title-drop .7s cubic-bezier(.2,1.4,.4,1) both; }
+#title h1 { margin: 12px 0 8px; display: flex; flex-direction: column; align-items: center; line-height: 1; font-weight: 900; }
+#title h1 span { display: block; color: #fff; -webkit-text-stroke: 2px #20232e; paint-order: stroke fill; text-shadow: 0 6px 0 #20232e, 0 10px 18px rgba(0,0,0,.35); animation: title-bounce 2.4s ease-in-out infinite; }
+#title h1 .w1 { font-size: clamp(40px, 9vw, 74px); color: #ffd93d; }
+#title h1 .w2 { font-size: clamp(48px, 11vw, 92px); color: #fff; animation-delay: .25s; }
+#title p { margin: 0; color: #20232e; background: rgba(255,255,255,.88); font-weight: 800; font-size: clamp(14px, 2.6vw, 19px); padding: 8px 18px; border-radius: 999px; box-shadow: 0 3px 0 rgba(0,0,0,.12); max-width: 92vw; animation: title-drop .9s cubic-bezier(.2,1.4,.4,1) both; }
+#btn-start { font-size: clamp(24px, 4.5vw, 34px); font-weight: 900; padding: 16px 52px; border-radius: 999px; border: 4px solid #fff; background: linear-gradient(#ffe066, #ffc300); color: #20232e; cursor: pointer; box-shadow: 0 7px 0 #c99400, 0 14px 26px rgba(0,0,0,.3); animation: btn-pulse 1.4s ease-in-out infinite; }
+#btn-start:disabled { animation: none; background: #e8e8e8; color: #999; border-color: #f6f6f6; box-shadow: 0 6px 0 #bbb; cursor: wait; }
+#btn-start:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 2px 0 #c99400; }
+#title-help { margin-top: 14px; font-size: 13px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); font-weight: 700; }
+@keyframes title-bounce { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
+@keyframes title-drop { from { transform: translateY(-30px) scale(.8); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes btn-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 
 /* ---------- 도감 ---------- */
 #btn-dex { position: fixed; top: 12px; right: 12px; z-index: 6; font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
