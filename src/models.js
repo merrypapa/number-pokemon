@@ -5,7 +5,7 @@ import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 // assets/models/ 안의 .glb 파일을 불러와 드래프트 도형 대신 쓰는 모듈.
 // - preloadModels(files): 게임 시작 전에 한 번에 받아 둔다. 없는 파일(404)은 조용히 건너뛴다.
 // - instantiate(file): 받아 둔 모델을 복제해서 돌려준다 (없으면 null → 드래프트 도형 유지).
-// 규격: 발바닥 원점, 앞 -Z, 높이 약 1m. 크기가 달라도 여기서 높이 1m 로 자동 보정한다.
+// 규격: 발바닥 원점, 앞 +Z(이 게임의 드래프트 캐릭터와 같은 방향), 높이 약 1m. 크기가 달라도 여기서 높이 1m 로 자동 보정한다.
 
 const MODEL_DIR = 'assets/models/';
 const loader = new GLTFLoader();

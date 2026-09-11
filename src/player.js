@@ -3,7 +3,8 @@ import { addFace, lerpAngle } from './util.js';
 import { terrainHeight, inHole, worldSize } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
-export const PLAYER_MODEL = 'player.glb'; // assets/models/player.glb 가 있으면 주인공이 이 모델로 바뀐다
+export const PLAYER_NAME = '인하';
+export const PLAYER_MODEL = '인하.glb'; // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
 
 const SPEED = 6.5, JUMP = 7, GRAVITY = -20, ACCEL = 14; // ACCEL: 조이스틱처럼 부드럽게 가속/감속
 

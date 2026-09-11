@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, setActiveTerrain, WORLD } from './world.js';
 import { buildCave } from './cave.js';
-import { Player, PLAYER_MODEL } from './player.js';
+import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature } from './creatures.js';
 import { preloadModels } from './models.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
@@ -55,6 +55,10 @@ function say(text, { face = '1', sec = 4 } = {}) {
 }
 
 // ---------- 데이터 ----------
+const startBtn = document.getElementById('btn-start');
+startBtn.disabled = true;
+startBtn.textContent = '불러오는 중…';
+document.getElementById('title-sub').textContent = `챕터 1 · 숫자 초원 · 주인공 ${PLAYER_NAME}`;
 const [creatureData, nbData] = await Promise.all([
   fetch('data/creatures.json').then((r) => r.json()),
   fetch('data/numberblocks.json').then((r) => r.json()),
@@ -62,6 +66,8 @@ const [creatureData, nbData] = await Promise.all([
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 // assets/models/ 의 .glb 를 미리 받아 둔다 (없는 파일은 드래프트 도형으로 대체)
 await preloadModels([PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model)]);
+startBtn.disabled = false;
+startBtn.textContent = '시작하기';
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 
 // ---------- 지역(zone) ----------
@@ -230,7 +236,7 @@ function checkProgress() {
 document.getElementById('btn-start').onclick = () => {
   document.getElementById('title').classList.add('hidden');
   sound.ensure();
-  say('안녕! 난 원이야. 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!', { sec: 6 });
+  say(`안녕, ${PLAYER_NAME}! 난 원이야. 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 6 });
 };
 
 // ---------- 루프 ----------
