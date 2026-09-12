@@ -7,6 +7,14 @@ import { colorForCount } from './palette.js';
 //  - 아래: 모든 종을 액자로. 액자를 누르면 그 종이 상세에 나온다. 잡은 종은 컬러 썸네일 + 이름, 아니면 검은 실루엣 + 물음표.
 // 썸네일은 작은 오프스크린 렌더러로 한 번만 만들어 캐시한다.
 const DEFAULT_ZONE_NAME = { forest: '푸른숲', cave: '지하동굴', volcano: '불의산', sea: '물의길', space: '꿈의우주', evolution: '진화' };
+// 지도 탭: 지역 위치(0~100 좌표), 모양, 아이콘, 가는 길
+const MAP_REGIONS = [
+  { id: 'forest', x: 50, y: 33, rx: 17, ry: 10.5, icon: '🌲', fill: '#7ccf5a', desc: '시작 마을이 있는 숲. 풀·노말·벌레·전기 포켓몬이 산다. 다른 지역으로 가는 길이 모두 여기서 시작해.', how: '처음 시작하는 곳. 다른 지역에서 포탈·기차·로켓으로 돌아온다.' },
+  { id: 'cave', x: 50, y: 10, rx: 13, ry: 8, icon: '🕳️', fill: '#4b5261', desc: '어두운 지하 동굴. 땅·바위·독 포켓몬이 산다. 호수와 다리, 빛나는 웅덩이가 있어.', how: '푸른숲 북쪽 큰 구멍에 빠지거나, 푸른숲 보스를 잡은 뒤 북쪽 산의 동굴 입구로. 포탈로 돌아온다.' },
+  { id: 'volcano', x: 83, y: 15, rx: 14, ry: 8.5, icon: '🌋', fill: '#c0533a', desc: '용암이 끓는 화산. 불 포켓몬이 산다. 큰 화산 꼭대기에 보스가 있어.', how: '푸른숲 동북쪽 붉은 바위 아치로 들어간다. 포탈로 돌아온다.' },
+  { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어.', how: '푸른숲 서쪽 기차역에서 기차를 탄다 (E). 돌아올 때도 그곳 기차역에서 기차를 탄다.' },
+  { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓을 탄다 (E). 돌아올 때도 착륙장의 로켓을 탄다.' },
+];
 
 export class Dex {
   constructor(species, zoneNames = {}) {
@@ -24,6 +32,13 @@ export class Dex {
     this.cache = new Map(); // id -> { color, silhouette }
     this.partyCtx = null;
     this.selectedId = null;
+    this.tab = 'poke';
+    this.mapSel = null;
+    this.bodyEl = document.getElementById('dex-body');
+    this.mapViewEl = document.getElementById('dex-mapview');
+    this.mapEl = document.getElementById('dex-map');
+    this.mapDetailEl = document.getElementById('dex-map-detail');
+    document.querySelectorAll('#dex-tabs button').forEach((b) => { b.onclick = () => this.setTab(b.dataset.tab); });
     document.getElementById('btn-dex').onclick = () => this.toggle();
     document.getElementById('btn-dex-close').onclick = () => this.hide();
     this.el.addEventListener('click', (e) => { if (e.target === this.el) this.hide(); });
@@ -73,6 +88,61 @@ export class Dex {
   }
 
   select(id) { this.selectedId = id; this.render(this.lastCaught || {}); }
+  setTab(tab) {
+    this.tab = tab;
+    document.querySelectorAll('#dex-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+    this.bodyEl.classList.toggle('hidden', tab !== 'poke');
+    this.mapViewEl.classList.toggle('hidden', tab !== 'map');
+    if (tab === 'map') this.renderMap(this.lastCaught || {});
+  }
+
+  // ----- 지도 탭: 지역들을 그림으로, 정복한 곳은 금빛 ★. 누르면 그 지역의 포켓몬을 잡은/못 잡은 것으로 나눠 보여준다 -----
+  renderMap(caughtById) {
+    const ctx = this.partyCtx;
+    const conquered = ctx?.getConquered?.() || {};
+    const here = ctx?.getZoneName?.();
+    if (!this.mapSel) this.mapSel = here || 'forest';
+    const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
+    const line = (a, b, cls) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - 4} ${B.x},${B.y}"/>`; };
+    let svg = `<svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">`;
+    svg += line('forest', 'cave', 'path') + line('forest', 'volcano', 'path') + line('forest', 'sea', 'rail') + line('forest', 'space', 'flight');
+    for (const r of MAP_REGIONS) {
+      const done = !!conquered[r.id];
+      svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})">
+        <ellipse class="blob" rx="${r.rx}" ry="${r.ry}" style="fill:${done ? r.fill : '#d8d8d8'}"/>
+        <text class="icon" y="-0.5" text-anchor="middle">${r.icon}</text>
+        <text class="name" y="6.5" text-anchor="middle">${this.zoneName[r.id]}</text>
+        ${done ? `<text class="star" x="${r.rx - 3}" y="${-r.ry + 4}" text-anchor="middle">★</text>` : ''}
+        ${here === r.id ? `<text class="here" y="${r.ry + 4}" text-anchor="middle">▲ 지금 여기</text>` : ''}
+      </g>`;
+    }
+    svg += '</svg>';
+    this.mapEl.innerHTML = svg;
+    this.mapEl.querySelectorAll('.region').forEach((g) => { g.onclick = () => { this.mapSel = g.dataset.zone; this.renderMap(caughtById); }; });
+    // 지역 상세
+    const r = R[this.mapSel];
+    const list = this.species.filter((sp) => sp.zone === r.id);
+    const known = list.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
+    const done = !!conquered[r.id];
+    let html = `<div class="map-title">${r.icon} ${this.zoneName[r.id]} <span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>${here === r.id ? '<span class="badge">지금 여기</span>' : ''}</div>
+      <div class="map-desc">${r.desc}</div>
+      <div class="map-how">가는 길: ${r.how}</div>
+      <div class="map-count">이 지역의 포켓몬 ${list.length}종 중 ${known}종을 잡았어${done ? '' : ' · 보스를 잡으면 정복!'}</div>
+      <div class="map-pokes">`;
+    for (const sp of list.sort((a, b) => (b.boss ? 1 : 0) - (a.boss ? 1 : 0))) {
+      const n = caughtById[sp.id] || 0;
+      const t = this.thumbs(sp);
+      html += `<div class="map-poke ${n ? 'caught' : 'unknown'}${sp.boss ? ' boss' : ''}" data-id="${sp.id}">
+        ${sp.boss ? '<span class="bossmark">보스</span>' : ''}
+        ${t ? `<img src="${n ? t.color : t.silhouette}" alt="">` : ''}
+        <div class="nm">${n ? sp.name : '???'}</div>
+        <div class="sub">${n ? `${sp.type} · ${n}마리 잡음` : '아직 못 잡음'}</div>
+      </div>`;
+    }
+    html += '</div>';
+    this.mapDetailEl.innerHTML = html;
+    this.mapDetailEl.querySelectorAll('.map-poke').forEach((el) => { el.onclick = () => { this.selectedId = el.dataset.id; this.setTab('poke'); this.render(caughtById); }; });
+  }
 
   // ----- 내 포켓몬 칩 한 줄 -----
   renderMembers() {
@@ -219,7 +289,7 @@ export class Dex {
       <span><i class="hud-icon boss"></i>정복 ${pr.conquered}/${pr.zones}</span>` : '';
   }
 
-  show(caughtById) { this.render(caughtById); this.el.classList.remove('hidden'); this.open = true; }
+  show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); this.el.classList.remove('hidden'); this.open = true; }
   hide() { this.el.classList.add('hidden'); this.open = false; }
   toggle(caughtById) { if (this.open) this.hide(); else this.show(caughtById || this.lastCaught || {}); }
 }
