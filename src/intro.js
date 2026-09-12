@@ -51,7 +51,7 @@ export function buildIntro(creatures) {
   // 캐릭터: 주인공이 가운데, 몬스터 친구들이 양옆에서 반원으로
   const actors = [];
   const withModels = creatures.filter((c) => c.model);
-  const slots = [[-2.2, 0.9], [2.2, 0.9], [-3.6, -1.2], [3.6, -1.2], [0, -2.6], [-1.4, -3.4], [1.4, -3.4]];
+  const slots = [[-2.2, 0.9], [2.2, 0.9], [-3.8, -0.6], [3.8, -0.6], [-5.2, -2.6], [5.2, -2.6], [-3.2, -3.4], [3.2, -3.4], [-1.1, -3.9], [1.1, -3.9], [-6.4, -0.2], [6.4, -0.2], [0, -5.2]];
   let disposed = false;
   const place = (file, x, z, height, phase) => onModelLoaded(file, () => {
     if (disposed) return;

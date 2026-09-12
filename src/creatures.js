@@ -12,7 +12,7 @@ export function buildDraftMesh(c) {
   g.userData.draft = draft;
   const d = c.draftShape || {};
   const color = new THREE.Color(d.color || '#cccccc');
-  const glows = !!(d.glowSegments || d.glow); // 반디, 달빛이처럼 스스로 빛나는 몬스터
+  const glows = !!(d.glowSegments || d.glow); // 포니타(m07), 푸린(m15)처럼 스스로 빛나는 몬스터
   const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, transparent: !!d.translucent, opacity: d.translucent ? 0.7 : 1, emissive: glows ? color : 0x000000, emissiveIntensity: glows ? 0.8 : 0 });
   let body, faceZ = 0.5, faceY = 0.55;
   switch (d.body) {
