@@ -30,10 +30,8 @@ export class Player {
     for (const m of [body, head, hat, brim, bag]) m.castShadow = true;
     draft.add(body, head, hat, brim, bag);
     this.body = body;
-    if (swapDraftWithModel(this.group, PLAYER_MODEL)) {
-      this.body = this.group.userData.model; // 걷기 기울임을 모델 전체에
-      this.body.scale.setScalar(PLAYER_HEIGHT);
-    }
+    // 모델이 준비돼 있으면 바로, 아직 받는 중이면 도착했을 때 드래프트 → 모델로 바뀐다
+    swapDraftWithModel(this.group, PLAYER_MODEL, { scale: PLAYER_HEIGHT, onSwap: (m) => { this.body = m; } }); // 걷기 기울임을 모델 전체에
 
     this.group.position.set(0, 0, 8);
     this.vy = 0;

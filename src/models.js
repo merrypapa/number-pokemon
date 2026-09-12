@@ -10,6 +10,16 @@ import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 const MODEL_DIR = 'assets/models/';
 const loader = new GLTFLoader();
 const loaded = new Map();   // file -> { scene, animations } | null
+const waiting = new Map();  // file -> [callback]  (아직 안 온 모델을 기다리는 쪽)
+const easeOutBack = (t) => 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2); // 살짝 튀어나왔다 자리 잡는 곡선
+
+/** 모델이 준비되면 cb 를 부른다 (이미 준비됐으면 바로). 불러오기에 실패한 파일은 부르지 않는다. */
+export function onModelLoaded(file, cb) {
+  if (!file) return;
+  if (loaded.has(file)) { if (loaded.get(file)) cb(); return; }
+  if (!waiting.has(file)) waiting.set(file, []);
+  waiting.get(file).push(cb);
+}
 
 export function preloadModels(files, onProgress) {
   const list = [...new Set(files.filter(Boolean))];
@@ -22,10 +32,12 @@ export function preloadModels(files, onProgress) {
         normalize(gltf.scene);
         loaded.set(file, { scene: gltf.scene, animations: gltf.animations || [] });
         console.info(`[models] ${file} 불러옴`);
+        for (const cb of waiting.get(file) || []) cb();
       } catch (e) {
         loaded.set(file, null);
         console.warn(`[models] ${file} 을(를) 불러오지 못해 드래프트 도형을 씁니다.`, e?.message || e);
       }
+      waiting.delete(file);
     }
     onProgress?.(++done, list.length);
   }));
@@ -85,21 +97,37 @@ class ModelAnim {
 
 /**
  * group 의 드래프트 도형(group.userData.draft)을 모델로 바꾼다.
- * 모델이 없으면 아무것도 하지 않고 false 를 돌려준다.
+ * 모델이 이미 준비돼 있으면 바로 바꾸고 true. 아직 받는 중이면 도착했을 때 "뿅" 하고 바꾼다(false).
+ * 실패한 파일이면 드래프트가 그대로 남는다.
  */
-export function swapDraftWithModel(group, file) {
-  const model = instantiate(file);
-  if (!model) return false;
-  if (group.userData.draft) group.remove(group.userData.draft);
-  group.add(model);
-  group.userData.model = model;
-  return true;
+export function swapDraftWithModel(group, file, { scale = 1, onSwap } = {}) {
+  if (!file) return false;
+  const doSwap = (pop) => {
+    const model = instantiate(file);
+    if (!model) return;
+    if (group.userData.draft) group.remove(group.userData.draft);
+    model.userData.targetScale = scale;
+    model.userData.popT = pop ? 0 : 1;
+    model.scale.setScalar(pop ? 0.001 : scale);
+    group.add(model);
+    group.userData.model = model;
+    onSwap?.(model);
+  };
+  if (hasModel(file)) { doSwap(false); return true; }
+  onModelLoaded(file, () => { if (!group.userData.model) doSwap(true); });
+  return false;
 }
 
-/** 모델 애니메이션 갱신 (모델이 아니면 아무것도 안 함) */
+/** 모델 애니메이션 + 늦게 도착한 모델의 등장 연출 갱신 (모델이 아니면 아무것도 안 함) */
 export function tickModel(group, dt, clipName) {
-  const anim = group.userData.model?.userData.anim;
-  if (!anim) return;
-  if (clipName) anim.play(clipName);
-  anim.update(dt);
+  const model = group.userData.model;
+  if (!model) return;
+  const u = model.userData;
+  if (u.popT < 1) {
+    u.popT = Math.min(1, u.popT + dt / 0.5);
+    model.scale.setScalar(u.targetScale * Math.max(0.001, easeOutBack(u.popT)));
+  }
+  if (!u.anim) return;
+  if (clipName) u.anim.play(clipName);
+  u.anim.update(dt);
 }

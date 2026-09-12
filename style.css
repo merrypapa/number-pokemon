@@ -71,6 +71,7 @@ body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !importa
 #btn-start { font-size: clamp(24px, 4.5vw, 34px); font-weight: 900; padding: 16px 52px; border-radius: 999px; border: 4px solid #fff; background: linear-gradient(#ffe066, #ffc300); color: #20232e; cursor: pointer; box-shadow: 0 7px 0 #c99400, 0 14px 26px rgba(0,0,0,.3); animation: btn-pulse 1.4s ease-in-out infinite; }
 #btn-start:disabled { animation: none; background: #e8e8e8; color: #999; border-color: #f6f6f6; box-shadow: 0 6px 0 #bbb; cursor: wait; }
 #btn-start:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 2px 0 #c99400; }
+#title-loading { margin-top: 12px; font-size: 13px; font-weight: 800; color: #20232e; background: rgba(255,255,255,.85); padding: 4px 12px; border-radius: 999px; }
 #title-help { margin-top: 14px; font-size: 13px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); font-weight: 700; }
 @keyframes title-bounce { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
 @keyframes title-drop { from { transform: translateY(-30px) scale(.8); opacity: 0; } to { transform: none; opacity: 1; } }

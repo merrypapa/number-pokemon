@@ -4,7 +4,7 @@ import { buildWorld, terrainHeight, inHole, setActiveTerrain, WORLD } from './wo
 import { buildCave } from './cave.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature } from './creatures.js';
-import { preloadModels } from './models.js';
+import { preloadModels, onModelLoaded } from './models.js';
 import { buildIntro } from './intro.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
@@ -56,18 +56,18 @@ function say(text, { face = '1', sec = 4 } = {}) {
 }
 
 // ---------- 데이터 ----------
-const startBtn = document.getElementById('btn-start');
-startBtn.disabled = true;
-startBtn.textContent = '불러오는 중…';
 const [creatureData, nbData] = await Promise.all([
   fetch('data/creatures.json').then((r) => r.json()),
   fetch('data/numberblocks.json').then((r) => r.json()),
 ]);
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
-// assets/models/ 의 .glb 를 미리 받아 둔다 (없는 파일은 드래프트 도형으로 대체)
-await preloadModels([PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model)], (done, total) => { startBtn.textContent = `불러오는 중… ${done}/${total}`; });
-startBtn.disabled = false;
-startBtn.textContent = '모험 시작!';
+// assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
+const modelFiles = [PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model)];
+const loadingEl = document.getElementById('title-loading');
+preloadModels(modelFiles, (done, total) => {
+  loadingEl.textContent = `친구들 불러오는 중 ${done}/${total}`;
+  loadingEl.classList.toggle('hidden', done >= total);
+});
 document.getElementById('title-sub').textContent = `${PLAYER_NAME}와 ${creatureData.creatures.filter((c) => c.model).map((c) => c.name).join('·')}의 신나는 숫자 모험!`;
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 
@@ -145,6 +145,7 @@ const MAX_BLOCKS = 20;
 const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false, dex: {}, glowBlocks: 0 }; // glowBlocks: 동굴에서 주운 형광 블록 수
 const dex = new Dex(creatureData.creatures);
 dex.lastCaught = state.dex;
+for (const f of modelFiles) onModelLoaded(f, () => dex.cache.clear()); // 모델이 오면 도감 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { instantiate } from './models.js';
+import { instantiate, onModelLoaded } from './models.js';
 import { buildNumberblockMesh } from './numberblocks.js';
 import { PLAYER_MODEL, PLAYER_HEIGHT } from './player.js';
 
@@ -52,15 +52,17 @@ export function buildIntro(creatures) {
   const actors = [];
   const withModels = creatures.filter((c) => c.model);
   const slots = [[-2.2, 0.9], [2.2, 0.9], [-3.6, -1.2], [3.6, -1.2], [0, -2.6], [-1.4, -3.4], [1.4, -3.4]];
-  const place = (file, x, z, height, phase) => {
+  let disposed = false;
+  const place = (file, x, z, height, phase) => onModelLoaded(file, () => {
+    if (disposed) return;
     const m = instantiate(file);
     if (!m) return;
-    m.scale.setScalar(height);
+    m.scale.setScalar(0.001);
     m.position.set(x, 0, z);
     m.rotation.y = Math.atan2(-x, 12 - z) * 0.6; // 살짝 카메라 쪽을 보게
     scene.add(m);
-    actors.push({ mesh: m, x, z, phase, height, baseRot: m.rotation.y });
-  };
+    actors.push({ mesh: m, x, z, phase, height, baseRot: m.rotation.y, pop: 0 }); // 도착한 순서대로 "뿅" 등장
+  });
   place(PLAYER_MODEL, 0, 1.4, PLAYER_HEIGHT, 0);
   withModels.forEach((c, i) => { const [x, z] = slots[i % slots.length]; place(c.model, x, z, 1.15 * (c.scale || 1), i + 1); });
 
@@ -80,11 +82,13 @@ export function buildIntro(creatures) {
   function update(dt) {
     t += dt;
     for (const a of actors) {
+      a.pop = Math.min(1, a.pop + dt / 0.55);
+      const popS = Math.max(0.001, 1 + 2.7 * Math.pow(a.pop - 1, 3) + 1.7 * Math.pow(a.pop - 1, 2)); // 튀어나왔다 자리 잡기
       const hop = Math.abs(Math.sin(t * 3.2 + a.phase * 1.3));
       a.mesh.position.y = hop * 0.28 * (a.phase === 0 ? 0.6 : 1);
-      a.mesh.rotation.y = a.baseRot + Math.sin(t * 1.1 + a.phase) * 0.18;
+      a.mesh.rotation.y = a.baseRot + Math.sin(t * 1.1 + a.phase) * 0.18 + (1 - a.pop) * Math.PI * 2;
       const s = 1 + (1 - hop) * 0.04;
-      a.mesh.scale.set(a.height * (2 - s), a.height * s, a.height * (2 - s));
+      a.mesh.scale.set(a.height * popS * (2 - s), a.height * popS * s, a.height * popS * (2 - s));
     }
     for (const f of floaters) {
       const ang = f.a + t * 0.25;
@@ -97,6 +101,6 @@ export function buildIntro(creatures) {
     camera.lookAt(0, 1.1, -0.4);
   }
   function resize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); }
-  function dispose() { scene.traverse((o) => { o.geometry?.dispose?.(); }); }
+  function dispose() { disposed = true; scene.traverse((o) => { o.geometry?.dispose?.(); }); }
   return { scene, camera, update, resize, dispose };
 }
