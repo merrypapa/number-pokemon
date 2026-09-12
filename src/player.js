@@ -33,7 +33,7 @@ export class Player {
     // 모델이 준비돼 있으면 바로, 아직 받는 중이면 도착했을 때 드래프트 → 모델로 바뀐다
     swapDraftWithModel(this.group, PLAYER_MODEL, { scale: PLAYER_HEIGHT, onSwap: (m) => { this.body = m; } }); // 걷기 기울임을 모델 전체에
 
-    this.group.position.set(0, 0, 8);
+    this.group.position.set(0, 0, 12);
     this.vy = 0;
     this.vx = 0;
     this.vz = 0;
@@ -44,7 +44,7 @@ export class Player {
     this.walkT = 0;
     this.respawnFlash = 0;
     // 주인공이 드는 등불 (동굴에서 주변을 밝힌다)
-    this.lamp = new THREE.PointLight(0xffd9a0, 0, 18);
+    this.lamp = new THREE.PointLight(0xffd9a0, 0, 24);
     this.lamp.position.set(0, 1.6, 0.4);
     this.group.add(this.lamp);
     scene.add(this.group);

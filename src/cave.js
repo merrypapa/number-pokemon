@@ -5,12 +5,13 @@ import { buildBridge, onBridge, bridgeParam, bridgeDeckY } from './world.js';
 // 괴물 동굴 (80x80). 초원의 큰 구멍에 빠지거나 동굴 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
 export const CAVE = {
-  size: 80,
-  spawn: { x: 0, z: 10 },
-  portal: { x: 0, z: 22 },
-  lake: { x: 22, z: -14, r: 8 },
+  size: 120,
+  spawn: { x: 0, z: 15 },
+  portal: { x: 0, z: 33 },
+  lake: { x: 33, z: -21, r: 10 },
   bumps: [
-    { x: -20, z: -10, r: 8, h: 1.2 }, { x: 18, z: 16, r: 9, h: 1.0 }, { x: -8, z: -26, r: 7, h: 1.5 }, { x: 26, z: -30, r: 8, h: 1.1 },
+    { x: -30, z: -15, r: 10, h: 1.2 }, { x: 27, z: 24, r: 11, h: 1.0 }, { x: -12, z: -39, r: 9, h: 1.5 }, { x: 39, z: -45, r: 10, h: 1.1 },
+    { x: -45, z: 30, r: 11, h: 1.3 }, { x: 45, z: 42, r: 9, h: 1.0 }, { x: -48, z: -45, r: 10, h: 1.4 },
   ],
 };
 
@@ -54,17 +55,18 @@ export function buildCave(scene) {
   obstacles.length = 0;
   const block = (x, z, r) => obstacles.push({ x, z, r });
   scene.background = new THREE.Color(0x05070c);
-  scene.fog = new THREE.Fog(0x05070c, 14, 48);
-  scene.add(new THREE.HemisphereLight(0x6a7ab0, 0x141a22, 0.7));
-  const sun = new THREE.DirectionalLight(0x8090c0, 0.25);
+  // 어둡지만 캐릭터가 보일 만큼은 밝게: 달빛 같은 반구광 + 약한 방향광. (전투 중엔 battle.js 가 무대 조명을 더 켠다)
+  scene.fog = new THREE.Fog(0x05070c, 24, 80);
+  scene.add(new THREE.HemisphereLight(0x8fa3e0, 0x222a3a, 1.7));
+  const sun = new THREE.DirectionalLight(0x9aa8d8, 0.5);
   sun.position.set(10, 30, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
-  Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 100 });
+  Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 120 });
   scene.add(sun, sun.target);
 
   // 바닥
-  const seg = 100;
+  const seg = 150;
   const geo = new THREE.PlaneGeometry(S, S, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -91,8 +93,8 @@ export function buildCave(scene) {
 
   // 바깥 벽 (큰 바위 원뿔 링)
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5261, roughness: 1 });
-  for (let i = 0; i < 44; i++) {
-    const ang = (i / 44) * Math.PI * 2;
+  for (let i = 0; i < 66; i++) {
+    const ang = (i / 66) * Math.PI * 2;
     const r = S / 2 - 2 + rand(-2, 2);
     const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
     const h = rand(6, 12), cr = rand(3, 5);
@@ -102,7 +104,7 @@ export function buildCave(scene) {
     decor.add(m); block(x, z, cr * 0.6);
   }
   // 안쪽 바위 기둥 / 종유석(위로 솟은)
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 44; i++) {
     const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8);
     if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 4) continue;
     const h = rand(1.5, 5), pr = rand(0.6, 1.6);
@@ -115,7 +117,7 @@ export function buildCave(scene) {
   // 수정 (빛남) + 점광원
   const crystalColors = [0x66e0ff, 0xc38bff, 0xff8bd6, 0x8bffb0];
   const crystals = [];
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < 36; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
     if (Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 4 || Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 5 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 4) continue;
     const col = crystalColors[i % crystalColors.length];
@@ -137,7 +139,7 @@ export function buildCave(scene) {
     crystals.push({ g, light });
   }
   // 야광 버섯
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 70; i++) {
     const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5);
     if (Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 1) continue;
     const mush = new THREE.Group();
@@ -192,7 +194,7 @@ export function buildCave(scene) {
   return {
     sun, animate, terrain: CAVE_TERRAIN, portal: P, spawn: CAVE.spawn,
     decor,
-    creatureSpawns: { m07: [[-16, -6], [14, 4]], m08: [[-24, -22], [8, -30]], m09: [[26, 8], [-6, -16]] },
-    pickupSpots: [[4, 4], [-6, 2], [10, -8], [-14, 8], [-18, -14], [16, -22], [-4, -30], [28, -4], [-28, 4], [6, 20], [-20, 20], [20, 24]],
+    creatureSpawns: { m07: [[-24, -9], [21, 6], [-48, 42]], m08: [[-36, -33], [12, -45], [48, -50]], m09: [[39, 12], [-9, -24], [-45, -48]] },
+    pickupSpots: [[6, 6], [-9, 3], [15, -12], [-21, 12], [-27, -21], [24, -33], [-6, -45], [42, -6], [-42, 6], [9, 30], [-30, 30], [30, 36], [-48, -12], [48, 24], [0, -60], [-20, 50], [40, -60]],
   };
 }

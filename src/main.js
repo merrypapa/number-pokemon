@@ -22,7 +22,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 220);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 320);
 // 카메라: 주인공을 중심으로 회전(camYaw)/기울기(camPitch). 화면 드래그나 Q/R 로 돌린다.
 const cam = { yaw: 0, pitch: 0 };
 function camOffset() {
@@ -106,23 +106,23 @@ function spawnPickup(z, x, zz) {
   z.pickups.push(m);
 }
 
-// 초원: 6종 15마리 + 보스 쿵쿵이
+// 초원: 6종 21마리 + 보스 쿵쿵이
 {
   const z = zones.meadow;
   const spots = {
-    m01: [[-20, 4], [10, 30], [-38, 14]],
-    m02: [[24, -14], [-14, 24], [40, 12]],
-    m03: [[14, -4], [-26, 0], [30, 44]],
-    m04: [[-12, -26], [34, -26]],
-    m05: [[20, 36], [-44, 32]],
-    m06: [[6, -22], [46, -44]],
+    m01: [[-30, 6], [15, 45], [-57, 21], [60, -60]],
+    m02: [[36, -21], [-21, 36], [60, 18], [-70, 55]],
+    m03: [[21, -6], [-39, 0], [45, 66], [70, -20]],
+    m04: [[-18, -39], [51, -39], [-60, 72]],
+    m05: [[30, 54], [-66, 48], [75, 40]],
+    m06: [[9, -33], [69, -66], [-30, -72]],
   };
   for (const [id, list] of Object.entries(spots)) for (const [x, zz] of list) spawnCreature(z, id, x, zz);
   spawnCreature(z, 'm13', WORLD.arena.x, WORLD.arena.z, { scale: 2.6 });
-  for (const [x, zz] of [[0, 3], [-4, 6], [6, -6], [-9, -2], [10, 8], [-2, -12], [14, -14], [-16, 4], [2, 16], [-12, 14], [22, 4], [-24, -8], [8, -24], [-8, 30], [20, 18], [-36, 10], [36, -6], [-20, -30], [-34, -28], [-12, -40], [30, -30], [-42, 4], [12, 40]]) spawnPickup(z, x, zz);
-  for (const [id, [x, zz]] of Object.entries({ nb02: [-30, -18], nb03: [22, 34] })) z.numberblocks.push(new Numberblock(z.scene, nbById[id], { x, z: zz }));
+  for (const [x, zz] of [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0]]) spawnPickup(z, x, zz);
+  for (const [id, [x, zz]] of Object.entries({ nb02: [-45, -27], nb03: [33, 51] })) z.numberblocks.push(new Numberblock(z.scene, nbById[id], { x, z: zz }));
 }
-// 동굴: 3종 6마리
+// 동굴: 3종 9마리
 {
   const z = zones.cave;
   setActiveTerrain(z.terrain); // Numberblock/Creature 생성 시 지형 높이를 쓰므로 잠시 전환
@@ -281,7 +281,7 @@ function switchZone(name, spawn, message) {
     for (const m of partyMeshes()) { from.scene.remove(m); zone.scene.add(m); }
     player.teleport(spawn.x, spawn.z);
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
-    player.lamp.intensity = zone.name === 'cave' ? (state.glow ? 9 : 4.5) : 0;
+    player.lamp.intensity = zone.name === 'cave' ? (state.glow ? 13 : 8) : 0;
     camera.position.copy(player.position).add(camOffset());
     if (message) say(message.text, message);
     setTimeout(() => { fadeEl.classList.remove('on'); switching = false; }, 150);
@@ -392,7 +392,7 @@ function frame() {
     } else if (zone.name === 'cave') {
       const P = zones.cave.world.portal;
       if (Math.hypot(player.position.x - P.x, player.position.z - P.z) < 1.6) {
-        switchZone('meadow', { x: WORLD.village.x, z: WORLD.village.z - 14 }, { text: '숲마을로 돌아왔어!', sec: 4 });
+        switchZone('meadow', { x: WORLD.village.x, z: WORLD.village.z - 18 }, { text: '숲마을로 돌아왔어!', sec: 4 });
       }
     }
 
@@ -414,11 +414,11 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 14) {
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 20) {
       zone.respawnTimer = 6;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
-        const x = player.position.x + rand(-30, 30), zz = player.position.z + rand(-30, 30);
+        const x = player.position.x + rand(-36, 36), zz = player.position.z + rand(-36, 36);
         if (Math.abs(x) > half || Math.abs(zz) > half || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 0.8) || Math.hypot(x - player.position.x, zz - player.position.z) < 6) continue;
         spawnPickup(zone, x, zz);
         break;
@@ -462,7 +462,7 @@ function frame() {
               say(`${c.data.name}이(가) 친구가 됐어! 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 5 });
             }
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
-            if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 9; player.lamp.distance = 22; zones.cave.scene.fog.far = 75; say('반디가 동굴을 환하게 밝혀줘!', { sec: 5 }); }
+            if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; zones.cave.scene.fog.far = 110; say('반디가 동굴을 환하게 밝혀줘!', { sec: 5 }); }
             if (party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
             checkProgress();
@@ -535,6 +535,7 @@ function frame() {
     camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
   }
   prevBattle = battle.active;
+  document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
 
   zone.world.animate?.(t);
   const sun = zone.world.sun;

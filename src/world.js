@@ -9,27 +9,33 @@ import { NUMBER_COLORS, RAINBOW } from './palette.js';
 //  - 서북쪽: 보스 아레나(돌기둥 원) — 쿵쿵이
 //  - 흙길이 마을에서 각 장소로 이어진다.
 export const WORLD = {
-  size: 120,
+  size: 180,
   hills: [
-    { x: -30, z: -18, r: 12, h: 2.6 },
-    { x: 28, z: 10, r: 10, h: 2.0 },
-    { x: 10, z: -32, r: 9, h: 3.0 },
-    { x: -34, z: 26, r: 14, h: 1.8 },
-    { x: 44, z: -32, r: 13, h: 2.4 },
-    { x: -12, z: 46, r: 12, h: 2.0 },
-    { x: 48, z: 44, r: 10, h: 1.6 },
-    { x: 20, z: -52, r: 9, h: 2.2 },
+    { x: -45, z: -27, r: 15, h: 2.6 },
+    { x: 42, z: 15, r: 12, h: 2.0 },
+    { x: 15, z: -48, r: 11, h: 3.0 },
+    { x: -51, z: 39, r: 17, h: 1.8 },
+    { x: 66, z: -48, r: 16, h: 2.4 },
+    { x: -18, z: 69, r: 15, h: 2.0 },
+    { x: 72, z: 66, r: 12, h: 1.6 },
+    { x: 30, z: -78, r: 11, h: 2.2 },
+    { x: 78, z: -78, r: 14, h: 2.4 },
+    { x: -75, z: 66, r: 13, h: 2.0 },
+    { x: 60, z: 80, r: 12, h: 1.8 },
+    { x: -80, z: -3, r: 12, h: 2.2 },
+    { x: 0, z: -84, r: 10, h: 1.6 },
   ],
-  hole: { x: 0, z: -48, r: 6 },
-  village: { x: 0, z: 30 }, // 시작 지점(0, 8) 뒤 카메라(z≈19)에 나무가 걸리지 않게 충분히 뒤로
-  pond: { x: 34, z: 30, r: 9 },
-  arena: { x: -44, z: -38, r: 10 },
-  cave: { x: -18, z: -55 },
+  hole: { x: 0, z: -72, r: 7 },
+  village: { x: 0, z: 45 }, // 시작 지점(0, 12) 뒤 카메라(z≈23)에 나무가 걸리지 않게 충분히 뒤로
+  pond: { x: 51, z: 45, r: 11 },
+  arena: { x: -66, z: -57, r: 12 },
+  cave: { x: -27, z: -82 },
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나)
   paths: [
-    [[0, 22], [0, -6], [-2, -26], [0, -40]],
-    [[0, 0], [14, 10], [26, 24]],
-    [[0, -6], [-16, -14], [-30, -30], [-40, -36]],
+    [[0, 33], [0, -9], [-3, -39], [0, -60]],
+    [[0, 0], [21, 15], [39, 36]],
+    [[0, -9], [-24, -21], [-45, -45], [-60, -54]],
+    [[0, -60], [-14, -70], [-27, -74]],
   ],
 };
 
@@ -205,7 +211,7 @@ export function buildWorld(scene) {
 
   // 하늘/안개/빛
   scene.background = new THREE.Color(0x8fd3ff);
-  scene.fog = new THREE.Fog(0x8fd3ff, 60, 150);
+  scene.fog = new THREE.Fog(0x8fd3ff, 80, 210);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 1.4));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(20, 30, 10);
@@ -215,7 +221,7 @@ export function buildWorld(scene) {
   scene.add(sun, sun.target);
 
   // ---------- 지형 + 지역별 색 ----------
-  const seg = 160;
+  const seg = 240;
   const geo = new THREE.PlaneGeometry(S, S, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -423,8 +429,8 @@ export function buildWorld(scene) {
 
   // ---------- 보스 아레나: 돌기둥 원 + 횃불 ----------
   const ar = WORLD.arena;
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
     const x = ar.x + Math.cos(a) * ar.r, z = ar.z + Math.sin(a) * ar.r;
     const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.4, rand(2.6, 3.6), 1.4), stoneMat);
     pillar.position.set(x, meadowHeight(x, z) + pillar.geometry.parameters.height / 2, z);
@@ -472,11 +478,11 @@ export function buildWorld(scene) {
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
   const leafMats = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c].map((c) => new THREE.MeshStandardMaterial({ color: c }));
   const avoid = (x, z, extra = 0) =>
-    Math.hypot(x, z - 8) < 6 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
+    Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || distToPath(x, z) < 2.5 + extra;
   const treeSpots = [];
-  while (treeSpots.length < 60) {
+  while (treeSpots.length < 130) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
     if (avoid(x, z, 1) || treeSpots.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 6)) continue;
     treeSpots.push([x, z]);
@@ -518,7 +524,7 @@ export function buildWorld(scene) {
       decor.add(mush);
     }
   }
-  for (let i = 0; i < 30; i++) { // 바위
+  for (let i = 0; i < 65; i++) { // 바위
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     const rr = rand(0.4, 1.1);
@@ -533,7 +539,7 @@ export function buildWorld(scene) {
   const bladeTransforms = []; // 풀 블레이드는 한 번에 그린다 (InstancedMesh)
   const bushes = [];
   let placed = 0;
-  while (placed < 28) {
+  while (placed < 60) {
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     placed++;
@@ -567,7 +573,7 @@ export function buildWorld(scene) {
   const petalColors = [0xff6b9d, 0xffd93d, 0xffffff, 0xff8c42, 0xb388ff, 0x4fc3f7];
   const stemMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
   const flowerSpots = [];
-  for (let i = 0; i < 420; i++) {
+  for (let i = 0; i < 900; i++) {
     const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
     if (meadowInHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(x, z) < 2) continue;
     flowerSpots.push([x, meadowHeight(x, z), z]);
@@ -591,18 +597,18 @@ export function buildWorld(scene) {
 
   // ---------- 구름, 나비 ----------
   const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 26; i++) {
     const c = new THREE.Group();
     for (let k = 0; k < 4; k++) {
       const s = new THREE.Mesh(new THREE.SphereGeometry(rand(1, 2), 10, 8), cloudMat);
       s.position.set(k * 1.6, rand(-0.3, 0.3), rand(-0.5, 0.5));
       c.add(s);
     }
-    c.position.set(rand(-70, 70), rand(14, 22), rand(-70, 40));
+    c.position.set(rand(-100, 100), rand(14, 22), rand(-100, 60));
     decor.add(c);
   }
   const butterflies = [];
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 28; i++) {
     const b = new THREE.Group();
     const wingMat = new THREE.MeshStandardMaterial({ color: petalColors[i % petalColors.length], side: THREE.DoubleSide, emissive: petalColors[i % petalColors.length], emissiveIntensity: 0.3 });
     const wl = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.28), wingMat);
@@ -610,7 +616,7 @@ export function buildWorld(scene) {
     wl.position.x = -0.18; wr.position.x = 0.18;
     wl.rotation.x = wr.rotation.x = -Math.PI / 2;
     b.add(wl, wr);
-    const cx = rand(-50, 50), cz = rand(-50, 50);
+    const cx = rand(-80, 80), cz = rand(-80, 80);
     b.userData = { cx, cz, r: rand(2, 6), t: rand(0, 10), speed: rand(0.3, 0.7), wl, wr };
     decor.add(b);
     butterflies.push(b);
