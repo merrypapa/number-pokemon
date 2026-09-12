@@ -109,7 +109,7 @@ body.battle #msg { bottom: auto; top: 14px; }
 #dex-blocks { font-weight: 900; color: #fff; background: #bbb; padding: 4px 12px; border-radius: 999px; font-size: 14px; }
 #dex-body { flex: 1; min-height: 0; overflow-y: auto; }
 #dex-grid-title { font-size: 16px; font-weight: 900; color: #555; padding: 10px 12px 0; }
-#btn-dex-close { margin-left: auto; font-size: 16px; font-weight: 800; padding: 8px 14px; border-radius: 12px; border: 0; background: #eee; cursor: pointer; }
+#btn-dex-close { margin-left: auto; width: 40px; height: 40px; font-size: 20px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #eee; color: #20232e; cursor: pointer; }
 #dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
 .dex-item { background: #fff; border-radius: 16px; padding: 8px; text-align: center; border: 3px solid transparent; position: relative; }
 .dex-item.caught { border-color: #ffd93d; }
@@ -304,9 +304,9 @@ body.intro #btn-save { display: none !important; }
   #dex-count { display: none; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }
   #dex-tabs button { font-size: 13px; padding: 5px 10px; }
-  #btn-dex-close { font-size: 17px; padding: 10px 14px; background: #ffd93d; }
-  #dex-foot { display: block; position: sticky; bottom: 0; padding: 10px; background: #fffbe6; border-top: 2px solid #f0e6c0; }
-  #dex-foot button { width: 100%; font-size: 18px; font-weight: 900; padding: 14px; border-radius: 14px; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 4px 0 #c99400; }
+  #btn-dex-close { width: 46px; height: 46px; font-size: 24px; background: #ffd93d; box-shadow: 0 3px 0 #c99400; }
+  #dex-foot { display: flex; justify-content: center; position: sticky; bottom: 0; padding: 8px; background: #fffbe6; border-top: 2px solid #f0e6c0; }
+  #dex-foot button { width: 56px; height: 56px; font-size: 28px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 4px 0 #c99400; }
   #dex-map { max-height: 34vh; height: calc(100vw * 72 / 110 - 16px); }
   .detail-top img { width: 96px; height: 96px; }
   #touch-actions { right: 12px; bottom: 80px; gap: 8px; }
