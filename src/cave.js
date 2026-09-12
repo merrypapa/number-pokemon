@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { rand } from './util.js';
+import { buildBridge, onBridge, bridgeParam, bridgeDeckY } from './world.js';
 
 // 괴물 동굴 (80x80). 초원의 큰 구멍에 빠지거나 동굴 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
@@ -13,6 +14,9 @@ export const CAVE = {
   ],
 };
 
+// 지하 호수를 가로지르는 나무 다리 (물은 다리로만 건넌다)
+const CAVE_BRIDGES = [{ x1: CAVE.lake.x - CAVE.lake.r - 2.5, z1: CAVE.lake.z, x2: CAVE.lake.x + CAVE.lake.r + 2.5, z2: CAVE.lake.z, w: 1.3, rise: 0.6 }];
+
 function caveHeight(x, z) {
   let y = 0;
   for (const b of CAVE.bumps) {
@@ -21,9 +25,13 @@ function caveHeight(x, z) {
   }
   const ld = Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z);
   if (ld < CAVE.lake.r + 2) y -= 0.8 * Math.min(1, (CAVE.lake.r + 2 - ld) / 3);
+  for (const b of CAVE_BRIDGES) { const { t, d } = bridgeParam(b, x, z); if (t >= 0 && t <= 1 && d <= b.w + 0.3) y = Math.max(y, bridgeDeckY(b, t)); }
   return y;
 }
-export const CAVE_TERRAIN = { height: caveHeight, inHole: () => false, size: CAVE.size };
+function caveBlocked(x, z) {
+  return Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 1 && !CAVE_BRIDGES.some((b) => onBridge(b, x, z));
+}
+export const CAVE_TERRAIN = { height: caveHeight, inHole: () => false, blocked: caveBlocked, size: CAVE.size, obstacles: [] };
 
 function makeTextTexture(text, bg = '#1f2a3a', fg = '#9fe8ff') {
   const c = document.createElement('canvas');
@@ -42,6 +50,9 @@ export function buildCave(scene) {
   const S = CAVE.size;
   const decor = new THREE.Group();
   scene.add(decor);
+  const obstacles = CAVE_TERRAIN.obstacles;
+  obstacles.length = 0;
+  const block = (x, z, r) => obstacles.push({ x, z, r });
   scene.background = new THREE.Color(0x05070c);
   scene.fog = new THREE.Fog(0x05070c, 14, 48);
   scene.add(new THREE.HemisphereLight(0x6a7ab0, 0x141a22, 0.7));
@@ -76,6 +87,7 @@ export function buildCave(scene) {
   water.rotation.x = -Math.PI / 2;
   water.position.set(CAVE.lake.x, -0.3, CAVE.lake.z);
   scene.add(water);
+  for (const b of CAVE_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0x6e5a45, railColor: 0x4a3b2c }));
 
   // 바깥 벽 (큰 바위 원뿔 링)
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5261, roughness: 1 });
@@ -83,21 +95,21 @@ export function buildCave(scene) {
     const ang = (i / 44) * Math.PI * 2;
     const r = S / 2 - 2 + rand(-2, 2);
     const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
-    const h = rand(6, 12);
-    const m = new THREE.Mesh(new THREE.ConeGeometry(rand(3, 5), h, 7), rockMat);
+    const h = rand(6, 12), cr = rand(3, 5);
+    const m = new THREE.Mesh(new THREE.ConeGeometry(cr, h, 7), rockMat);
     m.position.set(x, caveHeight(x, z) + h / 2 - 1, z);
     m.rotation.y = rand(0, 3);
-    decor.add(m);
+    decor.add(m); block(x, z, cr * 0.6);
   }
   // 안쪽 바위 기둥 / 종유석(위로 솟은)
   for (let i = 0; i < 26; i++) {
     const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8);
-    if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 2) continue;
-    const h = rand(1.5, 5);
-    const m = new THREE.Mesh(new THREE.ConeGeometry(rand(0.6, 1.6), h, 6), rockMat);
+    if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 4) continue;
+    const h = rand(1.5, 5), pr = rand(0.6, 1.6);
+    const m = new THREE.Mesh(new THREE.ConeGeometry(pr, h, 6), rockMat);
     m.position.set(x, caveHeight(x, z) + h / 2 - 0.2, z);
     m.castShadow = true;
-    decor.add(m);
+    decor.add(m); block(x, z, pr * 0.8);
   }
 
   // 수정 (빛남) + 점광원
@@ -105,7 +117,7 @@ export function buildCave(scene) {
   const crystals = [];
   for (let i = 0; i < 22; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
-    if (Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 1) continue;
+    if (Math.hypot(x - CAVE.lake.x, z - CAVE.lake.z) < CAVE.lake.r + 4 || Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 5 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 4) continue;
     const col = crystalColors[i % crystalColors.length];
     const g = new THREE.Group();
     for (let k = 0; k < 3; k++) {
@@ -121,7 +133,7 @@ export function buildCave(scene) {
     g.add(light);
     g.position.set(x, caveHeight(x, z), z);
     g.userData.phase = rand(0, 6);
-    decor.add(g);
+    decor.add(g); block(x, z, 0.7);
     crystals.push({ g, light });
   }
   // 야광 버섯

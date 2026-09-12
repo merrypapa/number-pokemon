@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
-import { terrainHeight, inHole, WORLD } from './world.js';
+import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
@@ -86,7 +86,7 @@ export class Creature {
     this.approachRange = this.isBoss ? 11 : 7;
     this.leash = this.isBoss ? 5 : 6;
     this.t = rand(0, 10);
-    this.hint = makeNumberSprite(data.favoriteNumber);
+    this.hint = makeNumberSprite(data.baseHp ?? data.favoriteNumber, '#e8453c'); // 머리 위 힌트 = 체력
     this.hint.position.y = 1.7 * (data.scale || 1);
     this.hint.visible = false;
     this.mesh.add(this.hint);
@@ -98,7 +98,7 @@ export class Creature {
   pickTarget() {
     for (let i = 0; i < 10; i++) {
       const x = this.home.x + rand(-this.leash, this.leash), z = this.home.z + rand(-this.leash, this.leash);
-      if (!inHole(x, z) && Math.abs(x) < WORLD.size / 2 - 3 && Math.abs(z) < WORLD.size / 2 - 3) {
+      if (!inHole(x, z) && !isBlocked(x, z) && !insideObstacle(x, z, 0.6) && Math.abs(x) < worldSize() / 2 - 3 && Math.abs(z) < worldSize() / 2 - 3) {
         this.target.set(x, 0, z);
         return;
       }
@@ -111,8 +111,11 @@ export class Creature {
     const dist = Math.hypot(dx, dz);
     if (dist < 0.05) return dist;
     const step = Math.min(dist, speed * dt);
+    const ox = p.x, oz = p.z;
     p.x += (dx / dist) * step;
     p.z += (dz / dist) * step;
+    resolveObstacles(p, 0.5 * (this.data.scale || 1));
+    if (isBlocked(p.x, p.z)) { p.x = ox; p.z = oz; } // 물 앞에서는 멈춘다
     this.mesh.rotation.y = Math.atan2(dx, dz);
     return dist;
   }
