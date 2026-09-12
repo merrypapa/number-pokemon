@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { rand } from './util.js';
-import { buildGround, makePortal, makeSignAt, buildBridge, onBridge, bridgeHeightAt } from './world.js';
+import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, makeInstanced, WHITE_MAT } from './world.js';
 
 // 물의길 (180x180). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
 // 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 바다는 못 들어가고 다리로만 건넌다.
@@ -18,7 +18,6 @@ export const SEA = {
     { x: 4, z: -66, r: 18, h: 4.6 },    // 보스 섬 (거북왕)
   ],
   spawn: { x: 0, z: 62 },
-  portal: { x: -8, z: 70 },
 };
 // 다리: 이웃한 섬끼리 (섬 가장자리에서 가장자리로)
 function link(a, b) {
@@ -59,7 +58,7 @@ export function buildSea(scene) {
   const sun = new THREE.DirectionalLight(0xffffff, 1.8);
   sun.position.set(20, 30, 10);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 120 });
   scene.add(sun, sun.target);
 
@@ -77,62 +76,51 @@ export function buildSea(scene) {
   scene.add(water);
   for (const b of SEA_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0xc9955a, railColor: 0x8a5a2b }));
 
-  // 야자수 (장애물), 바위, 조개, 파라솔
+  // 야자수 (장애물, 인스턴스), 바위, 조개, 파라솔
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0xa57c52 });
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide });
   const onLand = (x, z, margin = 0.9) => seaHeight(x, z) > margin && !SEA_BRIDGES.some((b) => onBridge(b, x, z));
+  const trunkItems = [], leafItems = [], nutItems = [];
   let palms = 0;
-  while (palms < 46) {
+  while (palms < 60) {
     const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
     const a = rand(0, Math.PI * 2), r = rand(3, isl.r - 3);
     const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
-    if (!onLand(x, z) || Math.hypot(x - SEA.spawn.x, z - SEA.spawn.z) < 7 || Math.hypot(x - SEA.portal.x, z - SEA.portal.z) < 4) continue;
-    const t = new THREE.Group();
-    const h = rand(3, 4.5);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.28, h, 8), trunkMat);
-    trunk.position.y = h / 2; trunk.rotation.z = rand(-0.12, 0.12);
-    trunk.castShadow = true;
-    t.add(trunk);
-    for (let k = 0; k < 6; k++) {
-      const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 2.6), leafMat);
-      leaf.position.set(0, h, 0);
-      leaf.rotation.y = (k / 6) * Math.PI * 2;
-      leaf.rotation.x = -0.9;
-      leaf.translateY(1.1);
-      t.add(leaf);
-    }
-    const coconut = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshStandardMaterial({ color: 0x6b4a2b }));
-    coconut.position.set(0.2, h - 0.2, 0.2);
-    t.add(coconut);
-    t.position.set(x, seaHeight(x, z), z);
-    decor.add(t); block(x, z, 0.4);
+    if (!onLand(x, z) || Math.hypot(x - SEA.spawn.x, z - SEA.spawn.z) < 9) continue;
+    const h = rand(3, 4.5), y = seaHeight(x, z);
+    trunkItems.push({ x, y: y + h / 2, z, sy: h, rz: rand(-0.12, 0.12) });
+    for (let k = 0; k < 6; k++) leafItems.push({ x, y: y + h + 0.5, z, ry: (k / 6) * Math.PI * 2, rx: -0.9 });
+    nutItems.push({ x: x + 0.2, y: y + h - 0.2, z: z + 0.2 });
+    block(x, z, 0.4);
     palms++;
   }
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 1 });
-  for (let i = 0; i < 40; i++) {
+  decor.add(makeInstanced(new THREE.CylinderGeometry(0.16, 0.28, 1, 8), trunkMat, trunkItems, { shadow: true }));
+  const leafGeo = new THREE.PlaneGeometry(0.7, 2.6); leafGeo.translate(0, 1.1, 0);
+  decor.add(makeInstanced(leafGeo, leafMat, leafItems));
+  decor.add(makeInstanced(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshStandardMaterial({ color: 0x6b4a2b }), nutItems));
+  const rockItems = [];
+  for (let i = 0; i < 50; i++) {
     const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
     const a = rand(0, Math.PI * 2), r = rand(2, isl.r - 2);
     const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
-    if (!onLand(x, z, -0.2) || Math.hypot(x - SEA.spawn.x, z - SEA.spawn.z) < 6) continue;
+    if (!onLand(x, z, -0.2) || Math.hypot(x - SEA.spawn.x, z - SEA.spawn.z) < 8) continue;
     const rr = rand(0.3, 0.9);
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rr, 0), rockMat);
-    rock.position.set(x, seaHeight(x, z) + 0.1, z);
-    rock.rotation.set(rand(0, 3), rand(0, 3), 0);
-    rock.castShadow = true;
-    decor.add(rock); block(x, z, rr * 0.9);
+    rockItems.push({ x, y: seaHeight(x, z) + 0.1, z, s: rr, rx: rand(0, 3), ry: rand(0, 3) });
+    block(x, z, rr * 0.9);
   }
+  decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 1 }), rockItems, { shadow: true }));
   const shellColors = [0xffffff, 0xffd1dc, 0xffe4b5, 0xe0ffff];
-  for (let i = 0; i < 80; i++) {
+  const shellItems = [];
+  for (let i = 0; i < 100; i++) {
     const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
     const a = rand(0, Math.PI * 2), r = rand(isl.r - 8, isl.r - 2);
     const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
     if (!onLand(x, z, -0.2)) continue;
-    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: shellColors[i % shellColors.length] }));
-    shell.position.set(x, seaHeight(x, z) + 0.02, z);
-    shell.scale.set(1, 0.5, 1.2);
-    decor.add(shell);
+    shellItems.push({ x, y: seaHeight(x, z) + 0.02, z, sx: 1, sy: 0.5, sz: 1.2, color: shellColors[i % shellColors.length] });
   }
-  // 도착 섬: 파라솔 + 작은 기차역(도착) + 표지판
+  decor.add(makeInstanced(new THREE.SphereGeometry(0.16, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, shellItems));
+  // 도착 섬: 파라솔 + 기차역 + 표지판
+  let train, trainBase;
   {
     const isl = SEA.islands[0];
     for (const [dx, dz, col] of [[8, 4, 0xe8453c], [-9, 2, 0xffd93d], [6, -8, 0x3fb8e8]]) {
@@ -143,17 +131,33 @@ export function buildSea(scene) {
       top.position.set(x, y + 2.5, z);
       decor.add(pole, top); block(x, z, 0.15);
     }
-    // 도착 기차역: 짧은 선로 + 정차한 기차 (장식)
+    // 기차역: 푸른숲으로 돌아가는 기차 (가까이 가서 E). 선로는 동쪽 바다 위 다리처럼 길게 뻗어 있다
     const y0 = seaHeight(SEA.spawn.x, SEA.spawn.z - 6);
     const railMat = new THREE.MeshStandardMaterial({ color: 0x555b66 });
-    for (const dz of [-0.7, 0.7]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(24, 0.12, 0.14), railMat); rail.position.set(SEA.spawn.x + 6, y0 + 0.1, SEA.spawn.z - 6 + dz); decor.add(rail); }
-    const train = new THREE.Group();
+    for (const dz of [-0.7, 0.7]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(80, 0.12, 0.14), railMat); rail.position.set(SEA.spawn.x + 34, y0 + 0.1, SEA.spawn.z - 6 + dz); decor.add(rail); }
+    const tieMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
+    for (let i = 0; i < 52; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(SEA.spawn.x - 4 + i * 1.5, y0 + 0.05, SEA.spawn.z - 6); decor.add(tie); }
+    const plat = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 3.5), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
+    plat.position.set(SEA.spawn.x + 6, y0 + 0.1, SEA.spawn.z - 2.6);
+    decor.add(plat);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(14, 0.25, 3.9), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
+    roof.position.set(SEA.spawn.x + 6, y0 + 3.4, SEA.spawn.z - 2.6);
+    decor.add(roof);
+    for (const dx of [-6, 0, 6]) for (const dz of [-4.2, -1.0]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8), tieMat); post.position.set(SEA.spawn.x + 6 + dx, y0 + 1.7, SEA.spawn.z + dz); decor.add(post); block(SEA.spawn.x + 6 + dx, SEA.spawn.z + dz, 0.2); }
+    train = new THREE.Group();
+    const dark = new THREE.MeshStandardMaterial({ color: 0x20232e });
     const engine = new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, 2.2), new THREE.MeshStandardMaterial({ color: 0xe8453c })); engine.position.y = 1.5; engine.castShadow = true;
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(2, 1.2, 2.2), new THREE.MeshStandardMaterial({ color: 0xe8453c })); cab.position.set(-1.2, 3.2, 0);
+    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.2, 10), dark); chimney.position.set(1.6, 3.2, 0);
     const car = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 2.2), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 })); car.position.set(-6, 1.4, 0); car.castShadow = true;
-    train.add(engine, car);
+    train.add(engine, cab, chimney, car);
+    for (const wx of [-1.6, 1.6, -7.6, -4.4]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.4, 12), dark); w.rotation.x = Math.PI / 2; w.position.set(wx, 0.5, 0); train.add(w); }
     train.position.set(SEA.spawn.x + 10, y0, SEA.spawn.z - 6);
     scene.add(train);
+    trainBase = train.position.clone();
     obstacles.push({ ax: SEA.spawn.x + 1, az: SEA.spawn.z - 6, bx: SEA.spawn.x + 13, bz: SEA.spawn.z - 6, r: 1.6 });
+    decor.add(makeSignAt('푸른숲행 기차: 가까이 가서 E', SEA.spawn.x + 14, seaHeight(SEA.spawn.x + 14, SEA.spawn.z - 1), SEA.spawn.z - 1, -0.6));
+    block(SEA.spawn.x + 14, SEA.spawn.z - 1, 0.25);
     decor.add(makeSignAt('물의길 - 물 포켓몬의 바다. 남쪽 끝 섬엔 거북왕!', SEA.spawn.x - 6, seaHeight(SEA.spawn.x - 6, SEA.spawn.z - 3), SEA.spawn.z - 3, 0.4));
     block(SEA.spawn.x - 6, SEA.spawn.z - 3, 0.25);
   }
@@ -171,8 +175,6 @@ export function buildSea(scene) {
     gulls.push(g);
   }
 
-  const P = SEA.portal;
-  const portal = makePortal(scene, P.x, seaHeight(P.x, P.z), P.z, { color: 0x66e0ff, label: '푸른숲으로 가는 포탈', labelBg: '#1f5a7a', labelFg: '#dff6ff' });
 
   function animate(t) {
     water.position.y = SEA.waterY + Math.sin(t * 1.2) * 0.06;
@@ -184,12 +186,12 @@ export function buildSea(scene) {
       u.wl.rotation.y = flap; u.wr.rotation.y = -flap;
       g.rotation.y = -a;
     }
-    portal.animate(t);
   }
 
   const I = SEA.islands;
   return {
-    sun, animate, terrain: SEA_TERRAIN, decor, portal: P, spawn: SEA.spawn, dark: false,
+    sun, animate, terrain: SEA_TERRAIN, decor, spawn: SEA.spawn, dark: false,
+    train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],
     bossSpot: { x: I[6].x, z: I[6].z - 3 },
     pickupSpots: [[I[0].x - 6, I[0].z + 2], [I[0].x + 4, I[0].z - 10], [I[1].x, I[1].z + 6], [I[1].x - 6, I[1].z - 2], [I[2].x, I[2].z + 6], [I[2].x + 6, I[2].z - 2], [I[3].x, I[3].z + 7], [I[3].x - 7, I[3].z - 2], [I[3].x + 7, I[3].z], [I[4].x + 4, I[4].z], [I[5].x - 3, I[5].z + 5], [I[6].x - 6, I[6].z - 6], [I[6].x + 7, I[6].z - 4], [I[6].x, I[6].z + 9], [I[0].x + 12, I[0].z - 4], [I[0].x - 12, I[0].z + 6]],

@@ -197,6 +197,30 @@ export function makeLabelTexture(text, bg = '#f5deb3', fg = '#5a3a1a', size = 40
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
+/**
+ * 같은 모양 여러 개를 한 번에 그리는 InstancedMesh (드로우콜을 줄여 빠르다).
+ * items: [{ x, y, z, rx, ry, rz, s | sx, sy, sz, color }]. color 를 쓰려면 material 색을 흰색으로 두고 인스턴스마다 색을 곱한다.
+ */
+export function makeInstanced(geometry, material, items, { shadow = false } = {}) {
+  const mesh = new THREE.InstancedMesh(geometry, material, Math.max(1, items.length));
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
+  let colored = false;
+  items.forEach((it, i) => {
+    e.set(it.rx || 0, it.ry || 0, it.rz || 0); q.setFromEuler(e);
+    p.set(it.x, it.y, it.z);
+    sc.set(it.sx ?? it.s ?? 1, it.sy ?? it.s ?? 1, it.sz ?? it.s ?? 1);
+    mesh.setMatrixAt(i, m.compose(p, q, sc));
+    if (it.color !== undefined) { mesh.setColorAt(i, col.set(it.color)); colored = true; }
+  });
+  mesh.count = items.length;
+  mesh.castShadow = shadow;
+  mesh.frustumCulled = false; // 넓게 퍼져 있으므로 항상 그린다 (경계 계산 생략)
+  if (colored && mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  return mesh;
+}
+export const WHITE_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+export const WHITE_MAT_DS = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide });
+
 /** 정점 색이 있는 바닥 지형. colorFn(x, z, y) 은 THREE.Color 를 돌려준다. */
 export function buildGround(scene, size, seg, heightFn, colorFn) {
   const geo = new THREE.PlaneGeometry(size, size, seg, seg);
@@ -307,12 +331,12 @@ export function buildWorld(scene) {
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(20, 30, 10);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1536, 1536);
   Object.assign(sun.shadow.camera, { left: -35, right: 35, top: 35, bottom: -35, near: 1, far: 120 });
   scene.add(sun, sun.target);
 
   // ---------- 지형 + 지역별 색 ----------
-  const seg = 280;
+  const seg = 240;
   const geo = new THREE.PlaneGeometry(S, S, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -490,19 +514,17 @@ export function buildWorld(scene) {
       decor.add(post); block(x, z, 0.2);
       posts.push(new THREE.Vector3(x, meadowHeight(x, z) + 3.1, z));
     }
-    const flagGeo = new THREE.PlaneGeometry(0.45, 0.6);
+    const flagItems = [];
     for (let i = 0; i < posts.length; i++) {
       const a = posts[i], b = posts[(i + 1) % posts.length];
       for (let k = 1; k < 9; k++) {
         const t = k / 9;
         const pnt = a.clone().lerp(b, t);
-        pnt.y -= Math.sin(t * Math.PI) * 0.6; // 늘어짐
-        const flag = new THREE.Mesh(flagGeo, new THREE.MeshStandardMaterial({ color: RAINBOW[(i * 3 + k) % RAINBOW.length], side: THREE.DoubleSide }));
-        flag.position.copy(pnt); flag.position.y -= 0.3;
-        flag.lookAt(v.x, flag.position.y, v.z);
-        decor.add(flag);
+        pnt.y -= Math.sin(t * Math.PI) * 0.6 + 0.3; // 늘어짐
+        flagItems.push({ x: pnt.x, y: pnt.y, z: pnt.z, ry: Math.atan2(v.x - pnt.x, v.z - pnt.z), color: RAINBOW[(i * 3 + k) % RAINBOW.length] });
       }
     }
+    decor.add(makeInstanced(new THREE.PlaneGeometry(0.45, 0.6), WHITE_MAT_DS, flagItems));
   }
   // 가로등 (마을 길가)
   for (const [x, z] of [[v.x - 3, v.z - 12], [v.x + 3, v.z - 12], [v.x - 3, v.z - 20], [v.x + 3, v.z - 20]]) {
@@ -693,73 +715,52 @@ export function buildWorld(scene) {
     if (avoid(x, z, 1) || treeSpots.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 6)) continue;
     treeSpots.push([x, z]);
   }
+  // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (170그루를 따로 그리면 느리다)
+  const leafColors = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c];
+  const trunkItems = [], crownItems = [], coneItems = [], stemItems = [], capItems = [];
   for (const [x, z] of treeSpots) {
-    const t = new THREE.Group();
     const tall = Math.random() < 0.3;
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, tall ? 2.6 : 1.6, 8), trunkMat);
-    trunk.position.y = tall ? 1.3 : 0.8;
-    const leaf = leafMats[Math.floor(Math.random() * leafMats.length)];
-    if (tall) { // 침엽수
-      for (let k = 0; k < 3; k++) {
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(1.6 - k * 0.4, 1.6, 8), leaf);
-        cone.position.y = 2.4 + k * 1.0;
-        cone.castShadow = true;
-        t.add(cone);
-      }
-    } else {
-      const crown = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 10), leaf);
-      crown.position.y = 2.2;
-      const crown2 = new THREE.Mesh(new THREE.SphereGeometry(1.0, 12, 10), leaf);
-      crown2.position.set(0.6, 2.8, 0.3);
-      crown.castShadow = crown2.castShadow = true;
-      t.add(crown, crown2);
-    }
-    trunk.castShadow = true;
-    t.add(trunk);
-    t.position.set(x, meadowHeight(x, z), z);
-    decor.add(t); block(x, z, 0.55);
+    const y = meadowHeight(x, z);
+    const leaf = leafColors[Math.floor(Math.random() * leafColors.length)];
+    trunkItems.push({ x, y: y + (tall ? 1.3 : 0.8), z, sy: tall ? 2.6 : 1.6 });
+    if (tall) for (let k = 0; k < 3; k++) coneItems.push({ x, y: y + 2.4 + k, z, sx: (1.6 - k * 0.4) / 1.6, sz: (1.6 - k * 0.4) / 1.6, color: leaf }); // 침엽수
+    else { crownItems.push({ x, y: y + 2.2, z, s: 1.4, color: leaf }); crownItems.push({ x: x + 0.6, y: y + 2.8, z: z + 0.3, s: 1.0, color: leaf }); }
+    block(x, z, 0.55);
     if (Math.random() < 0.5) { // 나무 밑 버섯
-      const mush = new THREE.Group();
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }));
-      stem.position.y = 0.17;
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: Math.random() < 0.5 ? 0xe8453c : 0xf2872f }));
-      cap.position.y = 0.33;
-      mush.add(stem, cap);
-      const mx = x + rand(-1.5, 1.5), mz = z + rand(1, 2);
-      mush.position.set(mx, meadowHeight(mx, mz), mz);
-      decor.add(mush);
+      const mx = x + rand(-1.5, 1.5), mz = z + rand(1, 2), my = meadowHeight(mx, mz);
+      stemItems.push({ x: mx, y: my + 0.17, z: mz });
+      capItems.push({ x: mx, y: my + 0.33, z: mz, color: Math.random() < 0.5 ? 0xe8453c : 0xf2872f });
     }
   }
+  decor.add(makeInstanced(new THREE.CylinderGeometry(0.25, 0.35, 1, 8), trunkMat, trunkItems, { shadow: true }));
+  decor.add(makeInstanced(new THREE.SphereGeometry(1, 12, 10), WHITE_MAT, crownItems, { shadow: true }));
+  decor.add(makeInstanced(new THREE.ConeGeometry(1.6, 1.6, 8), WHITE_MAT, coneItems, { shadow: true }));
+  decor.add(makeInstanced(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }), stemItems));
+  decor.add(makeInstanced(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, capItems));
+  const rockItems = [];
   for (let i = 0; i < 80; i++) { // 바위
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     const rr = rand(0.4, 1.1);
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rr, 0), rockMat);
-    rock.position.set(x, meadowHeight(x, z) + 0.2, z);
-    rock.rotation.set(rand(0, 3), rand(0, 3), 0);
-    rock.castShadow = true;
-    decor.add(rock); block(x, z, rr * 0.9);
+    rockItems.push({ x, y: meadowHeight(x, z) + 0.2, z, s: rr, rx: rand(0, 3), ry: rand(0, 3) });
+    block(x, z, rr * 0.9);
   }
+  decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), rockMat, rockItems, { shadow: true }));
   const bushMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
   const grassMat = new THREE.MeshStandardMaterial({ color: 0x3e9e3e, side: THREE.DoubleSide });
   const bladeTransforms = []; // 풀 블레이드는 한 번에 그린다 (InstancedMesh)
   const bushes = [];
+  const bushItems = [];
   let placed = 0;
   while (placed < 75) {
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     placed++;
-    if (Math.random() < 0.5) { // 둥근 덤불
-      const b = new THREE.Group();
-      for (let k = 0; k < 3; k++) {
-        const s = new THREE.Mesh(new THREE.SphereGeometry(rand(0.5, 0.8), 10, 8), bushMat);
-        s.position.set(rand(-0.5, 0.5), rand(0.2, 0.5), rand(-0.5, 0.5));
-        s.castShadow = true;
-        b.add(s);
-      }
-      b.position.set(x, meadowHeight(x, z), z);
-      decor.add(b); block(x, z, 1.0);
-      bushes.push(b);
+    if (Math.random() < 0.5) { // 둥근 덤불 (공 3개)
+      const y = meadowHeight(x, z);
+      for (let k = 0; k < 3; k++) bushItems.push({ x: x + rand(-0.5, 0.5), y: y + rand(0.2, 0.5), z: z + rand(-0.5, 0.5), s: rand(0.5, 0.8) });
+      block(x, z, 1.0);
+      bushes.push({ x, z });
     } else { // 키 큰 풀숲 (몬스터가 숨는 곳)
       for (let k = 0; k < 14; k++) {
         const bx = x + rand(-1.4, 1.4), bz = z + rand(-1.4, 1.4), h = rand(0.8, 1.3);
@@ -767,6 +768,7 @@ export function buildWorld(scene) {
       }
     }
   }
+  decor.add(makeInstanced(new THREE.SphereGeometry(1, 10, 8), bushMat, bushItems, { shadow: true }));
   {
     const inst = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 1, 4), grassMat, bladeTransforms.length);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
@@ -791,7 +793,7 @@ export function buildWorld(scene) {
   }
   {
     const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 5), stemMat, flowerSpots.length);
-    const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff }), flowerSpots.length);
+    const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 6, 4), new THREE.MeshStandardMaterial({ color: 0xffffff }), flowerSpots.length);
     const m = new THREE.Matrix4(), col = new THREE.Color();
     flowerSpots.forEach(([x, y, z], i) => {
       stems.setMatrixAt(i, m.makeTranslation(x, y + 0.2, z));
@@ -803,16 +805,12 @@ export function buildWorld(scene) {
 
   // ---------- 구름, 나비 ----------
   const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
+  const cloudItems = [];
   for (let i = 0; i < 26; i++) {
-    const c = new THREE.Group();
-    for (let k = 0; k < 4; k++) {
-      const s = new THREE.Mesh(new THREE.SphereGeometry(rand(1, 2), 10, 8), cloudMat);
-      s.position.set(k * 1.6, rand(-0.3, 0.3), rand(-0.5, 0.5));
-      c.add(s);
-    }
-    c.position.set(rand(-120, 120), rand(14, 22), rand(-120, 80));
-    decor.add(c);
+    const cx = rand(-120, 120), cy = rand(14, 22), cz = rand(-120, 80);
+    for (let k = 0; k < 4; k++) cloudItems.push({ x: cx + k * 1.6, y: cy + rand(-0.3, 0.3), z: cz + rand(-0.5, 0.5), s: rand(1, 2) });
   }
+  decor.add(makeInstanced(new THREE.SphereGeometry(1, 10, 8), cloudMat, cloudItems));
   const butterflies = [];
   for (let i = 0; i < 28; i++) {
     const b = new THREE.Group();
@@ -852,8 +850,8 @@ export function buildWorld(scene) {
     pickupSpots: [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0], [-90, 10], [90, -40], [-30, 90], [40, 90], [-95, 95], [95, 95], [-80, -95], [0, -100]],
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
-    train: { mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 } },
-    rocket: { mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 } },
+    train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
+    rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },
     // 다른 지역에서 돌아올 때 도착하는 자리
     arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 } },
   };

@@ -21,18 +21,20 @@ import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
 // ---------- 기본 세팅 ----------
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 태블릿(2x)에서 픽셀 수를 줄여 빠르게
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 // 카메라: 주인공을 중심으로 회전(camYaw)/기울기(camPitch). 화면 드래그나 Q/R 로 돌린다.
 const cam = { yaw: 0, pitch: 0 };
+// pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
 function camOffset() {
-  const h = 9 + cam.pitch * 6, d = 11 - cam.pitch * 3;
+  const h = Math.max(1.6, 9 + cam.pitch * 6), d = 11 - cam.pitch * 3;
   return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
 }
+function camLookY() { return 1 + Math.max(0, -0.35 - cam.pitch) * 12; }
 function camForward() { return new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)); } // 카메라가 보는 지면 방향
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -288,45 +290,53 @@ function switchZone(name, spawn, message) {
   }, 480);
 }
 
-// 타는 것: 기차(→ 물의길), 로켓(→ 꿈의우주). 주인공과 친구들을 숨기고 탈것을 움직인 뒤 지역을 바꾼다.
+// 타는 것: 기차(푸른숲 ↔ 물의길), 로켓(푸른숲 ↔ 꿈의우주). 주인공과 친구들을 숨기고 탈것을 움직인 뒤 지역을 바꾼다.
+// 각 지역 world 의 train / rocket 에 { kind, mesh, base, boardPoint, to, dir?, flame? } 가 있다.
+const RIDE_MSG = {
+  sea: '물의길에 도착! 물 포켓몬들이 사는 바다야. 다리로 섬을 건너자. 돌아갈 땐 기차역에서 E!',
+  space: '꿈의우주에 도착! 중력이 약해서 높이 뛸 수 있어. 화면을 위로 밀어 하늘의 태양과 행성들도 봐! 돌아갈 땐 로켓에서 E!',
+  forest: '푸른숲으로 돌아왔어!',
+};
 let ride = null;
-function startRide(kind) {
+function vehiclesHere() { return [zone.world.train, zone.world.rocket].filter(Boolean); }
+function startRide(v) {
   if (ride || switching) return;
-  const w = zones.forest.world;
-  const v = kind === 'train' ? w.train : w.rocket;
-  ride = { kind, t: 0, v, switched: false, puff: 0 };
+  ride = { v, t: 0, from: zone.name, switched: false, puff: 0 };
   for (const m of partyMeshes()) m.visible = false;
   if (v.flame) v.flame.visible = true;
   sound.portal();
-  say(kind === 'train' ? '칙칙폭폭! 물의길로 출발!' : '3, 2, 1, 발사! 꿈의우주로!', { sec: 4 });
+  const dest = ZONE_INFO[v.to]?.name || v.to;
+  say(v.kind === 'train' ? `칙칙폭폭! ${dest}(으)로 출발!` : `3, 2, 1, 발사! ${dest}(으)로!`, { sec: 4 });
 }
 function updateRide(dt) {
-  const r = ride, m = r.v.mesh;
+  const r = ride, v = r.v, m = v.mesh;
   r.t += dt;
-  if (r.kind === 'train') {
-    m.position.x = r.v.base.x - r.t * r.t * 3.5; // 서쪽으로 점점 빨리
+  const here = zone.name === r.from;
+  if (v.kind === 'train') {
+    m.position.x = v.base.x + (v.dir || -1) * r.t * r.t * 3.5; // 점점 빨리
     r.puff -= dt;
-    if (r.puff <= 0 && zone.name === 'forest') { r.puff = 0.12; particles.stars(zone.scene, m.position.clone().add(new THREE.Vector3(1.6, 3.9, 0)), 2, 0xf4f4f8, 0.5); }
+    if (r.puff <= 0 && here) { r.puff = 0.12; particles.stars(zone.scene, m.position.clone().add(new THREE.Vector3(1.6, 3.9, 0)), 2, 0xf4f4f8, 0.5); }
   } else {
-    m.position.y = r.v.base.y + r.t * r.t * 6; // 위로 점점 빨리
+    m.position.y = v.base.y + r.t * r.t * 6; // 위로 점점 빨리
     m.rotation.z = Math.sin(r.t * 20) * 0.01;
     r.puff -= dt;
-    if (r.puff <= 0 && zone.name === 'forest') { r.puff = 0.06; particles.stars(zone.scene, r.v.base.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.5, rand(-1.5, 1.5))), 3, 0xffb347, 0.7); }
+    if (r.puff <= 0 && here) { r.puff = 0.06; particles.stars(zone.scene, v.base.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.5, rand(-1.5, 1.5))), 3, 0xffb347, 0.7); }
   }
-  if (zone.name === 'forest') {
+  if (here) {
     const target = m.position.clone().add(camOffset());
     camera.position.lerp(target, 0.15);
     camera.lookAt(m.position.x, m.position.y + 1.5, m.position.z);
   }
   if (r.t > 2.4 && !r.switched) {
     r.switched = true;
-    const to = r.kind === 'train' ? 'sea' : 'space';
-    switchZone(to, zones[to].world.spawn, { text: r.kind === 'train' ? '물의길에 도착! 물 포켓몬들이 사는 바다야. 다리로 섬을 건너자.' : '꿈의우주에 도착! 중력이 약해서 높이 뛸 수 있어. 별빛 사이를 탐험하자!', sec: 8 });
+    const dest = zones[v.to];
+    const spawn = dest.world.arrivals?.[r.from] || dest.world.spawn;
+    switchZone(v.to, spawn, { text: RIDE_MSG[v.to] || `${dest.label}에 도착!`, sec: 8 });
   }
   if (r.t > 3.3) {
-    m.position.copy(r.v.base);
+    m.position.copy(v.base);
     m.rotation.z = 0;
-    if (r.v.flame) r.v.flame.visible = false;
+    if (v.flame) v.flame.visible = false;
     for (const o of partyMeshes()) o.visible = true;
     ride = null;
     snapCam = true;
@@ -449,7 +459,7 @@ document.getElementById('btn-start').onclick = () => {
 
 if (location.search.includes('debug')) {
   setBlocks(10);
-  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, startRide, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer };
+  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, startRide, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer };
 }
 
 // ---------- 루프 ----------
@@ -481,7 +491,7 @@ function frame() {
     // 카메라 회전: 화면 드래그 또는 Q/R
     const look = input.takeLook();
     cam.yaw -= look.dx * 0.006;
-    cam.pitch = Math.max(-0.35, Math.min(0.6, cam.pitch + look.dy * 0.004));
+    cam.pitch = Math.max(-1.25, Math.min(0.6, cam.pitch + look.dy * 0.004));
     if (input.isHeld('camLeft')) cam.yaw += dt * 1.8;
     if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
 
@@ -491,25 +501,30 @@ function frame() {
     state.prompt = Math.max(0, state.prompt - dt);
 
     // ----- 지역 이동 -----
+    let moved = false;
     if (zone.name === 'forest') {
       const w = zone.world;
       if (player.fellInHole) {
-        player.fellInHole = false;
+        player.fellInHole = false; moved = true;
         switchZone('cave', zones.cave.world.spawn, { text: '뿅! 지하동굴로 떨어졌어. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 푸른숲에 돌아갈 수 있어!', sec: 8 });
       } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
+        moved = true;
         switchZone('cave', zones.cave.world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
       } else if (near(w.volcanoGate, 2.4)) {
+        moved = true;
         switchZone('volcano', zones.volcano.world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
-      } else if (near(w.train.boardPoint, 3.2)) {
-        if (input.wasPressed('action')) startRide('train');
-        else if (state.prompt <= 0) { state.prompt = 8; say('기차역이야! E(액션)를 누르면 기차를 타고 물의길(바다)로 가!', { sec: 4 }); }
-      } else if (near(w.rocket.boardPoint, 3.2)) {
-        if (input.wasPressed('action')) startRide('rocket');
-        else if (state.prompt <= 0) { state.prompt = 8; say('로켓 발사장이야! E(액션)를 누르면 로켓을 타고 꿈의우주로 가!', { sec: 4 }); }
       }
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
+      moved = true;
       const back = zones.forest.world.arrivals[zone.name] || zones.forest.world.spawn;
       switchZone('forest', back, { text: '푸른숲으로 돌아왔어!', sec: 4 });
+    }
+    if (!moved) for (const v of vehiclesHere()) {
+      if (!near(v.boardPoint, 3.2)) continue;
+      const dest = ZONE_INFO[v.to]?.name || v.to;
+      if (input.wasPressed('action')) startRide(v);
+      else if (state.prompt <= 0) { state.prompt = 8; say(v.kind === 'train' ? `기차역이야! E(액션)를 누르면 기차를 타고 ${dest}(으)로 가!` : `로켓이야! E(액션)를 누르면 로켓을 타고 ${dest}(으)로 가!`, { sec: 4 }); }
+      break;
     }
 
     // ----- 블록 줍기 -----
@@ -657,7 +672,7 @@ function frame() {
     const camTarget = pp.clone().add(camOffset());
     if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
     else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
-    camera.lookAt(pp.x, pp.y + 1, pp.z);
+    camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
   }
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)

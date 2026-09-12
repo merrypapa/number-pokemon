@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { rand } from './util.js';
-import { buildBridge, onBridge, bridgeParam, bridgeDeckY } from './world.js';
+import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced } from './world.js';
 
 // 괴물 동굴 (80x80). 초원의 큰 구멍에 빠지거나 동굴 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
@@ -112,69 +112,54 @@ export function buildCave(scene) {
   }
   for (const b of CAVE_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0x6e5a45, railColor: 0x4a3b2c }));
 
-  // 바깥 벽 (큰 바위 원뿔 링)
+  // 바깥 벽(큰 바위 원뿔 링)과 안쪽 바위 기둥: 인스턴스로 한 번에 그린다
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5261, roughness: 1 });
+  const wallItems = [], pillarItems = [];
   for (let i = 0; i < 88; i++) {
     const ang = (i / 88) * Math.PI * 2;
     const r = S / 2 - 2 + rand(-2, 2);
     const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
     const h = rand(6, 12), cr = rand(3, 5);
-    const m = new THREE.Mesh(new THREE.ConeGeometry(cr, h, 7), rockMat);
-    m.position.set(x, caveHeight(x, z) + h / 2 - 1, z);
-    m.rotation.y = rand(0, 3);
-    decor.add(m); block(x, z, cr * 0.6);
+    wallItems.push({ x, y: caveHeight(x, z) + h / 2 - 1, z, sx: cr, sy: h, sz: cr, ry: rand(0, 3) });
+    block(x, z, cr * 0.6);
   }
-  // 안쪽 바위 기둥 / 종유석(위로 솟은)
   for (let i = 0; i < 70; i++) {
     const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8);
     if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z)) continue;
     const h = rand(1.5, 5), pr = rand(0.6, 1.6);
-    const m = new THREE.Mesh(new THREE.ConeGeometry(pr, h, 6), rockMat);
-    m.position.set(x, caveHeight(x, z) + h / 2 - 0.2, z);
-    m.castShadow = true;
-    decor.add(m); block(x, z, pr * 0.8);
+    pillarItems.push({ x, y: caveHeight(x, z) + h / 2 - 0.2, z, sx: pr, sy: h, sz: pr, ry: rand(0, 3) });
+    block(x, z, pr * 0.8);
   }
+  decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 7), rockMat, wallItems));
+  decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 6), rockMat, pillarItems, { shadow: true }));
 
-  // 수정 (빛남) + 점광원
+  // 수정 (빛남): 색깔별 인스턴스 + 점광원 몇 개
   const crystalColors = [0x66e0ff, 0xc38bff, 0xff8bd6, 0x8bffb0];
+  const crystalItems = crystalColors.map(() => []);
   const crystals = [];
   for (let i = 0; i < 50; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
     if (LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z) || Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 5 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 4) continue;
-    const col = crystalColors[i % crystalColors.length];
-    const g = new THREE.Group();
+    const ci = i % crystalColors.length, y = caveHeight(x, z);
     for (let k = 0; k < 3; k++) {
       const h = rand(0.8, 1.8);
-      const c = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.9, transparent: true, opacity: 0.9 }));
-      c.scale.set(1, h * 1.6, 1);
-      c.position.set(rand(-0.5, 0.5), h * 0.5, rand(-0.5, 0.5));
-      c.rotation.set(rand(-0.3, 0.3), rand(0, 3), rand(-0.3, 0.3));
-      g.add(c);
+      crystalItems[ci].push({ x: x + rand(-0.5, 0.5), y: y + h * 0.5, z: z + rand(-0.5, 0.5), sx: 0.35, sy: 0.35 * h * 1.6, sz: 0.35, rx: rand(-0.3, 0.3), ry: rand(0, 3), rz: rand(-0.3, 0.3) });
     }
-    // 점광원은 5개 중 1개만 (광원이 많으면 매우 느려진다). 나머지는 스스로 빛나는 재질만.
-    if (crystals.length < 8 && i % 5 === 0) {
-      const light = new THREE.PointLight(col, 2.6, 11);
-      light.position.y = 1.2;
-      g.add(light);
-      crystals.push({ g, light });
-    }
-    g.position.set(x, caveHeight(x, z), z);
-    g.userData.phase = rand(0, 6);
-    decor.add(g); block(x, z, 0.7);
+    if (crystals.length < 8 && i % 5 === 0) { const light = new THREE.PointLight(crystalColors[ci], 2.6, 11); light.position.set(x, y + 1.2, z); light.userData.phase = rand(0, 6); scene.add(light); crystals.push(light); } // 점광원은 8개까지
+    block(x, z, 0.7);
   }
-  // 야광 버섯
+  crystalColors.forEach((col, ci) => decor.add(makeInstanced(new THREE.OctahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.9, transparent: true, opacity: 0.9 }), crystalItems[ci])));
+  // 야광 버섯 (인스턴스)
+  const mStem = [], mCap = [];
   for (let i = 0; i < 120; i++) {
     const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5);
     if (LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 1) || caveBlocked(x, z)) continue;
-    const mush = new THREE.Group();
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.4, 6), new THREE.MeshStandardMaterial({ color: 0xcfd8dc }));
-    stem.position.y = 0.2;
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x7ff2c8, emissive: 0x2fd39a, emissiveIntensity: 0.9 }));
-    cap.position.y = 0.38;
-    mush.add(stem, cap);
-    mush.position.set(x, caveHeight(x, z), z);
-    scene.add(mush);
+    const y = caveHeight(x, z);
+    mStem.push({ x, y: y + 0.2, z });
+    mCap.push({ x, y: y + 0.38, z });
   }
+  scene.add(makeInstanced(new THREE.CylinderGeometry(0.08, 0.12, 0.4, 6), new THREE.MeshStandardMaterial({ color: 0xcfd8dc }), mStem));
+  scene.add(makeInstanced(new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x7ff2c8, emissive: 0x2fd39a, emissiveIntensity: 0.9 }), mCap));
 
   // 등불 기둥 (길잡이): 도착 지점에서 첫 호수 다리까지 띄엄띄엄
   const lanternMat = new THREE.MeshStandardMaterial({ color: 0xffd36b, emissive: 0xffa322, emissiveIntensity: 1.2 });
@@ -187,18 +172,18 @@ export function buildCave(scene) {
     lamp.position.set(x, caveHeight(x, z) + 2.3, z);
     decor.add(post, lamp); block(x, z, 0.2); // 등불은 빛나는 재질만 (점광원 아님)
   }
-  // 종유석 무리 (작은 뾰족 바위 3~5개씩)
-  for (let i = 0; i < 30; i++) {
+  // 종유석 무리 (작은 뾰족 바위 4개씩, 인스턴스)
+  const stalItems = [];
+  for (let i = 0; i < 40; i++) {
     const cx = rand(-S / 2 + 8, S / 2 - 8), cz = rand(-S / 2 + 8, S / 2 - 8);
     if (Math.hypot(cx - CAVE.spawn.x, cz - CAVE.spawn.z) < 8 || Math.hypot(cx - CAVE.portal.x, cz - CAVE.portal.z) < 6 || LAKES().some((L) => Math.hypot(cx - L.x, cz - L.z) < L.r + 4) || caveBlocked(cx, cz)) continue;
     for (let k = 0; k < 4; k++) {
-      const x = cx + rand(-1.5, 1.5), z = cz + rand(-1.5, 1.5), h = rand(0.5, 1.6);
-      const m = new THREE.Mesh(new THREE.ConeGeometry(rand(0.2, 0.45), h, 5), rockMat);
-      m.position.set(x, caveHeight(x, z) + h / 2 - 0.1, z);
-      decor.add(m);
+      const x = cx + rand(-1.5, 1.5), z = cz + rand(-1.5, 1.5), h = rand(0.5, 1.6), r = rand(0.2, 0.45);
+      stalItems.push({ x, y: caveHeight(x, z) + h / 2 - 0.1, z, sx: r, sy: h, sz: r });
     }
     block(cx, cz, 1.3);
   }
+  decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 5), rockMat, stalItems));
 
   // 포탈: 빛나는 고리 + 도는 불빛 + 표지판
   const P = CAVE.portal;
@@ -229,7 +214,7 @@ export function buildCave(scene) {
   scene.add(drop);
 
   function animate(t) {
-    for (const { g, light } of crystals) light.intensity = 1.8 + Math.sin(t * 2 + g.userData.phase) * 0.6;
+    for (const l of crystals) l.intensity = 1.8 + Math.sin(t * 2 + l.userData.phase) * 0.6;
     for (const l of poolLights) l.intensity = 2.2 + Math.sin(t * 3 + l.position.x) * 0.6;
     ring.rotation.y = t * 0.6;
     disc.material.opacity = 0.35 + Math.sin(t * 3) * 0.12;
