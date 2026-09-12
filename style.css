@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; touch-action: none; }
-#game { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+html, body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #8fd3ff; font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; touch-action: none; }
+#game { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .hidden { display: none !important; }
 body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !important; } /* 시작 화면에서는 HUD 숨김 */
 
@@ -291,3 +291,4 @@ body.intro #btn-save { display: none !important; }
 #dex-map-nav button { font-size: 15px; font-weight: 900; padding: 10px 16px; border-radius: 12px; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 3px 0 #c99400; cursor: pointer; }
 #dex-map-nav button:active { transform: translateY(2px); box-shadow: none; }
 #map-pos { font-size: 14px; font-weight: 900; color: #666; }
+@media (max-width: 640px) { #btn-save { top: 56px; right: 12px; } #save-toast { top: 100px; } } /* 좁은 화면: 저장 버튼을 도감 버튼 아래로 */

@@ -295,8 +295,10 @@ export class Battle {
     const v = worldPos.project(this.camera);
     this.floatEl.textContent = text;
     this.floatEl.style.color = color;
-    this.floatEl.style.left = `${((v.x + 1) / 2) * window.innerWidth}px`;
-    this.floatEl.style.top = `${((1 - v.y) / 2) * window.innerHeight - 40}px`;
+    const cv = document.getElementById('game');
+    const W = cv.clientWidth || window.innerWidth, H = cv.clientHeight || window.innerHeight;
+    this.floatEl.style.left = `${((v.x + 1) / 2) * W}px`;
+    this.floatEl.style.top = `${((1 - v.y) / 2) * H - 40}px`;
     this.floatEl.classList.remove('hidden');
     this.floatEl.classList.remove('pop'); void this.floatEl.offsetWidth; this.floatEl.classList.add('pop');
     this.floatTimer = 1.0;

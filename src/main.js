@@ -23,11 +23,23 @@ import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 태블릿(2x)에서 픽셀 수를 줄여 빠르게
-renderer.setSize(window.innerWidth, window.innerHeight);
+// 캔버스 크기는 CSS(화면 전체)가 정하고, 그리기 버퍼는 실제 캔버스 크기에 맞춘다.
+// 휴대폰은 주소창이 접히거나 화면이 돌아가도 resize 이벤트가 안 올 때가 있어 매 프레임 확인한다.
+let fitW = 0, fitH = 0, onFit = null; // onFit: 인트로 무대 카메라도 같이 맞춘다 (인트로가 만들어진 뒤 설정)
+function fitRenderer() {
+  const w = canvas.clientWidth || window.innerWidth, h = canvas.clientHeight || window.innerHeight;
+  if (!w || !h || (w === fitW && h === fitH)) return;
+  fitW = w; fitH = h;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  onFit?.(w / h);
+}
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
+fitRenderer();
 // 카메라: 주인공을 중심으로 회전(camYaw)/기울기(camPitch). 화면 드래그나 Q/R 로 돌린다.
 const cam = { yaw: 0, pitch: 0 };
 // pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
@@ -37,11 +49,8 @@ function camOffset() {
 }
 function camLookY() { return 1 + Math.max(0, -0.35 - cam.pitch) * 12; }
 function camForward() { return new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)); } // 카메라가 보는 지면 방향
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+window.addEventListener('resize', fitRenderer);
+window.visualViewport?.addEventListener('resize', fitRenderer);
 
 const input = new Input();
 const sound = new Sound();
@@ -433,9 +442,10 @@ function conquer(zoneName) {
 // ---------- 시작: 타이틀 → 포켓몬 고르기 → 모험 ----------
 // 타이틀이 떠 있는 동안은 인트로 무대(주인공·몬스터 친구들)를 그린다
 let intro = buildIntro(creatureData.creatures);
+onFit = (aspect) => intro?.resize(aspect);
+intro.resize(fitW / fitH);
 document.body.classList.add('intro');
 setTimeout(() => { if (!zones.forest) getZone('forest'); }, 300); // 타이틀이 뜬 뒤 뒤에서 푸른숲을 미리 만든다
-window.addEventListener('resize', () => intro?.resize());
 const starterEl = document.getElementById('starter');
 const starterGrid = document.getElementById('starter-grid');
 function renderStarter() {
@@ -587,6 +597,7 @@ const clock = new THREE.Clock();
 let prevBattle = false;
 function frame() {
   state.frames++;
+  fitRenderer();
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
