@@ -88,8 +88,9 @@ export class Battle {
     this.right = right;
     // 주인공 시점(낮은 눈높이)에서 상대를 마주 본다. 주인공과 (대표가 아닌) 뒤따르던 친구들은 대결 동안 숨긴다.
     this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.7);
-    this.camPos.y = p.y + 1.0;
-    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.55 * (creature.data.scale || 1), this.stageTo.z);
+    this.camPos.y = p.y + 1.35;
+    // 상대의 발밑 근처를 보면 상대 몸이 화면 위쪽 절반에 잡혀 아래 대결 패널에 가리지 않는다 (큰 보스도)
+    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.15, this.stageTo.z);
     // 내 포켓몬은 화면 왼쪽 아래(가로 9%, 세로 72% 지점)에 발을 딛고 서서 상대를 본다.
     // 대결 카메라로 그 화면 좌표를 지면까지 되쏘아 자리를 정하므로 화면 비율이 달라도 패널에 가리지 않는다.
     const mine = member.mesh;
