@@ -21,7 +21,9 @@
   <div id="hud">
     <div class="hud-row"><span class="hud-icon block"></span><span id="hud-blocks">블록 0개</span></div>
     <div class="hud-row"><span class="hud-icon poke"></span><span id="hud-leader">대표 포켓몬 없음</span></div>
+    <div class="hud-row"><span class="hud-icon map"></span><span id="hud-zone">푸른숲</span></div>
   </div>
+  <div id="zone-banner" class="hidden"></div>
 
   <button id="btn-dex">📖 도감 · 내 포켓몬</button>
   <div id="dex" class="hidden">
@@ -82,6 +84,17 @@
     </div>
   </div>
 
+  <div id="quiz" class="hidden">
+    <div id="quiz-card">
+      <div id="quiz-title">구출 문제</div>
+      <div id="quiz-text"></div>
+      <div id="quiz-icons"></div>
+      <div id="quiz-choices"></div>
+      <div id="quiz-hint"></div>
+      <button id="btn-quiz-skip">나중에</button>
+    </div>
+  </div>
+
   <div id="starter" class="hidden">
     <div id="starter-card">
       <div id="starter-title">함께 모험할 포켓몬을 골라줘!</div>
@@ -99,7 +112,7 @@
     <div id="title-bottom">
       <button id="btn-start">모험 시작!</button>
       <div id="title-loading" class="hidden"></div>
-      <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션 · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
+      <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션(구출·기차·로켓) · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
     </div>
   </div>
 

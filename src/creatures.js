@@ -65,7 +65,7 @@ export function buildDraftMesh(c) {
       draft.add(dot);
     }
   }
-  if (glows) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); }
+  if (glows && c.boss) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); } // 점광원은 보스만 (야생 여럿이 빛을 켜면 느려진다)
   if (c.model) swapDraftWithModel(g, c.model); // 진짜 모델이 있으면 드래프트 도형 대신 사용
   g.scale.setScalar(c.scale || 1);
   return g;

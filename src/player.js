@@ -43,6 +43,7 @@ export class Player {
     this.jumped = false;
     this.walkT = 0;
     this.respawnFlash = 0;
+    this.gravityScale = 1; // 꿈의우주에서는 낮다 (높이 뛴다)
     // 주인공이 드는 등불 (동굴에서 주변을 밝힌다)
     this.lamp = new THREE.PointLight(0xffd9a0, 0, 24);
     this.lamp.position.set(0, 1.6, 0.4);
@@ -100,7 +101,7 @@ export class Player {
       this.onGround = false;
       this.jumped = true;
     }
-    this.vy += GRAVITY * dt;
+    this.vy += GRAVITY * this.gravityScale * dt;
     p.y += this.vy * dt;
 
     const floor = inHole(p.x, p.z) ? -20 : terrainHeight(p.x, p.z);

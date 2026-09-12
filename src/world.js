@@ -9,7 +9,7 @@ import { NUMBER_COLORS, RAINBOW } from './palette.js';
 //  - 서북쪽: 보스 아레나(돌기둥 원) — 쿵쿵이
 //  - 흙길이 마을에서 각 장소로 이어진다.
 export const WORLD = {
-  size: 180,
+  size: 220,
   hills: [
     { x: -45, z: -27, r: 15, h: 2.6 },
     { x: 42, z: 15, r: 12, h: 2.0 },
@@ -24,18 +24,29 @@ export const WORLD = {
     { x: 60, z: 80, r: 12, h: 1.8 },
     { x: -80, z: -3, r: 12, h: 2.2 },
     { x: 0, z: -84, r: 10, h: 1.6 },
+    { x: -96, z: -60, r: 14, h: 2.6 },
+    { x: 96, z: 20, r: 13, h: 2.0 },
+    { x: -40, z: 96, r: 14, h: 1.8 },
+    { x: 40, z: -100, r: 12, h: 2.2 },
+    { x: -100, z: 90, r: 12, h: 1.6 },
   ],
   hole: { x: 0, z: -72, r: 7 },
   village: { x: 0, z: 45 }, // 시작 지점(0, 12) 뒤 카메라(z≈23)에 나무가 걸리지 않게 충분히 뒤로
   pond: { x: 51, z: 45, r: 11 },
   arena: { x: -66, z: -57, r: 12 },
   cave: { x: -27, z: -82 },
-  // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나)
+  volcanoGate: { x: 88, z: -70 },  // 불의산 입구 (붉은 바위산 아치)
+  station: { x: -88, z: 42 },      // 기차역 (물의길로 가는 기차)
+  rocketPad: { x: 82, z: 82 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
+  // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
     [[0, 33], [0, -9], [-3, -39], [0, -60]],
     [[0, 0], [21, 15], [39, 36]],
     [[0, -9], [-24, -21], [-45, -45], [-60, -54]],
     [[0, -60], [-14, -70], [-27, -74]],
+    [[0, -60], [40, -66], [84, -70]],
+    [[-9, 45], [-50, 44], [-84, 42]],
+    [[14, 52], [50, 70], [78, 80]],
   ],
 };
 
@@ -49,7 +60,7 @@ export function bridgeParam(b, x, z) {
 }
 export function onBridge(b, x, z) { const { t, d } = bridgeParam(b, x, z); return t >= 0 && t <= 1 && d <= b.w; }
 export function bridgeDeckY(b, t) { return 0.08 + b.rise * Math.sin(Math.max(0, Math.min(1, t)) * Math.PI); }
-function bridgeHeightAt(bridges, x, z) {
+export function bridgeHeightAt(bridges, x, z) {
   for (const b of bridges) { const { t, d } = bridgeParam(b, x, z); if (t >= 0 && t <= 1 && d <= b.w + 0.3) return bridgeDeckY(b, t); }
   return null;
 }
@@ -172,6 +183,86 @@ function distToPath(x, z) {
   return d;
 }
 
+// ---------- 지역 공용 헬퍼 (동굴·불의산·물의길·꿈의우주가 함께 쓴다) ----------
+/** 글씨 텍스처 (표지판·포탈 안내판) */
+export function makeLabelTexture(text, bg = '#f5deb3', fg = '#5a3a1a', size = 40) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 512, 128);
+  ctx.fillStyle = fg; ctx.font = `bold ${size}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 66);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+/** 정점 색이 있는 바닥 지형. colorFn(x, z, y) 은 THREE.Color 를 돌려준다. */
+export function buildGround(scene, size, seg, heightFn, colorFn) {
+  const geo = new THREE.PlaneGeometry(size, size, seg, seg);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  const colors = [];
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    const y = heightFn(x, z);
+    pos.setY(i, y);
+    const c = colorFn(x, z, y);
+    colors.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+  ground.receiveShadow = true;
+  scene.add(ground);
+  return ground;
+}
+/** 다른 지역으로 가는 포탈: 빛나는 고리 + 도는 불빛 + 안내판. 돌려주는 animate(t) 를 매 프레임 불러 준다. */
+export function makePortal(scene, x, y, z, { color = 0x66e0ff, label = '푸른숲으로 가는 포탈', labelBg = '#1f2a3a', labelFg = '#9fe8ff' } = {}) {
+  const portal = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.18, 12, 40), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.5 }));
+  ring.position.y = 1.9;
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(1.45, 32), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+  disc.position.y = 1.9;
+  const light = new THREE.PointLight(color, 4, 14);
+  light.position.y = 2;
+  portal.add(ring, disc, light);
+  const orbs = [];
+  for (let i = 0; i < 8; i++) {
+    const o = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    portal.add(o);
+    orbs.push(o);
+  }
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.8), new THREE.MeshBasicMaterial({ map: makeLabelTexture(label, labelBg, labelFg), transparent: true }));
+  sign.position.set(0, 4.2, 0);
+  portal.add(sign);
+  portal.position.set(x, y, z);
+  scene.add(portal);
+  return {
+    group: portal,
+    animate(t) {
+      ring.rotation.y = t * 0.6;
+      disc.material.opacity = 0.35 + Math.sin(t * 3) * 0.12;
+      orbs.forEach((o, i) => { const a = t * 1.5 + (i / orbs.length) * Math.PI * 2; o.position.set(Math.cos(a) * 2.1, 1.9 + Math.sin(a * 2) * 0.5, Math.sin(a) * 0.6); });
+    },
+  };
+}
+/** 지역별 안내 표지판 (나무 기둥 + 판) */
+export function makeSignAt(text, x, y, z, rotY = 0, opts = {}) {
+  const g = new THREE.Group();
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.5, 8), new THREE.MeshStandardMaterial({ color: opts.post || 0x8b5a2b }));
+  post.position.y = 0.75;
+  const board = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.9, 0.1), new THREE.MeshStandardMaterial({ color: opts.board || 0xf5deb3 }));
+  board.position.y = 1.5;
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.9), new THREE.MeshBasicMaterial({ map: makeLabelTexture(text, opts.bg || '#f5deb3', opts.fg || '#5a3a1a', 44) }));
+  face.position.set(0, 1.5, 0.06);
+  post.castShadow = board.castShadow = true;
+  g.add(post, board, face);
+  g.position.set(x, y, z);
+  g.rotation.y = rotY;
+  return g;
+}
+
 // 표지판 글씨 (캔버스 텍스처)
 function makeTextTexture(text) {
   const c = document.createElement('canvas');
@@ -211,7 +302,7 @@ export function buildWorld(scene) {
 
   // 하늘/안개/빛
   scene.background = new THREE.Color(0x8fd3ff);
-  scene.fog = new THREE.Fog(0x8fd3ff, 80, 210);
+  scene.fog = new THREE.Fog(0x8fd3ff, 90, 240);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 1.4));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(20, 30, 10);
@@ -221,7 +312,7 @@ export function buildWorld(scene) {
   scene.add(sun, sun.target);
 
   // ---------- 지형 + 지역별 색 ----------
-  const seg = 240;
+  const seg = 280;
   const geo = new THREE.PlaneGeometry(S, S, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -474,15 +565,130 @@ export function buildWorld(scene) {
   obstacles.push(boulderObstacle);
   decor.add(makeSign('괴물 동굴 (쿵쿵이를 친구로!)', cv.x + 5, cv.z + 10, -0.5)); block(cv.x + 5, cv.z + 10, 0.25);
 
+  // ---------- 불의산 입구: 붉은 바위산 + 아치 + 용암 빛 (아치로 들어가면 main 이 불의산으로 보낸다) ----------
+  const vg = WORLD.volcanoGate;
+  {
+    const redRock = new THREE.MeshStandardMaterial({ color: 0x8a3b2a, roughness: 1 });
+    const g = new THREE.Group();
+    for (const [dx, dz, r, h] of [[0, -6, 10, 9], [-9, -3, 7, 6], [9, -4, 7, 6.5], [0, -14, 9, 11]]) {
+      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 9), redRock);
+      m.position.set(dx, h / 2 - 0.5, dz);
+      m.castShadow = true;
+      g.add(m);
+      block(vg.x + dx, vg.z + dz, r * 0.72);
+    }
+    const arch = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 3, 16, 1, false, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x3a0f08 }));
+    arch.rotation.z = Math.PI / 2; arch.rotation.y = Math.PI / 2;
+    arch.position.set(0, 1.7, 3.6);
+    g.add(arch);
+    const glow = new THREE.PointLight(0xff5a1f, 6, 18);
+    glow.position.set(0, 2.2, 5);
+    g.add(glow);
+    for (const sx of [-4.5, 4.5]) { // 아치 옆 작은 용암 웅덩이
+      const lava = new THREE.Mesh(new THREE.CircleGeometry(1.3, 16), new THREE.MeshStandardMaterial({ color: 0xff6a1a, emissive: 0xff3300, emissiveIntensity: 1.2 }));
+      lava.rotation.x = -Math.PI / 2; lava.position.set(sx, 0.03, 6.5);
+      g.add(lava);
+    }
+    g.position.set(vg.x, meadowHeight(vg.x, vg.z), vg.z);
+    decor.add(g);
+    decor.add(makeSign('불의산 입구', vg.x + 7, vg.z + 9, -0.5)); block(vg.x + 7, vg.z + 9, 0.25);
+  }
+
+  // ---------- 기차역: 선로 + 플랫폼 지붕 + 기차 (가까이 가서 E 를 누르면 main 이 기차를 움직여 물의길로 보낸다) ----------
+  const st = WORLD.station;
+  let train;
+  {
+    const y0 = meadowHeight(st.x, st.z);
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x555b66 });
+    const tieMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
+    for (const dz of [-0.7, 0.7]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(70, 0.12, 0.14), railMat); rail.position.set(st.x - 8, y0 + 0.1, st.z + dz); decor.add(rail); }
+    for (let i = 0; i < 46; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(st.x - 42 + i * 1.5, y0 + 0.05, st.z); decor.add(tie); }
+    const plat = new THREE.Mesh(new THREE.BoxGeometry(16, 0.2, 4), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
+    plat.position.set(st.x, y0 + 0.1, st.z + 3.6);
+    decor.add(plat);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(16, 0.25, 4.4), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 }));
+    roof.position.set(st.x, y0 + 3.4, st.z + 3.6);
+    roof.castShadow = true;
+    decor.add(roof);
+    for (const dx of [-7, 0, 7]) for (const dz of [1.9, 5.3]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8), woodMat);
+      post.position.set(st.x + dx, y0 + 1.7, st.z + dz);
+      decor.add(post); block(st.x + dx, st.z + dz, 0.2);
+    }
+    decor.add(makeSign('물의길행 기차역', st.x + 10, st.z + 7, -0.6)); block(st.x + 10, st.z + 7, 0.25);
+    // 기차: 기관차 + 객차 2칸
+    train = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe8453c });
+    const carMat = new THREE.MeshStandardMaterial({ color: 0x3fb8e8 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x20232e });
+    const engine = new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, 2.2), bodyMat); engine.position.set(0, 1.5, 0); engine.castShadow = true;
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(2, 1.2, 2.2), bodyMat); cab.position.set(-1.2, 3.2, 0);
+    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.2, 10), dark); chimney.position.set(1.6, 3.2, 0);
+    const face = new THREE.Mesh(new THREE.CircleGeometry(0.6, 16), new THREE.MeshStandardMaterial({ color: 0xffd93d })); face.position.set(2.51, 1.6, 0); face.rotation.y = Math.PI / 2;
+    train.add(engine, cab, chimney, face);
+    const wheel = (x, r) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 2.4, 12), dark); w.rotation.x = Math.PI / 2; w.position.set(x, r, 0); train.add(w); };
+    wheel(-1.6, 0.5); wheel(1.6, 0.5);
+    for (let i = 0; i < 2; i++) {
+      const car = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 2.2), carMat); car.position.set(-6 * (i + 1), 1.4, 0); car.castShadow = true; train.add(car);
+      for (let k = 0; k < 3; k++) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 2.3), new THREE.MeshStandardMaterial({ color: 0xdff6ff })); win.position.set(-6 * (i + 1) - 1.5 + k * 1.5, 1.7, 0); train.add(win); }
+      wheel(-6 * (i + 1) - 1.6, 0.45); wheel(-6 * (i + 1) + 1.6, 0.45);
+    }
+    train.position.set(st.x + 2, y0, st.z);
+    scene.add(train);
+  }
+  const trainObstacle = { ax: st.x - 13, az: st.z, bx: st.x + 5, bz: st.z, r: 1.6 };
+  obstacles.push(trainObstacle);
+
+  // ---------- 로켓 발사장: 콘크리트 판 + 발사탑 + 로켓 (가까이 가서 E 를 누르면 main 이 로켓을 쏘아 꿈의우주로 보낸다) ----------
+  const rp = WORLD.rocketPad;
+  let rocket, rocketFlame;
+  {
+    const y0 = meadowHeight(rp.x, rp.z);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.3, 32), new THREE.MeshStandardMaterial({ color: 0x9aa0a8 }));
+    pad.position.set(rp.x, y0 + 0.15, rp.z);
+    decor.add(pad);
+    const ringMark = new THREE.Mesh(new THREE.RingGeometry(3, 3.5, 32), new THREE.MeshBasicMaterial({ color: 0xffd93d, side: THREE.DoubleSide }));
+    ringMark.rotation.x = -Math.PI / 2; ringMark.position.set(rp.x, y0 + 0.31, rp.z);
+    decor.add(ringMark);
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.2, 12, 1.2), new THREE.MeshStandardMaterial({ color: 0xc0392b }));
+    tower.position.set(rp.x + 4, y0 + 6, rp.z);
+    tower.castShadow = true;
+    decor.add(tower); block(rp.x + 4, rp.z, 1.0);
+    for (let i = 1; i <= 4; i++) { const arm = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x7f8c8d })); arm.position.set(rp.x + 2.3, y0 + i * 2.6, rp.z); decor.add(arm); }
+    rocket = new THREE.Group();
+    const white = new THREE.MeshStandardMaterial({ color: 0xf4f4f8, roughness: 0.4 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 7, 20), white); body.position.y = 4.5; body.castShadow = true;
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.2, 20), new THREE.MeshStandardMaterial({ color: 0xe8453c })); nose.position.y = 9.1;
+    const win = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 10), new THREE.MeshStandardMaterial({ color: 0x66e0ff, emissive: 0x2288aa, emissiveIntensity: 0.5 })); win.position.set(0, 6, 1.0);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.5, 20), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 })); band.position.y = 2.5;
+    rocket.add(body, nose, win, band);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.2, 1.6), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 }));
+      fin.position.set(Math.cos(a) * 1.4, 1.6, Math.sin(a) * 1.4);
+      fin.rotation.y = -a;
+      rocket.add(fin);
+    }
+    rocketFlame = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.5, 12), new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff6a00, emissiveIntensity: 1.5, transparent: true, opacity: 0.9 }));
+    rocketFlame.rotation.x = Math.PI; rocketFlame.position.y = -0.3; rocketFlame.visible = false;
+    rocket.add(rocketFlame);
+    rocket.position.set(rp.x, y0 + 0.3, rp.z);
+    scene.add(rocket);
+    decor.add(makeSign('꿈의우주행 로켓 발사장', rp.x - 8, rp.z + 8, 0.5)); block(rp.x - 8, rp.z + 8, 0.25);
+  }
+  const rocketObstacle = { x: rp.x, z: rp.z, r: 1.6 };
+  obstacles.push(rocketObstacle);
+
   // ---------- 나무, 바위, 버섯, 풀숲, 꽃 ----------
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
   const leafMats = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c].map((c) => new THREE.MeshStandardMaterial({ color: c }));
   const avoid = (x, z, extra = 0) =>
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
-    Math.hypot(x - cv.x, z - cv.z) < 16 || distToPath(x, z) < 2.5 + extra;
+    Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
+    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || distToPath(x, z) < 2.5 + extra;
   const treeSpots = [];
-  while (treeSpots.length < 130) {
+  while (treeSpots.length < 170) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
     if (avoid(x, z, 1) || treeSpots.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 6)) continue;
     treeSpots.push([x, z]);
@@ -524,7 +730,7 @@ export function buildWorld(scene) {
       decor.add(mush);
     }
   }
-  for (let i = 0; i < 65; i++) { // 바위
+  for (let i = 0; i < 80; i++) { // 바위
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     const rr = rand(0.4, 1.1);
@@ -539,7 +745,7 @@ export function buildWorld(scene) {
   const bladeTransforms = []; // 풀 블레이드는 한 번에 그린다 (InstancedMesh)
   const bushes = [];
   let placed = 0;
-  while (placed < 60) {
+  while (placed < 75) {
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     placed++;
@@ -573,7 +779,7 @@ export function buildWorld(scene) {
   const petalColors = [0xff6b9d, 0xffd93d, 0xffffff, 0xff8c42, 0xb388ff, 0x4fc3f7];
   const stemMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
   const flowerSpots = [];
-  for (let i = 0; i < 900; i++) {
+  for (let i = 0; i < 1200; i++) {
     const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
     if (meadowInHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(x, z) < 2) continue;
     flowerSpots.push([x, meadowHeight(x, z), z]);
@@ -604,7 +810,7 @@ export function buildWorld(scene) {
       s.position.set(k * 1.6, rand(-0.3, 0.3), rand(-0.5, 0.5));
       c.add(s);
     }
-    c.position.set(rand(-100, 100), rand(14, 22), rand(-100, 60));
+    c.position.set(rand(-120, 120), rand(14, 22), rand(-120, 80));
     decor.add(c);
   }
   const butterflies = [];
@@ -616,7 +822,7 @@ export function buildWorld(scene) {
     wl.position.x = -0.18; wr.position.x = 0.18;
     wl.rotation.x = wr.rotation.x = -Math.PI / 2;
     b.add(wl, wr);
-    const cx = rand(-80, 80), cz = rand(-80, 80);
+    const cx = rand(-100, 100), cz = rand(-100, 100);
     b.userData = { cx, cz, r: rand(2, 6), t: rand(0, 10), speed: rand(0.3, 0.7), wl, wr };
     decor.add(b);
     butterflies.push(b);
@@ -637,5 +843,18 @@ export function buildWorld(scene) {
     for (const f of flames) f.scale.y = 1 + Math.sin(t * 9 + f.position.x) * 0.2;
   }
 
-  return { ground, bushes, sun, boulder, boulderObstacle, animate, terrain: MEADOW_TERRAIN, decor };
+  return {
+    ground, bushes, sun, boulder, boulderObstacle, animate, terrain: MEADOW_TERRAIN, decor,
+    spawn: { x: 0, z: 12 }, dark: false,
+    // 몬스터 자리 (야생·보스), 블록 자리
+    wildSpots: [[-30, 6], [15, 45], [-57, 21], [60, -60], [36, -21], [-21, 36], [60, 18], [-70, 55], [21, -6], [-39, 0], [45, 66], [70, -20], [-18, -39], [51, -39], [-60, 72], [30, 54], [-66, 48], [75, 40], [9, -33], [69, -66], [-30, -72], [-95, -30], [95, -20], [-40, 95], [30, 95], [-100, 70], [100, 50], [-96, -85], [50, -100]],
+    bossSpot: { x: WORLD.arena.x, z: WORLD.arena.z },
+    pickupSpots: [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0], [-90, 10], [90, -40], [-30, 90], [40, 90], [-95, 95], [95, 95], [-80, -95], [0, -100]],
+    // 다른 지역으로 가는 곳들
+    volcanoGate: { x: vg.x, z: vg.z + 3.6 },
+    train: { mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 } },
+    rocket: { mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 } },
+    // 다른 지역에서 돌아올 때 도착하는 자리
+    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 } },
+  };
 }

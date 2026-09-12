@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, WORLD } from './world.js';
 import { buildCave } from './cave.js';
+import { buildVolcano } from './volcano.js';
+import { buildSea } from './sea.js';
+import { buildSpace } from './space.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
@@ -12,7 +15,8 @@ import { Battle } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
 import { Dex } from './dex.js';
 import { Party } from './party.js';
-import { makeBlockMesh, rand } from './util.js';
+import { Quiz } from './quiz.js';
+import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
 
 // ---------- 기본 세팅 ----------
 const canvas = document.getElementById('game');
@@ -22,7 +26,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 320);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 // 카메라: 주인공을 중심으로 회전(camYaw)/기울기(camPitch). 화면 드래그나 Q/R 로 돌린다.
 const cam = { yaw: 0, pitch: 0 };
 function camOffset() {
@@ -55,12 +59,22 @@ function say(text, { face = '1', sec = 4 } = {}) {
   msgEl.classList.remove('hidden');
   msgTimer = sec;
 }
+// 지역 이름 배너 (지역에 들어갈 때 크게)
+const zoneBannerEl = document.getElementById('zone-banner');
+let zoneBannerTimer = 0;
+function showZoneBanner(text) {
+  zoneBannerEl.textContent = text;
+  zoneBannerEl.classList.remove('hidden');
+  zoneBannerEl.classList.remove('pop'); void zoneBannerEl.offsetWidth; zoneBannerEl.classList.add('pop');
+  zoneBannerTimer = 2.6;
+}
 
 // ---------- 데이터 ----------
 const [creatureData, nbData] = await Promise.all([
   fetch('data/creatures.json').then((r) => r.json()),
   fetch('data/numberblocks.json').then((r) => r.json()),
 ]);
+const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, ... }
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
@@ -72,24 +86,27 @@ preloadModels(modelFiles, (done, total) => {
 });
 document.getElementById('title-sub').textContent = `${PLAYER_NAME}와 ${starters.map((c) => c.name).join('·')}의 신나는 숫자 모험!`;
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
+const nbByNumber = Object.fromEntries(nbData.numberblocks.map((n) => [n.number, n]));
 
 // ---------- 지역(zone) ----------
 // 각 지역은 자기 scene, 지형, 몬스터, 블록을 가진다. 주인공과 파트너들은 지역을 옮겨 다닌다.
 function makeZone(name, builder) {
   const scene = new THREE.Scene();
   const world = builder(scene);
-  return { name, scene, world, terrain: world.terrain, creatures: [], pickups: [], numberblocks: [], respawnTimer: 6 };
+  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescue: null, nbTimer: rand(25, 50), respawnTimer: 6 };
 }
 const zones = {
-  meadow: makeZone('meadow', buildWorld),
+  forest: makeZone('forest', buildWorld),
   cave: makeZone('cave', buildCave),
+  volcano: makeZone('volcano', buildVolcano),
+  sea: makeZone('sea', buildSea),
+  space: makeZone('space', buildSpace),
 };
-let zone = zones.meadow;
+let zone = zones.forest;
 setActiveTerrain(zone.terrain);
 
 const player = new Player(zone.scene);
 const chain = new FollowChain(player);
-const party = new Party(speciesById);
 
 function spawnCreature(z, speciesId, x, zz, extra = {}) {
   const data = { ...speciesById[speciesId], ...extra };
@@ -99,55 +116,33 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
 }
 function spawnPickup(z, x, zz) {
   const m = makeBlockMesh(0xffffff);
-  if (z.name === 'cave') { m.material.emissive = new THREE.Color(0x9fe8ff); m.material.emissiveIntensity = 0.7; m.userData.glow = true; } // 형광 블록
+  if (z.world.dark) { m.material.emissive = new THREE.Color(0x9fe8ff); m.material.emissiveIntensity = 0.7; m.userData.glow = true; } // 어두운 곳의 형광 블록
   m.position.set(x, z.terrain.height(x, zz) + 0.6, zz);
   m.userData.t = rand(0, 10);
   z.scene.add(m);
   z.pickups.push(m);
 }
-
-// 초원: 6종 21마리 + 보스 쿵쿵이
-{
-  const z = zones.meadow;
-  const spots = {
-    m01: [[-30, 6], [15, 45], [-57, 21], [60, -60]],
-    m02: [[36, -21], [-21, 36], [60, 18], [-70, 55]],
-    m03: [[21, -6], [-39, 0], [45, 66], [70, -20]],
-    m04: [[-18, -39], [51, -39], [-60, 72]],
-    m05: [[30, 54], [-66, 48], [75, 40]],
-    m06: [[9, -33], [69, -66], [-30, -72]],
-  };
-  for (const [id, list] of Object.entries(spots)) for (const [x, zz] of list) spawnCreature(z, id, x, zz);
-  spawnCreature(z, 'm13', WORLD.arena.x, WORLD.arena.z, { scale: 2.6 });
-  for (const [x, zz] of [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0]]) spawnPickup(z, x, zz);
-  for (const [id, [x, zz]] of Object.entries({ nb02: [-45, -27], nb03: [33, 51] })) z.numberblocks.push(new Numberblock(z.scene, nbById[id], { x, z: zz }));
-}
-// 동굴: 3종 9마리
-{
-  const z = zones.cave;
-  setActiveTerrain(z.terrain); // Numberblock/Creature 생성 시 지형 높이를 쓰므로 잠시 전환
-  for (const [id, list] of Object.entries(z.world.creatureSpawns)) for (const [x, zz] of list) spawnCreature(z, id, x, zz);
+// 지역마다: 그 지역에 사는 종(zone 이 같은 종)을 wildSpots 에 골고루, 보스는 bossSpot 에, 블록은 pickupSpots 에
+for (const z of Object.values(zones)) {
+  setActiveTerrain(z.terrain); // Creature 생성 시 지형 높이를 쓰므로 잠시 전환
+  const wild = creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && c.catchable);
+  z.world.wildSpots.forEach(([x, zz], i) => { if (wild.length) spawnCreature(z, wild[i % wild.length].id, x, zz); });
+  const boss = creatureData.creatures.find((c) => c.zone === z.name && c.boss);
+  if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z); c.mesh.userData.bossZone = z.name; }
   for (const [x, zz] of z.world.pickupSpots) spawnPickup(z, x, zz);
-  setActiveTerrain(zone.terrain);
 }
-const totalCreatures = zones.meadow.creatures.filter((c) => !c.isBoss).length + zones.cave.creatures.length;
-const boulder = zones.meadow.world.boulder;
-
-// ?showcase : 숫자블록 친구 1~10을 시작 지점 앞에 한 줄로
-if (location.search.includes('showcase')) {
-  nbData.numberblocks.forEach((nb, i) => {
-    const m = buildNumberblockMesh(nb);
-    const x = -9 + i * 2, zz = 3;
-    m.position.set(x, terrainHeight(x, zz), zz);
-    zones.meadow.scene.add(m);
-  });
-}
+setActiveTerrain(zone.terrain);
+const totalCreatures = Object.values(zones).reduce((n, z) => n + z.creatures.filter((c) => !c.isBoss).length, 0);
+const ZONE_COUNT = Object.keys(zones).length;
+const boulder = zones.forest.world.boulder;
 
 // ---------- 게임 상태 ----------
-const MAX_BLOCKS = 20;
-const state = { blocks: 0, caught: 0, rescued: 0, tutorial: 0, done: false, frames: 0, bossDone: false, caveVisited: false, glow: false, dex: {}, glowBlocks: 0, regenTimer: 0 }; // glowBlocks: 동굴에서 주운 형광 블록 수
-const dex = new Dex(creatureData.creatures);
+const MAX_BLOCKS = 30;
+const state = { blocks: 0, caught: 0, rescued: 0, conquered: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, regenTimer: 0, prompt: 0 }; // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const party = new Party(speciesById, state.dex);
+const dex = new Dex(creatureData.creatures, Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])));
 dex.lastCaught = state.dex;
+const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && !c.boss && !c.evolvedFrom), sound });
 for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); }); // 모델이 오면 도감/선택 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
@@ -177,6 +172,7 @@ function setBlocks(n, { glow = false } = {}) {
 
 const hudBlocks = document.getElementById('hud-blocks');
 const hudLeader = document.getElementById('hud-leader');
+const hudZone = document.getElementById('hud-zone');
 const hudBlockIcon = document.querySelector('.hud-icon.block');
 const hudPokeIcon = document.querySelector('.hud-icon.poke');
 function refreshHud() {
@@ -187,6 +183,7 @@ function refreshHud() {
     hudLeader.textContent = `${party.name(L)} ❤${L.hp}/${L.maxHp} ⚔${L.atk}`;
     hudPokeIcon.style.background = party.color(L);
   } else hudLeader.textContent = '대표 포켓몬 없음';
+  hudZone.textContent = `${zone.label}${state.conquered[zone.name] ? ' ★정복' : ''}`;
 }
 refreshHud();
 
@@ -242,7 +239,7 @@ function evolveMember(m) {
 dex.bindParty({
   party,
   getBlocks: () => state.blocks,
-  getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, boss: state.bossDone }), // 친구·구출·보스 진행은 도감에서 본다
+  getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, conquered: Object.keys(state.conquered).length, zones: ZONE_COUNT }), // 친구·구출·정복 진행은 도감에서 본다
   onUpgrade: (m, stat, n) => {
     n = Math.min(n, state.blocks);
     if (n <= 0) { say('블록이 없어! 하얀 블록을 주워서 다시 오자.'); return; }
@@ -260,15 +257,15 @@ dex.bindParty({
   onEvolve: (m) => evolveMember(m),
 });
 
-if (location.search.includes('debug')) {
-  setBlocks(10);
-  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, get zone() { return zone; }, battle, cam, dex, party, addStarter, attachLeader, evolveMember };
-}
-
 // ---------- 지역 이동 ----------
 const fadeEl = document.getElementById('fade');
 let switching = false;
+let snapCam = true; // 다음 프레임에 카메라를 주인공 뒤 제자리로 바로 옮긴다 (시작 직후, 대결 직후)
 function partyMeshes() { return [player.group, ...chain.followers.map((f) => f.mesh)]; }
+function applyZoneEnv() {
+  player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
+  player.gravityScale = zone.world.gravity || 1;
+}
 function switchZone(name, spawn, message) {
   if (switching || !zones[name]) return;
   switching = true;
@@ -281,11 +278,111 @@ function switchZone(name, spawn, message) {
     for (const m of partyMeshes()) { from.scene.remove(m); zone.scene.add(m); }
     player.teleport(spawn.x, spawn.z);
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
-    player.lamp.intensity = zone.name === 'cave' ? (state.glow ? 13 : 8) : 0;
+    applyZoneEnv();
     camera.position.copy(player.position).add(camOffset());
+    snapCam = true;
+    showZoneBanner(zone.label);
     if (message) say(message.text, message);
+    refreshHud();
     setTimeout(() => { fadeEl.classList.remove('on'); switching = false; }, 150);
   }, 480);
+}
+
+// 타는 것: 기차(→ 물의길), 로켓(→ 꿈의우주). 주인공과 친구들을 숨기고 탈것을 움직인 뒤 지역을 바꾼다.
+let ride = null;
+function startRide(kind) {
+  if (ride || switching) return;
+  const w = zones.forest.world;
+  const v = kind === 'train' ? w.train : w.rocket;
+  ride = { kind, t: 0, v, switched: false, puff: 0 };
+  for (const m of partyMeshes()) m.visible = false;
+  if (v.flame) v.flame.visible = true;
+  sound.portal();
+  say(kind === 'train' ? '칙칙폭폭! 물의길로 출발!' : '3, 2, 1, 발사! 꿈의우주로!', { sec: 4 });
+}
+function updateRide(dt) {
+  const r = ride, m = r.v.mesh;
+  r.t += dt;
+  if (r.kind === 'train') {
+    m.position.x = r.v.base.x - r.t * r.t * 3.5; // 서쪽으로 점점 빨리
+    r.puff -= dt;
+    if (r.puff <= 0 && zone.name === 'forest') { r.puff = 0.12; particles.stars(zone.scene, m.position.clone().add(new THREE.Vector3(1.6, 3.9, 0)), 2, 0xf4f4f8, 0.5); }
+  } else {
+    m.position.y = r.v.base.y + r.t * r.t * 6; // 위로 점점 빨리
+    m.rotation.z = Math.sin(r.t * 20) * 0.01;
+    r.puff -= dt;
+    if (r.puff <= 0 && zone.name === 'forest') { r.puff = 0.06; particles.stars(zone.scene, r.v.base.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.5, rand(-1.5, 1.5))), 3, 0xffb347, 0.7); }
+  }
+  if (zone.name === 'forest') {
+    const target = m.position.clone().add(camOffset());
+    camera.position.lerp(target, 0.15);
+    camera.lookAt(m.position.x, m.position.y + 1.5, m.position.z);
+  }
+  if (r.t > 2.4 && !r.switched) {
+    r.switched = true;
+    const to = r.kind === 'train' ? 'sea' : 'space';
+    switchZone(to, zones[to].world.spawn, { text: r.kind === 'train' ? '물의길에 도착! 물 포켓몬들이 사는 바다야. 다리로 섬을 건너자.' : '꿈의우주에 도착! 중력이 약해서 높이 뛸 수 있어. 별빛 사이를 탐험하자!', sec: 8 });
+  }
+  if (r.t > 3.3) {
+    m.position.copy(r.v.base);
+    m.rotation.z = 0;
+    if (r.v.flame) r.v.flame.visible = false;
+    for (const o of partyMeshes()) o.visible = true;
+    ride = null;
+    snapCam = true;
+  }
+}
+
+// ---------- 숫자블록 구출 (랜덤 출몰 + 문제 풀기) ----------
+// 지역마다 가끔(45~90초) 숫자블록 친구가 랜덤한 곳에 나타나 도와달라고 한다. 가까이 가서 E 를 누르면 문제가 나오고,
+// 맞히면 그 숫자만큼 블록이 내 숫자블록에 합쳐진다. 120초 안에 못 구하면 다른 곳으로 가 버린다.
+function dirWord(dx, dz) {
+  const a = Math.atan2(dx, -dz); // 북(-z)=0
+  const names = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'];
+  return names[Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
+}
+function spawnRescue(z) {
+  const number = 2 + Math.floor(Math.random() * 9); // 2~10
+  const data = nbByNumber[number];
+  const half = z.terrain.size / 2 - 8;
+  for (let tries = 0; tries < 40; tries++) {
+    const x = player.position.x + rand(-45, 45), zz = player.position.z + rand(-45, 45);
+    const d = Math.hypot(x - player.position.x, zz - player.position.z);
+    if (Math.abs(x) > half || Math.abs(zz) > half || d < 12 || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 1.4)) continue;
+    const nb = new Numberblock(z.scene, data, { x, z: zz });
+    nb.life = 120;
+    nb.help = makeNumberSprite('!', '#e8453c');
+    nb.help.position.y = new THREE.Box3().setFromObject(nb.mesh).max.y - nb.mesh.position.y + 0.7; // 머리 위
+    nb.help.scale.set(0.8, 0.8, 1);
+    nb.mesh.add(nb.help);
+    z.rescue = nb;
+    say(`${data.name}이(가) ${dirWord(x - player.position.x, zz - player.position.z)}쪽에서 도와달래! 찾아가서 E(액션)로 문제를 풀어 구출하자!`, { face: String(number), sec: 7 });
+    return;
+  }
+  z.nbTimer = 20; // 자리를 못 찾으면 잠시 뒤 다시
+}
+function removeRescue(z, escaped) {
+  const nb = z.rescue;
+  if (!nb) return;
+  z.scene.remove(nb.mesh);
+  z.rescue = null;
+  z.nbTimer = rand(45, 90);
+  if (escaped) say(`${nb.data.name}이(가) 다른 곳으로 가 버렸어… 다음에 또 나타날 거야.`, { face: String(nb.data.number), sec: 4 });
+}
+function rescueSolved(z, nb) {
+  nb.rescued = true;
+  const n = nb.data.number;
+  particles.stars(z.scene, nb.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 24, new THREE.Color(colorForCount(n)).getHex(), 0.5);
+  z.scene.remove(nb.mesh);
+  z.rescue = null;
+  z.nbTimer = rand(45, 90);
+  state.rescued++;
+  const before = state.blocks;
+  setBlocks(state.blocks + n);
+  sound.fanfare();
+  confetti.burst(100);
+  say(`${nb.data.name}: 고마워! ${before}에 ${n}을 더해서 이제 블록 ${state.blocks}개! 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
+  refreshHud();
 }
 
 // ---------- 튜토리얼/진행 ----------
@@ -294,22 +391,21 @@ function tutorial() {
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)를 열면 블록으로 포켓몬의 공격력이나 체력을 올릴 수 있어.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 체력이 0이 되면 지니까 도감(B)에서 체력도 올려 두자.', { sec: 7 }); }
-  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감(B)에서 대표를 바꿀 수 있어. 서쪽 언덕 위 둘이와 동쪽 연못가의 셋이도 찾아줘. 가까이 가서 E(액션)!', { sec: 7 }); }
+  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감(B)에서 대표를 바꿀 수 있어. 숫자블록 친구가 도와달라고 나타나면 문제를 풀어 구출해 줘!', { sec: 7 }); }
+  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
-function checkProgress() {
-  if (state.rescued >= 2 && state.bossDone && !state.done) {
-    state.done = true;
-    say('챕터 1 완료! 동굴 입구가 열렸어. 큰 구멍이나 동굴 입구로 들어가면 어두운 동굴이야!', { sec: 10 });
-  } else if (state.rescued >= 2 && !state.bossDone && !state.bossHintTold) {
-    state.bossHintTold = true;
-    say(`둘이 셋이를 다 구했어! 서북쪽 돌기둥 아레나의 커다란 쿵쿵이를 만나러 가자. 체력 ${speciesById.m13.baseHp}, 공격 ${speciesById.m13.baseAtk}이니까 포켓몬을 튼튼하게 키워서 가!`, { sec: 8 });
-  }
+function conquer(zoneName) {
+  state.conquered[zoneName] = true;
+  const n = Object.keys(state.conquered).length;
+  showZoneBanner(`${ZONE_INFO[zoneName].name} 정복!`);
+  confetti.burst(220);
+  if (n >= ZONE_COUNT) setTimeout(() => say('모든 지역을 정복했어! 넘버랜드의 챔피언이 됐어!', { sec: 10 }), 3000);
+  refreshHud();
 }
 
 // ---------- 시작: 타이틀 → 포켓몬 고르기 → 모험 ----------
 // 타이틀이 떠 있는 동안은 인트로 무대(주인공·몬스터 친구들)를 그린다
 let intro = buildIntro(creatureData.creatures);
-let snapCam = true; // 다음 프레임에 카메라를 주인공 뒤 제자리로 바로 옮긴다 (시작 직후, 대결 직후)
 document.body.classList.add('intro');
 window.addEventListener('resize', () => intro?.resize());
 const starterEl = document.getElementById('starter');
@@ -326,7 +422,7 @@ function renderStarter() {
     item.innerHTML = `
       ${t ? `<img src="${t.color}" alt="">` : ''}
       <div class="starter-name">${sp.name}</div>
-      <div class="starter-stat">❤ 체력 ${sp.baseHp} · ⚔ 공격 ${sp.baseAtk}</div>
+      <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${sp.baseHp} · ⚔ 공격 ${sp.baseAtk}</div>
       <div class="starter-skill">기술: ${first ? first.name : '-'}${sp.skills?.[1] ? ` → ${sp.skills[1].name}` : ''}</div>`;
     item.onclick = () => chooseStarter(sp.id);
     starterGrid.appendChild(item);
@@ -341,6 +437,7 @@ function chooseStarter(id) {
   const member = addStarter(id);
   confetti.burst(120);
   sound.fanfare();
+  showZoneBanner(zone.label);
   say(`안녕, ${PLAYER_NAME}! 난 원이야. ${party.name(member)}와 함께 가자! 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 6 });
 }
 document.getElementById('btn-start').onclick = () => {
@@ -349,6 +446,11 @@ document.getElementById('btn-start').onclick = () => {
   starterEl.classList.remove('hidden');
   renderStarter();
 };
+
+if (location.search.includes('debug')) {
+  setBlocks(10);
+  window.__game = { player, state, zones, setBlocks, input, renderer, switchZone, startRide, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer };
+}
 
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
@@ -366,11 +468,15 @@ function frame() {
     return;
   }
 
-  if (input.wasPressed('dex') && !battle.active) dex.toggle(state.dex);
+  if (input.wasPressed('dex') && !battle.active && !quiz.open && !ride) dex.toggle(state.dex);
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
+  } else if (quiz.open) {
+    if (input.wasPressed('cancel')) quiz.finish(false);
   } else if (battle.active) {
     battle.update(dt);
+  } else if (ride) {
+    updateRide(dt);
   } else if (!switching) {
     // 카메라 회전: 화면 드래그 또는 Q/R
     const look = input.takeLook();
@@ -380,29 +486,39 @@ function frame() {
     if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
 
     player.update(dt, input, cam.yaw);
+    const pp = player.position;
+    const near = (pt, r) => Math.hypot(pp.x - pt.x, pp.z - pt.z) < r;
+    state.prompt = Math.max(0, state.prompt - dt);
 
-    // 구멍/동굴 입구 → 동굴, 포탈 → 초원
-    if (zone.name === 'meadow') {
+    // ----- 지역 이동 -----
+    if (zone.name === 'forest') {
+      const w = zone.world;
       if (player.fellInHole) {
         player.fellInHole = false;
-        switchZone('cave', zones.cave.world.spawn, { text: '뿅! 어두운 동굴로 떨어졌어. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 숲마을에 돌아갈 수 있어!', sec: 8 });
-      } else if (state.bossDone && Math.hypot(player.position.x - WORLD.cave.x, player.position.z - (WORLD.cave.z + 6.5)) < 2.2) {
-        switchZone('cave', zones.cave.world.spawn, { text: '괴물 동굴에 들어왔어! 포탈로 돌아갈 수 있어.', sec: 6 });
+        switchZone('cave', zones.cave.world.spawn, { text: '뿅! 지하동굴로 떨어졌어. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 푸른숲에 돌아갈 수 있어!', sec: 8 });
+      } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
+        switchZone('cave', zones.cave.world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
+      } else if (near(w.volcanoGate, 2.4)) {
+        switchZone('volcano', zones.volcano.world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
+      } else if (near(w.train.boardPoint, 3.2)) {
+        if (input.wasPressed('action')) startRide('train');
+        else if (state.prompt <= 0) { state.prompt = 8; say('기차역이야! E(액션)를 누르면 기차를 타고 물의길(바다)로 가!', { sec: 4 }); }
+      } else if (near(w.rocket.boardPoint, 3.2)) {
+        if (input.wasPressed('action')) startRide('rocket');
+        else if (state.prompt <= 0) { state.prompt = 8; say('로켓 발사장이야! E(액션)를 누르면 로켓을 타고 꿈의우주로 가!', { sec: 4 }); }
       }
-    } else if (zone.name === 'cave') {
-      const P = zones.cave.world.portal;
-      if (Math.hypot(player.position.x - P.x, player.position.z - P.z) < 1.6) {
-        switchZone('meadow', { x: WORLD.village.x, z: WORLD.village.z - 18 }, { text: '숲마을로 돌아왔어!', sec: 4 });
-      }
+    } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
+      const back = zones.forest.world.arrivals[zone.name] || zones.forest.world.spawn;
+      switchZone('forest', back, { text: '푸른숲으로 돌아왔어!', sec: 4 });
     }
 
-    // 블록 줍기
+    // ----- 블록 줍기 -----
     for (let i = zone.pickups.length - 1; i >= 0; i--) {
       const b = zone.pickups[i];
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
-      if (b.position.distanceTo(player.position) < 1.1) {
-        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say('블록이 스무 개! 더는 못 들어. 도감(B)에서 포켓몬을 키우는 데 쓰자!'); } continue; }
+      if (b.position.distanceTo(pp) < 1.1) {
+        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감(B)에서 포켓몬을 키우는 데 쓰자!`); } continue; }
         zone.scene.remove(b);
         zone.pickups.splice(i, 1);
         setBlocks(state.blocks + 1, { glow: !!b.userData.glow });
@@ -418,14 +534,14 @@ function frame() {
       zone.respawnTimer = 6;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
-        const x = player.position.x + rand(-36, 36), zz = player.position.z + rand(-36, 36);
-        if (Math.abs(x) > half || Math.abs(zz) > half || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 0.8) || Math.hypot(x - player.position.x, zz - player.position.z) < 6) continue;
+        const x = pp.x + rand(-36, 36), zz = pp.z + rand(-36, 36);
+        if (Math.abs(x) > half || Math.abs(zz) > half || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 0.8) || Math.hypot(x - pp.x, zz - pp.z) < 6) continue;
         spawnPickup(zone, x, zz);
         break;
       }
     }
 
-    // 탐험 중엔 포켓몬 체력이 3초에 1씩 천천히 회복된다
+    // ----- 탐험 중엔 포켓몬 체력이 3초에 1씩 천천히 회복된다 -----
     state.regenTimer -= dt;
     if (state.regenTimer <= 0) {
       state.regenTimer = 3;
@@ -434,15 +550,15 @@ function frame() {
       if (healed) refreshHud();
     }
 
-    // 몬스터: 닿으면 내 대표 포켓몬과 대결
+    // ----- 몬스터: 닿으면 내 대표 포켓몬과 대결 -----
     for (const c of zone.creatures) {
       if (c.state === 'caught') continue;
-      const ev = c.update(dt, player.position);
+      const ev = c.update(dt, pp);
       if (ev === 'meet') {
         const L = party.leader;
         if (!L) { c.becomeShy(); say('대표 포켓몬이 없어!'); break; }
         const hp = c.hp ?? c.data.baseHp;
-        say(c.isBoss ? `쿵쿵이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${c.data.name}이(가) 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
+        say(c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${c.data.name}이(가) 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
         battle.start({
           creature: c, player, scene: zone.scene, member: L,
           hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
@@ -451,21 +567,26 @@ function frame() {
             const member = party.add(c.data.id, c.mesh);
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
+            state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
+            const cnt = state.dex[c.data.id];
             if (c.isBoss) {
-              state.bossDone = true;
-              zones.meadow.scene.remove(boulder);
-              const obs = zones.meadow.terrain.obstacles, bi = obs.indexOf(zones.meadow.world.boulderObstacle);
-              if (bi >= 0) obs.splice(bi, 1); // 바위가 치워지면 지나갈 수 있다
-              say('쿵쿵이가 친구가 됐어! 쿵! 하고 동굴 입구 바위를 치워줬어!', { sec: 7 });
+              conquer(zone.name);
+              if (zone.name === 'forest') {
+                zones.forest.scene.remove(boulder);
+                const obs = zones.forest.terrain.obstacles, bi = obs.indexOf(zones.forest.world.boulderObstacle);
+                if (bi >= 0) obs.splice(bi, 1); // 바위가 치워지면 지나갈 수 있다
+                say(`${c.data.name}이(가) 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!`, { sec: 7 });
+              } else say(`${c.data.name}이(가) 친구가 됐어! ${zone.label} 정복!`, { sec: 6 });
             } else {
               state.caught++;
-              say(`${c.data.name}이(가) 친구가 됐어! 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 5 });
+              const sp = speciesById[c.data.id];
+              const evo = sp.evolution;
+              const more = evo && cnt < (evo.count || 1) ? ` ${sp.name} ${cnt}마리째! ${evo.count}마리를 잡으면 진화할 수 있어.` : '';
+              say(`${c.data.name}이(가) 친구가 됐어!${cnt > 1 ? ` (${cnt}마리째)` : ''}${more} 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
             }
-            state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
             if (party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
-            checkProgress();
           },
           onLost: () => {
             c.becomeShy();
@@ -480,27 +601,31 @@ function frame() {
       }
     }
 
-    // 숫자블록 구출 (가까이 가서 액션)
-    for (const nb of zone.numberblocks) {
-      if (nb.rescued) continue;
+    // ----- 숫자블록 구출: 랜덤 출몰, 가까이 가서 액션 → 문제 -----
+    zone.nbTimer -= dt;
+    if (!zone.rescue && zone.nbTimer <= 0) spawnRescue(zone);
+    const nb = zone.rescue;
+    if (nb) {
       nb.t += dt;
-      nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 2)) * 0.05;
-      animateNumberblock(nb.mesh, dt, false);
-      if (nb.position.distanceTo(player.position) < 2.2 && input.wasPressed('action')) {
-        nb.rescued = true;
-        chain.add(nb.mesh);
-        state.rescued++;
-        setBlocks(state.blocks + nb.data.number);
-        sound.fanfare();
-        say(`${nb.data.name}: 고마워! 블록 ${nb.data.number}개 나눠줄게. 같이 갈래!`, { face: String(nb.data.number), sec: 5 });
-        checkProgress();
+      nb.life -= dt;
+      nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 3)) * 0.12;
+      nb.mesh.rotation.y = Math.atan2(pp.x - nb.position.x, pp.z - nb.position.z); // 주인공을 본다
+      animateNumberblock(nb.mesh, dt, true);
+      if (nb.life <= 0) removeRescue(zone, true);
+      else if (nb.position.distanceTo(pp) < 2.4 && input.wasPressed('action')) {
+        input.endFrame();
+        quiz.ask(nb.data.number, nb.data.name).then((ok) => {
+          if (zone.rescue !== nb) return;
+          if (ok) rescueSolved(zone, nb);
+          else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
+        });
       }
     }
 
     chain.update(dt);
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
     for (const f of chain.followers) {
-      const occluding = f.mesh.position.distanceTo(camera.position) < player.position.distanceTo(camera.position) - 0.3 && f.mesh.position.distanceTo(player.position) < 3.5;
+      const occluding = f.mesh.position.distanceTo(camera.position) < pp.distanceTo(camera.position) - 0.3 && f.mesh.position.distanceTo(pp) < 3.5;
       const target = occluding ? 0.35 : 1;
       if (f.mesh.userData.opacity === target) continue;
       f.mesh.userData.opacity = target;
@@ -529,10 +654,10 @@ function frame() {
     tutorial();
 
     // 카메라 따라가기 (대결이 막 끝났으면 눈높이에서 바로 원래 자리로 복귀)
-    const camTarget = player.position.clone().add(camOffset());
+    const camTarget = pp.clone().add(camOffset());
     if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
     else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
-    camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+    camera.lookAt(pp.x, pp.y + 1, pp.z);
   }
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
@@ -543,6 +668,7 @@ function frame() {
   particles.update(dt);
   confetti.update(dt);
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
+  if (zoneBannerTimer > 0) { zoneBannerTimer -= dt; if (zoneBannerTimer <= 0) zoneBannerEl.classList.add('hidden'); }
 
   renderer.render(zone.scene, camera);
   input.endFrame();

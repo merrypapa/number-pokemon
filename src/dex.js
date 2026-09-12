@@ -6,11 +6,12 @@ import { colorForCount } from './palette.js';
 //  - 위: 내 포켓몬(파티) 카드. 대표 고르기, 블록으로 공격력/체력 올리기, 진화.
 //  - 아래: 모든 종. 잡은(또는 진화한) 종은 컬러 썸네일 + 이름, 아니면 검은 실루엣 + 물음표.
 // 썸네일은 작은 오프스크린 렌더러로 한 번만 만들어 캐시한다.
-const ZONE_NAME = { meadow: '숫자 초원', holes: '숫자 초원', holes_gate: '초원 보스 아레나', cave: '괴물 동굴', cave_boss: '괴물 동굴', evolution: '진화' };
+const DEFAULT_ZONE_NAME = { forest: '푸른숲', cave: '지하동굴', volcano: '불의산', sea: '물의길', space: '꿈의우주', evolution: '진화' };
 
 export class Dex {
-  constructor(species) {
+  constructor(species, zoneNames = {}) {
     this.species = species;
+    this.zoneName = { ...DEFAULT_ZONE_NAME, ...zoneNames };
     this.el = document.getElementById('dex');
     this.grid = document.getElementById('dex-grid');
     this.partyEl = document.getElementById('dex-party');
@@ -96,10 +97,10 @@ export class Dex {
         <div class="party-top">
           ${t ? `<img src="${t.color}" alt="">` : ''}
           <div class="party-info">
-            <div class="party-name">${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}</div>
+            <div class="party-name">${sp.name} <span class="party-type">${sp.type}</span> ${leader ? '<span class="party-badge">대표</span>' : ''}</div>
             <div class="party-stat"><span class="hp">❤ 체력 ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ 공격 ${m.atk}</span></div>
             <div class="party-skills">기술: ${skills.map((s) => `${s.name}(${party.damage(m, s)})`).join(' · ')}${next ? `<br><span class="dim">🔒 ${next.name}: 공격 ${next.atk}이면 열려요</span>` : ''}</div>
-            ${evo ? `<div class="party-evo ${canEvolve ? 'ready' : 'dim'}">${canEvolve ? `✨ ${ctx.party.speciesById[evo.to]?.name || '?'}(으)로 진화할 수 있어!` : `진화: 공격 ${evo.atk} · 체력 ${evo.hp}이면 ${ctx.party.speciesById[evo.to]?.name || '?'}`}</div>` : ''}
+            ${evo ? `<div class="party-evo ${canEvolve ? 'ready' : 'dim'}">${canEvolve ? `✨ ${ctx.party.speciesById[evo.to]?.name || '?'}(으)로 진화할 수 있어!` : `진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${sp.name} ${evo.count || 1}마리 잡기 (지금 ${party.caughtOf(m)}마리)`}</div>` : ''}
           </div>
         </div>
         <div class="party-actions">
@@ -110,7 +111,7 @@ export class Dex {
           </div>
           <div class="party-side">
             ${leader ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
-            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp}이면 진화">✨ 진화!</button>` : ''}
+            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.count || 1}마리 잡으면 진화">✨ 진화!</button>` : ''}
           </div>
         </div>`;
       card.querySelectorAll('button[data-act]').forEach((b) => {
@@ -137,12 +138,12 @@ export class Dex {
       const t = this.thumbs(sp);
       const item = document.createElement('div');
       item.className = 'dex-item ' + (known ? 'caught' : 'unknown');
-      const zone = ZONE_NAME[sp.zone] || '???';
+      const zone = this.zoneName[sp.zone] || '???';
       const from = sp.evolvedFrom ? this.species.find((s) => s.id === sp.evolvedFrom) : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
       const sub = known
-        ? (from ? `${from.name}의 진화형 · ${n}마리` : `${zone} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : zone);
+        ? (from ? `${from.name}의 진화형 · ${sp.type} · ${n}마리` : `${zone}${sp.boss ? ' 보스' : ''} · ${sp.type} · ${n}마리`)
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ' 보스' : ''}`);
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}
@@ -155,8 +156,8 @@ export class Dex {
     const pr = this.partyCtx?.getProgress?.();
     this.progressEl.innerHTML = pr ? `
       <span><i class="hud-icon mon"></i>친구 ${pr.caught}/${pr.total}</span>
-      <span><i class="hud-icon nb"></i>구출 ${pr.rescued}/2</span>
-      <span><i class="hud-icon boss"></i>보스 ${pr.boss ? 1 : 0}/1</span>` : '';
+      <span><i class="hud-icon nb"></i>구출 ${pr.rescued}</span>
+      <span><i class="hud-icon boss"></i>정복 ${pr.conquered}/${pr.zones}</span>` : '';
   }
 
   show(caughtById) { this.render(caughtById); this.el.classList.remove('hidden'); this.open = true; }
