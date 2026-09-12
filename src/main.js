@@ -385,7 +385,7 @@ function frame() {
     if (zone.name === 'meadow') {
       if (player.fellInHole) {
         player.fellInHole = false;
-        switchZone('cave', zones.cave.world.spawn, { text: '뿅! 어두운 동굴로 떨어졌어. 반디를 찾으면 밝아질 거야. 빛나는 포탈로 숲마을에 돌아갈 수 있어!', sec: 8 });
+        switchZone('cave', zones.cave.world.spawn, { text: '뿅! 어두운 동굴로 떨어졌어. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 숲마을에 돌아갈 수 있어!', sec: 8 });
       } else if (state.bossDone && Math.hypot(player.position.x - WORLD.cave.x, player.position.z - (WORLD.cave.z + 6.5)) < 2.2) {
         switchZone('cave', zones.cave.world.spawn, { text: '괴물 동굴에 들어왔어! 포탈로 돌아갈 수 있어.', sec: 6 });
       }
@@ -462,7 +462,7 @@ function frame() {
               say(`${c.data.name}이(가) 친구가 됐어! 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 5 });
             }
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
-            if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; zones.cave.scene.fog.far = 110; say('반디가 동굴을 환하게 밝혀줘!', { sec: 5 }); }
+            if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
             if (party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
             checkProgress();
