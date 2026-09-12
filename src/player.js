@@ -7,7 +7,7 @@ export const PLAYER_NAME = '인하';
 export const PLAYER_MODEL = '인하.glb'; // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
 export const PLAYER_HEIGHT = 1.9;      // 주인공 모델 키(m). 몬스터(1m 기준)보다 크게
 
-const SPEED = 6.5, JUMP = 7, GRAVITY = -20, ACCEL = 14; // ACCEL: 조이스틱처럼 부드럽게 가속/감속
+const SPEED = 6.5, RUN = 1.7, JUMP = 7, GRAVITY = -20, ACCEL = 14; // RUN: 달리기 배속 (Shift/Ctrl 또는 달리기 버튼), ACCEL: 조이스틱처럼 부드럽게 가속/감속
 
 export class Player {
   constructor(scene) {
@@ -69,10 +69,12 @@ export class Player {
     const wx = axis.x * cy + axis.y * sy;
     const wz = axis.y * cy - axis.x * sy;
     const k = Math.min(1, ACCEL * dt);
-    this.vx += (wx * SPEED - this.vx) * k;
-    this.vz += (wz * SPEED - this.vz) * k;
+    const top = SPEED * (input.isHeld('run') ? RUN : 1);
+    this.vx += (wx * top - this.vx) * k;
+    this.vz += (wz * top - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
     const moving = speed > 0.4;
+    this.running = moving && speed > SPEED * 1.15;
     // 물(연못·호수)은 못 들어간다. 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
     const ox = p.x, oz = p.z;
     p.x += this.vx * dt;
@@ -88,7 +90,7 @@ export class Player {
     }
     this.group.rotation.y = this.facing;
     this.body.rotation.z = moving ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0;
-    tickModel(this.group, dt, moving ? 'walk' : 'idle');
+    tickModel(this.group, dt, moving ? (this.running ? 'run' : 'walk') : 'idle'); // run 클립이 없으면 walk/첫 클립
 
     // 경계
     const lim = worldSize() / 2 - 2;

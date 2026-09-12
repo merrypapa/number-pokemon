@@ -10,6 +10,7 @@ const KEYMAP = {
   KeyQ: 'camLeft', KeyR: 'camRight',
   KeyB: 'dex',
   Digit1: 'skill1', Digit2: 'skill2', Digit3: 'skill3', Digit4: 'skill4', // 대결에서 기술 바로 쓰기
+  ShiftLeft: 'run', ShiftRight: 'run', ControlLeft: 'run', ControlRight: 'run', // 달리기 (누르고 이동)
 };
 
 const JOY_RADIUS = 55; // 스틱이 움직이는 최대 반지름(px)

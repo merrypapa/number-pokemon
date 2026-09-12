@@ -42,6 +42,7 @@ export class Dex {
     document.getElementById('map-next').onclick = () => this.stepMap(1);
     document.getElementById('btn-dex').onclick = () => this.toggle();
     document.getElementById('btn-dex-close').onclick = () => this.hide();
+    document.getElementById('btn-dex-close2').onclick = () => this.hide();
     this.el.addEventListener('click', (e) => { if (e.target === this.el) this.hide(); });
   }
 
@@ -113,7 +114,7 @@ export class Dex {
     if (!this.mapSel) this.mapSel = here || 'forest';
     const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
     const line = (a, b, cls) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - 4} ${B.x},${B.y}"/>`; };
-    let svg = `<svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">`;
+    let svg = `<svg viewBox="-5 -5 110 72" preserveAspectRatio="xMidYMid meet">`;
     svg += line('forest', 'cave', 'path') + line('forest', 'volcano', 'path') + line('forest', 'sea', 'rail') + line('forest', 'space', 'flight');
     for (const r of MAP_REGIONS) {
       const done = !!conquered[r.id];

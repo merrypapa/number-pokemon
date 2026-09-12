@@ -196,7 +196,6 @@ function setBlocks(n, { glow = false } = {}) {
 
 const hudBlocks = document.getElementById('hud-blocks');
 const hudLeader = document.getElementById('hud-leader');
-const hudZone = document.getElementById('hud-zone');
 const hudBlockIcon = document.querySelector('.hud-icon.block');
 const hudPokeIcon = document.querySelector('.hud-icon.poke');
 function refreshHud() {
@@ -207,7 +206,6 @@ function refreshHud() {
     hudLeader.textContent = `${party.name(L)} ❤${L.hp}/${L.maxHp} ⚔${L.atk}`;
     hudPokeIcon.style.background = party.color(L);
   } else hudLeader.textContent = '대표 포켓몬 없음';
-  hudZone.textContent = zone ? `${zone.label}${state.conquered[zone.name] ? ' ★정복' : ''}` : '';
 }
 refreshHud();
 

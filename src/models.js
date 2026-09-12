@@ -85,7 +85,7 @@ class ModelAnim {
     this.play('idle');
   }
   play(name) {
-    const key = this.actions[name] ? name : this.first;
+    const key = this.actions[name] ? name : (name === 'run' && this.actions.walk ? 'walk' : this.first);
     if (!key || key === this.current) return;
     const next = this.actions[key];
     if (this.current) this.actions[this.current].fadeOut(0.2);
