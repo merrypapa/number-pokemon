@@ -15,6 +15,7 @@ export class Dex {
     this.grid = document.getElementById('dex-grid');
     this.partyEl = document.getElementById('dex-party');
     this.blocksEl = document.getElementById('dex-blocks');
+    this.progressEl = document.getElementById('dex-progress');
     this.countEl = document.getElementById('dex-count');
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
@@ -105,13 +106,11 @@ export class Dex {
           <div class="party-up">
             <span>블록으로 키우기:</span>
             <button data-act="hp1" ${blocks < 1 ? 'disabled' : ''}>❤ 체력 +1</button>
-            <button data-act="hp5" ${blocks < 5 ? 'disabled' : ''}>❤ +5</button>
             <button data-act="atk1" ${blocks < 1 ? 'disabled' : ''}>⚔ 공격 +1</button>
-            <button data-act="atk5" ${blocks < 5 ? 'disabled' : ''}>⚔ +5</button>
           </div>
           <div class="party-side">
             ${leader ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
-            ${canEvolve ? '<button data-act="evolve" class="btn-evolve">✨ 진화!</button>' : ''}
+            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp}이면 진화">✨ 진화!</button>` : ''}
           </div>
         </div>`;
       card.querySelectorAll('button[data-act]').forEach((b) => {
@@ -152,7 +151,12 @@ export class Dex {
         <div class="dex-num" style="background:${known ? colorForCount(Number(sp.favoriteNumber) || 1) : '#bbb'}">${known ? `❤ ${sp.baseHp} · ⚔ ${sp.baseAtk}` : '❤ ? · ⚔ ?'}</div>`;
       this.grid.appendChild(item);
     }
-    this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종`;
+    this.countEl.textContent = `도감 ${caughtSpecies} / ${this.species.length} 종`;
+    const pr = this.partyCtx?.getProgress?.();
+    this.progressEl.innerHTML = pr ? `
+      <span><i class="hud-icon mon"></i>친구 ${pr.caught}/${pr.total}</span>
+      <span><i class="hud-icon nb"></i>구출 ${pr.rescued}/2</span>
+      <span><i class="hud-icon boss"></i>보스 ${pr.boss ? 1 : 0}/1</span>` : '';
   }
 
   show(caughtById) { this.render(caughtById); this.el.classList.remove('hidden'); this.open = true; }

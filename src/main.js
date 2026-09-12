@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
-import { buildWorld, terrainHeight, inHole, setActiveTerrain, WORLD } from './world.js';
+import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, WORLD } from './world.js';
 import { buildCave } from './cave.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
@@ -177,9 +177,6 @@ function setBlocks(n, { glow = false } = {}) {
 
 const hudBlocks = document.getElementById('hud-blocks');
 const hudLeader = document.getElementById('hud-leader');
-const hudCaught = document.getElementById('hud-caught');
-const hudRescued = document.getElementById('hud-rescued');
-const hudBoss = document.getElementById('hud-boss');
 const hudBlockIcon = document.querySelector('.hud-icon.block');
 const hudPokeIcon = document.querySelector('.hud-icon.poke');
 function refreshHud() {
@@ -190,9 +187,6 @@ function refreshHud() {
     hudLeader.textContent = `${party.name(L)} ❤${L.hp}/${L.maxHp} ⚔${L.atk}`;
     hudPokeIcon.style.background = party.color(L);
   } else hudLeader.textContent = '대표 포켓몬 없음';
-  hudCaught.textContent = `친구 ${state.caught}/${totalCreatures}`;
-  hudRescued.textContent = `구출 ${state.rescued}/2`;
-  hudBoss.textContent = `보스 ${state.bossDone ? 1 : 0}/1`;
 }
 refreshHud();
 
@@ -248,6 +242,7 @@ function evolveMember(m) {
 dex.bindParty({
   party,
   getBlocks: () => state.blocks,
+  getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, boss: state.bossDone }), // 친구·구출·보스 진행은 도감에서 본다
   onUpgrade: (m, stat, n) => {
     n = Math.min(n, state.blocks);
     if (n <= 0) { say('블록이 없어! 하얀 블록을 주워서 다시 오자.'); return; }
@@ -424,7 +419,7 @@ function frame() {
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
         const x = player.position.x + rand(-30, 30), zz = player.position.z + rand(-30, 30);
-        if (Math.abs(x) > half || Math.abs(zz) > half || inHole(x, zz) || Math.hypot(x - player.position.x, zz - player.position.z) < 6) continue;
+        if (Math.abs(x) > half || Math.abs(zz) > half || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 0.8) || Math.hypot(x - player.position.x, zz - player.position.z) < 6) continue;
         spawnPickup(zone, x, zz);
         break;
       }
@@ -459,6 +454,8 @@ function frame() {
             if (c.isBoss) {
               state.bossDone = true;
               zones.meadow.scene.remove(boulder);
+              const obs = zones.meadow.terrain.obstacles, bi = obs.indexOf(zones.meadow.world.boulderObstacle);
+              if (bi >= 0) obs.splice(bi, 1); // 바위가 치워지면 지나갈 수 있다
               say('쿵쿵이가 친구가 됐어! 쿵! 하고 동굴 입구 바위를 치워줬어!', { sec: 7 });
             } else {
               state.caught++;

@@ -33,13 +33,104 @@ export const WORLD = {
   ],
 };
 
+// ---------- 다리 ----------
+// 물(연못·호수)은 건널 수 없고, 다리 위로만 지나갈 수 있다. 다리는 양 끝(x1,z1)-(x2,z2)을 잇고 가운데가 rise 만큼 솟는다.
+export function bridgeParam(b, x, z) {
+  const vx = b.x2 - b.x1, vz = b.z2 - b.z1, len2 = vx * vx + vz * vz;
+  const t = ((x - b.x1) * vx + (z - b.z1) * vz) / len2;
+  const d = Math.hypot(x - (b.x1 + vx * t), z - (b.z1 + vz * t));
+  return { t, d };
+}
+export function onBridge(b, x, z) { const { t, d } = bridgeParam(b, x, z); return t >= 0 && t <= 1 && d <= b.w; }
+export function bridgeDeckY(b, t) { return 0.08 + b.rise * Math.sin(Math.max(0, Math.min(1, t)) * Math.PI); }
+function bridgeHeightAt(bridges, x, z) {
+  for (const b of bridges) { const { t, d } = bridgeParam(b, x, z); if (t >= 0 && t <= 1 && d <= b.w + 0.3) return bridgeDeckY(b, t); }
+  return null;
+}
+/** 나무 다리 모델: 판자 + 양쪽 난간. 난간은 장애물로 obstacles 에 추가된다. */
+export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0x7a4d22 } = {}) {
+  const g = new THREE.Group();
+  const plankMat = new THREE.MeshStandardMaterial({ color: plankColor, roughness: 0.9 });
+  const railMat = new THREE.MeshStandardMaterial({ color: railColor, roughness: 0.9 });
+  const len = Math.hypot(b.x2 - b.x1, b.z2 - b.z1);
+  const ang = Math.atan2(b.x2 - b.x1, b.z2 - b.z1); // 다리 방향 (z 축 기준 회전)
+  const n = Math.max(6, Math.round(len / 0.9));
+  const nx = Math.cos(ang), nz = -Math.sin(ang); // 다리 옆 방향
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n;
+    const x = b.x1 + (b.x2 - b.x1) * t, z = b.z1 + (b.z2 - b.z1) * t;
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(b.w * 2 + 0.2, 0.14, len / n - 0.06), plankMat);
+    plank.position.set(x, bridgeDeckY(b, t) - 0.07, z);
+    const t2 = t + 0.01; // 판자의 앞(+z)을 다리 방향·아치 기울기에 맞춘다
+    plank.lookAt(b.x1 + (b.x2 - b.x1) * t2, bridgeDeckY(b, t2) - 0.07, b.z1 + (b.z2 - b.z1) * t2);
+    plank.castShadow = plank.receiveShadow = true;
+    g.add(plank);
+  }
+  for (const side of [-1, 1]) {
+    const px = nx * side * b.w, pz = nz * side * b.w;
+    const posts = Math.max(3, Math.round(len / 2.4));
+    let prev = null;
+    for (let i = 0; i <= posts; i++) {
+      const t = i / posts;
+      const x = b.x1 + (b.x2 - b.x1) * t + px, z = b.z1 + (b.z2 - b.z1) * t + pz;
+      const y = bridgeDeckY(b, t);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.0, 0.16), railMat);
+      post.position.set(x, y + 0.5, z);
+      g.add(post);
+      if (prev) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, Math.hypot(x - prev.x, z - prev.z, y - prev.y)), railMat);
+        rail.position.set((x + prev.x) / 2, (y + prev.y) / 2 + 0.9, (z + prev.z) / 2);
+        rail.lookAt(x, y + 0.9, z);
+        g.add(rail);
+        obstacles.push({ ax: prev.x, az: prev.z, bx: x, bz: z, r: 0.12 });
+      }
+      prev = { x, y, z };
+    }
+  }
+  return g;
+}
+
 // ---------- 활성 지형 (초원/동굴 등 지역이 바뀌면 main 이 교체) ----------
-// player/creatures/numberblocks 는 terrainHeight/inHole 만 쓰므로 지역이 바뀌어도 코드가 같다.
+// player/creatures/numberblocks 는 terrainHeight/inHole/isBlocked/resolveObstacles 만 쓰므로 지역이 바뀌어도 코드가 같다.
+//  - blocked(x,z): 물처럼 들어갈 수 없는 곳 (다리 위는 예외)
+//  - obstacles: 나무·집·바위 같은 구조물. 원 {x,z,r} 또는 선분 {ax,az,bx,bz,r}. 캐릭터를 밖으로 밀어낸다.
 let active = { height: meadowHeight, inHole: meadowInHole, size: WORLD.size };
 export function setActiveTerrain(t) { active = t; }
 export function terrainHeight(x, z) { return active.height(x, z); }
 export function inHole(x, z) { return active.inHole(x, z); }
 export function worldSize() { return active.size; }
+export function isBlocked(x, z) { return active.blocked ? active.blocked(x, z) : false; }
+export function insideObstacle(x, z, r = 0.4) { return (active.obstacles || []).some((o) => obstacleDist(o, x, z) < o.r + r); }
+function obstacleDist(o, x, z) {
+  if (o.ax === undefined) return Math.hypot(x - o.x, z - o.z);
+  return distToSegment(x, z, o.ax, o.az, o.bx, o.bz);
+}
+function obstacleClosest(o, x, z, out) {
+  if (o.ax === undefined) { out.x = o.x; out.z = o.z; return; }
+  const vx = o.bx - o.ax, vz = o.bz - o.az;
+  const t = Math.max(0, Math.min(1, ((x - o.ax) * vx + (z - o.az) * vz) / (vx * vx + vz * vz)));
+  out.x = o.ax + vx * t; out.z = o.az + vz * t;
+}
+const _c = { x: 0, z: 0 };
+/** 반지름 r 인 캐릭터(pos.x, pos.z)를 장애물 밖으로 밀어낸다. 밀렸으면 true. */
+export function resolveObstacles(pos, r = 0.4) {
+  let pushed = false;
+  for (const o of active.obstacles || []) {
+    const reach = o.r + r;
+    if (Math.abs(pos.x - (o.x ?? (o.ax + o.bx) / 2)) > reach + 20) continue; // 멀리 있는 건 건너뜀 (선분은 넉넉히)
+    obstacleClosest(o, pos.x, pos.z, _c);
+    const dx = pos.x - _c.x, dz = pos.z - _c.z;
+    const d = Math.hypot(dx, dz);
+    if (d >= reach) continue;
+    if (d < 1e-4) { pos.x += reach; continue; }
+    pos.x = _c.x + (dx / d) * reach;
+    pos.z = _c.z + (dz / d) * reach;
+    pushed = true;
+  }
+  return pushed;
+}
+
+const MEADOW_BRIDGES = [{ x1: WORLD.pond.x - WORLD.pond.r - 2.5, z1: WORLD.pond.z, x2: WORLD.pond.x + WORLD.pond.r + 2.5, z2: WORLD.pond.z, w: 1.3, rise: 0.7 }];
 
 export function meadowHeight(x, z) {
   let y = 0;
@@ -50,14 +141,19 @@ export function meadowHeight(x, z) {
   // 연못은 얕게 파인다
   const pd = Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z);
   if (pd < WORLD.pond.r + 2) y -= 0.9 * Math.min(1, (WORLD.pond.r + 2 - pd) / 3);
-  return y;
+  const by = bridgeHeightAt(MEADOW_BRIDGES, x, z);
+  return by === null ? y : Math.max(y, by);
 }
 
 export function meadowInHole(x, z) {
   const dx = x - WORLD.hole.x, dz = z - WORLD.hole.z;
   return dx * dx + dz * dz < WORLD.hole.r * WORLD.hole.r;
 }
-export const MEADOW_TERRAIN = { height: meadowHeight, inHole: meadowInHole, size: WORLD.size };
+// 연못 물속은 못 들어간다 (다리 위는 예외)
+export function meadowBlocked(x, z) {
+  return Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 1 && !MEADOW_BRIDGES.some((b) => onBridge(b, x, z));
+}
+export const MEADOW_TERRAIN = { height: meadowHeight, inHole: meadowInHole, blocked: meadowBlocked, size: WORLD.size, obstacles: [] };
 
 function distToSegment(px, pz, ax, az, bx, bz) {
   const vx = bx - ax, vz = bz - az;
@@ -103,6 +199,9 @@ export function buildWorld(scene) {
   const S = WORLD.size;
   const decor = new THREE.Group();
   scene.add(decor);
+  const obstacles = MEADOW_TERRAIN.obstacles;
+  obstacles.length = 0;
+  const block = (x, z, r) => obstacles.push({ x, z, r }); // 지나갈 수 없는 구조물
 
   // 하늘/안개/빛
   scene.background = new THREE.Color(0x8fd3ff);
@@ -152,7 +251,7 @@ export function buildWorld(scene) {
   holeDark.rotation.x = -Math.PI / 2;
   holeDark.position.set(WORLD.hole.x, -2.5, WORLD.hole.z);
   scene.add(holeDark);
-  decor.add(makeSign('큰 구멍 조심!', WORLD.hole.x + 7.5, WORLD.hole.z + 3, -0.3));
+  decor.add(makeSign('큰 구멍 조심!', WORLD.hole.x + 7.5, WORLD.hole.z + 3, -0.3)); block(WORLD.hole.x + 7.5, WORLD.hole.z + 3, 0.25);
 
   // ---------- 연못 ----------
   const water = new THREE.Mesh(
@@ -170,17 +269,10 @@ export function buildWorld(scene) {
     pad.position.set(WORLD.pond.x + Math.cos(a) * r, -0.27, WORLD.pond.z + Math.sin(a) * r);
     decor.add(pad);
   }
-  // 징검다리 (연못을 가로지름)
+  // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  for (let i = 0; i < 7; i++) {
-    const t = (i + 0.5) / 7;
-    const x = WORLD.pond.x - WORLD.pond.r + t * WORLD.pond.r * 2, z = WORLD.pond.z + Math.sin(t * Math.PI) * 2;
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 0.5, 10), stoneMat);
-    st.position.set(x, -0.15, z);
-    st.castShadow = true;
-    decor.add(st);
-  }
-  decor.add(makeSign('숫자 연못', WORLD.pond.x - WORLD.pond.r - 3, WORLD.pond.z - 4, 0.6));
+  for (const b of MEADOW_BRIDGES) scene.add(buildBridge(b, obstacles));
+  decor.add(makeSign('숫자 연못 · 다리로 건너요', WORLD.pond.x - WORLD.pond.r - 3, WORLD.pond.z - 4, 0.6)); block(WORLD.pond.x - WORLD.pond.r - 3, WORLD.pond.z - 4, 0.25);
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = WORLD.village;
@@ -200,10 +292,10 @@ export function buildWorld(scene) {
     tree.add(fruit);
   }
   tree.position.set(v.x, meadowHeight(v.x, v.z), v.z);
-  decor.add(tree);
-  decor.add(makeSign('← 보스 아레나', v.x - 4, v.z - 5, 0.4));
-  decor.add(makeSign('연못 →', v.x + 4, v.z - 5, -0.4));
-  decor.add(makeSign('↑ 큰 구멍 · 동굴', v.x, v.z - 8, 0));
+  decor.add(tree); block(v.x, v.z, 1.5);
+  decor.add(makeSign('← 보스 아레나', v.x - 4, v.z - 5, 0.4)); block(v.x - 4, v.z - 5, 0.25);
+  decor.add(makeSign('연못 →', v.x + 4, v.z - 5, -0.4)); block(v.x + 4, v.z - 5, 0.25);
+  decor.add(makeSign('↑ 큰 구멍 · 동굴', v.x, v.z - 8, 0)); block(v.x, v.z - 8, 0.25);
   const fenceMat = new THREE.MeshStandardMaterial({ color: 0xd9b077 });
   for (let i = 0; i < 12; i++) { // 나무 주변 반원 울타리
     const a = Math.PI * 0.15 + (i / 11) * Math.PI * 0.7;
@@ -211,10 +303,11 @@ export function buildWorld(scene) {
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.1, 0.25), fenceMat);
     post.position.set(x, meadowHeight(x, z) + 0.55, z);
     post.castShadow = true;
-    decor.add(post);
+    decor.add(post); block(x, z, 0.25);
     if (i < 11) {
       const a2 = Math.PI * 0.15 + ((i + 1) / 11) * Math.PI * 0.7;
       const x2 = v.x + Math.cos(a2) * 9, z2 = v.z + Math.sin(a2) * 9;
+      obstacles.push({ ax: x, az: z, bx: x2, bz: z2, r: 0.15 }); // 울타리 가로대
       const rail = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(x2 - x, z2 - z), 0.12, 0.12), fenceMat);
       rail.position.set((x + x2) / 2, meadowHeight((x + x2) / 2, (z + z2) / 2) + 0.8, (z + z2) / 2);
       rail.rotation.y = -Math.atan2(z2 - z, x2 - x);
@@ -242,6 +335,7 @@ export function buildWorld(scene) {
     g.add(body, roof, door, win, badge);
     g.position.set(x, meadowHeight(x, z), z);
     g.rotation.y = rotY;
+    block(x, z, w / 2 + 0.6);
     return g;
   }
   decor.add(house(1, v.x - 13, v.z - 4, 0.5), house(2, v.x + 13, v.z - 4, -0.5), house(3, v.x - 15, v.z + 8, 0.9), house(4, v.x + 15, v.z + 8, -0.9));
@@ -259,7 +353,7 @@ export function buildWorld(scene) {
     const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8), woodMat); bucket.position.y = 1.4;
     g.add(ring, waterTop, postA, postB, roofW, bucket);
     g.position.set(v.x + 7, meadowHeight(v.x + 7, v.z - 9), v.z - 9);
-    decor.add(g);
+    decor.add(g); block(v.x + 7, v.z - 9, 1.4);
   }
   // 놀이터: 미끄럼틀 + 그네
   {
@@ -286,6 +380,7 @@ export function buildWorld(scene) {
     g.position.set(v.x - 8, meadowHeight(v.x - 8, v.z - 11), v.z - 11);
     g.rotation.y = 0.3;
     decor.add(g);
+    for (const [lx, r] of [[-1.0, 1.5], [3.2, 1.4]]) block(g.position.x + Math.cos(0.3) * lx, g.position.z - Math.sin(0.3) * lx, r); // 미끄럼틀, 그네
   }
   // 가랜드 (만국기): 광장 둘레 기둥 사이 삼각 깃발
   {
@@ -295,7 +390,7 @@ export function buildWorld(scene) {
       const x = v.x + Math.cos(a) * 8, z = v.z + Math.sin(a) * 8;
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.2, 8), woodMat);
       post.position.set(x, meadowHeight(x, z) + 1.6, z);
-      decor.add(post);
+      decor.add(post); block(x, z, 0.2);
       posts.push(new THREE.Vector3(x, meadowHeight(x, z) + 3.1, z));
     }
     const flagGeo = new THREE.PlaneGeometry(0.45, 0.6);
@@ -321,7 +416,7 @@ export function buildWorld(scene) {
     lamp.position.y = 2.95;
     g.add(pole, lamp);
     g.position.set(x, meadowHeight(x, z), z);
-    decor.add(g);
+    decor.add(g); block(x, z, 0.2);
   }
   // 꽃밭 (마을 옆 둥근 꽃 무더기)
   const flowerBeds = [[v.x - 10, v.z - 16], [v.x + 10, v.z - 16]];
@@ -335,7 +430,7 @@ export function buildWorld(scene) {
     pillar.position.set(x, meadowHeight(x, z) + pillar.geometry.parameters.height / 2, z);
     pillar.rotation.y = a;
     pillar.castShadow = true;
-    decor.add(pillar);
+    decor.add(pillar); block(x, z, 1.0);
     if (i % 2 === 0) {
       const flame = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0xff7f11, emissive: 0xff5500, emissiveIntensity: 1.2 }));
       flame.position.set(x, pillar.position.y + pillar.geometry.parameters.height / 2 + 0.5, z);
@@ -346,7 +441,7 @@ export function buildWorld(scene) {
       decor.add(light);
     }
   }
-  decor.add(makeSign('보스 아레나', ar.x + ar.r + 3, ar.z + 6, -0.8));
+  decor.add(makeSign('보스 아레나', ar.x + ar.r + 3, ar.z + 6, -0.8)); block(ar.x + ar.r + 3, ar.z + 6, 0.25);
 
   // ---------- 북쪽 산 + 동굴 입구 (바위로 막힘) ----------
   const cv = WORLD.cave;
@@ -357,6 +452,7 @@ export function buildWorld(scene) {
     m.position.set(dx, h / 2 - 0.5, dz);
     m.castShadow = true;
     mountain.add(m);
+    block(cv.x + dx, cv.z + dz, r * 0.72); // 산은 못 올라간다 (입구 앞은 비어 있음)
   }
   const arch = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 3, 16, 1, false, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x0f1a14 }));
   arch.rotation.z = Math.PI / 2; arch.rotation.y = Math.PI / 2;
@@ -368,7 +464,9 @@ export function buildWorld(scene) {
   boulder.position.set(cv.x, meadowHeight(cv.x, cv.z + 7.5) + 1.6, cv.z + 7.5);
   boulder.castShadow = true;
   scene.add(boulder);
-  decor.add(makeSign('괴물 동굴 (쿵쿵이를 친구로!)', cv.x + 5, cv.z + 10, -0.5));
+  const boulderObstacle = { x: cv.x, z: cv.z + 7.5, r: 2.2 }; // 쿵쿵이가 치우면 main 이 함께 뺀다
+  obstacles.push(boulderObstacle);
+  decor.add(makeSign('괴물 동굴 (쿵쿵이를 친구로!)', cv.x + 5, cv.z + 10, -0.5)); block(cv.x + 5, cv.z + 10, 0.25);
 
   // ---------- 나무, 바위, 버섯, 풀숲, 꽃 ----------
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
@@ -407,7 +505,7 @@ export function buildWorld(scene) {
     trunk.castShadow = true;
     t.add(trunk);
     t.position.set(x, meadowHeight(x, z), z);
-    decor.add(t);
+    decor.add(t); block(x, z, 0.55);
     if (Math.random() < 0.5) { // 나무 밑 버섯
       const mush = new THREE.Group();
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }));
@@ -423,11 +521,12 @@ export function buildWorld(scene) {
   for (let i = 0; i < 30; i++) { // 바위
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rand(0.4, 1.1), 0), rockMat);
+    const rr = rand(0.4, 1.1);
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rr, 0), rockMat);
     rock.position.set(x, meadowHeight(x, z) + 0.2, z);
     rock.rotation.set(rand(0, 3), rand(0, 3), 0);
     rock.castShadow = true;
-    decor.add(rock);
+    decor.add(rock); block(x, z, rr * 0.9);
   }
   const bushMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
   const grassMat = new THREE.MeshStandardMaterial({ color: 0x3e9e3e, side: THREE.DoubleSide });
@@ -447,7 +546,7 @@ export function buildWorld(scene) {
         b.add(s);
       }
       b.position.set(x, meadowHeight(x, z), z);
-      decor.add(b);
+      decor.add(b); block(x, z, 1.0);
       bushes.push(b);
     } else { // 키 큰 풀숲 (몬스터가 숨는 곳)
       for (let k = 0; k < 14; k++) {
@@ -532,5 +631,5 @@ export function buildWorld(scene) {
     for (const f of flames) f.scale.y = 1 + Math.sin(t * 9 + f.position.x) * 0.2;
   }
 
-  return { ground, bushes, sun, boulder, animate, terrain: MEADOW_TERRAIN, decor };
+  return { ground, bushes, sun, boulder, boulderObstacle, animate, terrain: MEADOW_TERRAIN, decor };
 }

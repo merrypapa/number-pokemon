@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, lerpAngle } from './util.js';
-import { terrainHeight, inHole, worldSize } from './world.js';
+import { terrainHeight, inHole, worldSize, isBlocked, resolveObstacles } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 export const PLAYER_NAME = '인하';
@@ -72,8 +72,14 @@ export class Player {
     this.vz += (wz * SPEED - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
     const moving = speed > 0.4;
+    // 물(연못·호수)은 못 들어간다. 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
+    const ox = p.x, oz = p.z;
     p.x += this.vx * dt;
+    if (isBlocked(p.x, oz)) { p.x = ox; this.vx = 0; }
     p.z += this.vz * dt;
+    if (isBlocked(p.x, p.z)) { p.z = oz; this.vz = 0; }
+    // 나무·집·바위 같은 구조물 밖으로 밀어낸다
+    if (resolveObstacles(p, 0.45) && isBlocked(p.x, p.z)) { p.x = ox; p.z = oz; }
     if (moving) {
       this.facing = lerpAngle(this.facing, Math.atan2(this.vx, this.vz), 0.3);
       this.moved = true;
