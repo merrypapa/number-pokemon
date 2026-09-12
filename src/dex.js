@@ -26,7 +26,6 @@ export class Dex {
     this.partyEl = document.getElementById('dex-party');
     this.membersEl = document.getElementById('dex-members');
     this.blocksEl = document.getElementById('dex-blocks');
-    this.progressEl = document.getElementById('dex-progress');
     this.countEl = document.getElementById('dex-count');
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
@@ -39,6 +38,8 @@ export class Dex {
     this.mapEl = document.getElementById('dex-map');
     this.mapDetailEl = document.getElementById('dex-map-detail');
     document.querySelectorAll('#dex-tabs button').forEach((b) => { b.onclick = () => this.setTab(b.dataset.tab); });
+    document.getElementById('map-prev').onclick = () => this.stepMap(-1);
+    document.getElementById('map-next').onclick = () => this.stepMap(1);
     document.getElementById('btn-dex').onclick = () => this.toggle();
     document.getElementById('btn-dex-close').onclick = () => this.hide();
     this.el.addEventListener('click', (e) => { if (e.target === this.el) this.hide(); });
@@ -96,6 +97,14 @@ export class Dex {
     if (tab === 'map') this.renderMap(this.lastCaught || {});
   }
 
+  /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주) */
+  stepMap(d) {
+    const ids = MAP_REGIONS.map((r) => r.id);
+    const i = Math.max(0, ids.indexOf(this.mapSel));
+    this.mapSel = ids[(i + d + ids.length) % ids.length];
+    this.renderMap(this.lastCaught || {});
+  }
+
   // ----- 지도 탭: 지역들을 그림으로, 정복한 곳은 금빛 ★. 누르면 그 지역의 포켓몬을 잡은/못 잡은 것으로 나눠 보여준다 -----
   renderMap(caughtById) {
     const ctx = this.partyCtx;
@@ -119,8 +128,9 @@ export class Dex {
     svg += '</svg>';
     this.mapEl.innerHTML = svg;
     this.mapEl.querySelectorAll('.region').forEach((g) => { g.onclick = () => { this.mapSel = g.dataset.zone; this.renderMap(caughtById); }; });
-    // 지역 상세
+    // 지역 상세 (◀ ▶ 로 넘겨 본다)
     const r = R[this.mapSel];
+    document.getElementById('map-pos').textContent = `${MAP_REGIONS.findIndex((m) => m.id === r.id) + 1} / ${MAP_REGIONS.length} · ${this.zoneName[r.id]}`;
     const list = this.species.filter((sp) => sp.zone === r.id);
     const known = list.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
     const done = !!conquered[r.id];
@@ -220,7 +230,7 @@ export class Dex {
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '');
         row.innerHTML = `
-          <div class="member-head">내 ${sp.name}${mine.length > 1 ? ` #${i + 1}` : ''} ${leader ? '<span class="party-badge">대표</span>' : ''}
+          <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}
             <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>
             <small>기술: ${party.skills(m).map((s) => `${s.name}(${party.damage(m, s)})`).join(' · ')}${next ? ` · 🔒 ${next.name}은 공격 ${next.atk}이면` : ''}</small></div>
           <div class="member-actions">
@@ -282,11 +292,7 @@ export class Dex {
       this.grid.appendChild(item);
     }
     this.countEl.textContent = `도감 ${caughtSpecies} / ${this.species.length} 종`;
-    const pr = ctx?.getProgress?.();
-    this.progressEl.innerHTML = pr ? `
-      <span><i class="hud-icon mon"></i>친구 ${pr.caught}/${pr.total}</span>
-      <span><i class="hud-icon nb"></i>구출 ${pr.rescued}</span>
-      <span><i class="hud-icon boss"></i>정복 ${pr.conquered}/${pr.zones}</span>` : '';
+
   }
 
   show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); this.el.classList.remove('hidden'); this.open = true; }

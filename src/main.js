@@ -531,8 +531,7 @@ function renderContinue() {
     list.appendChild(row);
   }
 }
-document.getElementById('btn-continue-count').textContent = '';
-{ const n = listSaves().length; document.getElementById('btn-continue').disabled = n === 0; document.getElementById('btn-continue').textContent = n ? `이어서하기 (${n})` : '이어서하기'; }
+document.getElementById('btn-continue').disabled = listSaves().length === 0;
 
 // ---------- 저장 / 불러오기 ----------
 function buildSaveData() {
@@ -701,7 +700,8 @@ function frame() {
           hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
           onCaught: () => {
             c.becomeFriend();
-            const member = party.add(c.data.id, c.mesh);
+            const already = party.members.find((m) => m.speciesId === c.data.id); // 같은 종은 파티에 한 마리만. 또 잡으면 누적 수만 오른다 (진화 조건)
+            const member = already || party.add(c.data.id, c.mesh);
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
@@ -717,11 +717,16 @@ function frame() {
               state.caught++;
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
-              const more = evo && cnt < (evo.count || 1) ? ` ${sp.name} ${cnt}마리째! ${evo.count}마리를 잡으면 진화할 수 있어.` : '';
-              say(`${c.data.name}이(가) 친구가 됐어!${cnt > 1 ? ` (${cnt}마리째)` : ''}${more} 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
+              if (already) {
+                const need = evo ? (evo.count || 1) : 0;
+                say(evo && cnt < need ? `${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리. ${need}마리를 잡으면 진화할 수 있어.` : evo ? `${sp.name} 누적 ${cnt}마리! 도감(B)에서 진화 조건을 확인해 봐.` : `${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리.`, { sec: 6 });
+              } else {
+                const more = evo && cnt < (evo.count || 1) ? ` ${evo.count}마리를 잡으면 진화할 수 있어.` : '';
+                say(`${c.data.name}이(가) 친구가 됐어!${more} 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
+              }
             }
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
-            if (party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
+            if (!already && party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
             autosave();
           },
