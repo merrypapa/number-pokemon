@@ -1,13 +1,15 @@
 import * as THREE from 'three';
-import { colorForCount, NUMBER_COLORS } from './palette.js';
-import { buildNumberblockMesh } from './numberblocks.js';
+import { colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
+import { tickModel } from './models.js';
 
-// 전투 장면 (포켓몬 GO 느낌):
-//  1) 카메라가 주인공 어깨 뒤로 내려가 몬스터를 마주 본다
-//  2) 숫자블록을 n개 던지면 몬스터 체력(= 좋아하는 숫자)이 n 만큼 깎인다. 딱 0이 되어야 한다(너무 많으면 튕겨 나옴)
-//  3) 체력이 0이면 숫자볼을 던져 캡처한다 (볼이 3번 흔들리고 "잡았다!")
+// 대결 장면 (포켓몬 배틀 느낌, 턴제):
+//  1) 카메라가 주인공 어깨 뒤로 내려가고, 내 대표 포켓몬이 앞으로 나가 상대 몬스터를 마주 본다
+//  2) 기술을 고르면 내 포켓몬이 돌진 → 빛덩이가 날아가 상대 체력을 (공격력 × 기술 배수) 만큼 깎는다
+//  3) 상대가 살아 있으면 반격해서 내 체력을 상대 공격력만큼 깎는다. 내 체력이 0이면 진다
+//  4) 상대 체력이 0이면 어질어질 → 숫자볼을 던져 잡는다 (볼이 흔들리고 "잡았다!")
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const SKILL_KEYS = ['skill1', 'skill2', 'skill3', 'skill4'];
 
 function makeBall(color) {
   const g = new THREE.Group();
@@ -22,46 +24,59 @@ function makeBall(color) {
   return g;
 }
 
+// 기술 빛덩이: 내 포켓몬 색으로 빛나는 구슬 + 은은한 빛
+function makeBolt(color, size = 1) {
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.2 * size, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: color, emissiveIntensity: 1.4 }));
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.36 * size, 12, 10), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, depthWrite: false }));
+  const light = new THREE.PointLight(color, 3, 6);
+  g.add(core, halo, light);
+  return g;
+}
+
 export class Battle {
-  constructor({ input, camera, say, sound, particles, confetti }) {
-    Object.assign(this, { input, camera, say, sound, particles, confetti });
+  constructor({ input, camera, say, sound, particles, confetti, party }) {
+    Object.assign(this, { input, camera, say, sound, particles, confetti, party });
     this.active = false;
     this.el = document.getElementById('battle');
     this.nameEl = document.getElementById('battle-name');
     this.hpEl = document.getElementById('battle-hp');
     this.hpNumEl = document.getElementById('battle-hpnum');
-    this.mineEl = document.getElementById('battle-mine');
-    this.nEl = document.getElementById('battle-n');
+    this.mineNameEl = document.getElementById('battle-mine-name');
+    this.mineHpEl = document.getElementById('battle-mine-hp');
+    this.mineHpNumEl = document.getElementById('battle-mine-hpnum');
+    this.mineAtkEl = document.getElementById('battle-mine-atk');
+    this.skillsEl = document.getElementById('battle-skills');
     this.msgEl = document.getElementById('battle-msg');
     this.bannerEl = document.getElementById('battle-banner');
     this.floatEl = document.getElementById('battle-float');
-    this.throwBtn = document.getElementById('btn-throw');
     this.ballBtn = document.getElementById('btn-ball');
     this.runBtn = document.getElementById('btn-run');
-    document.getElementById('btn-n-minus').onclick = () => this.changeN(-1);
-    document.getElementById('btn-n-plus').onclick = () => this.changeN(1);
-    this.throwBtn.onclick = () => this.throwBlocks();
     this.ballBtn.onclick = () => this.throwBall();
     this.runBtn.onclick = () => this.leave();
     this.flying = [];
+    this.sel = 0;
   }
 
-  start({ creature, player, scene, blocksOwned, onThrow, onCaught, onLeave, party = [], decor = null }) {
-    Object.assign(this, { creature, player, scene, blocksOwned, onThrow, onCaught, onLeave, party, decor });
+  start({ creature, player, scene, member, onCaught, onLeave, onLost, hideMeshes = [], decor = null }) {
+    Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, decor });
     this.active = true;
     this.phase = 'enter';
     this.timer = 0;
     this.wobbles = 0;
-    if (creature.hp == null) creature.hp = creature.data.favoriteNumber;
+    this.sel = 0;
+    this.skill = null;
+    this.shakeCam = 0;
+    if (creature.hp == null) creature.hp = creature.data.baseHp;
     this.input.endFrame();
     this.sound.ensure();
 
-    // 무대: 몬스터를 주인공 앞 일정 거리에 세우고 서로 마주 보게
+    // 무대: 상대를 주인공 앞 일정 거리에, 내 포켓몬을 그 사이 왼쪽에 세우고 서로 마주 보게
     const m = creature.mesh.position, p = player.position;
     const dir = new THREE.Vector3(m.x - p.x, 0, m.z - p.z);
     if (dir.lengthSq() < 0.01) dir.set(0, 0, -1);
     dir.normalize();
-    const dist = 4.2 + (creature.data.scale || 1) * 0.8;
+    const dist = 5.2 + (creature.data.scale || 1) * 0.8;
     this.stageFrom = m.clone();
     this.stageTo = new THREE.Vector3(p.x + dir.x * dist, 0, p.z + dir.z * dist);
     this.stageTo.y = terrainHeight(this.stageTo.x, this.stageTo.z);
@@ -70,21 +85,29 @@ export class Battle {
     player.group.rotation.y = player.facing;
     this.dir = dir;
     const right = new THREE.Vector3(dir.z, 0, -dir.x);
-    // 주인공 시점: 눈높이에서 몬스터를 마주 본다. 주인공과 뒤따르던 친구들은 전투 동안 숨긴다.
-    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.4);
-    this.camPos.y = p.y + 1.55;
-    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.8 * (creature.data.scale || 1), this.stageTo.z);
+    this.right = right;
+    const mine = member.mesh;
+    this.mineFrom = mine.position.clone();
+    this.mineTo = new THREE.Vector3().copy(p).addScaledVector(dir, 2.0).addScaledVector(right, -0.9);
+    this.mineTo.y = terrainHeight(this.mineTo.x, this.mineTo.z);
+    this.mineScale = this.party.species(member).scale || 1;
+    mine.rotation.set(0, Math.atan2(dir.x, dir.z), 0);
+    mine.visible = true;
+    // 주인공 시점: 눈높이에서 상대를 마주 본다. 주인공과 (대표가 아닌) 뒤따르던 친구들은 대결 동안 숨긴다.
+    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.7).addScaledVector(right, 0.2);
+    this.camPos.y = p.y + 1.7;
+    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.7 * (creature.data.scale || 1), this.stageTo.z);
     this.throwFrom = new THREE.Vector3().copy(this.camPos).addScaledVector(dir, 0.9).addScaledVector(right, 0.35);
     this.throwFrom.y -= 0.45;
     this.hidden = [];
-    for (const m of [player.group, ...party]) { if (m.visible) { m.visible = false; this.hidden.push(m); } }
-    // 주인공을 숨기면 등불도 꺼지므로 전투 동안 카메라 자리에 같은 등불을 켠다 (동굴)
+    for (const o of [player.group, ...hideMeshes]) { if (o !== mine && o.visible) { o.visible = false; this.hidden.push(o); } }
+    // 주인공을 숨기면 등불도 꺼지므로 대결 동안 카메라 자리에 같은 등불을 켠다 (동굴)
     if (player.lamp && player.lamp.intensity > 0) {
       this.lampLight = new THREE.PointLight(0xffd9a0, player.lamp.intensity, player.lamp.distance);
       this.lampLight.position.copy(this.camPos);
       scene.add(this.lampLight);
     }
-    // 카메라와 몬스터 사이 통로에 있는 나무·바위·풀숲 숨기기
+    // 카메라와 상대 사이 통로에 있는 나무·바위·풀숲 숨기기
     if (decor) {
       const a = this.camPos, b = this.stageTo;
       const ab = new THREE.Vector3().subVectors(b, a);
@@ -99,60 +122,74 @@ export class Battle {
       }
     }
 
-    this.n = Math.max(1, Math.min(creature.hp, blocksOwned));
     this.nameEl.textContent = (creature.isBoss ? '보스 ' : '') + creature.data.name;
-    this.nameEl.style.color = colorForCount(creature.data.favoriteNumber);
-    this.msgEl.textContent = creature.hp === creature.data.favoriteNumber
-      ? `${creature.data.name}의 체력은 ${creature.hp}! 블록을 던져서 딱 0으로 만들자.`
-      : `체력이 ${creature.hp} 남아 있어. 이어서 던지자!`;
+    this.nameEl.style.color = colorForCount(creature.data.favoriteNumber || creature.data.baseHp);
+    const myName = this.party.name(member);
+    this.msgEl.textContent = creature.hp === creature.data.baseHp
+      ? `${creature.data.name}의 체력은 ${creature.hp}, 공격력은 ${creature.data.baseAtk}! 가라, ${myName}!`
+      : `체력이 ${creature.hp} 남아 있어. 이어서 싸우자, ${myName}!`;
+    if (member.hp <= creature.data.baseAtk) this.msgEl.textContent += ` (조심해! 내 체력이 ${member.hp}밖에 없어)`;
     this.ballBtn.classList.add('hidden');
     this.bannerEl.classList.add('hidden');
+    this.runBtn.textContent = '나중에';
+    this.runBtn.classList.remove('primary');
     this.render();
     this.el.classList.remove('hidden');
   }
 
-  setBlocks(n) { this.blocksOwned = n; this.render(); }
+  cubes(el, total, now, color) {
+    el.innerHTML = '';
+    el.classList.toggle('many', total > 16);
+    for (let i = 0; i < total; i++) {
+      const cube = document.createElement('span');
+      cube.className = 'hp-cube' + (i >= now ? ' gone' : '');
+      cube.style.background = color;
+      el.appendChild(cube);
+    }
+  }
 
   render() {
-    const c = this.creature;
-    this.hpEl.innerHTML = '';
-    for (let i = 0; i < c.data.favoriteNumber; i++) {
-      const cube = document.createElement('span');
-      cube.className = 'hp-cube' + (i >= c.hp ? ' gone' : '');
-      cube.style.background = colorForCount(c.data.favoriteNumber);
-      this.hpEl.appendChild(cube);
+    const c = this.creature, m = this.member;
+    this.cubes(this.hpEl, c.data.baseHp, c.hp, colorForCount(c.data.favoriteNumber || c.data.baseHp));
+    this.hpNumEl.textContent = `체력 ${c.hp} · 공격 ${c.data.baseAtk}`;
+    this.mineNameEl.textContent = this.party.name(m);
+    this.mineNameEl.style.color = this.party.color(m);
+    this.cubes(this.mineHpEl, m.maxHp, Math.max(0, m.hp), this.party.color(m));
+    this.mineHpNumEl.textContent = `체력 ${Math.max(0, m.hp)}/${m.maxHp}`;
+    this.mineAtkEl.textContent = `공격 ${m.atk}`;
+
+    // 기술 버튼: 열린 기술은 이름 + 피해, 아직 안 열린 다음 기술은 잠금 표시
+    this.skillsEl.innerHTML = '';
+    const unlocked = this.party.skills(m);
+    this.sel = Math.max(0, Math.min(this.sel, unlocked.length - 1));
+    const choosing = this.phase === 'choose';
+    unlocked.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'skill' + (i === this.sel ? ' sel' : '');
+      b.innerHTML = `<span class="skill-name">${s.name}</span><span class="skill-dmg">-${this.party.damage(m, s)}</span>`;
+      b.disabled = !choosing;
+      b.onclick = () => { this.sel = i; this.useSkill(i); };
+      this.skillsEl.appendChild(b);
+    });
+    const next = this.party.nextSkill(m);
+    if (next) {
+      const b = document.createElement('button');
+      b.className = 'skill locked';
+      b.innerHTML = `<span class="skill-name">🔒 ${next.name}</span><span class="skill-dmg">공격 ${next.atk}이면!</span>`;
+      b.disabled = true;
+      this.skillsEl.appendChild(b);
     }
-    this.hpNumEl.textContent = `체력 ${c.hp}`;
-    this.mineEl.textContent = `내 블록 ${this.blocksOwned}개`;
-    this.n = Math.max(0, Math.min(this.n, this.blocksOwned, 20));
-    if (this.n === 0 && this.blocksOwned > 0) this.n = 1;
-    this.nEl.textContent = this.n;
-    this.nEl.style.color = colorForCount(this.n);
-    this.throwBtn.textContent = `블록 ${this.n}개 던지기!`;
-    const canThrow = this.phase === 'choose' && this.blocksOwned > 0 && c.hp > 0;
-    this.throwBtn.disabled = !canThrow;
-    this.runBtn.textContent = this.blocksOwned === 0 && c.hp > 0 ? '블록 주우러 가기' : '나중에';
-    this.runBtn.classList.toggle('primary', this.blocksOwned === 0 && c.hp > 0);
   }
 
-  changeN(d) {
+  // ----- 내 공격 -----
+  useSkill(i) {
     if (this.phase !== 'choose') return;
-    this.n = Math.max(1, Math.min(this.blocksOwned, this.n + d));
-    this.sound.click();
-    this.render();
-  }
-
-  // ----- 블록 던지기 -----
-  throwBlocks() {
-    if (this.phase !== 'choose' || this.blocksOwned <= 0 || this.n <= 0) return;
-    const n = this.n;
-    const mesh = buildNumberblockMesh({ number: n });
-    mesh.scale.setScalar(0.7);
-    const from = this.throwFrom.clone();
-    const to = this.targetPoint();
-    this.scene.add(mesh);
-    this.flying.push({ mesh, from, to, t: 0, dur: 0.65, kind: 'block', n });
-    this.phase = 'throwing';
+    const skill = this.party.skills(this.member)[i];
+    if (!skill) return;
+    this.skill = skill;
+    this.phase = 'attack';
+    this.phaseStart = this.timer;
+    this.msgEl.textContent = `${this.party.name(this.member)}의 ${skill.name}!`;
     this.sound.throw_();
     this.render();
   }
@@ -161,38 +198,68 @@ export class Battle {
     const c = this.creature;
     return c.mesh.position.clone().add(new THREE.Vector3(0, 0.7 * (c.data.scale || 1), 0));
   }
+  minePoint() { return this.member.mesh.position.clone().add(new THREE.Vector3(0, 0.6 * this.mineScale, 0)); }
 
-  onBlockHit(n) {
+  launchBolt() {
+    const color = new THREE.Color(this.party.color(this.member));
+    const bolt = makeBolt(color, 0.8 + (this.skill.power || 1) * 0.4);
+    const from = this.minePoint().addScaledVector(this.dir, 0.4);
+    this.scene.add(bolt);
+    this.flying.push({ mesh: bolt, from, to: this.targetPoint(), t: 0, dur: 0.38, kind: 'bolt', arc: 0.6 });
+    this.particles.stars(this.scene, from, 6, color.getHex(), 0.3);
+  }
+
+  onBoltHit() {
     const c = this.creature;
+    const dmg = this.party.damage(this.member, this.skill);
     const hitPos = this.targetPoint();
-    if (n > c.hp) {
-      // 너무 많으면 튕겨 나와 돌아온다 (블록은 그대로)
-      this.sound.bounce();
-      this.showFloat('너무 많아!', '#c0392b');
-      this.msgEl.textContent = `너무 많아! 체력이 ${c.hp} 남았으니 ${c.hp}개만 던지자.`;
-      const back = buildNumberblockMesh({ number: n });
-      back.scale.setScalar(0.7);
-      this.scene.add(back);
-      this.flying.push({ mesh: back, from: hitPos, to: this.throwFrom.clone(), t: 0, dur: 0.6, kind: 'return' });
-      this.shake = 0.3;
-      return;
-    }
-    c.hp -= n;
-    this.onThrow?.(n);
+    c.hp = Math.max(0, c.hp - dmg);
     this.sound.hit();
-    this.particles.cubes(this.scene, hitPos, 8 + n * 2, colorForCount(n));
-    this.showFloat(`-${n}`, colorForCount(n));
+    this.particles.cubes(this.scene, hitPos, 8 + Math.min(12, dmg), new THREE.Color(this.party.color(this.member)).getHex());
+    this.showFloat(`-${dmg}`, this.party.color(this.member), hitPos);
     this.squash = 0.35;
+    this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `딱 0! ${c.data.name}이(가) 어질어질해. 지금 숫자볼을 던지자!`;
-      this.showBanner('딱 맞았다!');
+      this.msgEl.textContent = `체력 0! ${c.data.name}이(가) 어질어질해. 지금 숫자볼을 던지자!`;
+      this.showBanner('쓰러뜨렸다!');
       this.ballBtn.classList.remove('hidden');
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
     } else {
+      this.phase = 'enemyWind';
+      this.phaseStart = this.timer;
+      this.msgEl.textContent = `${c.data.name}의 체력이 ${c.hp} 남았어! ${c.data.name}의 공격!`;
+    }
+    this.render();
+  }
+
+  // ----- 상대의 반격 -----
+  onEnemyHit() {
+    const c = this.creature, m = this.member;
+    const dmg = c.data.baseAtk;
+    m.hp = Math.max(0, m.hp - dmg);
+    const pos = this.minePoint();
+    this.sound.hit();
+    this.particles.cubes(this.scene, pos, 8, colorForCount(c.data.favoriteNumber || c.data.baseHp));
+    this.showFloat(`-${dmg}`, '#c0392b', pos);
+    this.mineHurt = 0.4;
+    this.shakeCam = 0.25;
+    this.render();
+  }
+
+  afterEnemyTurn() {
+    const c = this.creature, m = this.member;
+    if (m.hp <= 0) {
+      this.phase = 'lost';
+      this.phaseStart = this.timer;
+      this.showBanner('앗, 졌다…');
+      this.msgEl.textContent = `${this.party.name(m)}이(가) 쓰러졌어… 체력이 기본으로 돌아가. 블록을 모아서 다시 키우자!`;
+      this.runBtn.textContent = '돌아가기 ▶';
+      this.runBtn.classList.add('primary');
+      this.sound.bounce();
+    } else {
       this.phase = 'choose';
-      this.msgEl.textContent = `체력이 ${c.hp} 남았어!`;
-      this.n = Math.min(c.hp, this.blocksOwned);
+      this.msgEl.textContent = `${c.data.name} 체력 ${c.hp}, 내 체력 ${m.hp}. 다음 기술을 고르자!`;
     }
     this.render();
   }
@@ -200,18 +267,18 @@ export class Battle {
   // ----- 숫자볼 던지기 -----
   throwBall() {
     if (this.phase !== 'dizzy') return;
-    const ball = makeBall(colorForCount(this.creature.data.favoriteNumber));
+    const ball = makeBall(colorForCount(this.creature.data.favoriteNumber || this.creature.data.baseHp));
     const from = this.throwFrom.clone();
     this.scene.add(ball);
-    this.flying.push({ mesh: ball, from, to: this.targetPoint(), t: 0, dur: 0.7, kind: 'ball' });
+    this.flying.push({ mesh: ball, from, to: this.targetPoint(), t: 0, dur: 0.7, kind: 'ball', arc: 1.6 });
     this.ball = ball;
     this.phase = 'ball_fly';
     this.ballBtn.classList.add('hidden');
     this.sound.throw_();
   }
 
-  showFloat(text, color) {
-    const v = this.targetPoint().project(this.camera);
+  showFloat(text, color, worldPos = this.targetPoint()) {
+    const v = worldPos.project(this.camera);
     this.floatEl.textContent = text;
     this.floatEl.style.color = color;
     this.floatEl.style.left = `${((v.x + 1) / 2) * window.innerWidth}px`;
@@ -228,8 +295,10 @@ export class Battle {
   }
 
   leave() {
-    if (!this.active || this.phase === 'capture' || this.phase === 'wobble') return;
+    if (!this.active) return;
     if (this.phase === 'success') { this.end('caught'); return; } // 성공 연출은 버튼/키로 바로 넘길 수 있다
+    if (this.phase === 'lost') { this.end('lost'); return; }
+    if (this.phase !== 'choose' && this.phase !== 'dizzy' && this.phase !== 'enter') return; // 연출 중엔 못 나감
     this.end('later');
   }
 
@@ -238,41 +307,61 @@ export class Battle {
     for (const f of this.flying) this.scene.remove(f.mesh);
     this.flying = [];
     if (this.ball) { this.scene.remove(this.ball); this.ball = null; }
-    this.creature.mesh.scale.setScalar(this.creature.data.scale || 1);
-    this.creature.mesh.rotation.z = 0;
-    this.creature.mesh.visible = true;
+    const c = this.creature;
+    c.mesh.scale.setScalar(c.data.scale || 1);
+    c.mesh.rotation.z = 0;
+    c.mesh.visible = true;
+    c.mesh.position.copy(this.stageTo);
+    const mine = this.member.mesh;
+    mine.scale.setScalar(this.mineScale);
+    mine.rotation.z = 0;
+    mine.visible = true;
     for (const m of this.hidden || []) m.visible = true;
     this.hidden = [];
     if (this.lampLight) { this.scene.remove(this.lampLight); this.lampLight = null; }
     this.el.classList.add('hidden');
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');
-    if (result === 'caught') this.onCaught?.(); else this.onLeave?.();
+    if (result === 'caught') this.onCaught?.();
+    else if (result === 'lost') this.onLost?.();
+    else this.onLeave?.();
   }
 
   update(dt) {
     if (!this.active) return;
-    const c = this.creature, m = c.mesh;
+    const c = this.creature, m = c.mesh, mine = this.member.mesh;
     this.timer += dt;
 
     // 카메라 & 무대 진입
     const k = 1 - Math.exp(-dt * 5);
     this.camera.position.lerp(this.camPos, k);
+    if (this.shakeCam > 0) {
+      this.shakeCam -= dt;
+      this.camera.position.x += (Math.random() - 0.5) * 0.12;
+      this.camera.position.y += (Math.random() - 0.5) * 0.12;
+    }
     this.camera.lookAt(this.camLook);
     if (this.phase === 'enter') {
       const t = Math.min(1, this.timer / 0.6);
       m.position.lerpVectors(this.stageFrom, this.stageTo, easeOut(t));
       m.position.y = terrainHeight(m.position.x, m.position.z) + Math.sin(t * Math.PI) * 1.2;
+      mine.position.lerpVectors(this.mineFrom, this.mineTo, easeOut(t));
+      mine.position.y = terrainHeight(mine.position.x, mine.position.z) + Math.sin(t * Math.PI) * 0.8;
       if (t >= 1) { this.phase = 'choose'; this.render(); }
     }
 
-    // 입력
-    if (this.input.wasPressed('up') || this.input.wasPressed('right')) this.changeN(1);
-    if (this.input.wasPressed('down') || this.input.wasPressed('left')) this.changeN(-1);
+    // 입력: ↑↓←→ 기술 고르기, 엔터/스페이스 사용, 1~4 바로 사용, ESC 나중에
+    const unlocked = this.party.skills(this.member);
+    if (this.phase === 'choose') {
+      if (this.input.wasPressed('right') || this.input.wasPressed('down')) { this.sel = (this.sel + 1) % unlocked.length; this.sound.click(); this.render(); }
+      if (this.input.wasPressed('left') || this.input.wasPressed('up')) { this.sel = (this.sel - 1 + unlocked.length) % unlocked.length; this.sound.click(); this.render(); }
+      SKILL_KEYS.forEach((key, i) => { if (this.input.wasPressed(key) && unlocked[i]) { this.sel = i; this.useSkill(i); } });
+    }
     if (this.input.wasPressed('action') || this.input.wasPressed('jump')) {
-      if (this.phase === 'choose') this.throwBlocks();
+      if (this.phase === 'choose') this.useSkill(this.sel);
       else if (this.phase === 'dizzy') this.throwBall();
       else if (this.phase === 'success') this.end('caught');
+      else if (this.phase === 'lost') this.end('lost');
     }
     if (this.input.wasPressed('cancel')) this.leave();
 
@@ -281,26 +370,67 @@ export class Battle {
       f.t += dt / f.dur;
       const t = Math.min(1, f.t);
       f.mesh.position.lerpVectors(f.from, f.to, t);
-      f.mesh.position.y += Math.sin(t * Math.PI) * 1.6;
+      f.mesh.position.y += Math.sin(t * Math.PI) * (f.arc ?? 1.6);
       f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 4;
       if (t >= 1) {
         this.scene.remove(f.mesh);
         f.done = true;
-        if (f.kind === 'block') this.onBlockHit(f.n);
-        else if (f.kind === 'return') { this.phase = 'choose'; this.render(); }
+        if (f.kind === 'bolt') this.onBoltHit();
         else if (f.kind === 'ball') this.startCapture();
       }
     }
     this.flying = this.flying.filter((f) => !f.done);
 
-    // 몬스터 리액션
+    // 내 포켓몬: 돌진, 맞았을 때 흔들림, 숨쉬기
+    const mineGround = terrainHeight(this.mineTo.x, this.mineTo.z);
+    if (this.phase !== 'enter') {
+      mine.position.copy(this.mineTo);
+      mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 3)) * 0.05;
+      if (this.phase === 'attack') {
+        const t = Math.min(1, (this.timer - this.phaseStart) / 0.42);
+        mine.position.addScaledVector(this.dir, Math.sin(t * Math.PI) * 1.3);
+        mine.position.y += Math.sin(t * Math.PI) * 0.5;
+        if (t >= 1) { this.phase = 'bolt'; this.launchBolt(); }
+      }
+      if (this.mineHurt > 0) {
+        this.mineHurt -= dt;
+        mine.position.addScaledVector(this.dir, -Math.sin(this.mineHurt * 8) * 0.3);
+        mine.rotation.z = Math.sin(this.mineHurt * 40) * 0.15;
+      } else mine.rotation.z = 0;
+      if (this.phase === 'lost') {
+        const t = Math.min(1, (this.timer - this.phaseStart) / 0.6);
+        mine.rotation.z = t * Math.PI / 2;
+        mine.position.y = mineGround + 0.3 * this.mineScale * t;
+        if (this.timer - this.phaseStart > 2.4) this.end('lost');
+      }
+    }
+    tickModel(mine, dt, this.phase === 'attack' ? 'walk' : 'idle');
+
+    // 상대 리액션
     const base = c.data.scale || 1;
     const ground = terrainHeight(m.position.x, m.position.z);
-    if (this.phase === 'choose' || this.phase === 'throwing') {
+    if (this.phase === 'choose' || this.phase === 'attack' || this.phase === 'bolt' || this.phase === 'lost') {
+      m.position.copy(this.stageTo);
       m.position.y = ground + Math.abs(Math.sin(this.timer * 4)) * 0.12;
       if (this.squash > 0) { this.squash -= dt; const s = 1 + Math.sin(this.squash * 9) * 0.25; m.scale.set(base * (2 - s), base * s, base * (2 - s)); }
       else m.scale.setScalar(base);
-      if (this.shake > 0) { this.shake -= dt; m.position.x += Math.sin(this.shake * 60) * 0.08; }
+      if (this.phase === 'lost') m.position.y = ground + Math.abs(Math.sin(this.timer * 8)) * 0.5; // 이겼다고 폴짝폴짝
+    } else if (this.phase === 'enemyWind') {
+      // 반격 준비: 살짝 웅크렸다가
+      const t = Math.min(1, (this.timer - this.phaseStart) / 0.55);
+      m.position.copy(this.stageTo);
+      m.position.y = ground;
+      m.scale.set(base * (1 + t * 0.15), base * (1 - t * 0.15), base * (1 + t * 0.15));
+      if (t >= 1) { this.phase = 'enemyLunge'; this.phaseStart = this.timer; this.enemyHitDone = false; this.sound.throw_(); }
+    } else if (this.phase === 'enemyLunge') {
+      // 내 포켓몬 쪽으로 돌진했다가 돌아온다. 가장 가까울 때 피해
+      const t = Math.min(1, (this.timer - this.phaseStart) / 0.6);
+      const reach = Math.sin(t * Math.PI);
+      m.position.lerpVectors(this.stageTo, this.mineTo, reach * 0.75);
+      m.position.y = terrainHeight(m.position.x, m.position.z) + reach * 0.9;
+      m.scale.setScalar(base);
+      if (!this.enemyHitDone && t >= 0.5) { this.enemyHitDone = true; this.onEnemyHit(); }
+      if (t >= 1) this.afterEnemyTurn();
     } else if (this.phase === 'dizzy' || this.phase === 'ball_fly') {
       m.rotation.z = Math.sin(this.timer * 6) * 0.25;
       m.position.y = ground;
@@ -329,8 +459,10 @@ export class Battle {
       m.scale.setScalar(base * easeOut(t));
       m.position.y = ground + Math.abs(Math.sin(this.timer * 8)) * 0.5;
       m.rotation.z = 0;
+      mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 8)) * 0.4; // 내 포켓몬도 같이 기뻐한다
       if (this.timer - this.successStart > 1.3) this.end('caught');
     }
+    if (this.phase !== 'enter') tickModel(m, dt, 'idle');
 
     // 플로팅 텍스트/배너 타이머
     if (this.floatTimer > 0) { this.floatTimer -= dt; if (this.floatTimer <= 0) this.floatEl.classList.add('hidden'); }
@@ -353,12 +485,11 @@ export class Battle {
     c.mesh.position.y = terrainHeight(c.mesh.position.x, c.mesh.position.z);
     this.scene.remove(this.ball); this.ball = null;
     this.particles.stars(this.scene, this.targetPoint(), 28, 0xffd93d);
-    this.particles.stars(this.scene, this.targetPoint(), 16, colorForCount(c.data.favoriteNumber));
+    this.particles.stars(this.scene, this.targetPoint(), 16, colorForCount(c.data.favoriteNumber || c.data.baseHp));
     this.confetti.burst(160);
     this.sound.fanfare();
     this.showBanner(`잡았다! ${c.data.name}!`);
-    this.msgEl.textContent = `${c.data.name}이(가) 친구가 되었어요!`;
-    this.throwBtn.disabled = true;
+    this.msgEl.textContent = `${c.data.name}이(가) 친구가 되었어요! 도감(B)에서 대표로 고를 수 있어.`;
     this.runBtn.textContent = '계속하기 ▶';
     this.runBtn.classList.add('primary');
   }

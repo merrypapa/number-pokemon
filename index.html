@@ -20,20 +20,26 @@
 
   <div id="hud">
     <div class="hud-row"><span class="hud-icon block"></span><span id="hud-blocks">블록 0개</span></div>
+    <div class="hud-row"><span class="hud-icon poke"></span><span id="hud-leader">대표 포켓몬 없음</span></div>
     <div class="hud-row"><span class="hud-icon mon"></span><span id="hud-caught">친구 0/3</span></div>
     <div class="hud-row"><span class="hud-icon nb"></span><span id="hud-rescued">구출 0/2</span></div>
     <div class="hud-row"><span class="hud-icon boss"></span><span id="hud-boss">보스 0/1</span></div>
   </div>
 
-  <button id="btn-dex">📖 도감</button>
+  <button id="btn-dex">📖 도감 · 내 포켓몬</button>
   <div id="dex" class="hidden">
     <div id="dex-card">
       <div id="dex-head">
-        <div id="dex-title">몬스터 도감</div>
+        <div id="dex-title">내 포켓몬 · 도감</div>
+        <div id="dex-blocks">블록 0개</div>
         <div id="dex-count"></div>
         <button id="btn-dex-close">닫기 ✕</button>
       </div>
-      <div id="dex-grid"></div>
+      <div id="dex-body">
+        <div id="dex-party"></div>
+        <div id="dex-grid-title">몬스터 도감</div>
+        <div id="dex-grid"></div>
+      </div>
     </div>
   </div>
 
@@ -54,18 +60,18 @@
       <div id="battle-hpnum"></div>
     </div>
     <div id="battle-msg"></div>
+    <div id="battle-mine">
+      <div id="battle-mine-name"></div>
+      <div id="battle-mine-hp"></div>
+      <div id="battle-mine-hpnum"></div>
+      <div id="battle-mine-atk"></div>
+    </div>
     <div id="battle-controls">
-      <div id="battle-mine"></div>
-      <div id="battle-picker">
-        <button id="btn-n-minus">−</button>
-        <div id="battle-n">1</div>
-        <button id="btn-n-plus">+</button>
-      </div>
-      <button id="btn-throw">블록 1개 던지기!</button>
+      <div id="battle-skills"></div>
       <button id="btn-ball" class="hidden">숫자볼 던지기!</button>
       <button id="btn-run">나중에</button>
     </div>
-    <div id="battle-help">↑↓ 개수 · 엔터/스페이스 던지기 · ESC 나중에</div>
+    <div id="battle-help">←→ 기술 고르기 · 엔터/스페이스 사용 · 1~4 바로 사용 · ESC 나중에</div>
   </div>
 
   <div id="touch" class="hidden">
@@ -75,6 +81,14 @@
     <div id="touch-actions">
       <button data-key="action">액션</button>
       <button data-key="jump">점프</button>
+    </div>
+  </div>
+
+  <div id="starter" class="hidden">
+    <div id="starter-card">
+      <div id="starter-title">함께 모험할 포켓몬을 골라줘!</div>
+      <div id="starter-sub">잡은 포켓몬이 대신 싸워서 다른 포켓몬을 잡아요. 블록을 모으면 공격력과 체력을 키울 수 있어요.</div>
+      <div id="starter-grid"></div>
     </div>
   </div>
 
@@ -89,7 +103,6 @@
       <div id="title-loading" class="hidden"></div>
       <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션 · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
     </div>
-  </div>
   </div>
 
   <script type="module" src="src/main.js"></script>

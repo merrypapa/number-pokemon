@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { NUMBER_COLORS, RAINBOW, OUTLINE, colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
+import { tickModel } from './models.js';
 
 // 숫자블록 친구: 블록 개수 = 숫자, 숫자마다 고유한 색.
 // 규칙(number-mario 와 공통): 둥근 큐브 스택, 큰 흰자 눈 + 동공, 웃는 입, 막대 팔다리, 아래 블록 정면에 숫자 배지.
@@ -195,14 +196,16 @@ export class Numberblock {
   get position() { return this.mesh.position; }
 }
 
-// 파트너들이 플레이어 뒤를 줄지어 따라온다.
+// 파트너들이 플레이어 뒤를 줄지어 따라온다. (숫자블록 → 대표 포켓몬 → 구출한 숫자블록 친구들 순)
 export class FollowChain {
   constructor(leader) {
     this.leader = leader;
-    this.followers = []; // { mesh, t }
+    this.followers = []; // { mesh, t, ...extra }
   }
-  add(mesh) { this.followers.push({ mesh, t: Math.random() * 10 }); }
-  addFirst(mesh) { this.followers.unshift({ mesh, t: Math.random() * 10 }); }
+  add(mesh, extra = {}) { this.followers.push({ mesh, t: Math.random() * 10, ...extra }); }
+  addFirst(mesh, extra = {}) { this.followers.unshift({ mesh, t: Math.random() * 10, ...extra }); }
+  insertAt(mesh, index, extra = {}) { this.followers.splice(Math.max(0, Math.min(index, this.followers.length)), 0, { mesh, t: Math.random() * 10, ...extra }); }
+  find(pred) { return this.followers.find(pred) || null; }
   replace(oldMesh, newMesh) {
     const f = this.followers.find((x) => x.mesh === oldMesh);
     if (!f) return;
@@ -231,6 +234,7 @@ export class FollowChain {
         p.y = terrainHeight(p.x, p.z) + Math.abs(Math.sin(f.t * 3)) * 0.03;
       }
       animateNumberblock(f.mesh, dt, moving);
+      tickModel(f.mesh, dt, moving ? 'walk' : 'idle'); // 포켓몬 모델이면 걷기/서기 애니메이션
       prev = p;
     }
   }

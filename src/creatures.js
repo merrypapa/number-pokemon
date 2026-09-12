@@ -86,7 +86,7 @@ export class Creature {
     this.approachRange = this.isBoss ? 11 : 7;
     this.leash = this.isBoss ? 5 : 6;
     this.t = rand(0, 10);
-    this.hint = makeNumberSprite(data.favoriteNumber);
+    this.hint = makeNumberSprite(data.baseHp ?? data.favoriteNumber, '#e8453c'); // 머리 위 힌트 = 체력
     this.hint.position.y = 1.7 * (data.scale || 1);
     this.hint.visible = false;
     this.mesh.add(this.hint);
