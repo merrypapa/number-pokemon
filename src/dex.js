@@ -42,7 +42,6 @@ export class Dex {
     document.getElementById('map-next').onclick = () => this.stepMap(1);
     document.getElementById('btn-dex').onclick = () => this.toggle();
     document.getElementById('btn-dex-close').onclick = () => this.hide();
-    document.getElementById('btn-dex-close2').onclick = () => this.hide();
     this.el.addEventListener('click', (e) => { if (e.target === this.el) this.hide(); });
   }
 

@@ -294,8 +294,7 @@ body.intro #btn-save { display: none !important; }
 #map-pos { font-size: 14px; font-weight: 900; color: #666; }
 @media (max-width: 640px) { #btn-save { top: 56px; right: 12px; } #save-toast { top: 100px; } } /* 좁은 화면: 저장 버튼을 도감 버튼 아래로 */
 
-/* ---------- 도감: 휴대폰(좁은 화면)에서는 전체 화면 + 큰 닫기 버튼 ---------- */
-#dex-foot { display: none; }
+/* ---------- 도감: 휴대폰(좁은 화면)에서는 전체 화면 + 상단 큰 ✕ 버튼 ---------- */
 @media (max-width: 640px) {
   #dex { padding: 0; align-items: stretch; }
   #dex-card { width: 100%; max-height: none; height: 100dvh; border-radius: 0; }
@@ -305,8 +304,6 @@ body.intro #btn-save { display: none !important; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }
   #dex-tabs button { font-size: 13px; padding: 5px 10px; }
   #btn-dex-close { width: 46px; height: 46px; font-size: 24px; background: #ffd93d; box-shadow: 0 3px 0 #c99400; }
-  #dex-foot { display: flex; justify-content: center; position: sticky; bottom: 0; padding: 8px; background: #fffbe6; border-top: 2px solid #f0e6c0; }
-  #dex-foot button { width: 56px; height: 56px; font-size: 28px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 4px 0 #c99400; }
   #dex-map { max-height: 34vh; height: calc(100vw * 72 / 110 - 16px); }
   .detail-top img { width: 96px; height: 96px; }
   #touch-actions { right: 12px; bottom: 80px; gap: 8px; }
