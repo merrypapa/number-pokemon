@@ -7,6 +7,7 @@ import { buildSea } from './sea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
 import { strongAgainst, weakTo } from './types.js';
+import { portrait } from './portrait.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
@@ -64,15 +65,23 @@ const msgEl = document.getElementById('msg');
 const msgText = document.getElementById('msg-text');
 const msgFace = document.getElementById('msg-face');
 let msgTimer = 0;
-function say(text, { face = '1', sec = 4 } = {}) {
+// face: 숫자블록 얼굴('1'~'10') 또는 faceImg: 얼굴 그림(데이터 URL, NPC 대화)
+function say(text, { face = '1', faceImg = null, sec = 4 } = {}) {
   msgText.textContent = text;
-  msgFace.textContent = face;
-  const col = NUMBER_COLORS[Number(face)];
-  msgFace.style.background = col ? col.base : '#fff';
-  msgFace.style.color = col ? '#fff' : '#333';
+  if (faceImg) {
+    msgFace.innerHTML = `<img src="${faceImg}" alt="">`;
+    msgFace.style.background = '#fff';
+  } else {
+    msgFace.textContent = face;
+    const col = NUMBER_COLORS[Number(face)];
+    msgFace.style.background = col ? col.base : '#fff';
+    msgFace.style.color = col ? '#fff' : '#333';
+  }
   msgEl.classList.remove('hidden');
   msgTimer = sec;
 }
+/** NPC 얼굴 그림 (모델이 도착하면 새로 그린다) */
+function npcFace(npc) { return portrait(npc.mesh, `npc:${npc.name}:${npc.mesh.userData.model ? 'm' : 'd'}`); }
 // 지역 이름 배너 (지역에 들어갈 때 크게)
 const zoneBannerEl = document.getElementById('zone-banner');
 let zoneBannerTimer = 0;
@@ -397,7 +406,7 @@ function talkTo(npc) {
   if (npc.offer) { // "데려다줄까?"에 대답: 연구소로
     npc.offer = false; npc.line = -1;
     state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
-    goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`);
+    goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
     return;
   }
   const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader };
@@ -411,13 +420,13 @@ function talkTo(npc) {
   if (!healed) sound.click();
   let text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
   if (npc.warp && npc.line === lines.length - 1) { npc.offer = true; text += ' 연구소로 데려다줄까? 한 번 더 액션을 누르면 데려다줄게!'; }
-  say(text, { sec: 9 });
+  say(text, { sec: 9, faceImg: npcFace(npc) });
 }
 /** 연구소로 순간이동 (모두 기절했을 때, 안내원이 데려다줄 때) */
-function goToLab(text) {
-  if (zone.name === 'lab') { say(text, { sec: 6 }); return; }
+function goToLab(text, faceImg = null) {
+  if (zone.name === 'lab') { say(text, { sec: 6, faceImg }); return; }
   if (!state.returnTo) state.returnTo = { zone: zone.name, spawn: { x: player.position.x, z: player.position.z } };
-  switchZone('lab', getZone('lab').world.spawn, { text, sec: 7 });
+  switchZone('lab', getZone('lab').world.spawn, { text, sec: 7, faceImg });
 }
 function spawnRescue(z) {
   const number = 2 + Math.floor(Math.random() * 9); // 2~10
@@ -705,7 +714,7 @@ function frame() {
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
         if (input.wasPressed('action')) { talkTo(npc); moved = true; break; }
-        else if (state.prompt <= 0) { state.prompt = 8; say(`${npc.name}님이야! 액션을 누르면 이야기할 수 있어.`, { sec: 3 }); }
+        else if (state.prompt <= 0) { state.prompt = 8; say(`${npc.name}님이야! 액션을 누르면 이야기할 수 있어.`, { sec: 3, faceImg: npcFace(npc) }); }
       } else npc.offer = false; // 멀어지면 "데려다줄까?" 제안은 취소
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----

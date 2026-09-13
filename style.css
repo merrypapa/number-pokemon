@@ -17,7 +17,8 @@ body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !importa
 
 #msg { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.96); border-radius: 20px; padding: 12px 24px 12px 12px; width: max-content; max-width: min(96vw, 1040px); box-shadow: 0 4px 14px rgba(0,0,0,.2); z-index: 6; }
 body.battle #msg { bottom: auto; top: 14px; left: 14px; transform: none; max-width: calc(100vw - min(46vw, 420px) - 44px); } /* 상대 패널(오른쪽 위)과 겹치지 않게 왼쪽 위에 */
-#msg-face { width: 44px; height: 44px; border-radius: 8px; background: #e8453c; border: 3px solid #20232e; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
+#msg-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; display: block; }
+#msg-face { width: 54px; height: 54px; overflow: hidden; border-radius: 8px; background: #e8453c; border: 3px solid #20232e; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
 #msg-text { font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; color: #333; line-height: 1.4; word-break: keep-all; }
 
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 12; }
