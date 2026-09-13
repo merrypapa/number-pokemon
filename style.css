@@ -345,3 +345,46 @@ body.intro #btn-save { display: none !important; }
 .member-head .wins { font-weight: 800; color: #b8860b; }
 .detail-type { font-size: 14px; font-weight: 700; color: #555; margin-top: 4px; }
 .member-actions button small { font-size: 11px; color: #777; font-weight: 700; }
+
+/* 넘버볼 고르기 (대결) */
+#battle-balls { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.ball-btn { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 12px; border-radius: 14px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; min-width: 170px; }
+.ball-col { display: flex; flex-direction: column; gap: 2px; }
+.ball-line { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.ball-btn:active { transform: translateY(2px); box-shadow: none; }
+.ball-btn.none { opacity: .45; cursor: default; }
+.ball-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(var(--ball) 0 48%, #20232e 48% 56%, #fff 56%); border: 2px solid #20232e; }
+.ball-name { font-weight: 900; font-size: 15px; }
+.ball-n { font-weight: 800; font-size: 12px; color: #555; }
+.ball-pct { font-size: 12px; font-weight: 800; color: #b8860b; white-space: nowrap; }
+.ball-tip { width: 100%; font-size: 13px; font-weight: 700; color: #555; }
+/* 도감 넘버볼 탭 */
+#dex-balls { padding: 6px 2px; }
+.shop-title { font-weight: 900; font-size: 18px; margin: 4px 0 8px; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.shop-card { background: #fff; border-radius: 16px; padding: 12px 14px; border: 3px solid var(--ball); display: flex; flex-direction: column; gap: 6px; }
+.shop-card .shop-head { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 17px; }
+.shop-card .shop-own { font-weight: 800; color: #555; font-size: 14px; }
+.shop-card .shop-for { font-size: 13px; color: #777; font-weight: 700; }
+.shop-card button { margin-top: 4px; font-size: 15px; font-weight: 900; padding: 8px 12px; border-radius: 12px; border: 0; background: #ffd93d; color: #20232e; cursor: pointer; box-shadow: 0 3px 0 #d4b02e; }
+.shop-card button:disabled { background: #e9e9e9; box-shadow: 0 3px 0 #bbb; color: #999; cursor: default; }
+.shop-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; font-weight: 700; background: #fff; border-radius: 12px; overflow: hidden; }
+.shop-table th, .shop-table td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: center; }
+.shop-table th { background: #fff4d6; }
+.shop-table td:first-child { text-align: left; font-weight: 900; }
+.detail-grade { font-size: 14px; font-weight: 800; color: #b8860b; margin-top: 4px; }
+/* 저장 코드 */
+#btn-code { position: fixed; top: 12px; right: 270px; z-index: 6; font-size: 16px; font-weight: 800; padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+body.battle #btn-code, body.intro #btn-code { display: none !important; }
+#code-load { margin-top: 12px; padding-top: 10px; border-top: 2px dashed #e0d6b0; }
+#code-input { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 13px; padding: 8px; border-radius: 10px; border: 2px solid #ccc; resize: vertical; }
+#code-preview { margin-top: 8px; background: #fff; border-radius: 12px; padding: 8px 12px; font-weight: 800; font-size: 14px; color: #333; border: 2px solid #ffd93d; }
+#code-preview.bad { border-color: #e8453c; color: #c0392b; }
+#code-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#code-modal .menu-card { max-width: 560px; }
+#code-text { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12px; padding: 8px; border-radius: 10px; border: 2px solid #ccc; height: 110px; resize: none; }
+/* 진화 연출 */
+#evo-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 25; transition: opacity .25s; }
+#evo-banner { position: fixed; left: 50%; top: 14%; transform: translateX(-50%); font-size: clamp(28px, 5.5vw, 52px); font-weight: 900; color: #fff; -webkit-text-stroke: 2px #20232e; text-shadow: 0 6px 0 #20232e, 0 10px 18px rgba(0,0,0,.35); z-index: 26; white-space: nowrap; text-align: center; }
+#evo-banner small { display: block; font-size: 45%; -webkit-text-stroke: 1px #20232e; text-shadow: 0 3px 0 #20232e; margin-top: 6px; }
+@media (max-width: 760px) { #btn-code { top: 56px; right: 12px; } }

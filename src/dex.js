@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { buildDraftMesh } from './creatures.js';
 import { colorForCount } from './palette.js';
 
@@ -36,6 +37,7 @@ export class Dex {
     this.bodyEl = document.getElementById('dex-body');
     this.mapViewEl = document.getElementById('dex-mapview');
     this.mapEl = document.getElementById('dex-map');
+    this.ballsEl = document.getElementById('dex-balls');
     this.mapDetailEl = document.getElementById('dex-map-detail');
     document.querySelectorAll('#dex-tabs button').forEach((b) => { b.onclick = () => this.setTab(b.dataset.tab); });
     document.getElementById('map-prev').onclick = () => this.stepMap(-1);
@@ -94,7 +96,31 @@ export class Dex {
     document.querySelectorAll('#dex-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     this.bodyEl.classList.toggle('hidden', tab !== 'poke');
     this.mapViewEl.classList.toggle('hidden', tab !== 'map');
+    this.ballsEl.classList.toggle('hidden', tab !== 'balls');
     if (tab === 'map') this.renderMap(this.lastCaught || {});
+    if (tab === 'balls') this.renderBalls();
+  }
+
+  // ----- 넘버볼 탭: 블록으로 넘버볼 만들기 + 등급표 -----
+  renderBalls() {
+    const ctx = this.partyCtx;
+    if (!ctx) return;
+    const stock = ctx.getBalls?.() || {}, blocks = ctx.getBlocks();
+    let html = `<div class="shop-title">🔮 넘버볼 만들기 <small style="font-weight:700;color:#777">(가진 블록 ${blocks}개)</small></div><div class="shop-grid">`;
+    for (const b of BALLS) {
+      const forGrades = Object.keys(GRADES).filter((g) => catchChance(+g, b.tier) >= 90).map((g) => gradeStars(+g)).join(' ');
+      html += `<div class="shop-card" style="--ball:${b.css}">
+        <div class="shop-head"><span class="ball-dot" style="--ball:${b.css}"></span>${b.name}</div>
+        <div class="shop-own">가진 것: <b>${stock[b.id] || 0}개</b> · 블록 ${b.cost}개로 1개</div>
+        <div class="shop-for">확실히 잡는 등급: ${forGrades || '(운에 맡겨야 해)'}</div>
+        <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개 → ${b.name} 1개</button>
+      </div>`;
+    }
+    html += `</div><table class="shop-table"><tr><th>포켓몬 등급</th>${BALLS.map((b) => `<th>${b.name}</th>`).join('')}</tr>`;
+    for (const [g, name] of Object.entries(GRADES)) html += `<tr><td>${gradeStars(+g)} ${name}</td>${BALLS.map((b) => `<td>${catchChance(+g, b.tier)}%</td>`).join('')}</tr>`;
+    html += `</table><div class="shop-for" style="margin-top:8px">상대 체력을 0으로 만든 뒤 넘버볼을 던져. 숫자는 잡힐 확률이고, 실패하면 포켓몬이 도망가서 블록도 승리도 못 얻어. 등급은 도감에서 ★로 볼 수 있어. (초급 푸른숲 · 중급 지하동굴 · 고급 물의길 · 최상급 불의산 · 전설급 꿈의우주 · 보스급)</div>`;
+    this.ballsEl.innerHTML = html;
+    this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `블록 ${ctx.getBlocks()}개`; }; });
   }
 
   /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주) */
@@ -215,7 +241,8 @@ export class Dex {
           <div class="detail-stat"><span class="hp">❤ 기본 체력 ${sp.baseHp}</span> <span class="atk">⚔ 기본 공격 ${sp.baseAtk}</span></div>
           <div class="detail-skills">기술: ${skills}</div>
           ${ctx?.typeInfo ? (() => { const ti = ctx.typeInfo(sp.type); return `<div class="detail-type">💪 강함: ${ti.strong.length ? ti.strong.join('·') : '-'} &nbsp; 😖 약함: ${ti.weak.length ? ti.weak.join('·') : '-'}</div>`; })() : ''}
-          ${evo ? `<div class="detail-evo">진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기기` : `지역 보스 ${evo.boss}명 이기기`} → <b>${evoTo?.name || '?'}</b></div>` : ''}
+          <div class="detail-grade">등급 ${gradeStars(sp.grade || 1)} ${GRADES[sp.grade || 1]} · 추천 넘버볼: ${recommendedBall(sp.grade || 1).name}</div>
+          ${evo ? `<div class="detail-evo">진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기기` : `지역 보스 ${evo.boss}명 이기기`} · <b>${this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || ''}에서만</b> → <b>${evoTo?.name || '?'}</b></div>` : ''}
         </div>
       </div>`;
     // 내 포켓몬 중 이 종: 한 마리씩 줄로 (키우기·대표·진화)
@@ -228,6 +255,7 @@ export class Dex {
         const leader = party.isLeader(m);
         const canEvolve = party.canEvolve(m);
         const need = party.evolveNeed(m);
+        const zoneBlocked = need && party.readyExceptZone(m) && !canEvolve;
         const next = party.nextSkill(m);
         const fainted = party.isFainted(m);
         const costHp = party.upgradeCost(m, 'hp'), costAtk = party.upgradeCost(m, 'atk');
@@ -243,6 +271,7 @@ export class Dex {
             <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ 공격 +1 <small>(블록 ${costAtk})</small></button>
             ${leader || fainted ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
             ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">✨ 진화!</button>` : ''}
+            ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가서 진화할 수 있어</span>` : ''}
           </div>`;
         row.querySelectorAll('button[data-act]').forEach((b) => {
           b.onclick = () => {
@@ -284,9 +313,9 @@ export class Dex {
       const zone = this.zoneName[sp.zone] || '???';
       const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
-      const sub = known
+      const sub = (known
         ? (from ? `${from.name}의 진화형 · ${n}마리` : `${zone}${sp.boss ? ' 보스' : ''} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ' 보스' : ''}`);
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ' 보스' : ''}`)) + ` · ${gradeStars(sp.grade || 1)}`;
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}

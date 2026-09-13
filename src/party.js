@@ -4,6 +4,8 @@
 //  - 기술: 종의 skills 중 atk 가 문턱(skill.atk) 이상인 것만 쓸 수 있다. 피해 = atk × skill.power × 속성 상성.
 //  - 진화: 공격·체력 조건 + wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면. 진화하면 다음 종이 되고 스탯 보너스를 받는다.
 //  - 대결에서 지면 그 포켓몬은 기절(hp 0)해서 대결에 못 나간다. 올린 스탯은 그대로. 오박사에게 치료받으면 낫는다.
+import { evolveZoneOf } from './types.js';
+
 export const EVOLVE_BONUS = { atk: 3, hp: 5 };
 
 export class Party {
@@ -13,6 +15,7 @@ export class Party {
     this.leaderUid = null;
     this.nextUid = 1;
     this.conqueredCount = () => 0; // main 이 정복한 지역 수를 넣어 준다 (2단계 진화 조건)
+    this.zoneOf = () => 'forest';      // main 이 지금 있는 지역 이름을 넣어 준다 (진화는 속성의 고향에서만)
   }
 
   species(m) { return this.speciesById[m.speciesId]; }
@@ -60,15 +63,20 @@ export class Party {
   evolveNeed(m) {
     const e = this.species(m).evolution;
     if (!e || !this.speciesById[e.to]) return null;
-    return { ...e, winsNow: m.wins || 0, bossNow: this.conqueredCount() };
+    return { ...e, winsNow: m.wins || 0, bossNow: this.conqueredCount(), zone: evolveZoneOf(this.type(m)), here: this.zoneOf() };
   }
-  canEvolve(m) {
+  /** 지역만 빼고 조건을 다 채웠나 (도감 안내용) */
+  readyExceptZone(m) {
     const e = this.evolveNeed(m);
     if (!e) return false;
     if (m.atk < e.atk || m.maxHp < e.hp) return false;
     if (e.wins && (m.wins || 0) < e.wins) return false;
     if (e.boss && this.conqueredCount() < e.boss) return false;
     return true;
+  }
+  canEvolve(m) {
+    const e = this.evolveNeed(m);
+    return !!e && this.readyExceptZone(m) && e.zone === e.here;
   }
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
   evolve(m) {

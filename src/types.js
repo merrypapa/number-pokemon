@@ -22,3 +22,7 @@ export function strongAgainst(type) { return Object.entries(TYPE_CHART[type] || 
 /** 이 속성이 맞을 때 1.5배로 아픈 공격 속성들 */
 export function weakTo(type) { return TYPES.filter((t) => effectiveness(t, type) > 1); }
 export function effectWord(mult) { return mult > 1 ? '효과가 굉장했다!' : mult < 1 ? '효과가 별로야…' : ''; }
+
+// 진화는 그 속성의 고향 지역에서만 할 수 있다 (파이리는 불의산, 꼬부기는 물의길 …)
+export const EVOLVE_ZONE = { '풀': 'forest', '노말': 'forest', '벌레': 'forest', '격투': 'forest', '땅': 'cave', '바위': 'cave', '독': 'cave', '물': 'sea', '불': 'volcano', '전기': 'space', '에스퍼': 'space', '고스트': 'space', '페어리': 'space' };
+export function evolveZoneOf(type) { return EVOLVE_ZONE[type] || 'forest'; }

@@ -157,6 +157,11 @@ export class Creature {
   update(dt, playerPos) {
     this.t += dt;
     this.cooldown = Math.max(0, this.cooldown - dt);
+    if (this.fledTimer > 0) { // 도망간 동안은 보이지 않는다
+      this.fledTimer -= dt;
+      if (this.fledTimer <= 0) { this.mesh.visible = true; this.state = this.sleeping ? 'sleep' : 'wander'; if (this.sleeping && this.model) this.lieDown(this.model); }
+      return null;
+    }
     const p = this.mesh.position;
     const touchDist = 1.7 + (this.data.scale || 1) * 0.5;
     if (this.cooldown <= 0 && p.distanceTo(playerPos) < touchDist) {
@@ -200,6 +205,16 @@ export class Creature {
     return null;
   }
 
+  /** 넘버볼에서 튀어나와 도망: 한동안 사라졌다가 집에서 다시 나타난다 */
+  flee() {
+    this.state = 'shy';
+    this.shyTimer = 0.1;
+    this.cooldown = 6;
+    this.hint.visible = false;
+    this.mesh.visible = false;
+    this.fledTimer = 45;
+    this.mesh.position.copy(this.home); this.mesh.position.y = terrainHeight(this.home.x, this.home.z);
+  }
   becomeShy() {
     this.state = 'shy';
     this.shyTimer = this.isBoss || this.sleeping ? 2 : 5;

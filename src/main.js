@@ -8,6 +8,8 @@ import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
 import { strongAgainst, weakTo } from './types.js';
 import { portrait } from './portrait.js';
+import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall } from './balls.js';
+import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
@@ -181,9 +183,10 @@ const ZONE_COUNT = Object.keys(BUILDERS).filter((n) => creatureData.creatures.so
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 100; // 블록 더미 최대 (31개부터는 10칸 기둥으로 쌓인다)
-const state = { name: PLAYER_NAME, blocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null }; // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, blocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
+party.zoneOf = () => zone?.name || 'forest';
 const dex = new Dex(creatureData.creatures, Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])));
 dex.lastCaught = state.dex;
 const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && !c.boss && !c.evolvedFrom), sound });
@@ -233,6 +236,8 @@ refreshHud();
 
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
 battle.speciesName = (id) => speciesById[id]?.name;
+battle.getBalls = () => state.balls;
+battle.onUseBall = (id) => { if ((state.balls[id] || 0) <= 0) return false; state.balls[id]--; refreshHud(); return true; };
 battle.thumb = (sp) => dex.thumbs(speciesById[sp.id] || sp)?.color || null; // (i) 카드의 그림은 도감 썸네일을 쓴다
 
 // ---------- 내 포켓몬 (파티) ----------
@@ -260,27 +265,71 @@ function addStarter(speciesId) {
   state.dex[speciesId] = (state.dex[speciesId] || 0) + 1;
   return member;
 }
+// 진화 연출: 도감을 닫고, 카메라가 포켓몬 앞으로 가서 빛나며 커졌다가 번쩍! 새 모습으로.
+let evo = null; // { t, m, oldSp, sp, oldMesh, newMesh, wasLeader, stage }
+const evoFlash = document.getElementById('evo-flash'), evoBanner = document.getElementById('evo-banner');
 function evolveMember(m) {
-  if (!party.canEvolve(m)) return;
+  if (!party.canEvolve(m) || evo) return;
   const wasLeader = party.isLeader(m);
   const oldSp = party.species(m), oldMesh = m.mesh;
   const sp = party.evolve(m);
-  const mesh = buildDraftMesh(sp);
-  m.mesh = mesh;
-  if (wasLeader) {
-    mesh.position.copy(oldMesh.position);
-    mesh.rotation.copy(oldMesh.rotation);
-    chain.replace(oldMesh, mesh);
-    zone.scene.remove(oldMesh);
-    zone.scene.add(mesh);
-    particles.stars(zone.scene, mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 30, 0xffffff, 0.6);
-    particles.stars(zone.scene, mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 20, new THREE.Color(party.color(m)).getHex(), 0.5);
-  }
+  const newMesh = buildDraftMesh(sp);
+  m.mesh = newMesh;
   state.dex[sp.id] = (state.dex[sp.id] || 0) + 1;
-  confetti.burst(200);
-  sound.fanfare();
-  say(`축하해! ${oldSp.name}이(가) ${sp.name}(으)로 진화했어! 공격 ${m.atk}, 체력 ${m.maxHp}!`, { sec: 7 });
-  refreshHud();
+  dex.hide();
+  // 무대: 주인공 앞
+  const stage = player.position.clone().addScaledVector(camForward(), 2.6);
+  stage.y = terrainHeight(stage.x, stage.z);
+  if (wasLeader) { chain.replace(oldMesh, newMesh); zone.scene.remove(oldMesh); }
+  oldMesh.visible = true; oldMesh.scale.setScalar(oldSp.scale || 1);
+  oldMesh.position.copy(stage); oldMesh.rotation.set(0, Math.atan2(player.position.x - stage.x, player.position.z - stage.z), 0);
+  zone.scene.add(oldMesh);
+  newMesh.visible = false; newMesh.position.copy(stage); newMesh.rotation.copy(oldMesh.rotation); newMesh.scale.setScalar(0.001);
+  zone.scene.add(newMesh);
+  evo = { t: 0, m, oldSp, sp, oldMesh, newMesh, wasLeader, stage, flashed: false };
+  evoBanner.innerHTML = `${oldSp.name}이(가) 진화한다…!`;
+  evoBanner.classList.remove('hidden');
+  sound.click();
+}
+function updateEvolution(dt) {
+  const e = evo; e.t += dt;
+  const T = e.t, up = new THREE.Vector3(0, 0.9, 0);
+  // 카메라: 무대의 앞·옆에서 비스듬히 (주인공이 뒤에 겹쳐 보이지 않게)
+  const fwd = camForward(), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+  const camTo = e.stage.clone().addScaledVector(fwd, 2.4).addScaledVector(right, 3.4); camTo.y = e.stage.y + 1.5;
+  camera.position.lerp(camTo, 1 - Math.exp(-dt * 4));
+  camera.lookAt(e.stage.x, e.stage.y + 0.9, e.stage.z);
+  if (T < 2.2) { // 1) 빛나며 떨림 + 커졌다 작아졌다
+    const s = (e.oldSp.scale || 1) * (1 + Math.sin(T * 9) * 0.08 + T * 0.1);
+    e.oldMesh.scale.setScalar(s);
+    e.oldMesh.rotation.y += dt * (1 + T * 2);
+    if (Math.random() < 0.5) particles.stars(zone.scene, e.stage.clone().add(up).add(new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 1.2, (Math.random() - 0.5) * 1.5)), 2, 0xffffff, 0.35);
+    evoFlash.style.opacity = String(Math.min(0.85, T / 2.2 * 0.6));
+  } else if (!e.flashed) { // 2) 번쩍! 모습 바꾸기
+    e.flashed = true;
+    evoFlash.style.opacity = '1';
+    e.oldMesh.visible = false; zone.scene.remove(e.oldMesh);
+    e.newMesh.visible = true;
+    sound.fanfare();
+    evoBanner.innerHTML = `✨ ${e.sp.name}(으)로 진화했다! ✨<small>공격 ${e.m.atk} · 체력 ${e.m.maxHp}</small>`;
+  } else if (T < 4.2) { // 3) 새 모습이 커지며 등장, 색종이
+    const k = Math.min(1, (T - 2.2) / 0.8);
+    const back = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
+    e.newMesh.scale.setScalar(Math.max(0.001, (e.sp.scale || 1) * back));
+    e.newMesh.rotation.y += dt * 1.5 * (1 - k);
+    evoFlash.style.opacity = String(Math.max(0, 1 - (T - 2.2) * 2));
+    if (T - 2.2 < 0.1) confetti.burst(220);
+    if (Math.random() < 0.3) particles.stars(zone.scene, e.stage.clone().add(up), 3, new THREE.Color(party.color(e.m)).getHex(), 0.5);
+  } else { // 끝: 원래 자리로
+    evoFlash.style.opacity = '0';
+    evoBanner.classList.add('hidden');
+    e.newMesh.scale.setScalar(e.sp.scale || 1);
+    if (e.wasLeader) attachLeader(e.m); else zone.scene.remove(e.newMesh);
+    say(`축하해! ${e.oldSp.name}이(가) ${e.sp.name}(으)로 진화했어! 공격 ${e.m.atk}, 체력 ${e.m.maxHp}!`, { sec: 7 });
+    refreshHud(); autosave();
+    snapCam = true;
+    evo = null;
+  }
 }
 dex.bindParty({
   party,
@@ -303,6 +352,19 @@ dex.bindParty({
     refreshHud();
   },
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
+  evolveZone: (type) => evolveZoneOf(type),
+  getBalls: () => state.balls,
+  onBuyBall: (id) => {
+    const b = BALL_BY_ID[id];
+    if (!b) return;
+    if (state.blocks < b.cost) { say(`${b.name}은 블록 ${b.cost}개가 필요해!`); return; }
+    setBlocks(state.blocks - b.cost);
+    state.balls[id] = (state.balls[id] || 0) + 1;
+    sound.pickup();
+    say(`${b.name} 1개를 만들었어! 이제 ${state.balls[id]}개.`, { sec: 3 });
+    refreshHud();
+    autosave();
+  },
   onLeader: (m) => { if (party.isFainted(m)) { say(`${party.name(m)}은(는) 기절했어. 오박사님께 치료받아야 대표가 될 수 있어.`); return; } attachLeader(m); sound.click(); say(`${party.name(m)}이(가) 대표 포켓몬이 됐어! 이제 ${party.name(m)}이(가) 싸워.`, { sec: 4 }); },
   onEvolve: (m) => evolveMember(m),
 });
@@ -575,6 +637,7 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   camera.position.copy(player.position).add(camOffset());
   snapCam = true;
   document.getElementById('btn-save').classList.remove('hidden');
+  document.getElementById('btn-code').classList.remove('hidden');
   showZoneBanner(zone.label);
   refreshHud();
 }
@@ -644,6 +707,7 @@ function buildSaveData() {
     blocks: state.blocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
+    balls: { ...state.balls },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
     returnTo: state.returnTo,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
@@ -659,6 +723,53 @@ function doSave(manual = false) {
 }
 function autosave() { if (zone && player) { doSave(false); state.autosave = 90; } }
 document.getElementById('btn-save').onclick = () => doSave(true);
+
+// ---------- 저장 코드: 다른 기기로 옮기기 (텍스트로 복사해 두었다가 붙여넣기) ----------
+const CODE_PREFIX = 'NPK1.';
+function encodeSave(data) { const bytes = new TextEncoder().encode(JSON.stringify(data)); let bin = ''; for (const b of bytes) bin += String.fromCharCode(b); return CODE_PREFIX + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function decodeSave(text) {
+  const t = (text || '').replace(/\s+/g, '');
+  if (!t.startsWith(CODE_PREFIX)) throw new Error('NPK1. 으로 시작하는 저장 코드가 아니에요');
+  let b64 = t.slice(CODE_PREFIX.length).replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const d = JSON.parse(new TextDecoder().decode(bytes));
+  if (!d || d.v !== 1 || !d.name) throw new Error('알 수 없는 저장 코드예요');
+  return d;
+}
+const codeModalEl = document.getElementById('code-modal'), codeTextEl = document.getElementById('code-text');
+document.getElementById('btn-code').onclick = async () => {
+  if (!zone || !player || battle.active) return;
+  const data = buildSaveData(); saveGame(data);
+  const code = encodeSave(data);
+  codeTextEl.value = code;
+  let copied = false;
+  try { await navigator.clipboard.writeText(code); copied = true; } catch (_) { copied = false; }
+  document.getElementById('code-modal-sub').textContent = copied ? '복사했어! 텔레그램이나 메모에 붙여넣어 두면 다른 기기에서 이어 할 수 있어.' : '아래 코드를 길게 눌러 전체 선택한 뒤 복사해서 텔레그램이나 메모에 붙여넣어 둬.';
+  codeModalEl.classList.remove('hidden');
+  sound.click();
+};
+document.getElementById('btn-code-close').onclick = () => codeModalEl.classList.add('hidden');
+document.getElementById('btn-code-copy').onclick = async () => { try { await navigator.clipboard.writeText(codeTextEl.value); document.getElementById('code-modal-sub').textContent = '복사했어!'; } catch (_) { codeTextEl.focus(); codeTextEl.select(); } };
+codeTextEl.onclick = () => { codeTextEl.focus(); codeTextEl.select(); };
+let codeLoaded = null;
+document.getElementById('btn-code-check').onclick = () => {
+  const prev = document.getElementById('code-preview'), btn = document.getElementById('btn-code-load');
+  try {
+    const d = decodeSave(document.getElementById('code-input').value);
+    codeLoaded = d;
+    const leader = d.party?.[d.leader] ? speciesById[d.party[d.leader].speciesId]?.name : null;
+    prev.textContent = `✅ ${d.name}의 모험 · ${ZONE_INFO[d.zone]?.name || d.zone} · 친구 ${d.caught || 0}마리 · 정복 ${Object.keys(d.conquered || {}).length}/${ZONE_COUNT} · 블록 ${d.blocks || 0}개${leader ? ` · 대표 ${leader}` : ''} · ${formatWhen(d.savedAt)}`;
+    prev.classList.remove('bad'); prev.classList.remove('hidden'); btn.disabled = false;
+  } catch (e) { codeLoaded = null; prev.textContent = `❌ ${e.message}`; prev.classList.add('bad'); prev.classList.remove('hidden'); btn.disabled = true; }
+};
+document.getElementById('btn-code-load').onclick = () => {
+  if (!codeLoaded) return;
+  if (loadSave(codeLoaded.name) && !confirm(`"${codeLoaded.name}" 이름의 저장이 이 기기에 이미 있어요. 코드의 진행으로 바꿀까요?`)) return;
+  saveGame(codeLoaded);
+  continueEl.classList.add('hidden');
+  applySave(codeLoaded);
+};
 function applySave(d) {
   state.name = d.name;
   Object.assign(state, { blocks: 0, glowBlocks: d.glowBlocks || 0, caught: d.caught || 0, rescued: d.rescued || 0, conquered: { ...(d.conquered || {}) }, caughtCreatures: d.caughtCreatures || {}, tutorial: d.tutorial ?? 5, upgradeTold: !!d.upgradeTold, mapTold: !!d.mapTold, glow: !!d.glow });
@@ -666,6 +777,7 @@ function applySave(d) {
   Object.assign(state.dex, d.dex || {});
   pendingCaught = d.caughtCreatures || {};
   state.returnTo = d.returnTo || null;
+  state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
   if (state.conquered.forest) removeBoulder();
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
@@ -705,6 +817,16 @@ function frame() {
   }
   if (saveToastTimer > 0) { saveToastTimer -= dt; if (saveToastTimer <= 0) saveToastEl.classList.add('hidden'); }
 
+  if (evo) { // 진화 연출 중에는 그것만 그린다
+    updateEvolution(dt);
+    zone.world.animate?.(t);
+    particles.update(dt); confetti.update(dt);
+    if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
+    renderer.render(zone.scene, camera);
+    input.endFrame();
+    requestAnimationFrame(frame);
+    return;
+  }
   if (input.wasPressed('dex') && !battle.active && !quiz.open && !ride) dex.toggle(state.dex);
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
@@ -863,6 +985,11 @@ function frame() {
               say('포켓몬이 모두 기절했어… 눈앞이 캄캄해…', { sec: 3 });
               setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 액션을 누르면 치료해 줘!'), 900);
             }
+            refreshHud();
+          },
+          onEscaped: () => { // 넘버볼에서 튀어나와 도망: 승리 아님, 블록·승수 없음. 한동안 사라졌다가 돌아온다
+            c.flee();
+            say(`${c.data.name}이(가) 도망쳤어… 등급이 높은 포켓몬은 더 좋은 넘버볼이 필요해. 도감(B) 넘버볼 탭에서 블록으로 바꾸자!`, { sec: 7 });
             refreshHud();
           },
           onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 모아서 더 강해진 다음 다시 오자!'); refreshHud(); },
