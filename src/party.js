@@ -7,8 +7,9 @@
 export const EVOLVE_BONUS = { atk: 3, hp: 5 };
 
 export class Party {
-  constructor(speciesById) {
+  constructor(speciesById, caughtCounts = {}) {
     this.speciesById = speciesById;
+    this.caughtCounts = caughtCounts; // 종별로 잡은 마리 수 (main 의 state.dex 와 같은 객체)
     this.members = [];
     this.leaderUid = null;
     this.nextUid = 1;
@@ -49,9 +50,10 @@ export class Party {
   /** 탐험 중 천천히 회복 (1씩) */
   regen(m) { if (m.hp < m.maxHp) { m.hp += 1; return true; } return false; }
 
+  caughtOf(m) { return this.caughtCounts[m.speciesId] || 0; }
   canEvolve(m) {
     const e = this.species(m).evolution;
-    return !!(e && this.speciesById[e.to] && m.atk >= e.atk && m.maxHp >= e.hp);
+    return !!(e && this.speciesById[e.to] && m.atk >= e.atk && m.maxHp >= e.hp && this.caughtOf(m) >= (e.count || 1));
   }
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
   evolve(m) {

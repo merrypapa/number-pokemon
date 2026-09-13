@@ -10,6 +10,7 @@ const KEYMAP = {
   KeyQ: 'camLeft', KeyR: 'camRight',
   KeyB: 'dex',
   Digit1: 'skill1', Digit2: 'skill2', Digit3: 'skill3', Digit4: 'skill4', // 대결에서 기술 바로 쓰기
+  ShiftLeft: 'run', ShiftRight: 'run', ControlLeft: 'run', ControlRight: 'run', // 달리기 (누르고 이동)
 };
 
 const JOY_RADIUS = 55; // 스틱이 움직이는 최대 반지름(px)
@@ -67,7 +68,7 @@ export class Input {
       base.classList.remove('active');
     };
     zone.addEventListener('pointerdown', (e) => {
-      if (j.active) return;
+      // 이미 잡고 있는 손가락이 있어도 새 손가락이 오면 넘겨받는다 (놓침 이벤트를 못 받아 굳었을 때 스스로 풀린다)
       e.preventDefault();
       const rect = base.getBoundingClientRect();
       j.active = true; j.id = e.pointerId; j.cx = rect.left + rect.width / 2; j.cy = rect.top + rect.height / 2;
@@ -76,8 +77,11 @@ export class Input {
       place(e);
     });
     zone.addEventListener('pointermove', (e) => { if (j.active && e.pointerId === j.id) place(e); });
-    zone.addEventListener('pointerup', (e) => { if (e.pointerId === j.id) release(); });
-    zone.addEventListener('pointercancel', (e) => { if (e.pointerId === j.id) release(); });
+    zone.addEventListener('lostpointercapture', (e) => { if (e.pointerId === j.id) release(); });
+    // 손가락이 원 밖으로 나가 다른 요소 위에서 떼어져도 반드시 풀리도록 window 에서 받는다
+    const joyEnd = (e) => { if (j.active && e.pointerId === j.id) release(); };
+    window.addEventListener('pointerup', joyEnd, true);
+    window.addEventListener('pointercancel', joyEnd, true);
 
     // 화면 드래그 → 카메라 회전 (조이스틱/버튼/패널 위가 아닌 게임 화면)
     const canvas = document.getElementById('game');
@@ -93,8 +97,15 @@ export class Input {
       L.lastX = e.clientX; L.lastY = e.clientY;
     });
     const endLook = (e) => { if (e.pointerId === L.id) L.id = null; };
-    canvas.addEventListener('pointerup', endLook);
-    canvas.addEventListener('pointercancel', endLook);
+    window.addEventListener('pointerup', endLook, true);
+    window.addEventListener('pointercancel', endLook, true);
+
+    // 안전장치: 손가락이 하나도 안 남았거나(iOS 가 pointerup 을 삼킬 때), 창이 가려지면 모든 입력을 놓는다
+    const releaseAll = () => { release(); L.id = null; this.held.clear(); };
+    window.addEventListener('touchend', (e) => { if (e.touches.length === 0) releaseAll(); }, { passive: true });
+    window.addEventListener('touchcancel', (e) => { if (e.touches.length === 0) releaseAll(); }, { passive: true });
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
   }
 
   /** 이동 축(화면 기준). x: 왼쪽(-1)~오른쪽(+1), y: 위(-1)~아래(+1). 길이는 최대 1. */

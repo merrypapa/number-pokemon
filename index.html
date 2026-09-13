@@ -22,21 +22,30 @@
     <div class="hud-row"><span class="hud-icon block"></span><span id="hud-blocks">블록 0개</span></div>
     <div class="hud-row"><span class="hud-icon poke"></span><span id="hud-leader">대표 포켓몬 없음</span></div>
   </div>
+  <div id="zone-banner" class="hidden"></div>
 
-  <button id="btn-dex">📖 도감 · 내 포켓몬</button>
+  <button id="btn-dex">📖 도감 · 지도</button>
+  <button id="btn-save" class="hidden">💾 저장</button>
+  <div id="save-toast" class="hidden"></div>
   <div id="dex" class="hidden">
     <div id="dex-card">
       <div id="dex-head">
         <div id="dex-title">내 포켓몬 · 도감</div>
+        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="map">지도</button></div>
         <div id="dex-blocks">블록 0개</div>
-        <div id="dex-progress"></div>
         <div id="dex-count"></div>
-        <button id="btn-dex-close">닫기 ✕</button>
+        <button id="btn-dex-close" aria-label="닫기">✕</button>
       </div>
       <div id="dex-body">
+        <div id="dex-members"></div>
         <div id="dex-party"></div>
-        <div id="dex-grid-title">몬스터 도감</div>
+        <div id="dex-grid-title">몬스터 도감 (액자를 누르면 위에 자세히 나와요)</div>
         <div id="dex-grid"></div>
+      </div>
+      <div id="dex-mapview" class="hidden">
+        <div id="dex-map"></div>
+        <div id="dex-map-nav"><button id="map-prev">◀ 이전 지역</button><span id="map-pos"></span><button id="map-next">다음 지역 ▶</button></div>
+        <div id="dex-map-detail"></div>
       </div>
     </div>
   </div>
@@ -79,6 +88,35 @@
     <div id="touch-actions">
       <button data-key="action">액션</button>
       <button data-key="jump">점프</button>
+      <button data-key="run" class="run">달리기</button>
+    </div>
+  </div>
+
+  <div id="quiz" class="hidden">
+    <div id="quiz-card">
+      <div id="quiz-title">구출 문제</div>
+      <div id="quiz-text"></div>
+      <div id="quiz-icons"></div>
+      <div id="quiz-choices"></div>
+      <div id="quiz-hint"></div>
+      <button id="btn-quiz-skip">나중에</button>
+    </div>
+  </div>
+
+  <div id="newgame" class="hidden">
+    <div class="menu-card">
+      <div class="menu-title">주인공 이름을 지어 줘!</div>
+      <div class="menu-sub">이 이름으로 모험이 저장돼요 (8글자까지)</div>
+      <input id="name-input" type="text" maxlength="8" placeholder="예: 인하" autocomplete="off" />
+      <div class="menu-actions"><button id="btn-name-back" class="secondary">뒤로</button><button id="btn-name-ok">다음 ▶ 포켓몬 고르기</button></div>
+    </div>
+  </div>
+  <div id="continue" class="hidden">
+    <div class="menu-card wide">
+      <div class="menu-title">누구의 모험을 이어서 할까?</div>
+      <div class="menu-sub">저장은 이 브라우저에 남아요. 게임 중에도 💾 저장 버튼으로 언제든 저장할 수 있어요.</div>
+      <div id="continue-list"></div>
+      <div class="menu-actions"><button id="btn-continue-back" class="secondary">뒤로</button></div>
     </div>
   </div>
 
@@ -97,9 +135,12 @@
       <p id="title-sub">불러오는 중…</p>
     </div>
     <div id="title-bottom">
-      <button id="btn-start">모험 시작!</button>
+      <div id="title-buttons">
+        <button id="btn-new" class="title-btn">새로하기</button>
+        <button id="btn-continue" class="title-btn secondary">이어서하기</button>
+      </div>
       <div id="title-loading" class="hidden"></div>
-      <div id="title-help">방향키/WASD 이동 · 스페이스 점프 · E 액션 · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
+      <div id="title-help">방향키/WASD 이동 · Shift 달리기 · 스페이스 점프 · E 액션(구출·기차·로켓) · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
     </div>
   </div>
 

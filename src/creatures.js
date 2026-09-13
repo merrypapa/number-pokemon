@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
-import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize } from './world.js';
+import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
@@ -65,7 +65,7 @@ export function buildDraftMesh(c) {
       draft.add(dot);
     }
   }
-  if (glows) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); }
+  if (glows && c.boss) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); } // 점광원은 보스만 (야생 여럿이 빛을 켜면 느려진다)
   if (c.model) swapDraftWithModel(g, c.model); // 진짜 모델이 있으면 드래프트 도형 대신 사용
   g.scale.setScalar(c.scale || 1);
   return g;
@@ -90,6 +90,16 @@ export class Creature {
     this.hint.position.y = 1.7 * (data.scale || 1);
     this.hint.visible = false;
     this.mesh.add(this.hint);
+    if (this.isBoss) { // 보스 표시: 발밑 금빛 고리 + 머리 위 이름표 (멀리서도 보인다)
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.07, 8, 40), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 1 }));
+      ring.rotation.x = Math.PI / 2; ring.position.y = 0.06;
+      this.mesh.add(ring);
+      this.bossRing = ring;
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(`보스 ${data.name}`, '#20232e', '#ffd93d', 56), transparent: true, depthTest: false }));
+      label.scale.set(2.2, 0.55, 1);
+      label.position.y = 1.65;
+      this.mesh.add(label);
+    }
     scene.add(this.mesh);
   }
 
@@ -150,6 +160,7 @@ export class Creature {
       if (!playerNear && d > 14) this.state = 'wander';
     }
     this.hint.visible = this.state === 'approach';
+    if (this.bossRing) this.bossRing.rotation.z = this.t * 0.8;
     p.y = terrainHeight(p.x, p.z) + bob;
     tickModel(this.mesh, dt, 'walk'); // walk 클립이 없으면 첫 번째 클립(보통 idle)을 돈다
     return null;

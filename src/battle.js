@@ -86,26 +86,40 @@ export class Battle {
     this.dir = dir;
     const right = new THREE.Vector3(dir.z, 0, -dir.x);
     this.right = right;
+    // 주인공 시점(낮은 눈높이)에서 상대를 마주 본다. 주인공과 (대표가 아닌) 뒤따르던 친구들은 대결 동안 숨긴다.
+    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.7);
+    this.camPos.y = p.y + 1.35;
+    // 상대의 발밑 근처를 보면 상대 몸이 화면 위쪽 절반에 잡혀 아래 대결 패널에 가리지 않는다 (큰 보스도)
+    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.15, this.stageTo.z);
+    // 내 포켓몬은 화면 왼쪽 아래(가로 9%, 세로 72% 지점)에 발을 딛고 서서 상대를 본다.
+    // 대결 카메라로 그 화면 좌표를 지면까지 되쏘아 자리를 정하므로 화면 비율이 달라도 패널에 가리지 않는다.
     const mine = member.mesh;
     this.mineFrom = mine.position.clone();
-    this.mineTo = new THREE.Vector3().copy(p).addScaledVector(dir, 2.0).addScaledVector(right, -0.9);
+    const cam = this.camera.clone();
+    cam.position.copy(this.camPos); cam.lookAt(this.camLook); cam.updateMatrixWorld();
+    const ray = new THREE.Vector3(-0.78, -0.4, 0.5).unproject(cam).sub(this.camPos).normalize();
+    const tGround = ray.y < -0.02 ? (p.y - this.camPos.y) / ray.y : 4;
+    this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(2, Math.min(6, tGround)));
     this.mineTo.y = terrainHeight(this.mineTo.x, this.mineTo.z);
     this.mineScale = this.party.species(member).scale || 1;
     mine.rotation.set(0, Math.atan2(dir.x, dir.z), 0);
     mine.visible = true;
-    // 주인공 시점: 눈높이에서 상대를 마주 본다. 주인공과 (대표가 아닌) 뒤따르던 친구들은 대결 동안 숨긴다.
-    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.7).addScaledVector(right, 0.2);
-    this.camPos.y = p.y + 1.7;
-    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.7 * (creature.data.scale || 1), this.stageTo.z);
     this.throwFrom = new THREE.Vector3().copy(this.camPos).addScaledVector(dir, 0.9).addScaledVector(right, 0.35);
     this.throwFrom.y -= 0.45;
     this.hidden = [];
     for (const o of [player.group, ...hideMeshes]) { if (o !== mine && o.visible) { o.visible = false; this.hidden.push(o); } }
-    // 주인공을 숨기면 등불도 꺼지므로 대결 동안 카메라 자리에 같은 등불을 켠다 (동굴)
+    // 어두운 곳(동굴)에서는 대결 무대를 따로 밝힌다: 카메라 자리 등불 + 두 포켓몬 위 무대 조명. 안개도 잠시 멀리 민다.
+    this.lights = [];
     if (player.lamp && player.lamp.intensity > 0) {
-      this.lampLight = new THREE.PointLight(0xffd9a0, player.lamp.intensity, player.lamp.distance);
-      this.lampLight.position.copy(this.camPos);
-      scene.add(this.lampLight);
+      const lamp = new THREE.PointLight(0xffd9a0, player.lamp.intensity, player.lamp.distance);
+      lamp.position.copy(this.camPos);
+      const enemySpot = new THREE.PointLight(0xfff3d6, 16, 18);
+      enemySpot.position.set(this.stageTo.x, this.stageTo.y + 3.5, this.stageTo.z);
+      const mineSpot = new THREE.PointLight(0xfff3d6, 10, 12);
+      mineSpot.position.set(this.mineTo.x, this.mineTo.y + 3, this.mineTo.z);
+      this.lights.push(lamp, enemySpot, mineSpot);
+      for (const l of this.lights) scene.add(l);
+      if (scene.fog) { this.fogFar = scene.fog.far; scene.fog.far = Math.max(scene.fog.far, 120); }
     }
     // 카메라와 상대 사이 통로에 있는 나무·바위·풀숲 숨기기
     if (decor) {
@@ -281,8 +295,10 @@ export class Battle {
     const v = worldPos.project(this.camera);
     this.floatEl.textContent = text;
     this.floatEl.style.color = color;
-    this.floatEl.style.left = `${((v.x + 1) / 2) * window.innerWidth}px`;
-    this.floatEl.style.top = `${((1 - v.y) / 2) * window.innerHeight - 40}px`;
+    const cv = document.getElementById('game');
+    const W = cv.clientWidth || window.innerWidth, H = cv.clientHeight || window.innerHeight;
+    this.floatEl.style.left = `${((v.x + 1) / 2) * W}px`;
+    this.floatEl.style.top = `${((1 - v.y) / 2) * H - 40}px`;
     this.floatEl.classList.remove('hidden');
     this.floatEl.classList.remove('pop'); void this.floatEl.offsetWidth; this.floatEl.classList.add('pop');
     this.floatTimer = 1.0;
@@ -318,7 +334,9 @@ export class Battle {
     mine.visible = true;
     for (const m of this.hidden || []) m.visible = true;
     this.hidden = [];
-    if (this.lampLight) { this.scene.remove(this.lampLight); this.lampLight = null; }
+    for (const l of this.lights || []) this.scene.remove(l);
+    this.lights = [];
+    if (this.fogFar != null) { this.scene.fog.far = this.fogFar; this.fogFar = null; }
     this.el.classList.add('hidden');
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');

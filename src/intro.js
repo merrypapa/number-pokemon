@@ -100,7 +100,7 @@ export function buildIntro(creatures) {
     camera.position.set(Math.sin(yaw) * dist, 3.4 + (dist - 11) * 0.25 + Math.sin(t * 0.4) * 0.3, Math.cos(yaw) * dist);
     camera.lookAt(0, 1.1, -0.4);
   }
-  function resize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); }
+  function resize(aspect = window.innerWidth / window.innerHeight) { camera.aspect = aspect; camera.updateProjectionMatrix(); }
   function dispose() { disposed = true; scene.traverse((o) => { o.geometry?.dispose?.(); }); }
   return { scene, camera, update, resize, dispose };
 }
