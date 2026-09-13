@@ -177,7 +177,11 @@ export class Battle {
     this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(2, Math.min(6, tGround)));
     this.mineTo.y = terrainHeight(this.mineTo.x, this.mineTo.z);
     this.mineScale = this.party.species(member).scale || 1;
-    mine.rotation.set(0, Math.atan2(dir.x, dir.z), 0);
+    // 둘이 서로 마주 본다: 내 포켓몬은 상대 자리를, 상대는 내 포켓몬 자리를 향한다
+    this.mineYaw = Math.atan2(this.stageTo.x - this.mineTo.x, this.stageTo.z - this.mineTo.z);
+    this.enemyYaw = Math.atan2(this.mineTo.x - this.stageTo.x, this.mineTo.z - this.stageTo.z);
+    mine.rotation.set(0, this.mineYaw, 0);
+    creature.mesh.rotation.y = this.enemyYaw;
     mine.visible = true;
     this.throwFrom = new THREE.Vector3().copy(this.camPos).addScaledVector(dir, 0.9).addScaledVector(right, 0.35);
     this.throwFrom.y -= 0.45;
@@ -375,7 +379,7 @@ export class Battle {
     this.mineScale = this.party.species(x).scale || 1;
     mesh.visible = true;
     mesh.scale.setScalar(this.mineScale);
-    mesh.rotation.set(0, Math.atan2(this.dir.x, this.dir.z), 0);
+    mesh.rotation.set(0, this.mineYaw, 0); // 상대를 마주 본다
     mesh.position.copy(this.mineTo);
     this.member = x;
     this.switched = true;
@@ -653,6 +657,7 @@ export class Battle {
     if (!this.active) return;
     const c = this.creature, m = c.mesh, mine = this.member.mesh;
     this.timer += dt;
+    mine.rotation.y = this.mineYaw; m.rotation.y = this.enemyYaw; // 서로 마주 보기 (대결 시작 프레임에 따라오기 코드가 덮어쓴 것도 되돌린다)
 
     // 카메라 & 무대 진입
     const k = 1 - Math.exp(-dt * 5);

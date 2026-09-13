@@ -86,7 +86,8 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #battle-skills .skill.locked { background: #e9e9e9; box-shadow: 0 3px 0 #bbb; opacity: .75; color: #888; }
 #battle-skills .skill.locked .skill-dmg { background: #bbb; }
 #battle-skills .skill-name { font-size: 15px; }
-#battle-skills .skill-dmg { font-size: 13px; color: #fff; background: #e8453c; border-radius: 999px; padding: 1px 8px; }
+#battle-skills .skill-dmg { font-size: 13px; color: #fff; background: #e8453c; border-radius: 999px; padding: 1px 8px; white-space: nowrap; flex-shrink: 0; }
+#battle-skills .skill-name { min-width: 0; text-align: left; }
 #battle-skills .skill.locked .skill-dmg { color: #777; }
 #battle-controls > button { font-size: 18px; font-weight: 900; padding: 12px 16px; border-radius: 14px; border: 0; cursor: pointer; box-shadow: 0 3px 0 #ccc; background: #fff; color: #333; }
 #battle-controls > button:active { transform: translateY(2px); box-shadow: none; }
