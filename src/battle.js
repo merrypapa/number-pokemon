@@ -122,6 +122,8 @@ export class Battle {
     this.craftRowsEl = document.getElementById('craft-rows');
     this.craftBlocksEl = document.getElementById('craft-blocks');
     this.craftBtn.onclick = () => this.openCraft();
+    this.catchEl = document.getElementById('catch-modal');
+    document.getElementById('btn-catch-ok').onclick = () => { if (this.phase === 'success') this.end('caught'); };
     document.getElementById('btn-craft-close').onclick = () => this.closeCraft();
     document.getElementById('btn-craft-done').onclick = () => this.closeCraft();
     this.flying = [];
@@ -284,6 +286,13 @@ export class Battle {
       b.onclick = () => { this.sel = i; this.useSkill(i); };
       this.skillsEl.appendChild(b);
     });
+    for (const s of (this.party.species(m).skills || []).filter((s) => m.atk < s.atk)) { // 아직 못 쓰는 기술은 회색으로
+      const b = document.createElement('button');
+      b.className = 'skill locked';
+      b.innerHTML = `<span class="skill-name">🔒 ${s.name}</span><span class="skill-dmg">공격 ${s.atk}</span>`;
+      b.disabled = true;
+      this.skillsEl.appendChild(b);
+    }
     const others = this.party.members.filter((x) => x !== m && !this.party.isFainted(x));
     this.switchBtn.classList.toggle('hidden', !(choosing && others.length));
     if (!choosing && this.switchOpen) this.closeSwitch();
@@ -631,6 +640,7 @@ export class Battle {
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');
     this.closeSwitch(); this.switchBtn.classList.add('hidden');
+    this.catchEl.classList.add('hidden');
     this.craftOpen = false; this.craftEl.classList.add('hidden'); this.craftBtn.classList.add('hidden');
     if (this.switched) this.onSwitched?.(this.member, this.firstMember); // 새 포켓몬이 대표로 따라온다
     if (result === 'caught') this.onCaught?.();
@@ -769,11 +779,16 @@ export class Battle {
       m.position.y = ground;
       m.scale.setScalar(base);
     } else if (this.phase === 'capture') {
-      const t = Math.min(1, (this.timer - this.captureStart) / 0.45);
-      m.scale.setScalar(base * (1 - easeOut(t)));
-      m.position.lerp(this.ball.position, 0.2);
-      this.ball.rotation.y += dt * 10;
-      if (t >= 1) { m.visible = false; this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; }
+      const t = Math.min(1, (this.timer - this.captureStart) / 0.7);
+      // 볼: 맞은 자리에서 튕겨 올라 앞 땅에 떨어진다 (포물선)
+      this.ball.position.lerpVectors(this.ballHit, this.ballLand, t);
+      this.ball.position.y += Math.sin(t * Math.PI) * 1.1;
+      this.ball.rotation.y += dt * 12;
+      // 상대: 빨간 빛처럼 작아지며 볼을 따라 빨려 들어간다
+      m.scale.setScalar(base * (1 - easeOut(Math.min(1, t * 1.25))));
+      m.position.lerp(this.ball.position, Math.min(1, dt * 7));
+      if (t > 0.15 && Math.random() < 0.5) this.particles.stars(this.scene, m.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 2, 0xff6a6a, 0.25);
+      if (t >= 1) { m.visible = false; this.ball.position.copy(this.ballLand); this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; this.sound.bounce(); }
     } else if (this.phase === 'wobble') {
       const bt = this.timer - this.wobbleStart;
       // 공이 땅에 떨어진 뒤 0.55초마다 흔들림 (총 3번), 그다음 잡혔는지 판정
@@ -805,7 +820,7 @@ export class Battle {
       m.position.y = ground + Math.abs(Math.sin(this.timer * 8)) * 0.5;
       m.rotation.z = 0;
       mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 8)) * 0.4; // 내 포켓몬도 같이 기뻐한다
-      if (this.timer - this.successStart > 1.3) this.end('caught');
+      if (this.timer - this.successStart > 0.9 && !this.catchShown) this.showCatchPopup(); // 잠깐 기뻐한 뒤 "잡았다!" 팝업 (버튼을 눌러야 끝난다)
     }
     if (this.phase !== 'enter') tickModel(m, dt, 'idle');
 
@@ -814,13 +829,18 @@ export class Battle {
     if (this.bannerTimer > 0) { this.bannerTimer -= dt; if (this.bannerTimer <= 0) this.bannerEl.classList.add('hidden'); }
   }
 
-  startCapture() {
+  startCapture() { // 볼이 상대에게 맞았다: 튕겨서 앞 땅에 떨어지는 동안 상대가 빛이 되어 볼로 빨려 들어간다
     this.phase = 'capture';
     this.captureStart = this.timer;
     this.catchRoll = null;
-    this.ball.position.copy(this.targetPoint());
-    this.sound.click();
-    this.particles.stars(this.scene, this.ball.position, 10, 0x9fe8ff);
+    this.ballHit = this.targetPoint();
+    this.scene.add(this.ball); // 날아가기가 끝나며 장면에서 빠진 볼을 다시 넣는다 (튕기고 흔들리는 동안 보여야 한다)
+    this.ball.position.copy(this.ballHit);
+    this.ballLand = new THREE.Vector3().copy(this.stageTo).addScaledVector(this.dir, -1.9);
+    this.ballLand.y = terrainHeight(this.ballLand.x, this.ballLand.z) + 0.32;
+    this.sound.hit();
+    this.particles.stars(this.scene, this.ball.position, 14, 0xffffff, 0.35);
+    this.showFloat('탁!', '#fff', this.ballHit);
   }
 
   startEscape() {
@@ -837,9 +857,20 @@ export class Battle {
     this.msgEl.textContent = `${c.data.name}이(가) ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
     this.runBtn.textContent = '돌아가기 ▶';
   }
+  showCatchPopup() {
+    this.catchShown = true;
+    const d = this.creature.data;
+    const img = this.thumb ? this.thumb(d) : null;
+    const imgEl = document.getElementById('catch-img');
+    if (img) { imgEl.src = img; imgEl.hidden = false; } else imgEl.hidden = true;
+    document.getElementById('catch-name').textContent = `${d.boss ? '보스 ' : ''}${d.name}`;
+    document.getElementById('catch-sub').textContent = `${d.type} 속성 · ❤ ${d.baseHp} · ⚔ ${d.baseAtk} · 친구가 됐어!`;
+    this.catchEl.classList.remove('hidden');
+  }
   startSuccess() {
     this.phase = 'success';
     this.successStart = this.timer;
+    this.catchShown = false;
     const c = this.creature;
     c.mesh.position.copy(this.ball.position);
     c.mesh.position.y = terrainHeight(c.mesh.position.x, c.mesh.position.z);

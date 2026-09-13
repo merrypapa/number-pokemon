@@ -83,7 +83,8 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #battle-skills .skill.sel { border-color: #20232e; }
 #battle-skills .skill:active { transform: translateY(2px); box-shadow: none; }
 #battle-skills .skill:disabled { opacity: .5; cursor: default; }
-#battle-skills .skill.locked { background: #e9e9e9; box-shadow: 0 3px 0 #bbb; opacity: .7; }
+#battle-skills .skill.locked { background: #e9e9e9; box-shadow: 0 3px 0 #bbb; opacity: .75; color: #888; }
+#battle-skills .skill.locked .skill-dmg { background: #bbb; }
 #battle-skills .skill-name { font-size: 15px; }
 #battle-skills .skill-dmg { font-size: 13px; color: #fff; background: #e8453c; border-radius: 999px; padding: 1px 8px; }
 #battle-skills .skill.locked .skill-dmg { color: #777; }
@@ -406,7 +407,7 @@ body.intro #btn-save { display: none !important; }
 #btn-switch { position: fixed; top: 14px; left: 14px; z-index: 12; font-size: 17px; font-weight: 900; padding: 10px 16px; border-radius: 999px; border: 0; background: #3fb8e8; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #2a8ab0, 0 6px 14px rgba(0,0,0,.25); }
 #btn-switch:active { transform: translateY(3px); box-shadow: 0 1px 0 #2a8ab0; }
 #btn-craft { background: #fff4c2 !important; color: #b8860b !important; font-size: 14px !important; border: 2px dashed #e0b400; padding: 8px 12px !important; }
-#switch-modal, #craft-modal { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#switch-modal, #craft-modal, #catch-modal { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .pop-card { position: relative; width: min(94vw, 440px); max-height: 94vh; overflow: auto; background: #fffbe6; border-radius: 22px; padding: 14px 18px; box-shadow: 0 12px 40px rgba(0,0,0,.4); border: 3px solid #20232e; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .pop-close { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: #20232e; color: #fff; font-size: 18px; font-weight: 900; cursor: pointer; }
 .pop-title { font-size: 20px; font-weight: 900; color: #333; }
@@ -422,6 +423,11 @@ body.intro #btn-save { display: none !important; }
 #switch-info .sw-tip { text-align: center; font-size: 12px; color: #999; }
 .pop-go { font-size: 18px; font-weight: 900; padding: 12px 22px; border-radius: 999px; border: 0; background: #3fb8e8; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #2a8ab0; }
 .pop-go:active { transform: translateY(3px); box-shadow: 0 1px 0 #2a8ab0; }
+.pop-card.catch { width: min(90vw, 360px); border-color: #ffd93d; background: #fffdf3; animation: ctxPop .3s ease-out; }
+.catch-title { font-size: 30px; font-weight: 900; color: #e8453c; }
+#catch-img { width: 180px; height: 180px; object-fit: contain; border-radius: 20px; background: radial-gradient(circle at 50% 40%, #fff, #f1efe2); }
+#catch-name { font-size: 26px; font-weight: 900; color: #20232e; }
+#catch-sub { font-size: 14px; font-weight: 700; color: #666; }
 #craft-blocks { font-size: 15px; font-weight: 700; color: #555; text-align: center; } #craft-blocks b { color: #20232e; }
 #craft-rows { width: 100%; } #craft-rows .ball-pct-sm { font-size: 12px; color: #999; font-weight: 800; margin-right: 4px; }
 .ball-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(var(--ball) 0 48%, #20232e 48% 56%, #fff 56%); border: 2px solid #20232e; }

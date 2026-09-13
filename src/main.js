@@ -251,7 +251,7 @@ document.getElementById('hud-leader-row').onclick = () => {
     const cand = ms[(i + k) % ms.length];
     if (party.isFainted(cand)) continue;
     attachLeader(cand); sound.click(); refreshHud();
-    say(`${party.name(cand)}이(가) 대표 포켓몬이 됐어!`, { sec: 3 });
+    say(`${party.name(cand)}이(가) 대표 포켓몬이 됐어!`, { sec: 3, faceImg: dex.thumbs(party.species(cand))?.color || null });
     return;
   }
   say('다른 포켓몬은 모두 기절했어. 오박사님께 치료받자!', { sec: 3 });
@@ -400,7 +400,7 @@ dex.bindParty({
     refreshHud();
     autosave();
   },
-  onLeader: (m) => { if (party.isFainted(m)) { say(`${party.name(m)}은(는) 기절했어. 오박사님께 치료받아야 대표가 될 수 있어.`); return; } attachLeader(m); sound.click(); say(`${party.name(m)}이(가) 대표 포켓몬이 됐어! 이제 ${party.name(m)}이(가) 싸워.`, { sec: 4 }); },
+  onLeader: (m) => { if (party.isFainted(m)) { say(`${party.name(m)}은(는) 기절했어. 오박사님께 치료받아야 대표가 될 수 있어.`); return; } attachLeader(m); sound.click(); say(`${party.name(m)}이(가) 대표 포켓몬이 됐어! 이제 ${party.name(m)}이(가) 싸워.`, { sec: 4, faceImg: dex.thumbs(party.species(m))?.color || null }); },
   onEvolve: (m) => evolveMember(m),
 });
 
