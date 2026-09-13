@@ -909,7 +909,7 @@ export function buildWorld(scene) {
     }
   }
 
-  // ---------- 숲지기 (지역 안내 NPC): 시작 지점 옆. 이야기 버튼으로 이야기, 말하는 동안 연구소로 데려다준다 ----------
+  // ---------- 숲지기 (지역 안내 NPC): 시작 지점 옆. 대화 버튼으로 이야기, 말하는 동안 연구소로 데려다준다 ----------
   const ranger = makeNpc({ outfit: 'ranger', name: '나미', model: '나미.glb' });
   ranger.position.set(4.5, meadowHeight(4.5, 15), 15);
   ranger.rotation.y = -0.6;

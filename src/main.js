@@ -440,6 +440,7 @@ function applyZoneEnv() {
   player.gravityScale = zone.world.gravity || 1;
 }
 function switchZone(name, spawn, message) {
+  warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   if (switching || !BUILDERS[name]) return;
   switching = true;
   fadeEl.classList.add('on');
@@ -526,7 +527,7 @@ function dirWord(dx, dz) {
   return names[Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
 }
 // NPC와 이야기: 힌트를 한 줄씩 돌아가며 말해 준다. 오박사(heal)는 포켓몬을 모두 치료하고,
-// 지역 안내원(warp)과 이야기하는 동안은 말풍선에 "오박사 연구실 가기" 버튼이 켜진다.
+// 지역 안내원(warp)과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다.
 const warpBtn = document.getElementById('btn-warp');
 let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
 warpBtn.onclick = () => {
@@ -559,7 +560,7 @@ function talkTo(npc) {
   if (!healed) sound.click();
   const text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
   say(text, { sec: 9, faceImg: npcFace(npc) });
-  // 데려다줄 수 있는 안내원과 이야기하는 동안은 말풍선에 "연구실 가기" 버튼이 켜진다
+  // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   if (npc.warp) { npc.talking = true; warpNpc = npc; warpBtn.classList.remove('hidden'); }
 }
 /** 연구소로 순간이동 (모두 기절했을 때, 안내원이 데려다줄 때) */
@@ -925,7 +926,7 @@ function frame() {
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
       } else if (near(w.labDoor, 1.5)) {
         moved = true;
-        switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 이야기 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
+        switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 대화 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
       }
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
       moved = true;
@@ -937,8 +938,8 @@ function frame() {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
-        offer(npc.talking ? `💬 ${npc.name} 계속 듣기` : `💬 ${npc.name}와 이야기`, () => talkTo(npc));
-        if (state.prompt <= 0 && !npc.talking) { state.prompt = 8; say(`${npc.name}님이야! 이야기 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); }
+        offer('💬 대화', () => talkTo(npc));
+        if (state.prompt <= 0 && !npc.talking) { state.prompt = 8; say(`${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); }
       } else if (npc.talking) { npc.talking = false; warpBtn.classList.add('hidden'); warpNpc = null; } // 멀어지면 버튼도 사라진다
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
@@ -1044,7 +1045,7 @@ function frame() {
               say(`${party.name(L)}이(가) 기절했어… ${party.name(other)}이(가) 대표로 나서! 오박사님께 가면 치료해 줘.`, { sec: 7 });
             } else {
               say('포켓몬이 모두 기절했어… 눈앞이 캄캄해…', { sec: 3 });
-              setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 이야기 버튼을 누르면 치료해 줘!'), 900);
+              setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 대화 버튼을 누르면 치료해 줘!'), 900);
             }
             refreshHud();
           },

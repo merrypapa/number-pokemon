@@ -4,7 +4,7 @@ import { makeLabelTexture } from './world.js';
 import { NUMBER_COLORS } from './palette.js';
 
 // 오박사 연구소 내부: 푸른숲 마을의 연구소 문으로 들어오면 오는 작은 실내 지역.
-// 몬스터·블록·구출은 없고, 오박사에게 가까이 가서 이야기 버튼을 누르면 이야기(힌트)를 해 주고 포켓몬을 치료해 준다.
+// 몬스터·블록·구출은 없고, 오박사에게 가까이 가서 대화 버튼을 누르면 이야기(힌트)를 해 주고 포켓몬을 치료해 준다.
 export const LAB = { size: 40, room: { w: 26, d: 18 }, spawn: { x: 0, z: 6 }, door: { x: 0, z: 9.6 } };
 const R = LAB.room;
 const inDoorway = (x, z) => Math.abs(x) < 1.3 && z > R.d / 2 - 0.6;
