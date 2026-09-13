@@ -59,16 +59,18 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 /* 내 포켓몬: 왼쪽 아래 */
 #battle-mine { position: fixed; left: 14px; bottom: 14px; z-index: 10; width: min(36vw, 300px); background: rgba(255,255,255,.96); border: 3px solid #3fb8e8; border-radius: 18px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 #battle-mine-name { font-size: 18px; font-weight: 900; }
-#battle-mine-name::before { content: '내 포켓몬 '; font-size: 12px; color: #777; font-weight: 800; }
 #battle-mine-hp { display: flex; gap: 3px; flex-wrap: wrap; }
 #battle-mine-hpnum, #battle-mine-atk { font-weight: 800; color: #555; font-size: 14px; }
-#battle-mine-stats { margin-top: 4px; display: flex; gap: 10px; }
+#battle-mine-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+#battle-mine-stats { display: flex; gap: 8px; font-size: 13px; }
+#battle-mine-hp .tag-bar.mine { width: 100%; margin: 6px 0 0; height: 14px; }
+#battle-mine-hp .mine-fill { height: 100%; border-radius: 999px; transition: width .4s ease, background .4s; }
 #battle-hp.many .hp-cube, #battle-mine-hp.many .hp-cube { width: 14px; height: 14px; border-radius: 3px; border-width: 1.5px; }
 #battle-hp.lots .hp-cube { width: 11px; height: 11px; border-radius: 2px; border-width: 1px; }
 #battle-mine-hp .hp-cube { width: 16px; height: 16px; border-radius: 4px; }
 #battle-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-#battle-skills { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
-#battle-skills .skill { display: flex; flex-direction: column; align-items: center; min-width: 110px; padding: 8px 12px; border-radius: 14px; border: 3px solid transparent; background: #ffd93d; box-shadow: 0 3px 0 #c99400; cursor: pointer; font-weight: 900; color: #20232e; }
+#battle-skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; flex: 1; }
+#battle-skills .skill { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 8px 12px; border-radius: 14px; border: 3px solid transparent; background: #ffd93d; box-shadow: 0 3px 0 #c99400; cursor: pointer; font-weight: 900; color: #20232e; }
 #battle-skills .skill.sel { border-color: #20232e; }
 #battle-skills .skill:active { transform: translateY(2px); box-shadow: none; }
 #battle-skills .skill:disabled { opacity: .5; cursor: default; }
@@ -136,7 +138,8 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #dex-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid #f0e6c0; }
 #dex-title { font-size: 20px; font-weight: 900; color: #333; white-space: nowrap; }
 #dex-count { font-weight: 800; color: #777; white-space: nowrap; }
-#dex-blocks { font-weight: 900; color: #fff; background: #bbb; padding: 4px 12px; border-radius: 999px; font-size: 14px; }
+#dex-blocks { font-weight: 900; color: #fff; background: #bbb; padding: 4px 12px 4px 8px; border-radius: 999px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+#dex-blocks::before { content: ''; width: 14px; height: 14px; border-radius: 3px; background: #fff; border: 2px solid #20232e; box-sizing: border-box; }
 #dex-body { flex: 1; min-height: 0; overflow-y: auto; }
 #dex-grid-title { font-size: 16px; font-weight: 900; color: #555; padding: 10px 12px 0; }
 #btn-dex-close { margin-left: auto; width: 40px; height: 40px; font-size: 20px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #eee; color: #20232e; cursor: pointer; }
@@ -287,19 +290,27 @@ body.intro #btn-save { display: none !important; }
 #dex-tabs button { white-space: nowrap; font-size: 14px; font-weight: 900; padding: 6px 14px; border-radius: 999px; border: 0; background: transparent; color: #666; cursor: pointer; }
 #dex-tabs button.on { background: #fff; color: #e8453c; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 #dex-mapview { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-#dex-map { position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: 110 / 72; max-height: 44vh; background: linear-gradient(#bfe9ff, #dff7d0); border-radius: 18px; overflow: hidden; border: 3px solid #f0e6c0; }
+#dex-map { position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: 110 / 72; max-height: 44vh; background: #3a9fd6; border-radius: 18px; overflow: hidden; border: 3px solid #f0e6c0; }
 #dex-map svg { width: 100%; height: 100%; display: block; }
 #dex-map .region { cursor: pointer; }
-#dex-map .region .blob { stroke: #7a7a7a; stroke-width: .5; fill: #d8d8d8; transition: transform .15s; }
-#dex-map .region.conquered .blob { stroke: #e8b400; stroke-width: .8; }
-#dex-map .region.sel .blob { stroke: #e8453c; stroke-width: 1; }
+#dex-map .region .blob { stroke: rgba(32,35,46,.35); stroke-width: .5; transition: transform .15s; }
+#dex-map .region:not(.conquered) .blob { filter: saturate(.55); }
+#dex-map .label-bg { fill: rgba(255,251,230,.95); stroke: #20232e; stroke-width: .35; }
+#dex-map .wave { fill: none; stroke: rgba(255,255,255,.35); stroke-width: .5; }
+#dex-map .land { stroke: #6aa84f; stroke-width: .8; }
+#dex-map .pin { animation: pinBounce 1.2s ease-in-out infinite; }
+@keyframes pinBounce { 0%, 100% { transform: translate(0, var(--py, 0)) } 50% { transform: translate(0, calc(var(--py, 0) - 1.2px)) } }
+#dex-map .smoke { animation: smokeUp 3s ease-in-out infinite; }
+@keyframes smokeUp { 0%, 100% { opacity: .6 } 50% { opacity: 1 } }
+#dex-map .region.conquered .blob { stroke: #e8b400; stroke-width: .9; }
+#dex-map .region.sel .blob { stroke: #e8453c; stroke-width: 1.2; }
 #dex-map .region text { font-family: inherit; font-weight: 900; pointer-events: none; }
-#dex-map .region .name { font-size: 4.6px; fill: #20232e; }
+#dex-map .region .name { font-size: 4.2px; fill: #20232e; }
 #dex-map .region .icon { font-size: 9px; }
-#dex-map .region .star { font-size: 4px; fill: #e8b400; }
-#dex-map .path { fill: none; stroke: #8b6a3c; stroke-width: .9; stroke-dasharray: 2 1.2; opacity: .8; }
-#dex-map .rail { fill: none; stroke: #555b66; stroke-width: 1; stroke-dasharray: 1.5 1; }
-#dex-map .flight { fill: none; stroke: #e8453c; stroke-width: .7; stroke-dasharray: 1 1.5; }
+#dex-map .region .star { font-size: 3.6px; fill: #20232e; }
+#dex-map .path { fill: none; stroke: #c9a15a; stroke-width: 1.4; stroke-linecap: round; }
+#dex-map .rail { fill: none; stroke: #555b66; stroke-width: 1.2; stroke-dasharray: 1.2 .8; }
+#dex-map .flight { fill: none; stroke: #fff; stroke-width: .7; stroke-dasharray: 1 1.5; opacity: .9; }
 #dex-map .here { font-size: 3.6px; font-weight: 900; fill: #e8453c; }
 #dex-map-detail { flex: 0 0 auto; background: #fff; border-radius: 16px; padding: 12px; border: 3px solid #ddd; }
 .map-title { font-size: 20px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -348,16 +359,16 @@ body.intro #btn-save { display: none !important; }
 
 /* 넘버볼 고르기 (대결) */
 #battle-balls { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
-.ball-btn { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 12px; border-radius: 14px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; min-width: 170px; }
+.ball-btn { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; }
 .ball-col { display: flex; flex-direction: column; gap: 2px; }
 .ball-line { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .ball-btn:active { transform: translateY(2px); box-shadow: none; }
 .ball-btn.none { opacity: .45; cursor: default; }
 .ball-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(var(--ball) 0 48%, #20232e 48% 56%, #fff 56%); border: 2px solid #20232e; }
-.ball-name { font-weight: 900; font-size: 15px; }
-.ball-n { font-weight: 800; font-size: 12px; color: #555; }
-.ball-pct { font-size: 12px; font-weight: 800; color: #b8860b; white-space: nowrap; }
-.ball-tip { width: 100%; font-size: 13px; font-weight: 700; color: #555; }
+.ball-name { font-weight: 900; font-size: 16px; }
+.ball-n { font-weight: 900; font-size: 15px; color: #20232e; }
+.ball-pct { font-size: 13px; font-weight: 800; color: #b8860b; white-space: nowrap; margin-left: 2px; }
+.ball-tip { width: 100%; font-size: 12px; font-weight: 700; color: #999; }
 /* 도감 넘버볼 탭 */
 #dex-balls { padding: 6px 2px; }
 .shop-title { font-weight: 900; font-size: 18px; margin: 4px 0 8px; }
@@ -388,3 +399,9 @@ body.battle #btn-code, body.intro #btn-code { display: none !important; }
 #evo-banner { position: fixed; left: 50%; top: 14%; transform: translateX(-50%); font-size: clamp(28px, 5.5vw, 52px); font-weight: 900; color: #fff; -webkit-text-stroke: 2px #20232e; text-shadow: 0 6px 0 #20232e, 0 10px 18px rgba(0,0,0,.35); z-index: 26; white-space: nowrap; text-align: center; }
 #evo-banner small { display: block; font-size: 45%; -webkit-text-stroke: 1px #20232e; text-shadow: 0 3px 0 #20232e; margin-top: 6px; }
 @media (max-width: 760px) { #btn-code { top: 56px; right: 12px; } }
+
+/* 도감 넘버볼 탭 (단순) */
+.shop-count { font-size: 34px; font-weight: 900; line-height: 1; color: #20232e; }
+.shop-count small { font-size: 14px; font-weight: 800; color: #777; margin-left: 2px; }
+.shop-note { margin-top: 10px; font-size: 13px; font-weight: 700; color: #777; }
+@media (max-width: 760px) { #dex-count { display: none; } #dex-head { gap: 8px; padding: 10px 12px; } #dex-title { font-size: 17px; } }

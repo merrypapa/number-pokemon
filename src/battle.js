@@ -30,6 +30,7 @@ function makeBall(color) {
 // 기술 빛덩이: 내 포켓몬 색으로 빛나는 구슬 + 은은한 빛
 // 기술 종류(kind)별 투사체. 근접 기술(tackle/punch/scratch/peck)은 투사체 없이 돌진한다.
 const MELEE = new Set(['tackle', 'punch', 'scratch', 'peck']);
+const WHIP = new Set(['whip']);
 function makeProjectile(kind, color, size = 1) {
   const g = new THREE.Group();
   const glow = (c, r) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.35, depthWrite: false })); g.add(m); };
@@ -241,12 +242,14 @@ export class Battle {
     this.tagAtkEl.textContent = `· ⚔ ${c.data.baseAtk}`;
     this.mineNameEl.textContent = this.party.name(m);
     this.mineNameEl.style.color = this.party.color(m);
-    this.cubes(this.mineHpEl, m.maxHp, Math.max(0, m.hp), this.party.color(m));
-    this.mineHpNumEl.textContent = `체력 ${Math.max(0, m.hp)}/${m.maxHp}`;
-    this.mineAtkEl.textContent = `공격 ${m.atk}`;
+    const mr = Math.max(0, Math.min(1, m.hp / m.maxHp));
+    this.mineHpEl.innerHTML = `<div class="tag-bar mine"><div class="mine-fill" style="width:${mr * 100}%;background:${mr > 0.5 ? '#57b947' : mr > 0.25 ? '#f7cf3e' : '#e8453c'}"></div></div>`;
+    this.mineHpNumEl.textContent = `❤ ${Math.max(0, m.hp)}/${m.maxHp}`;
+    this.mineAtkEl.textContent = `⚔ ${m.atk}`;
 
-    // 기술 버튼: 열린 기술은 이름 + 피해, 아직 안 열린 다음 기술은 잠금 표시
+    // 기술 버튼: 열린 기술은 이름 + 피해, 아직 안 열린 다음 기술은 잠금 표시. 볼을 고르는 동안은 숨긴다
     this.skillsEl.innerHTML = '';
+    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble');
     const unlocked = this.party.skills(m);
     this.sel = Math.max(0, Math.min(this.sel, unlocked.length - 1));
     const choosing = this.phase === 'choose';
@@ -308,6 +311,34 @@ export class Battle {
     return (have.find((b) => b.tier >= rec.tier) || have[have.length - 1] || BALLS[0]).id;
   }
   isMelee() { return MELEE.has(this.skill?.kind || 'tackle'); }
+  isWhip() { return WHIP.has(this.skill?.kind); }
+  /** 덩굴채찍: 내 포켓몬에서 상대까지 물결치는 덩굴이 뻗어 나가 때리고 되감긴다 */
+  whipStart() {
+    const from = this.minePoint(), to = this.targetPoint();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x3f9d3a, emissive: 0x1f6b2a, emissiveIntensity: 0.5 });
+    this.whip = { from, to, t: 0, mesh: null, mat, hit: false };
+    this.sound.throw_();
+  }
+  whipUpdate(dt) {
+    const w = this.whip; if (!w) return;
+    w.t += dt / 0.55;
+    const t = Math.min(1, w.t);
+    const reach = t < 0.5 ? t * 2 : 1 - (t - 0.5) * 2; // 뻗었다가 되감긴다
+    if (w.mesh) { this.scene.remove(w.mesh); w.mesh.geometry.dispose(); }
+    const pts = [];
+    const side = new THREE.Vector3(-this.dir.z, 0, this.dir.x);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      const p = w.from.clone().lerp(w.to, u * Math.max(0.02, reach));
+      p.addScaledVector(side, Math.sin(u * Math.PI * 2 + this.timer * 30) * 0.25 * (1 - u) * reach);
+      p.y += Math.sin(u * Math.PI) * 0.6 * reach;
+      pts.push(p);
+    }
+    w.mesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.06, 6, false), w.mat);
+    this.scene.add(w.mesh);
+    if (!w.hit && t >= 0.5) { w.hit = true; this.particles.stars(this.scene, w.to, 10, 0x57b947, 0.35); this.onBoltHit(); }
+    if (t >= 1) { this.scene.remove(w.mesh); w.mesh.geometry.dispose(); this.whip = null; }
+  }
   /** 근접 기술 효과: 할퀴기는 흰 발톱 자국, 펀치는 노란 충격 별, 쪼기는 작은 튐, 몸통박치기는 먼지 */
   meleeFx() {
     const kind = this.skill?.kind, at = this.targetPoint();
@@ -334,7 +365,7 @@ export class Battle {
     this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `체력 0! ${c.data.name}이(가) 어질어질해. 넘버볼을 골라서 던지자!`;
+      this.msgEl.textContent = `${c.data.name}이(가) 어질어질! 넘버볼을 던지자!`;
       this.showBanner('쓰러뜨렸다!');
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
@@ -390,15 +421,14 @@ export class Battle {
       const btn = document.createElement('button');
       btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
-      btn.innerHTML = `<span class="ball-dot"></span><span class="ball-col"><span class="ball-line"><span class="ball-name">${b.name}</span><span class="ball-n">${n}개</span></span><span class="ball-pct">잡힐 확률 ${pct}%</span></span>`;
+      btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
       btn.disabled = !n;
       btn.onclick = () => this.throwBall(b.id);
       this.ballsEl.appendChild(btn);
     }
-    const rec = recommendedBall(grade);
     const tip = document.createElement('div');
     tip.className = 'ball-tip';
-    tip.textContent = `${this.creature.data.name}은(는) ${gradeStars(grade)} ${GRADES[grade]}! ${rec.name} 이상이면 거의 확실히 잡혀. 실패하면 도망가.`;
+    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률`;
     this.ballsEl.appendChild(tip);
   }
   throwBall(ballId = 'bronze') {
@@ -556,6 +586,7 @@ export class Battle {
     }
     if (this.input.wasPressed('cancel')) this.leave();
 
+    this.whipUpdate(dt);
     // 날아가는 것들 (포물선)
     for (const f of this.flying) {
       f.t += dt / f.dur;
@@ -579,7 +610,11 @@ export class Battle {
       mine.position.copy(this.mineTo);
       mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 3)) * 0.05;
       if (this.phase === 'attack') {
-        if (this.isMelee()) { // 근접: 상대에게 돌진, 가장 가까울 때 피해, 돌아오기
+        if (this.isWhip()) { // 채찍: 제자리에서 살짝 앞으로 기울며 덩굴을 뻗는다
+          const t = Math.min(1, (this.timer - this.phaseStart) / 0.3);
+          mine.position.addScaledVector(this.dir, Math.sin(t * Math.PI) * 0.4);
+          if (t >= 1) { this.phase = 'bolt'; this.whipStart(); }
+        } else if (this.isMelee()) { // 근접: 상대에게 돌진, 가장 가까울 때 피해, 돌아오기
           const t = Math.min(1, (this.timer - this.phaseStart) / 0.62);
           const reach = Math.sin(t * Math.PI);
           mine.position.lerpVectors(this.mineTo, this.stageTo, reach * 0.78);

@@ -67,13 +67,13 @@
      "name": "덩굴채찍",
      "atk": 1,
      "power": 1,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "덩굴휘두르기",
      "atk": 10,
      "power": 1.25,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "잎날가르기",
@@ -383,7 +383,7 @@
      "name": "덩굴채찍",
      "atk": 10,
      "power": 1.25,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "풀베기",
@@ -497,13 +497,13 @@
      "name": "덩굴채찍",
      "atk": 1,
      "power": 1,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "덩굴휘두르기",
      "atk": 10,
      "power": 1.25,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "산성",
@@ -585,7 +585,7 @@
      "name": "덩굴채찍",
      "atk": 10,
      "power": 1.25,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "풀베기",
@@ -1872,13 +1872,13 @@
      "name": "덩굴채찍",
      "atk": 1,
      "power": 1,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "덩굴휘두르기",
      "atk": 10,
      "power": 1.25,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "잎날가르기",
@@ -1932,7 +1932,7 @@
      "name": "덩굴채찍",
      "atk": 10,
      "power": 1.25,
-     "kind": "leaf"
+     "kind": "whip"
     },
     {
      "name": "풀베기",

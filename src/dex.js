@@ -106,21 +106,19 @@ export class Dex {
     const ctx = this.partyCtx;
     if (!ctx) return;
     const stock = ctx.getBalls?.() || {}, blocks = ctx.getBlocks();
-    let html = `<div class="shop-title">🔮 넘버볼 만들기 <small style="font-weight:700;color:#777">(가진 블록 ${blocks}개)</small></div><div class="shop-grid">`;
+    let html = `<div class="shop-title">🔮 내 넘버볼</div><div class="shop-grid">`;
     for (const b of BALLS) {
-      const forGrades = Object.keys(GRADES).filter((g) => catchChance(+g, b.tier) >= 90).map((g) => gradeStars(+g)).join(' ');
+      const grades = Object.keys(GRADES).filter((g) => catchChance(+g, b.tier) >= 90);
       html += `<div class="shop-card" style="--ball:${b.css}">
         <div class="shop-head"><span class="ball-dot" style="--ball:${b.css}"></span>${b.name}</div>
-        <div class="shop-own">가진 것: <b>${stock[b.id] || 0}개</b> · 블록 ${b.cost}개로 1개</div>
-        <div class="shop-for">확실히 잡는 등급: ${forGrades || '(운에 맡겨야 해)'}</div>
-        <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개 → ${b.name} 1개</button>
+        <div class="shop-count">${stock[b.id] || 0}<small>개</small></div>
+        <div class="shop-for">${gradeStars(+grades[grades.length - 1] || 1)} 까지 잘 잡혀</div>
+        <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>
       </div>`;
     }
-    html += `</div><table class="shop-table"><tr><th>포켓몬 등급</th>${BALLS.map((b) => `<th>${b.name}</th>`).join('')}</tr>`;
-    for (const [g, name] of Object.entries(GRADES)) html += `<tr><td>${gradeStars(+g)} ${name}</td>${BALLS.map((b) => `<td>${catchChance(+g, b.tier)}%</td>`).join('')}</tr>`;
-    html += `</table><div class="shop-for" style="margin-top:8px">상대 체력을 0으로 만든 뒤 넘버볼을 던져. 숫자는 잡힐 확률이고, 실패하면 포켓몬이 도망가서 블록도 승리도 못 얻어. 등급은 도감에서 ★로 볼 수 있어. (초급 푸른숲 · 중급 지하동굴 · 고급 물의길 · 최상급 불의산 · 전설급 꿈의우주 · 보스급)</div>`;
+    html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가!</div>`;
     this.ballsEl.innerHTML = html;
-    this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `블록 ${ctx.getBlocks()}개`; }; });
+    this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
   }
 
   /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주) */
@@ -138,17 +136,53 @@ export class Dex {
     const here = ctx?.getZoneName?.();
     if (!this.mapSel) this.mapSel = here || 'forest';
     const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
-    const line = (a, b, cls) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - 4} ${B.x},${B.y}"/>`; };
-    let svg = `<svg viewBox="-5 -5 110 72" preserveAspectRatio="xMidYMid meet">`;
-    svg += line('forest', 'cave', 'path') + line('forest', 'volcano', 'path') + line('forest', 'sea', 'rail') + line('forest', 'space', 'flight');
+    const curve = (a, b, cls, lift = 6) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - lift} ${B.x},${B.y}"/>`; };
+    // 배경: 양피지 + 바다 + 잔물결
+    let svg = `<svg viewBox="-5 -5 110 72" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="gSea" cx="30%" cy="55%" r="70%"><stop offset="0" stop-color="#7fd4f5"/><stop offset="1" stop-color="#3a9fd6"/></radialGradient>
+        <linearGradient id="gLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b7e07f"/><stop offset="1" stop-color="#7ccf5a"/></linearGradient>
+        <linearGradient id="gRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3b3"/><stop offset="1" stop-color="#4b5261"/></linearGradient>
+        <linearGradient id="gLava" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e06b3a"/><stop offset="1" stop-color="#8a2f1a"/></linearGradient>
+        <radialGradient id="gSpace" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#6a4ca8"/><stop offset="1" stop-color="#1b1236"/></radialGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.8" flood-color="#20232e" flood-opacity=".35"/></filter>
+      </defs>
+      <rect x="-5" y="-5" width="110" height="72" fill="url(#gSea)"/>
+      ${[8, 20, 32, 44, 56].map((y) => `<path class="wave" d="M-5,${y} q4,-1.5 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0"/>`).join('')}
+      <!-- 큰 섬(육지): 푸른숲 + 동굴 산 + 화산 + 우주 착륙지 -->
+      <path class="land" d="M28,58 C18,50 20,34 34,26 C36,14 46,6 58,8 C66,2 80,2 92,8 C104,12 104,26 98,34 C104,44 100,58 88,62 C76,66 60,66 48,63 C40,64 32,64 28,58 Z" fill="url(#gLand)"/>
+      <!-- 흙길 / 철길 / 항로 -->
+      ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}
+      <!-- 기차 -->
+      <g transform="translate(31,40)"><rect x="-3" y="-1.6" width="6" height="3.2" rx=".6" fill="#e8453c"/><rect x="-3" y="-2.6" width="2.4" height="1.2" fill="#e8453c"/><circle cx="-1.6" cy="1.9" r=".7" fill="#20232e"/><circle cx="1.6" cy="1.9" r=".7" fill="#20232e"/></g>`;
+    // 지역 그림
+    const draw = {
+      forest: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="url(#gLand)"/>
+        ${[[-11, 3], [-6, -4], [0, 5], [7, -3], [11, 3], [4, 0], [-3, 0]].map(([x, y]) => `<g transform="translate(${x},${y})"><rect x="-.5" y="1.5" width="1" height="2.2" fill="#8b5a2b"/><path d="M0,-4 L3,1.8 L-3,1.8 Z" fill="#2e9e4f"/><path d="M0,-2 L2.4,2.2 L-2.4,2.2 Z" fill="#3fb85a"/></g>`).join('')}
+        <g transform="translate(-1,-2)"><rect x="-2.2" y="-1.4" width="4.4" height="3.2" fill="#fff4dc" stroke="#20232e" stroke-width=".25"/><path d="M-2.8,-1.4 L0,-3.6 L2.8,-1.4 Z" fill="#e8453c"/></g>`,
+      cave: (r) => `<path d="M${-r.rx},${r.ry} Q${-r.rx * 0.5},${-r.ry * 1.3} 0,${-r.ry} Q${r.rx * 0.5},${-r.ry * 1.3} ${r.rx},${r.ry} Z" class="blob" fill="url(#gRock)"/>
+        <path d="M-3,${r.ry} Q-3,${r.ry - 6} 0,${r.ry - 6} Q3,${r.ry - 6} 3,${r.ry} Z" fill="#1b1f2a"/>
+        <circle cx="-6" cy="-1" r=".9" fill="#9fe8ff"/><circle cx="6" cy="0" r=".7" fill="#c9b8ff"/><circle cx="-2" cy="-4" r=".6" fill="#9fe8ff"/>`,
+      volcano: (r) => `<path d="M${-r.rx},${r.ry} L-4,${-r.ry} L4,${-r.ry} L${r.rx},${r.ry} Z" class="blob" fill="url(#gLava)"/>
+        <path d="M-4,${-r.ry} L4,${-r.ry} L2,${-r.ry + 3} L0,${-r.ry + 1.5} L-2,${-r.ry + 3} Z" fill="#ff6a1a"/>
+        <path d="M-1,${-r.ry} L-2,${-r.ry + 6} L0,${-r.ry + 4} L1,${-r.ry + 9} " fill="none" stroke="#ff9a3c" stroke-width="1" stroke-linecap="round"/>
+        <g class="smoke"><circle cx="0" cy="${-r.ry - 3}" r="2" fill="#ddd" opacity=".8"/><circle cx="2.5" cy="${-r.ry - 5}" r="1.6" fill="#eee" opacity=".7"/></g>`,
+      sea: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="#4fc3f7"/>
+        ${[[-7, -2, 4], [3, -4, 3.5], [7, 3, 3], [-3, 4, 3.5]].map(([x, y, rr]) => `<ellipse cx="${x}" cy="${y}" rx="${rr}" ry="${rr * 0.65}" fill="#e8d9a0" stroke="#d1b76a" stroke-width=".3"/>`).join('')}
+        <g transform="translate(-7,-4)"><rect x="-.3" y="-4" width=".6" height="4" fill="#8b5a2b"/><path d="M0,-4 q3,1 2,3 z" fill="#3f9d3a"/><path d="M0,-4 q-3,1 -2,3 z" fill="#3f9d3a"/></g>
+        <path d="M-4,-1 L2,-4 M3,-2 L6,2 M-2,3 L2,5" stroke="#b07a3c" stroke-width=".6" stroke-dasharray=".8 .5"/>`,
+      space: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="url(#gSpace)"/>
+        ${[[-9, -3], [-4, 4], [2, -5], [8, 2], [10, -3], [5, 5], [-7, 3]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".5" fill="#fff"/>`).join('')}
+        <circle cx="-6" cy="1" r="2.2" fill="#c9b8ff"/><ellipse cx="-6" cy="1" rx="3.6" ry=".8" fill="none" stroke="#e6dcff" stroke-width=".4" transform="rotate(-20 -6 1)"/>
+        <g transform="translate(3,0) rotate(-30)"><rect x="-1.1" y="-3" width="2.2" height="5" rx="1" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><path d="M-1.1,-2 L0,-4.2 L1.1,-2 Z" fill="#e8453c"/><circle cx="0" cy="-1" r=".55" fill="#66e0ff"/><path d="M-.8,2 L0,4 L.8,2 Z" fill="#ffb347"/></g>`,
+    };
     for (const r of MAP_REGIONS) {
       const done = !!conquered[r.id];
-      svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})">
-        <ellipse class="blob" rx="${r.rx}" ry="${r.ry}" style="fill:${done ? r.fill : '#d8d8d8'}"/>
-        <text class="icon" y="-0.5" text-anchor="middle">${r.icon}</text>
-        <text class="name" y="6.5" text-anchor="middle">${this.zoneName[r.id]}</text>
-        ${done ? `<text class="star" x="${r.rx - 3}" y="${-r.ry + 4}" text-anchor="middle">★</text>` : ''}
-        ${here === r.id ? `<text class="here" y="${r.ry + 4}" text-anchor="middle">▲ 지금 여기</text>` : ''}
+      svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})" filter="url(#shadow)">
+        ${draw[r.id](r)}
+        <g transform="translate(0,${r.ry + 1.5})"><rect x="-10" y="-2.6" width="20" height="5.2" rx="2.6" class="label-bg"/><text class="name" y="1.3" text-anchor="middle">${this.zoneName[r.id]}</text></g>
+        ${done ? `<g transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3" fill="#ffd93d" stroke="#20232e" stroke-width=".3"/><text class="star" y="1.3" text-anchor="middle">★</text></g>` : ''}
+        ${here === r.id ? `<g class="pin" transform="translate(0,${-r.ry - 2})"><path d="M0,0 L-2.4,-4 A2.6,2.6 0 1 1 2.4,-4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-4.6" r="1" fill="#fff"/></g>` : ''}
       </g>`;
     }
     svg += '</svg>';
@@ -293,7 +327,7 @@ export class Dex {
     const ctx = this.partyCtx;
     if (ctx) {
       const blocks = ctx.getBlocks();
-      this.blocksEl.textContent = `블록 ${blocks}개`;
+      this.blocksEl.textContent = `${blocks}`;
       this.blocksEl.style.background = blocks > 0 ? colorForCount(blocks) : '#bbb';
       const L = ctx.party.leader;
       if (!this.selectedId || !this.byId[this.selectedId]) this.selectedId = L ? L.speciesId : (this.species.find((s) => caughtById[s.id])?.id || null);
