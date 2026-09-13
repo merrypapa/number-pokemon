@@ -6,13 +6,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !important; } /* 시작 화면에서는 HUD 숨김 */
 
 #hud { position: fixed; top: 12px; left: 12px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; z-index: 5; max-width: calc(100vw - 24px); }
-.hud-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 700; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); border: 0; font-family: inherit; white-space: nowrap; }
+.hud-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.9); border-radius: 999px; padding: 8px 18px 8px 10px; font-size: 22px; font-weight: 700; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); border: 0; font-family: inherit; white-space: nowrap; }
 button.hud-row { cursor: pointer; }
 button.hud-row:active { transform: scale(.96); }
-.hud-thumb { width: 30px; height: 30px; border-radius: 9px; object-fit: contain; background: #f7f3e3; border: 2px solid #20232e; margin: -3px 0; }
+.hud-thumb { width: 44px; height: 44px; border-radius: 12px; object-fit: contain; background: transparent; margin: -6px 0; }
 .hud-swap { font-size: 14px; color: #888; margin-left: -2px; }
 .hud-icon[hidden], .hud-thumb[hidden], .hud-swap[hidden] { display: none; }
-.hud-icon { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
+.hud-icon { width: 28px; height: 28px; border-radius: 7px; display: inline-block; }
 .hud-icon.block { background: #fff; border: 2px solid #999; }
 .hud-icon.mon { background: #ffd93d; border-radius: 50%; }
 .hud-icon.map { background: linear-gradient(135deg, #7ccf5a, #3fb8e8); border: 2px solid #20232e; }
@@ -361,9 +361,11 @@ body.intro #btn-save { display: none !important; }
   #dex-title { font-size: 15px; }
   #dex-count { display: none; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }
-  .hud-row { font-size: 14px; padding: 4px 10px 4px 6px; gap: 6px; }
-  .hud-icon { width: 18px; height: 18px; }
-  .hud-thumb { width: 26px; height: 26px; }
+  .hud-row { font-size: 17px; padding: 6px 12px 6px 8px; gap: 7px; }
+  .hud-icon { width: 22px; height: 22px; }
+  .hud-thumb { width: 36px; height: 36px; margin: -5px 0; }
+  #btn-dex { top: 10px; font-size: 16px; padding: 7px 12px; }
+  #btn-dex .dex-more { display: none; } /* 휴대폰: 도감 버튼을 짧게 해서 HUD 한 줄과 안 겹치게 */
   .ball-row { gap: 8px; padding: 6px 8px; }
   .ball-row .ball-name { width: 64px; font-size: 14px; }
   .ball-row .ball-count { font-size: 20px; }
