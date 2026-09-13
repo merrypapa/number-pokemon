@@ -141,6 +141,16 @@ export function buildLab(scene) {
     decor.add(pot, plant); block(px, pz, 0.6);
   }
 
+  // 워프 패드: 마지막에 있던 지역으로 돌아간다 (main 이 state.returnTo 를 보고 처리)
+  const padPos = { x: -8, z: 5.5 };
+  const warpPad = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.25, 24), new THREE.MeshStandardMaterial({ color: 0x66e0ff, emissive: 0x2288aa, emissiveIntensity: 0.8 }));
+  warpPad.position.set(padPos.x, 0.12, padPos.z);
+  const warpRing = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.08, 8, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x9fe8ff, emissiveIntensity: 1 }));
+  warpRing.rotation.x = Math.PI / 2; warpRing.position.set(padPos.x, 0.5, padPos.z);
+  const warpLabel = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('워프 패드 · 지역으로 돌아가기', '#0f5f7a', '#ffffff', 48), transparent: true, depthTest: false }));
+  warpLabel.scale.set(3.6, 0.9, 1); warpLabel.position.set(padPos.x, 2.4, padPos.z);
+  decor.add(warpPad, warpRing, warpLabel);
+
   // 오박사: 흰 가운, 회색 머리, 안경, 빨간 넥타이. 이름표를 머리 위에
   const prof = new THREE.Group();
   {
@@ -167,22 +177,24 @@ export function buildLab(scene) {
   function animate(t) {
     prof.position.y = Math.sin(t * 2) * 0.03;
     if (orb) { orb.position.y = 1.8 + Math.sin(t * 1.5) * 0.25; orb.rotation.y = t; }
+    warpRing.position.y = 0.5 + Math.sin(t * 2) * 0.15; warpRing.rotation.z = t;
   }
 
   return {
     sun, animate, terrain: LAB_TERRAIN, decor, spawn: LAB.spawn, portal: LAB.door, dark: false, indoor: true,
     wildSpots: [], pickupSpots: [],
-    npc: {
-      x: prof.position.x, z: prof.position.z, mesh: prof, name: '오박사',
-      lines: [
-        '안녕, {name}! 난 오박사란다. 이 연구소에서 포켓몬을 연구하고 있지. 포켓몬을 잡아서 함께 모험하렴!',
-        '하얀 숫자블록을 모으면 도감(B)에서 포켓몬의 체력이나 공격력을 1씩 올릴 수 있단다.',
-        '공격력이 10, 20이 되면 새 기술을 배운단다. 같은 포켓몬을 3마리 잡고 공격 10·체력 15가 되면 진화할 수 있어!',
-        '이상해씨는 이상해풀을 거쳐 이상해꽃으로, 파이리는 리자드를 거쳐 리자몽으로 두 번 진화한단다. 두 번째 진화는 공격 20·체력 30이 필요해.',
-        '지역마다 보스가 있어. 보스를 잡으면 그 지역을 정복한 거야. 푸른숲 보스 이상해꽃을 잡으면 지하동굴 문이 열리지.',
-        '북서쪽 구석의 버섯 고리에는 잠만보가 자고 있단다. 체력이 60이나 되니 충분히 강해진 다음 도전하렴.',
-        '피카츄와 라이츄는 꿈의우주에 산단다. 남동쪽 로켓 발사장에서 로켓을 타면 갈 수 있어.',
+    warpPad: padPos,
+    npcs: [{
+      x: prof.position.x, z: prof.position.z, mesh: prof, name: '오박사', heal: true,
+      lines: (c) => [
+        `안녕, ${c.name}! 난 오박사란다. 다친 포켓몬은 언제든 여기서 치료해 줄게. 포켓몬을 잡아서 함께 모험하렴!`,
+        '숫자블록으로 도감(B)에서 포켓몬의 체력이나 공격력을 올릴 수 있단다. 스탯이 10을 넘으면 블록 2개, 20을 넘으면 3개가 들지.',
+        '공격력이 10, 20이 되면 새 기술을 배운단다. 공격 10·체력 15가 되고 대표로 5번 이기면 진화할 수 있어!',
+        '이상해씨는 이상해풀을 거쳐 이상해꽃으로, 파이리는 리자드를 거쳐 리자몽으로 두 번 진화한단다. 두 번째 진화는 공격 20·체력 30에 지역 보스를 한 명 이겨야 해.',
+        '대결에서 지면 그 포켓몬은 기절해서 못 싸워. 여기서 치료받으면 낫지. 다른 지역의 안내원에게 부탁하면 연구소로 데려다준단다.',
+        '왼쪽의 워프 패드에 올라서면 마지막에 있던 지역으로 바로 돌아갈 수 있어.',
+        '불은 풀에, 물은 불에, 풀은 물에, 전기는 물에 세단다. 상대 속성을 보고 대표를 고르렴. 도감에서 강함·약함을 볼 수 있어.',
       ],
-    },
+    }],
   };
 }

@@ -1,29 +1,49 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역(forest 푸른숲 / cave 지하동굴 / volcano 불의산 / sea 물의길 / space 꿈의우주 / evolution 진화형), type 은 속성. boss 가 true 면 그 지역의 보스(크고 세다. 잡으면 지역 정복). special 이 있으면 야생 자리 대신 그 지역의 specialSpots[special] 한 곳에만 나오고, sleeping 이 true 면 돌아다니지 않고 자고 있다(닿으면 대결). model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명을 넣으면 그 모델로 교체됩니다. 파일이 없으면 자동으로 드래프트 도형이 나오므로 보스·새 몬스터는 파일명을 미리 적어 두었습니다(같은 이름의 .glb 를 올리면 바로 적용). baseHp/baseAtk 는 야생일 때와 처음 잡았을 때의 체력/공격력, skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 공격력에 곱하는 배수), evolution 은 공격력·체력이 그 값 이상이고 그 종을 count 마리 잡았으면 진화할 수 있는 다음 몬스터입니다. starter 가 true 인 넷 중 하나를 시작할 때 고릅니다.",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화.",
  "zones": {
   "forest": {
    "name": "푸른숲",
-   "desc": "풀·노말·벌레·전기 포켓몬이 사는 시작 마을 숲"
+   "desc": "풀·노말·벌레·전기 포켓몬이 사는 시작 마을 숲",
+   "targetAtk": 4,
+   "atkRange": "3~6",
+   "blockValue": 1
   },
   "cave": {
    "name": "지하동굴",
-   "desc": "땅·바위·독 포켓몬이 사는 어두운 동굴"
+   "desc": "땅·바위·독 포켓몬이 사는 어두운 동굴",
+   "targetAtk": 8,
+   "atkRange": "6~10",
+   "blockValue": 1
   },
   "volcano": {
    "name": "불의산",
-   "desc": "불 포켓몬이 사는 용암 화산"
+   "desc": "불 포켓몬이 사는 용암 화산",
+   "targetAtk": 17,
+   "atkRange": "15~20",
+   "blockValue": 2
   },
   "sea": {
    "name": "물의길",
-   "desc": "물 포켓몬이 사는 바다 섬들"
+   "desc": "물 포켓몬이 사는 바다 섬들",
+   "targetAtk": 12,
+   "atkRange": "10~15",
+   "blockValue": 2
   },
   "space": {
    "name": "꿈의우주",
-   "desc": "신비한 포켓몬이 사는 우주"
+   "desc": "신비한 포켓몬이 사는 우주",
+   "targetAtk": 22,
+   "atkRange": "20~25",
+   "blockValue": 3
   },
   "lab": {
    "name": "오박사 연구소",
-   "desc": "푸른숲 마을 남쪽의 연구소. 오박사가 힌트를 주고 포켓몬을 치료해 준다"
+   "desc": "푸른숲 마을 남쪽의 연구소. 오박사가 힌트를 주고 포켓몬을 치료해 준다",
+   "blockValue": 1
+  },
+  "evolution": {
+   "name": "진화형",
+   "desc": "진화해야 만날 수 있는 모습"
   }
  },
  "creatures": [
@@ -40,7 +60,7 @@
     "color": "#7ED957",
     "eyes": 1
    },
-   "baseHp": 5,
+   "baseHp": 8,
    "baseAtk": 1,
    "skills": [
     {
@@ -51,23 +71,25 @@
     {
      "name": "덩굴채찍",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "잎날가르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": {
     "to": "m01e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 1,
    "starter": true,
-   "personality": "수줍음"
+   "personality": "수줍음",
+   "starterHp": 11,
+   "starterAtk": 3
   },
   {
    "id": "m03",
@@ -82,8 +104,8 @@
     "color": "#FFD93D",
     "curls": 3
    },
-   "baseHp": 6,
-   "baseAtk": 2,
+   "baseHp": 60,
+   "baseAtk": 8,
    "skills": [
     {
      "name": "몸통박치기",
@@ -93,23 +115,25 @@
     {
      "name": "전기쇼크",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "백만볼트",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": {
     "to": "m03e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 3,
    "starter": true,
-   "personality": "겁 많지만 다정"
+   "personality": "겁 많지만 다정",
+   "starterHp": 9,
+   "starterAtk": 4
   },
   {
    "id": "m06",
@@ -124,8 +148,8 @@
     "color": "#7ED957",
     "dots": 6
    },
-   "baseHp": 7,
-   "baseAtk": 2,
+   "baseHp": 9,
+   "baseAtk": 1,
    "skills": [
     {
      "name": "몸통박치기",
@@ -135,12 +159,12 @@
     {
      "name": "실뿜기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "벌레먹기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -160,7 +184,7 @@
     "color": "#C9A27E",
     "wingSpots": 9
    },
-   "baseHp": 8,
+   "baseHp": 10,
    "baseAtk": 2,
    "skills": [
     {
@@ -171,12 +195,12 @@
     {
      "name": "날개치기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "돌풍",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -196,8 +220,8 @@
     "color": "#C68E5A",
     "points": 12
    },
-   "baseHp": 9,
-   "baseAtk": 3,
+   "baseHp": 11,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "몸통박치기",
@@ -207,12 +231,12 @@
     {
      "name": "모래뿌리기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "속임수",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -232,8 +256,8 @@
     "color": "#F4E1A6",
     "cracks": 8
    },
-   "baseHp": 10,
-   "baseAtk": 3,
+   "baseHp": 12,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "몸통박치기",
@@ -243,12 +267,12 @@
     {
      "name": "할퀴기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "고양이돈받기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -271,7 +295,7 @@
     "belly": "#F5E6C8"
    },
    "baseHp": 60,
-   "baseAtk": 1,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "몸통박치기",
@@ -281,17 +305,17 @@
     {
      "name": "배치기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "헤비봄버",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "잠자기",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,
@@ -312,8 +336,8 @@
     "curls": 5,
     "paws": 4
    },
-   "baseHp": 40,
-   "baseAtk": 6,
+   "baseHp": 28,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "몸통박치기",
@@ -323,17 +347,17 @@
     {
      "name": "덩굴채찍",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "잎날가르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "솔라빔",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,
@@ -354,7 +378,7 @@
     "color": "#B5651D",
     "paws": 4
    },
-   "baseHp": 8,
+   "baseHp": 16,
    "baseAtk": 2,
    "skills": [
     {
@@ -365,12 +389,12 @@
     {
      "name": "구멍파기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "땅고르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -390,7 +414,7 @@
     "color": "#5B6ED6",
     "ears": 2
    },
-   "baseHp": 9,
+   "baseHp": 19,
    "baseAtk": 3,
    "skills": [
     {
@@ -401,12 +425,12 @@
     {
      "name": "흡혈",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "초음파",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -426,7 +450,7 @@
     "color": "#8D8D8D",
     "paws": 2
    },
-   "baseHp": 14,
+   "baseHp": 24,
    "baseAtk": 4,
    "skills": [
     {
@@ -437,12 +461,12 @@
     {
      "name": "돌떨구기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "바위굴리기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -462,7 +486,7 @@
     "color": "#FF9A3C",
     "glowSegments": 7
    },
-   "baseHp": 10,
+   "baseHp": 21,
    "baseAtk": 3,
    "skills": [
     {
@@ -473,12 +497,12 @@
     {
      "name": "불꽃",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "불꽃질주",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -499,7 +523,7 @@
     "color": "#8F8F8F",
     "dots": 6
    },
-   "baseHp": 45,
+   "baseHp": 56,
    "baseAtk": 6,
    "skills": [
     {
@@ -510,17 +534,17 @@
     {
      "name": "조이기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "바위떨구기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "지진",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,
@@ -541,8 +565,8 @@
     "color": "#FF8C42",
     "ears": 2
    },
-   "baseHp": 6,
-   "baseAtk": 2,
+   "baseHp": 40,
+   "baseAtk": 6,
    "skills": [
     {
      "name": "몸통박치기",
@@ -552,23 +576,25 @@
     {
      "name": "불꽃세례",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "화염방사",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": {
     "to": "m02e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 2,
    "starter": true,
-   "personality": "활발"
+   "personality": "활발",
+   "starterHp": 9,
+   "starterAtk": 4
   },
   {
    "id": "m10",
@@ -583,8 +609,8 @@
     "color": "#FF7F11",
     "flames": 10
    },
-   "baseHp": 12,
-   "baseAtk": 4,
+   "baseHp": 51,
+   "baseAtk": 7,
    "skills": [
     {
      "name": "몸통박치기",
@@ -594,12 +620,12 @@
     {
      "name": "불씨",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "불기둥",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -619,8 +645,8 @@
     "color": "#E0442D",
     "glow": true
    },
-   "baseHp": 11,
-   "baseAtk": 4,
+   "baseHp": 45,
+   "baseAtk": 7,
    "skills": [
     {
      "name": "몸통박치기",
@@ -630,12 +656,12 @@
     {
      "name": "불꽃",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "용암덩이",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -655,8 +681,8 @@
     "color": "#F4A43C",
     "ears": 2
    },
-   "baseHp": 13,
-   "baseAtk": 4,
+   "baseHp": 56,
+   "baseAtk": 8,
    "skills": [
     {
      "name": "몸통박치기",
@@ -666,12 +692,12 @@
     {
      "name": "물기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "화염방사",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -691,8 +717,8 @@
     "color": "#F08A3C",
     "ears": 2
    },
-   "baseHp": 55,
-   "baseAtk": 7,
+   "baseHp": 140,
+   "baseAtk": 12,
    "skills": [
     {
      "name": "몸통박치기",
@@ -702,17 +728,17 @@
     {
      "name": "화염방사",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "불대문자",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "드래곤클로",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,
@@ -733,8 +759,8 @@
     "color": "#5DADE2",
     "bubbles": 5
    },
-   "baseHp": 7,
-   "baseAtk": 2,
+   "baseHp": 28,
+   "baseAtk": 4,
    "skills": [
     {
      "name": "몸통박치기",
@@ -744,23 +770,25 @@
     {
      "name": "물대포",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "하이드로펌프",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": {
     "to": "m05e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 5,
    "starter": true,
-   "personality": "느긋"
+   "personality": "느긋",
+   "starterHp": 12,
+   "starterAtk": 3
   },
   {
    "id": "m20",
@@ -775,8 +803,8 @@
     "color": "#F2D75C",
     "eyes": 2
    },
-   "baseHp": 12,
-   "baseAtk": 3,
+   "baseHp": 40,
+   "baseAtk": 6,
    "skills": [
     {
      "name": "몸통박치기",
@@ -786,12 +814,12 @@
     {
      "name": "물대포",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "염동력",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -811,8 +839,8 @@
     "color": "#E85B3C",
     "bubbles": 3
    },
-   "baseHp": 10,
-   "baseAtk": 3,
+   "baseHp": 32,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "몸통박치기",
@@ -822,12 +850,12 @@
     {
      "name": "튀어오르기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "물대포",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -847,8 +875,8 @@
     "color": "#5E8FD9",
     "curls": 1
    },
-   "baseHp": 11,
-   "baseAtk": 4,
+   "baseHp": 36,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "몸통박치기",
@@ -858,12 +886,12 @@
     {
      "name": "거품",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "최면술",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -883,8 +911,8 @@
     "color": "#2E7DB8",
     "bubbles": 5
    },
-   "baseHp": 55,
-   "baseAtk": 7,
+   "baseHp": 100,
+   "baseAtk": 9,
    "skills": [
     {
      "name": "몸통박치기",
@@ -894,17 +922,17 @@
     {
      "name": "물대포",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "하이드로펌프",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "파도타기",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,
@@ -925,8 +953,8 @@
     "color": "#FFB6E1",
     "glow": true
    },
-   "baseHp": 14,
-   "baseAtk": 4,
+   "baseHp": 74,
+   "baseAtk": 10,
    "skills": [
     {
      "name": "몸통박치기",
@@ -936,12 +964,12 @@
     {
      "name": "노래하기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "더블슬랩",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -961,8 +989,8 @@
     "color": "#F7B7C6",
     "ears": 2
    },
-   "baseHp": 13,
-   "baseAtk": 4,
+   "baseHp": 70,
+   "baseAtk": 9,
    "skills": [
     {
      "name": "몸통박치기",
@@ -972,12 +1000,12 @@
     {
      "name": "손가락흔들기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "달빛",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -996,8 +1024,8 @@
     "body": "capsule",
     "color": "#E8C46A"
    },
-   "baseHp": 12,
-   "baseAtk": 5,
+   "baseHp": 65,
+   "baseAtk": 9,
    "skills": [
     {
      "name": "몸통박치기",
@@ -1007,12 +1035,12 @@
     {
      "name": "순간이동",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "염동력",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -1033,8 +1061,8 @@
     "glow": true,
     "translucent": true
    },
-   "baseHp": 15,
-   "baseAtk": 5,
+   "baseHp": 79,
+   "baseAtk": 10,
    "skills": [
     {
      "name": "몸통박치기",
@@ -1044,12 +1072,12 @@
     {
      "name": "핥기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "나이트헤드",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     }
    ],
    "evolution": null,
@@ -1070,8 +1098,8 @@
     "flames": 10,
     "glow": true
    },
-   "baseHp": 70,
-   "baseAtk": 9,
+   "baseHp": 210,
+   "baseAtk": 15,
    "skills": [
     {
      "name": "몸통박치기",
@@ -1081,22 +1109,22 @@
     {
      "name": "화염방사",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "불대문자",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "드래곤클로",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     },
     {
      "name": "블러스트번",
      "atk": 40,
-     "power": 3.5
+     "power": 2
     }
    ],
    "evolution": null,
@@ -1129,24 +1157,24 @@
     {
      "name": "덩굴채찍",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "잎날가르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "솔라빔",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": {
     "to": "m01ee",
     "atk": 20,
     "hp": 30,
-    "count": 1
+    "boss": 1
    },
    "favoriteNumber": 1,
    "evolvedFrom": "m01",
@@ -1177,22 +1205,22 @@
     {
      "name": "덩굴채찍",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "잎날가르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "솔라빔",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     },
     {
      "name": "꽃잎댄스",
      "atk": 40,
-     "power": 3.5
+     "power": 2
     }
    ],
    "evolution": null,
@@ -1224,24 +1252,24 @@
     {
      "name": "불꽃세례",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "화염방사",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "불대문자",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": {
     "to": "m02ee",
     "atk": 20,
     "hp": 30,
-    "count": 1
+    "boss": 1
    },
    "favoriteNumber": 2,
    "evolvedFrom": "m02",
@@ -1271,22 +1299,22 @@
     {
      "name": "불꽃세례",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "화염방사",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "불대문자",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     },
     {
      "name": "드래곤클로",
      "atk": 40,
-     "power": 3.5
+     "power": 2
     }
    ],
    "evolution": null,
@@ -1308,8 +1336,8 @@
     "ears": 2,
     "curls": 3
    },
-   "baseHp": 17,
-   "baseAtk": 7,
+   "baseHp": 84,
+   "baseAtk": 11,
    "skills": [
     {
      "name": "몸통박치기",
@@ -1319,17 +1347,17 @@
     {
      "name": "전기쇼크",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "백만볼트",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "볼트태클",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,
@@ -1362,17 +1390,17 @@
     {
      "name": "물대포",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25
     },
     {
      "name": "하이드로펌프",
      "atk": 20,
-     "power": 2
+     "power": 1.5
     },
     {
      "name": "파도타기",
      "atk": 30,
-     "power": 3
+     "power": 1.75
     }
    ],
    "evolution": null,

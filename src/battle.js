@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
+import { effectiveness, effectWord } from './types.js';
 import { tickModel } from './models.js';
 
 // 대결 장면 (포켓몬 배틀 느낌, 턴제):
@@ -156,18 +157,29 @@ export class Battle {
     document.body.classList.add('battle');
   }
 
-  // 체력 칸: 10개씩 묶고, 묶음마다 다른 색(10·20·30… 단위를 한눈에 세게)
+  // 체력 칸: 숫자블록처럼 10개가 꽉 찬 묶음은 "10 막대" 하나로, 나머지는 낱개 칸으로. 묶음마다 색이 다르다(10·20·30… 단위를 한눈에)
   cubes(el, total, now, color) {
     el.innerHTML = '';
-    el.classList.toggle('many', total > 16);
-    el.classList.toggle('lots', total > 30);
-    let group = null;
-    for (let i = 0; i < total; i++) {
-      if (i % 10 === 0) { group = document.createElement('span'); group.className = 'hp-group'; el.appendChild(group); }
-      const cube = document.createElement('span');
-      cube.className = 'hp-cube' + (i >= now ? ' gone' : '');
-      cube.style.background = i < 10 ? color : colorForCount(Math.floor(i / 10) + 1); // 첫 10개는 원래 색, 11~20 은 2의 색, 21~30 은 3의 색…
-      group.appendChild(cube);
+    for (let g = 0; g * 10 < total; g++) {
+      const lo = g * 10, hi = Math.min(total, lo + 10);
+      const col = g === 0 ? color : colorForCount(g + 1);
+      const group = document.createElement('span');
+      group.className = 'hp-group';
+      if (hi - lo === 10 && (now >= hi || now <= lo)) { // 꽉 찬 10 묶음 (남아 있거나 다 잃었거나) → 막대 하나
+        const bar = document.createElement('span');
+        bar.className = 'hp-ten' + (now <= lo ? ' gone' : '');
+        bar.style.background = col;
+        bar.textContent = '10';
+        group.appendChild(bar);
+      } else {
+        for (let i = lo; i < hi; i++) {
+          const cube = document.createElement('span');
+          cube.className = 'hp-cube' + (i >= now ? ' gone' : '');
+          cube.style.background = col;
+          group.appendChild(cube);
+        }
+      }
+      el.appendChild(group);
     }
   }
 
@@ -235,12 +247,15 @@ export class Battle {
 
   onBoltHit() {
     const c = this.creature;
-    const dmg = this.party.damage(this.member, this.skill);
+    const mult = effectiveness(this.party.type(this.member), c.data.type || '노말');
+    const dmg = this.party.damage(this.member, this.skill, mult);
     const hitPos = this.targetPoint();
     c.hp = Math.max(0, c.hp - dmg);
     this.sound.hit();
     this.particles.cubes(this.scene, hitPos, 8 + Math.min(12, dmg), new THREE.Color(this.party.color(this.member)).getHex());
-    this.showFloat(`-${dmg}`, this.party.color(this.member), hitPos);
+    this.showFloat(`-${dmg}${mult > 1 ? ' !!' : mult < 1 ? ' …' : ''}`, mult > 1 ? '#ff5a1f' : mult < 1 ? '#8899aa' : this.party.color(this.member), hitPos);
+    const eff = effectWord(mult);
+    if (eff) this.showBanner(eff);
     this.squash = 0.35;
     this.shakeCam = 0.15;
     if (c.hp === 0) {
@@ -252,7 +267,7 @@ export class Battle {
     } else {
       this.phase = 'enemyWind';
       this.phaseStart = this.timer;
-      this.msgEl.textContent = `${c.data.name}의 체력이 ${c.hp} 남았어! ${c.data.name}의 공격!`;
+      this.msgEl.textContent = `${eff ? eff + ' ' : ''}${c.data.name}의 체력이 ${c.hp} 남았어! ${c.data.name}의 공격!`;
     }
     this.render();
   }
@@ -260,12 +275,14 @@ export class Battle {
   // ----- 상대의 반격 -----
   onEnemyHit() {
     const c = this.creature, m = this.member;
-    const dmg = c.data.baseAtk;
+    const mult = effectiveness(c.data.type || '노말', this.party.type(m));
+    const dmg = Math.max(1, Math.round(c.data.baseAtk * mult));
+    this.enemyEff = effectWord(mult);
     m.hp = Math.max(0, m.hp - dmg);
     const pos = this.minePoint();
     this.sound.hit();
     this.particles.cubes(this.scene, pos, 8, colorForCount(c.data.favoriteNumber || c.data.baseHp));
-    this.showFloat(`-${dmg}`, '#c0392b', pos);
+    this.showFloat(`-${dmg}${mult > 1 ? ' !!' : mult < 1 ? ' …' : ''}`, '#c0392b', pos);
     this.mineHurt = 0.4;
     this.shakeCam = 0.25;
     this.render();
@@ -277,13 +294,13 @@ export class Battle {
       this.phase = 'lost';
       this.phaseStart = this.timer;
       this.showBanner('앗, 졌다…');
-      this.msgEl.textContent = `${this.party.name(m)}이(가) 쓰러졌어… 체력이 기본으로 돌아가. 블록을 모아서 다시 키우자!`;
+      this.msgEl.textContent = `${this.party.name(m)}이(가) 기절했어… 오박사님께 치료받아야 해. 올린 공격력과 체력은 그대로야!`;
       this.runBtn.textContent = '돌아가기 ▶';
       this.runBtn.classList.add('primary');
       this.sound.bounce();
     } else {
       this.phase = 'choose';
-      this.msgEl.textContent = `${c.data.name} 체력 ${c.hp}, 내 체력 ${m.hp}. 다음 기술을 고르자!`;
+      this.msgEl.textContent = `${this.enemyEff ? this.enemyEff + ' ' : ''}${c.data.name} 체력 ${c.hp}, 내 체력 ${m.hp}. 다음 기술을 고르자!`;
     }
     this.render();
   }

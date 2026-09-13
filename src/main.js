@@ -6,6 +6,7 @@ import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
+import { strongAgainst, weakTo } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
@@ -111,6 +112,8 @@ function makeZone(name, builder) {
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace, lab: buildLab };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 14, space: 18 }; // 지역별 야생 몬스터 자리 수 (각 지역 wildSpots 길이)
+const PICKUP_CAP = { forest: 24, cave: 16, volcano: 16, sea: 20, space: 16 }; // 줍는 블록 자리 수 (줄여서 대결로 블록을 얻게)
+const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
 let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
 let player = null, chain = null;
@@ -145,7 +148,7 @@ function getZone(name) {
     const spot = z.world.specialSpots?.[c.special];
     if (spot) spawnCreature(z, c.id, spot.x, spot.z);
   }
-  for (const [x, zz] of z.world.pickupSpots) spawnPickup(z, x, zz);
+  for (const [x, zz] of z.world.pickupSpots.slice(0, PICKUP_CAP[name] ?? 16)) spawnPickup(z, x, zz);
   applyPendingCaught(z);
   if (name === 'forest' && state.conquered.forest) removeBoulder();
   if (name === 'cave' && state.glow) z.scene.fog.far = 110;
@@ -168,8 +171,9 @@ const ZONE_COUNT = Object.keys(BUILDERS).filter((n) => creatureData.creatures.so
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 100; // 블록 더미 최대 (31개부터는 10칸 기둥으로 쌓인다)
-const state = { name: PLAYER_NAME, blocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, regenTimer: 0, prompt: 0, autosave: 90 }; // glowBlocks: 어두운 곳에서 주운 형광 블록 수
-const party = new Party(speciesById, state.dex);
+const state = { name: PLAYER_NAME, blocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null }; // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const party = new Party(speciesById);
+party.conqueredCount = () => Object.keys(state.conquered).length;
 const dex = new Dex(creatureData.creatures, Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])));
 dex.lastCaught = state.dex;
 const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && !c.boss && !c.evolvedFrom), sound });
@@ -211,7 +215,7 @@ function refreshHud() {
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   const L = party.leader;
   if (L) {
-    hudLeader.textContent = `${party.name(L)} ❤${L.hp}/${L.maxHp} ⚔${L.atk}`;
+    hudLeader.textContent = `${party.name(L)} ${L.hp <= 0 ? '😵기절 ' : ''}❤${L.hp}/${L.maxHp} ⚔${L.atk}`;
     hudPokeIcon.style.background = party.color(L);
   } else hudLeader.textContent = '대표 포켓몬 없음';
 }
@@ -239,7 +243,7 @@ function attachLeader(member) {
 }
 function addStarter(speciesId) {
   const sp = speciesById[speciesId];
-  const member = party.add(speciesId, buildDraftMesh(sp));
+  const member = party.add(speciesId, buildDraftMesh(sp), { hp: sp.starterHp ?? sp.baseHp, atk: sp.starterAtk ?? sp.baseAtk });
   attachLeader(member);
   state.dex[speciesId] = (state.dex[speciesId] || 0) + 1;
   return member;
@@ -272,20 +276,22 @@ dex.bindParty({
   getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, conquered: Object.keys(state.conquered).length, zones: ZONE_COUNT }), // 친구·구출·정복 진행은 도감에서 본다
   getConquered: () => state.conquered,
   getZoneName: () => zone?.name,
-  onUpgrade: (m, stat, n) => {
-    n = Math.min(n, state.blocks);
-    if (n <= 0) { say('블록이 없어! 하얀 블록을 주워서 다시 오자.'); return; }
-    party.upgrade(m, stat, n);
-    setBlocks(state.blocks - n);
+  onUpgrade: (m, stat) => {
+    const cost = party.upgradeCost(m, stat);
+    if (state.blocks < cost) { say(`블록이 ${cost}개 필요해! 블록을 줍거나 대결에서 이겨서 모으자.`); return; }
+    const n = 1;
+    party.upgrade(m, stat);
+    setBlocks(state.blocks - cost);
     sound.pickup();
     const next = party.nextSkill(m);
     const just = stat === 'atk' && party.skills(m).length && party.skills(m)[party.skills(m).length - 1].atk > m.atk - n;
     if (just && party.skills(m).length > 1) { const s = party.skills(m)[party.skills(m).length - 1]; sound.fanfare(); say(`${party.name(m)}이(가) 새 기술 ${s.name}을(를) 배웠어!`, { sec: 5 }); }
     else if (party.canEvolve(m) && !m.evolveTold) { m.evolveTold = true; say(`${party.name(m)}이(가) 진화할 수 있어! ✨ 진화! 버튼을 눌러봐.`, { sec: 6 }); }
-    else say(stat === 'atk' ? `${party.name(m)} 공격력 ${m.atk}!${next ? ` 공격 ${next.atk}이 되면 ${next.name}!` : ''}` : `${party.name(m)} 체력 ${m.maxHp}!`, { sec: 3 });
+    else say(stat === 'atk' ? `${party.name(m)} 공격력 ${m.atk}! (다음 +1은 블록 ${party.upgradeCost(m, 'atk')}개)${next ? ` 공격 ${next.atk}이 되면 ${next.name}!` : ''}` : `${party.name(m)} 체력 ${m.maxHp}! (다음 +1은 블록 ${party.upgradeCost(m, 'hp')}개)`, { sec: 3 });
     refreshHud();
   },
-  onLeader: (m) => { attachLeader(m); sound.click(); say(`${party.name(m)}이(가) 대표 포켓몬이 됐어! 이제 ${party.name(m)}이(가) 싸워.`, { sec: 4 }); },
+  typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
+  onLeader: (m) => { if (party.isFainted(m)) { say(`${party.name(m)}은(는) 기절했어. 오박사님께 치료받아야 대표가 될 수 있어.`); return; } attachLeader(m); sound.click(); say(`${party.name(m)}이(가) 대표 포켓몬이 됐어! 이제 ${party.name(m)}이(가) 싸워.`, { sec: 4 }); },
   onEvolve: (m) => evolveMember(m),
 });
 
@@ -383,15 +389,34 @@ function dirWord(dx, dz) {
   const names = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'];
   return names[Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
 }
-// 오박사와 이야기: 힌트를 한 줄씩 돌아가며 말해 주고, 다친 포켓몬을 치료해 준다
+// NPC와 이야기: 힌트를 한 줄씩 돌아가며 말해 준다. 오박사(heal)는 포켓몬을 모두 치료하고,
+// 지역 안내원(warp)은 마지막에 "연구소로 데려다줄까?" 하고 물어본다 (한 번 더 액션 → 연구소로).
 function talkTo(npc) {
-  npc.line = ((npc.line ?? -1) + 1) % npc.lines.length;
-  let healed = false;
-  for (const m of party.members) if (m.hp < m.maxHp) { party.heal(m); healed = true; }
-  if (healed) { sound.fanfare(); particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5); refreshHud(); }
-  else sound.click();
-  say(`${npc.name}: ${npc.lines[npc.line].replace('{name}', state.name)}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`, { sec: 8 });
   state.prompt = 8;
+  if (npc.offer) { // "데려다줄까?"에 대답: 연구소로
+    npc.offer = false; npc.line = -1;
+    state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
+    goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`);
+    return;
+  }
+  const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader };
+  const lines = typeof npc.lines === 'function' ? npc.lines(ctx) : npc.lines;
+  npc.line = ((npc.line ?? -1) + 1) % lines.length;
+  let healed = 0;
+  if (npc.heal) {
+    healed = party.healAll();
+    if (healed) { sound.fanfare(); particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5); refreshHud(); }
+  }
+  if (!healed) sound.click();
+  let text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
+  if (npc.warp && npc.line === lines.length - 1) { npc.offer = true; text += ' 연구소로 데려다줄까? 한 번 더 액션을 누르면 데려다줄게!'; }
+  say(text, { sec: 9 });
+}
+/** 연구소로 순간이동 (모두 기절했을 때, 안내원이 데려다줄 때) */
+function goToLab(text) {
+  if (zone.name === 'lab') { say(text, { sec: 6 }); return; }
+  if (!state.returnTo) state.returnTo = { zone: zone.name, spawn: { x: player.position.x, z: player.position.z } };
+  switchZone('lab', getZone('lab').world.spawn, { text, sec: 7 });
 }
 function spawnRescue(z) {
   const number = 2 + Math.floor(Math.random() * 9); // 2~10
@@ -429,11 +454,11 @@ function rescueSolved(z, nb) {
   z.rescue = null;
   z.nbTimer = rand(45, 90);
   state.rescued++;
-  const before = state.blocks;
-  setBlocks(state.blocks + n);
+  const before = state.blocks, gain = n * blockValue();
+  setBlocks(state.blocks + gain);
   sound.fanfare();
   confetti.burst(100);
-  say(`${nb.data.name}: 고마워! ${before}에 ${n}을 더해서 이제 블록 ${state.blocks}개! 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
+  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${gain > n ? ` (이 지역 블록은 ${blockValue()}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
   refreshHud();
   autosave();
 }
@@ -568,7 +593,8 @@ function buildSaveData() {
     blocks: state.blocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
-    party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp })),
+    party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
+    returnTo: state.returnTo,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -588,6 +614,7 @@ function applySave(d) {
   for (const k of Object.keys(state.dex)) delete state.dex[k];
   Object.assign(state.dex, d.dex || {});
   pendingCaught = d.caughtCreatures || {};
+  state.returnTo = d.returnTo || null;
   for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
   if (state.conquered.forest) removeBoulder();
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
@@ -595,9 +622,9 @@ function applySave(d) {
     const sp = speciesById[m.speciesId];
     if (!sp) continue;
     const member = party.add(m.speciesId, buildDraftMesh(sp));
-    Object.assign(member, { atk: m.atk, maxHp: m.maxHp, hp: Math.min(m.hp, m.maxHp) });
+    Object.assign(member, { atk: m.atk, maxHp: m.maxHp, hp: Math.min(m.hp, m.maxHp), wins: m.wins || 0 });
   }
-  const leader = party.members[d.leader] || party.members[0];
+  const leader = party.healthy().includes(party.members[d.leader]) ? party.members[d.leader] : (party.healthy()[0] || party.members[0]);
   if (leader) attachLeader(leader);
   setBlocks(d.blocks || 0);
   sound.fanfare();
@@ -671,15 +698,22 @@ function frame() {
       const back = zones.forest.world.arrivals[zone.name] || zones.forest.world.spawn;
       switchZone('forest', back, { text: '푸른숲으로 돌아왔어!', sec: 4 });
     }
-    // ----- 사람과 이야기하기 (오박사) -----
-    const npc = zone.world.npc;
-    if (!moved && npc) {
+    // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
+    if (!moved) for (const npc of zone.world.npcs || []) {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
-        if (input.wasPressed('action')) talkTo(npc);
+        if (input.wasPressed('action')) { talkTo(npc); moved = true; break; }
         else if (state.prompt <= 0) { state.prompt = 8; say(`${npc.name}님이야! 액션을 누르면 이야기할 수 있어.`, { sec: 3 }); }
-      }
+      } else npc.offer = false; // 멀어지면 "데려다줄까?" 제안은 취소
+    }
+    // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
+    if (!moved && zone.world.warpPad && near(zone.world.warpPad, 1.5)) {
+      if (state.returnTo && BUILDERS[state.returnTo.zone]) {
+        moved = true;
+        const r = state.returnTo; state.returnTo = null;
+        switchZone(r.zone, r.spawn, { text: `${ZONE_INFO[r.zone]?.name || r.zone}(으)로 돌아왔어!`, sec: 4 });
+      } else if (state.prompt <= 0) { state.prompt = 8; say('워프 패드야. 다른 지역의 안내원이 데려다줬을 때 그 지역으로 돌아갈 수 있어.', { sec: 4 }); }
     }
     if (!moved) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.2)) continue;
@@ -698,7 +732,7 @@ function frame() {
         if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감(B)에서 포켓몬을 키우는 데 쓰자!`); } continue; }
         zone.scene.remove(b);
         zone.pickups.splice(i, 1);
-        setBlocks(state.blocks + 1, { glow: !!b.userData.glow });
+        setBlocks(state.blocks + blockValue(), { glow: !!b.userData.glow });
         sound.pickup();
         if (b.userData.glow && state.glowBlocks === 1) say('형광 블록이야! 숫자블록이 반짝반짝 빛나!', { sec: 5 });
         if (state.blocks === 5) say('블록 5개! 뒤를 봐, 하늘색 다섯이 모양이 됐어!', { sec: 5 });
@@ -707,8 +741,8 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 20) {
-      zone.respawnTimer = 6;
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 8 && !zone.world.indoor) { // 블록은 드물게 다시 생긴다 (대결로 얻는 게 주 수입)
+      zone.respawnTimer = 30;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
         const x = pp.x + rand(-36, 36), zz = pp.z + rand(-36, 36);
@@ -718,22 +752,18 @@ function frame() {
       }
     }
 
-    // ----- 탐험 중엔 포켓몬 체력이 3초에 1씩 천천히 회복된다 -----
-    state.regenTimer -= dt;
-    if (state.regenTimer <= 0) {
-      state.regenTimer = 3;
-      let healed = false;
-      for (const m of party.members) healed = party.regen(m) || healed;
-      if (healed) refreshHud();
-    }
-
     // ----- 몬스터: 닿으면 내 대표 포켓몬과 대결 -----
     for (const c of zone.creatures) {
       if (c.state === 'caught') continue;
       const ev = c.update(dt, pp);
       if (ev === 'meet') {
-        const L = party.leader;
+        let L = party.leader;
         if (!L) { c.becomeShy(); say('대표 포켓몬이 없어!'); break; }
+        if (party.isFainted(L)) {
+          const other = party.healthy()[0];
+          if (other) { attachLeader(other); L = other; say(`${party.name(L)}이(가) 대신 나서!`, { sec: 3 }); }
+          else { c.becomeShy(); say('포켓몬이 모두 기절했어… 오박사 연구소에서 치료받자!', { sec: 5 }); break; }
+        }
         const hp = c.hp ?? c.data.baseHp;
         say(c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${c.data.name}이(가) 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
         battle.start({
@@ -746,6 +776,9 @@ function frame() {
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
+            L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수
+            const reward = c.data.baseAtk; // 이기면 상대 공격력만큼 블록
+            setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             const cnt = state.dex[c.data.id];
             if (c.isBoss) {
@@ -753,18 +786,14 @@ function frame() {
               if (zone.name === 'forest') {
                 removeBoulder();
                 say(`${c.data.name}이(가) 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!`, { sec: 7 });
-              } else say(`${c.data.name}이(가) 친구가 됐어! ${zone.label} 정복!`, { sec: 6 });
+              } else say(`${c.data.name}이(가) 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!`, { sec: 6 });
             } else {
               state.caught++;
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
-              if (already) {
-                const need = evo ? (evo.count || 1) : 0;
-                say(evo && cnt < need ? `${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리. ${need}마리를 잡으면 진화할 수 있어.` : evo ? `${sp.name} 누적 ${cnt}마리! 도감(B)에서 진화 조건을 확인해 봐.` : `${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리.`, { sec: 6 });
-              } else {
-                const more = evo && cnt < (evo.count || 1) ? ` ${evo.count}마리를 잡으면 진화할 수 있어.` : '';
-                say(`${c.data.name}이(가) 친구가 됐어!${more} 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
-              }
+              const winNote = party.canEvolve(L) ? ` ${party.name(L)}이(가) 진화할 수 있어! 도감(B)에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
+              if (already) say(`${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리. 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+              else say(`${c.data.name}이(가) 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
             }
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
             if (!already && party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
@@ -774,8 +803,15 @@ function frame() {
           onLost: () => {
             c.becomeShy();
             c.hp = c.data.baseHp; // 이긴 몬스터는 기운을 되찾는다
-            party.loseReset(L);
-            say(`${party.name(L)}의 체력이 기본(${L.maxHp})으로 돌아갔어. 블록을 모아서 체력을 올리고 다시 도전하자!`, { sec: 7 });
+            L.hp = 0; // 기절. 올린 스탯은 그대로
+            const other = party.healthy()[0];
+            if (other) {
+              attachLeader(other);
+              say(`${party.name(L)}이(가) 기절했어… ${party.name(other)}이(가) 대표로 나서! 오박사님께 가면 치료해 줘.`, { sec: 7 });
+            } else {
+              say('포켓몬이 모두 기절했어… 눈앞이 캄캄해…', { sec: 3 });
+              setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 액션을 누르면 치료해 줘!'), 900);
+            }
             refreshHud();
           },
           onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 모아서 더 강해진 다음 다시 오자!'); refreshHud(); },

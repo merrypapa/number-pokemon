@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, makeInstanced, WHITE_MAT } from './world.js';
 
@@ -156,11 +157,13 @@ export function buildSea(scene) {
     scene.add(train);
     trainBase = train.position.clone();
     obstacles.push({ ax: SEA.spawn.x + 1, az: SEA.spawn.z - 6, bx: SEA.spawn.x + 13, bz: SEA.spawn.z - 6, r: 1.6 });
-    decor.add(makeSignAt('푸른숲행 기차: 가까이 가서 E', SEA.spawn.x + 14, seaHeight(SEA.spawn.x + 14, SEA.spawn.z - 1), SEA.spawn.z - 1, -0.6));
-    block(SEA.spawn.x + 14, SEA.spawn.z - 1, 0.25);
-    decor.add(makeSignAt('물의길 - 물 포켓몬의 바다. 남쪽 끝 섬엔 거북왕!', SEA.spawn.x - 6, seaHeight(SEA.spawn.x - 6, SEA.spawn.z - 3), SEA.spawn.z - 3, 0.4));
-    block(SEA.spawn.x - 6, SEA.spawn.z - 3, 0.25);
   }
+  // 선장 (지역 안내 NPC)
+  const captain = makeNpc({ outfit: 'captain', name: '선장 넷돌' });
+  captain.position.set(SEA.spawn.x - 5, seaHeight(SEA.spawn.x - 5, SEA.spawn.z - 3), SEA.spawn.z - 3);
+  captain.rotation.y = 0.7;
+  decor.add(captain); block(SEA.spawn.x - 5, SEA.spawn.z - 3, 0.6);
+
   // 갈매기 (하늘을 도는 흰 새)
   const gulls = [];
   for (let i = 0; i < 12; i++) {
@@ -191,6 +194,12 @@ export function buildSea(scene) {
   const I = SEA.islands;
   return {
     sun, animate, terrain: SEA_TERRAIN, decor, spawn: SEA.spawn, dark: false,
+    npcs: [{ x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '선장 넷돌', warp: true, lines: (c) => [
+      `물의길에 온 걸 환영하네, ${c.name}! 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
+      `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
+      c.conquered.sea ? '보스 거북왕을 이겼군! 훌륭한 트레이너야.' : `남쪽 끝 섬에 보스 거북왕이 있어. 체력 100! 공격 ${c.zone.targetAtk + 3} 이상, 체력 35쯤 되면 도전해 보게. 전기 포켓몬이면 최고야.`,
+      '여기 블록은 하나가 2개 가치야. 기차역의 기차를 타면 푸른숲으로 돌아가네.',
+    ] }],
     train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],
     bossSpot: { x: I[6].x, z: I[6].z - 3 },

@@ -29,7 +29,10 @@ body.battle #msg { bottom: auto; top: 14px; left: 14px; transform: none; max-wid
 /* 상대 포켓몬: 오른쪽 위 (내 포켓몬 정보와 분리) */
 #battle-enemy { position: fixed; top: 12px; right: 12px; z-index: 10; width: min(46vw, 420px); background: rgba(255,251,230,.96); border: 3px solid #e8453c; border-radius: 18px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 #battle-enemy #battle-name::before { content: '상대 '; font-size: 12px; color: #777; font-weight: 800; }
-.hp-group { display: inline-flex; gap: 3px; margin-right: 8px; margin-bottom: 4px; padding: 2px 3px; border-radius: 7px; background: rgba(0,0,0,.06); }
+.hp-group { display: inline-flex; gap: 3px; margin-right: 6px; margin-bottom: 4px; padding: 2px 3px; border-radius: 7px; background: rgba(0,0,0,.06); vertical-align: middle; }
+.hp-ten { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 22px; border-radius: 5px; border: 2px solid #20232e; font-size: 12px; font-weight: 900; color: #fff; -webkit-text-stroke: .5px #20232e; transition: opacity .25s; }
+.hp-ten.gone { opacity: .15; }
+#battle-mine-hp .hp-ten { width: 36px; height: 16px; font-size: 10px; }
 body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !important; } /* 대결 중엔 상대 정보가 그 자리에 */
 #battle-name { font-size: 22px; font-weight: 900; }
 #battle-hp { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -322,3 +325,9 @@ body.intro #btn-save { display: none !important; }
   #touch-actions { right: 12px; bottom: 80px; gap: 8px; }
   #touch-actions button { width: 64px; height: 64px; font-size: 16px; }
 }
+
+.party-badge.faint { background: #e8453c; color: #fff; }
+.member-row.fainted { opacity: .85; border-style: dashed; }
+.member-head .wins { font-weight: 800; color: #b8860b; }
+.detail-type { font-size: 14px; font-weight: 700; color: #555; margin-top: 4px; }
+.member-actions button small { font-size: 11px; color: #777; font-weight: 700; }

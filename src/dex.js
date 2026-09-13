@@ -169,7 +169,7 @@ export class Dex {
       const t = this.thumbs(sp);
       const chip = document.createElement('button');
       chip.className = 'member-chip' + (party.isLeader(m) ? ' leader' : '') + (sp.id === this.selectedId ? ' sel' : '');
-      chip.innerHTML = `${t ? `<img src="${t.color}" alt="">` : ''}<span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}`;
+      chip.innerHTML = `${t ? `<img src="${t.color}" alt="">` : ''}<span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}${m.hp <= 0 ? '<i>😵</i>' : ''}`;
       chip.onclick = () => this.select(sp.id);
       this.membersEl.appendChild(chip);
     }
@@ -214,7 +214,8 @@ export class Dex {
           <div class="detail-sub">${from ? `${from.name}의 진화형` : `사는 곳: ${zone}`} · 성격: ${sp.personality || '-'} · 잡은 수: <b>${n}마리</b></div>
           <div class="detail-stat"><span class="hp">❤ 기본 체력 ${sp.baseHp}</span> <span class="atk">⚔ 기본 공격 ${sp.baseAtk}</span></div>
           <div class="detail-skills">기술: ${skills}</div>
-          ${evo ? `<div class="detail-evo">진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${sp.name} ${evo.count || 1}마리 잡기 → <b>${evoTo?.name || '?'}</b></div>` : ''}
+          ${ctx?.typeInfo ? (() => { const ti = ctx.typeInfo(sp.type); return `<div class="detail-type">💪 강함: ${ti.strong.length ? ti.strong.join('·') : '-'} &nbsp; 😖 약함: ${ti.weak.length ? ti.weak.join('·') : '-'}</div>`; })() : ''}
+          ${evo ? `<div class="detail-evo">진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기기` : `지역 보스 ${evo.boss}명 이기기`} → <b>${evoTo?.name || '?'}</b></div>` : ''}
         </div>
       </div>`;
     // 내 포켓몬 중 이 종: 한 마리씩 줄로 (키우기·대표·진화)
@@ -226,26 +227,29 @@ export class Dex {
       mine.forEach((m, i) => {
         const leader = party.isLeader(m);
         const canEvolve = party.canEvolve(m);
+        const need = party.evolveNeed(m);
         const next = party.nextSkill(m);
+        const fainted = party.isFainted(m);
+        const costHp = party.upgradeCost(m, 'hp'), costAtk = party.upgradeCost(m, 'atk');
         const row = document.createElement('div');
-        row.className = 'member-row' + (leader ? ' leader' : '');
+        row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
-          <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}
-            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>
+          <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님께 치료</span>' : ''}
+            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}
             <small>기술: ${party.skills(m).map((s) => `${s.name}(${party.damage(m, s)})`).join(' · ')}${next ? ` · 🔒 ${next.name}은 공격 ${next.atk}이면` : ''}</small></div>
           <div class="member-actions">
             <span>블록으로 키우기:</span>
-            <button data-act="hp1" ${blocks < 1 ? 'disabled' : ''}>❤ 체력 +1</button>
-            <button data-act="atk1" ${blocks < 1 ? 'disabled' : ''}>⚔ 공격 +1</button>
-            ${leader ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
-            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.count || 1}마리 잡으면 진화">✨ 진화!</button>` : ''}
+            <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ 체력 +1 <small>(블록 ${costHp})</small></button>
+            <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ 공격 +1 <small>(블록 ${costAtk})</small></button>
+            ${leader || fainted ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
+            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">✨ 진화!</button>` : ''}
           </div>`;
         row.querySelectorAll('button[data-act]').forEach((b) => {
           b.onclick = () => {
             const act = b.dataset.act;
             if (act === 'leader') ctx.onLeader(m);
             else if (act === 'evolve') { ctx.onEvolve(m); this.selectedId = m.speciesId; }
-            else ctx.onUpgrade(m, act.startsWith('hp') ? 'hp' : 'atk', 1);
+            else ctx.onUpgrade(m, act.startsWith('hp') ? 'hp' : 'atk');
             this.render(this.lastCaught || {});
           };
         });
