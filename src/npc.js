@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace } from './util.js';
-import { makeLabelTexture } from './world.js';
+import { makePillSprite } from './world.js';
 import { swapDraftWithModel } from './models.js';
 
 export const NPC_HEIGHT = 1.8; // NPC 모델 키(m)
@@ -32,8 +32,9 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
   if (C.hatKind === 'helmet') { const h = new THREE.Mesh(new THREE.SphereGeometry(0.41, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(C.hat)); h.position.y = 1.6; const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshStandardMaterial({ color: 0xfff1b5, emissive: 0xffd36b, emissiveIntensity: 1 })); lamp.position.set(0, 1.78, 0.38); draft.add(h, lamp); }
   if (C.hatKind === 'bubble') { const b = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.35 })); b.position.y = 1.55; const pack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.25), mat(0xdddddd)); pack.position.set(0, 0.9, -0.42); draft.add(b, pack); }
   if (C.hatKind === 'hair') { const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), mat(C.hat)); hair.position.y = 1.62; const gm = mat(0x333333); for (const gx of [-0.12, 0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14), gm); ring.position.set(gx, 1.58, 0.34); draft.add(ring); } const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.05), mat(0xe8453c)); tie.position.set(0, 0.95, 0.38); draft.add(hair, tie); }
-  const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(name, '#ffffff', '#20232e', 56), transparent: true, depthTest: false }));
-  tag.scale.set(1.6, 0.4, 1); tag.position.y = 2.3;
+  const border = '#' + C.coat.toString(16).padStart(6, '0'); // 옷 색 테두리의 둥근 이름표
+  const tag = makePillSprite(name, { border: C.coat === 0xffffff || C.coat === 0xf4f4f8 ? '#3fb8e8' : border }, 0.85);
+  tag.position.y = 2.3;
   g.add(tag);
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   if (model) swapDraftWithModel(g, model, { scale: NPC_HEIGHT, onSwap: (m) => { m.userData.popT = 1; m.scale.setScalar(NPC_HEIGHT); tag.position.y = NPC_HEIGHT + 0.45; } }); // NPC 는 등장 연출 없이 바로

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
-import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture } from './world.js';
+import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture, makePillSprite } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
@@ -96,8 +96,7 @@ export class Creature {
       ring.rotation.x = Math.PI / 2; ring.position.y = 0.06;
       this.mesh.add(ring);
       this.bossRing = ring;
-      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(`보스 ${data.name}`, '#20232e', '#ffd93d', 56), transparent: true, depthTest: false }));
-      label.scale.set(2.2, 0.55, 1);
+      const label = makePillSprite(`👑 보스 ${data.name}`, { bg: '#ffd93d', fg: '#20232e', border: '#b8860b' }, 0.95);
       label.position.y = 1.65;
       this.mesh.add(label);
     }

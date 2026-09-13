@@ -190,6 +190,39 @@ function distToPath(x, z) {
 
 // ---------- 지역 공용 헬퍼 (동굴·불의산·물의길·꿈의우주가 함께 쓴다) ----------
 /** 글씨 텍스처 (표지판·포탈 안내판) */
+/** 머리 위 이름표: 글자 폭에 맞춘 둥근 알약 + 아래 작은 꼬리 + 그림자. 캔버스 폭이 글자에 맞춰지므로 스프라이트 크기는 tex.userData.aspect(가로/세로)로 맞춘다 */
+export function makePillTexture(text, { bg = 'rgba(255,255,255,.95)', fg = '#20232e', border = '#20232e', size = 60 } = {}) {
+  const c = document.createElement('canvas');
+  const measure = c.getContext('2d'); measure.font = `900 ${size}px sans-serif`;
+  const w = Math.ceil(measure.measureText(text).width + 64), h = 96;
+  c.width = w + 40; c.height = 160;
+  const ctx = c.getContext('2d');
+  ctx.font = `900 ${size}px sans-serif`;
+  const cx = c.width / 2, x = cx - w / 2, y = 18, r = h / 2;
+  const pill = () => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(x + r, y + h); ctx.arc(x + r, y + r, r, Math.PI / 2, Math.PI * 1.5); ctx.closePath();
+  };
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+  pill(); ctx.fillStyle = bg; ctx.fill(); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(cx - 16, y + h - 2); ctx.lineTo(cx + 16, y + h - 2); ctx.lineTo(cx, y + h + 22); ctx.closePath(); // 꼬리
+  ctx.fillStyle = bg; ctx.fill();
+  pill(); ctx.lineWidth = 5; ctx.strokeStyle = border; ctx.stroke();
+  ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, cx, y + h / 2 + 3);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.userData.aspect = c.width / c.height;
+  return tex;
+}
+/** 이름표 스프라이트: 세로 크기(height, 월드 단위)만 정하면 가로는 글자 폭에 맞춘다 */
+export function makePillSprite(text, opts = {}, height = 0.45) {
+  const map = makePillTexture(text, opts);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest: false }));
+  s.scale.set(height * map.userData.aspect, height, 1);
+  return s;
+}
 export function makeLabelTexture(text, bg = '#f5deb3', fg = '#5a3a1a', size = 40) {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 128;
