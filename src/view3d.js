@@ -27,13 +27,18 @@ export class View3D {
     this.scene.add(mesh);
     this.mesh = mesh;
     this.spin = 0.8; this.angle = -0.4; this.drag = null;
+    // 크기 맞추기는 회전을 0으로 되돌린 상태에서 잰다 (돌아가는 도중에 재면 상자 크기가 각도마다 달라져 화면이 커졌다 작아졌다 한다)
+    let fitted = null;
     const fit = () => {
+      const rot = mesh.rotation.y; mesh.rotation.y = 0; mesh.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(mesh);
+      mesh.rotation.y = rot;
       const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-      const r = Math.max(size.x, size.y, size.z, 0.8);
+      const r = Math.max(Math.hypot(size.x, size.z), size.y, 0.8); // 어느 각도로 돌아도 들어가는 반지름
       const dist = r / Math.tan(THREE.MathUtils.degToRad(15)) * 0.6 + r * 0.6;
       this.camera.position.set(0, center.y + r * 0.25, dist);
       this.camera.lookAt(0, center.y, 0);
+      fitted = mesh.userData.model || null;
     };
     fit();
     canvas.onpointerdown = (e) => { this.drag = { x: e.clientX, angle: this.angle }; canvas.setPointerCapture(e.pointerId); };
@@ -45,7 +50,7 @@ export class View3D {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       if (!this.drag) this.angle += this.spin * dt;
       mesh.rotation.y = this.angle;
-      if (++frames % 30 === 0) fit(); // 모델이 나중에 도착해 크기가 바뀌어도 맞춘다
+      if (++frames % 30 === 0 && (mesh.userData.model || null) !== fitted) fit(); // 모델이 나중에 도착했을 때만 다시 맞춘다
       this.renderer.render(this.scene, this.camera);
       this.raf = requestAnimationFrame(loop);
     };
