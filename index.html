@@ -60,10 +60,16 @@
   <div id="battle-banner" class="hidden"></div>
   <div id="battle-float" class="hidden"></div>
 
-  <div id="battle-enemy" class="hidden">
-    <div id="battle-name"></div>
-    <div id="battle-hp"></div>
-    <div id="battle-hpnum"></div>
+  <div id="battle-tag" class="hidden">
+    <div class="tag-name"><span id="tag-name"></span><button id="btn-enemy-info" title="이 포켓몬은?">i</button></div>
+    <div class="tag-bar"><div id="tag-fill"></div></div>
+    <div class="tag-stat"><span id="tag-hp"></span> <span id="tag-atk"></span></div>
+  </div>
+  <div id="poke-info" class="hidden">
+    <div id="poke-info-card">
+      <button id="btn-info-close">✕</button>
+      <div id="poke-info-body"></div>
+    </div>
   </div>
   <div id="battle-mine" class="hidden">
     <div id="battle-mine-name"></div>
@@ -74,7 +80,7 @@
     <div id="battle-msg"></div>
     <div id="battle-controls">
       <div id="battle-skills"></div>
-      <button id="btn-ball" class="hidden">숫자볼 던지기!</button>
+      <button id="btn-ball" class="hidden">넘버볼 던지기!</button>
       <button id="btn-run">나중에</button>
     </div>
     <div id="battle-help">←→ 기술 고르기 · 엔터/스페이스 사용 · 1~4 바로 사용 · ESC 나중에</div>

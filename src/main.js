@@ -232,6 +232,8 @@ function refreshHud() {
 refreshHud();
 
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
+battle.speciesName = (id) => speciesById[id]?.name;
+battle.thumb = (sp) => dex.thumbs(speciesById[sp.id] || sp)?.color || null; // (i) 카드의 그림은 도감 썸네일을 쓴다
 
 // ---------- 내 포켓몬 (파티) ----------
 // 대표 포켓몬 한 마리만 주인공 뒤(숫자블록 다음)를 따라다닌다. 나머지는 볼 안에(화면에 없음).
@@ -305,6 +307,44 @@ dex.bindParty({
   onEvolve: (m) => evolveMember(m),
 });
 
+// ---------- 카메라 시야: 건물·바위산이 주인공을 가리지 않게 ----------
+// solid 구조물(연구소·집·불의산 입구 바위)은 카메라를 그 앞으로 당기고, 나무·바위 같은 장식은 사이에 끼면 잠시 숨긴다.
+const hiddenByCam = new Set();
+function resolveCamera(target) {
+  const head = player.position.clone(); head.y += 1;
+  const dir = target.clone().sub(head); const len = dir.length(); dir.divideScalar(len || 1);
+  let maxT = len;
+  for (const o of hiddenByCam) { o.visible = true; } hiddenByCam.clear();
+  const tmp = new THREE.Vector3();
+  for (const o of zone.world.decor?.children || []) {
+    if (o.isInstancedMesh || !o.position) continue;
+    const r = o.userData.solid ? o.userData.radius : (o.userData.radius || 2.4);
+    tmp.subVectors(o.position, head);
+    const t = tmp.dot(dir); // 시선 위의 가장 가까운 점
+    if (t < -r || t > len + r) continue;
+    const d = tmp.clone().addScaledVector(dir, -Math.max(0, Math.min(len, t))).setY(0).length();
+    if (d > r) continue;
+    if (o.userData.solid) {
+      let enter;
+      if (o.userData.box) { // 건물 모양 상자: 시선을 따라가며 상자에 들어가는 지점을 찾는다 (회전 고려)
+        const { hx, hz } = o.userData.box, c = Math.cos(-o.rotation.y), sn = Math.sin(-o.rotation.y);
+        enter = len;
+        for (let s = 0; s <= len; s += 0.4) {
+          const px = head.x + dir.x * s - o.position.x, pz = head.z + dir.z * s - o.position.z;
+          const lx = px * c - pz * sn, lz = px * sn + pz * c;
+          if (Math.abs(lx) < hx + 0.5 && Math.abs(lz) < hz + 0.5) { enter = s - 0.5; break; }
+        }
+      } else { // 구(반지름 r)에 들어가는 지점 앞에서 멈춘다
+        const under = Math.sqrt(Math.max(0, r * r - d * d));
+        enter = t - under - 0.6;
+      }
+      if (enter < maxT) maxT = Math.max(2.6, enter);
+    } else if (t > 0.8 && t < len && o.visible) { o.visible = false; hiddenByCam.add(o); }
+  }
+  if (maxT < len) return head.addScaledVector(dir, maxT);
+  return target;
+}
+
 // ---------- 지역 이동 ----------
 const fadeEl = document.getElementById('fade');
 let switching = false;
@@ -325,6 +365,7 @@ function switchZone(name, spawn, message) {
     setActiveTerrain(zone.terrain);
     for (const m of partyMeshes()) { from.scene.remove(m); zone.scene.add(m); }
     player.teleport(spawn.x, spawn.z);
+    if (spawn.yaw !== undefined) cam.yaw = spawn.yaw; // 도착 방향이 정해진 곳(연구소 문 앞 등)
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
     if (state.blocks > 0) setBlocks(state.blocks); // 블록 더미를 새 지역 색(불·물·풀·형광)으로 다시 만든다
     applyZoneEnv();
@@ -885,7 +926,7 @@ function frame() {
     if (state.autosave <= 0) autosave();
 
     // 카메라 따라가기 (대결이 막 끝났으면 눈높이에서 바로 원래 자리로 복귀)
-    const camTarget = pp.clone().add(camOffset());
+    const camTarget = resolveCamera(pp.clone().add(camOffset()));
     if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
     else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
     camera.lookAt(pp.x, pp.y + camLookY(), pp.z);

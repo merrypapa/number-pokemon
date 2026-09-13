@@ -458,6 +458,7 @@ export function buildWorld(scene) {
     g.position.set(x, meadowHeight(x, z), z);
     g.rotation.y = rotY;
     block(x, z, w / 2 + 0.6);
+    g.userData = { solid: true, radius: w / 2 + 1.2, box: { hx: w / 2 + 0.6, hz: 2.2 } };
     return g;
   }
   decor.add(house(1, v.x - 13, v.z - 4, 0.5), house(2, v.x + 13, v.z - 4, -0.5), house(3, v.x - 15, v.z + 8, 0.9), house(4, v.x + 15, v.z + 8, -0.9));
@@ -494,6 +495,7 @@ export function buildWorld(scene) {
     for (const o of [body, roof, dome, dish]) o.castShadow = true;
     g.add(body, band, roof, dome, dishPost, dish, door, doorGlass, sign, steps);
     g.position.set(lab.x, meadowHeight(lab.x, lab.z), lab.z);
+    g.userData = { solid: true, radius: 9.5, box: { hx: 8.6, hz: 6.2 } }; // 카메라가 건물 안으로 못 들어가게 (main 의 시야 처리, 건물 모양 상자)
     decor.add(g);
     for (const [ox, oz, r] of [[-5.5, 0, 4.2], [0, 2, 4.2], [5.5, 0, 4.2], [-5.5, -3, 3.2], [5.5, -3, 3.2], [-3.4, -3.8, 2.3], [3.4, -3.8, 2.3]]) block(lab.x + ox, lab.z + oz, r);
     for (const [px, pz] of [[-4, -8.5], [4, -8.5]]) { // 문 앞 화분
@@ -654,6 +656,7 @@ export function buildWorld(scene) {
       g.add(lava);
     }
     g.position.set(vg.x, meadowHeight(vg.x, vg.z), vg.z);
+    g.userData = { solid: true, radius: 13 };
     decor.add(g);
     // 아치 앞으로 이어지는 협곡 길: 양옆에 붉은 바위 벽이 점점 높아지고, 횃불과 용암 줄기가 길을 안내한다
     const torchMat = new THREE.MeshStandardMaterial({ color: 0x4a2a1a });
@@ -973,6 +976,6 @@ export function buildWorld(scene) {
     train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },
     // 다른 지역에서 돌아올 때 도착하는 자리
-    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10 } },
+    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI } }, // 연구소에서 나오면 건물을 등지고 서고, 카메라는 건물 앞(북쪽)에서 본다
   };
 }

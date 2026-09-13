@@ -89,7 +89,8 @@
    "starter": true,
    "personality": "수줍음",
    "starterHp": 10,
-   "starterAtk": 3
+   "starterAtk": 3,
+   "story": "등에 씨앗을 지고 태어난 풀 포켓몬. 햇빛을 받으면 씨앗이 조금씩 자라. 진화하면 이상해풀, 그다음엔 커다란 꽃이 피는 이상해꽃이 돼."
   },
   {
    "id": "m03",
@@ -133,7 +134,8 @@
    "starter": true,
    "personality": "겁 많지만 다정",
    "starterHp": 10,
-   "starterAtk": 3
+   "starterAtk": 3,
+   "story": "볼의 빨간 주머니에 전기를 모아 두는 전기 포켓몬. 기분이 좋으면 꼬리를 흔들고, 놀라면 찌릿 전기를 내보내. 꿈의우주의 별빛을 좋아해."
   },
   {
    "id": "m06",
@@ -169,7 +171,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "무뚝뚝"
+   "personality": "무뚝뚝",
+   "story": "초록 애벌레 포켓몬. 머리의 더듬이에서 냄새를 내서 적을 쫓아. 나뭇잎을 아주 많이 먹고 무럭무럭 자라."
   },
   {
    "id": "m09",
@@ -205,7 +208,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 9,
-   "personality": "장난꾸러기"
+   "personality": "장난꾸러기",
+   "story": "작고 순한 새 포켓몬. 풀숲에 숨어 있다가 모래를 차서 상대를 놀라게 해. 방향을 잘 찾아서 집으로 꼭 돌아와."
   },
   {
    "id": "m11",
@@ -241,7 +245,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 12,
-   "personality": "조용함"
+   "personality": "조용함",
+   "story": "여러 모습으로 진화할 수 있는 신기한 포켓몬. 사는 곳에 따라 몸이 바뀐대. 푸른숲에서는 보송보송한 털로 지내."
   },
   {
    "id": "m08",
@@ -277,7 +282,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 8,
-   "personality": "힘세고 착함"
+   "personality": "힘세고 착함",
+   "story": "이마의 금색 동전을 아끼는 고양이 포켓몬. 반짝이는 것만 보면 모아 두고 싶어 해. 밤에 눈이 빛나."
   },
   {
    "id": "m27",
@@ -320,7 +326,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 20,
-   "personality": "잠꾸러기"
+   "personality": "잠꾸러기",
+   "story": "하루 종일 먹고 자는 커다란 포켓몬. 배가 부르면 어디서든 잠들어. 잘 때 건드리면 느긋하게 일어나 몸통으로 밀어붙여."
   },
   {
    "id": "m28",
@@ -355,7 +362,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 2,
-   "personality": "상냥함"
+   "personality": "상냥함",
+   "story": "머리의 잎사귀로 날씨를 알아내는 풀 포켓몬. 잎에서 좋은 향기가 나서 마음이 편해져. 햇볕 쬐기를 좋아해."
   },
   {
    "id": "m29",
@@ -390,7 +398,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 2,
-   "personality": "바쁨"
+   "personality": "바쁨",
+   "story": "머리가 둘인 새 포켓몬. 두 머리가 서로 다른 생각을 해서 가끔 싸우지만, 달릴 때는 아주 빨라."
   },
   {
    "id": "m30",
@@ -425,7 +434,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 1,
-   "personality": "진지함"
+   "personality": "진지함",
+   "story": "파 줄기를 늘 들고 다니는 오리 포켓몬. 파를 검처럼 휘두르고, 좋은 파를 찾으면 오래 아껴 써."
   },
   {
    "id": "m31",
@@ -460,7 +470,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 3,
-   "personality": "먹보"
+   "personality": "먹보",
+   "story": "입이 아주 큰 식물 포켓몬. 벌레가 오면 덥석 물고, 입에서 신맛 나는 액체를 뿜어. 꼬리로 나뭇가지에 매달려."
   },
   {
    "id": "m32",
@@ -495,7 +506,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "성급함"
+   "personality": "성급함",
+   "story": "화가 나면 얼굴이 빨개지는 원숭이 포켓몬. 성질이 급해서 금방 뛰어들지만, 진정하면 금세 잊어버려."
   },
   {
    "id": "b01",
@@ -538,7 +550,8 @@
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "숲의 수호자"
+   "personality": "숲의 수호자",
+   "story": "등에 커다란 꽃이 활짝 핀 풀 포켓몬. 꽃에서 달콤한 향기가 나서 다른 포켓몬들이 모여든대. 푸른숲의 수호자야."
   },
   {
    "id": "m04",
@@ -574,7 +587,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "부지런"
+   "personality": "부지런",
+   "story": "땅속에서 사는 두더지 포켓몬. 땅을 파고 다니며 뿌리를 먹어. 지상으로 고개만 내밀고 있어서 아래쪽은 아무도 못 봤대."
   },
   {
    "id": "m17",
@@ -610,7 +624,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 7,
-   "personality": "장난꾸러기"
+   "personality": "장난꾸러기",
+   "story": "눈이 없는 대신 초음파로 길을 찾는 박쥐 포켓몬. 어두운 동굴 천장에 매달려 살아."
   },
   {
    "id": "m18",
@@ -646,7 +661,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 8,
-   "personality": "힘세고 착함"
+   "personality": "힘세고 착함",
+   "story": "돌멩이랑 똑같이 생긴 바위 포켓몬. 산길에 굴러다니다가 밟히면 화를 내. 팔로 바위를 오르내려."
   },
   {
    "id": "m07",
@@ -683,7 +699,8 @@
    "evolution": null,
    "favoriteNumber": 7,
    "personality": "밝음",
-   "ability": "light"
+   "ability": "light",
+   "story": "갈기가 불꽃으로 타오르는 말 포켓몬. 태어날 때는 약하지만 뛰어놀며 금세 빨라져. 동굴을 환하게 밝혀 줘."
   },
   {
    "id": "m33",
@@ -718,7 +735,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "외로움"
+   "personality": "외로움",
+   "story": "엄마를 그리워하며 머리에 뼈 투구를 쓴 포켓몬. 뼈다귀를 부메랑처럼 던져. 슬플 때 우는 소리가 동굴에 울려."
   },
   {
    "id": "m34",
@@ -753,7 +771,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "끈적함"
+   "personality": "끈적함",
+   "story": "끈적한 진흙으로 된 독 포켓몬. 좁은 틈으로도 스르륵 들어가. 지나간 자리에는 냄새가 남아."
   },
   {
    "id": "m35",
@@ -788,7 +807,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 8,
-   "personality": "근성"
+   "personality": "근성",
+   "story": "힘 기르기를 좋아하는 격투 포켓몬. 커다란 바위를 들어 올리며 매일 운동해. 절대 지치지 않아."
   },
   {
    "id": "m36",
@@ -823,7 +843,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "호기심"
+   "personality": "호기심",
+   "story": "커다란 겹눈으로 어둠 속을 보는 벌레 포켓몬. 밤에 불빛을 향해 날아들어. 몸의 털이 독가루를 뿜어."
   },
   {
    "id": "b02",
@@ -865,7 +886,8 @@
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "동굴의 지킴이"
+   "personality": "동굴의 지킴이",
+   "story": "바위가 길게 이어진 커다란 뱀 포켓몬. 땅속을 빠르게 파고 다니며 지하동굴을 지켜. 몸이 아주 단단해."
   },
   {
    "id": "m02",
@@ -909,7 +931,8 @@
    "starter": true,
    "personality": "활발",
    "starterHp": 10,
-   "starterAtk": 3
+   "starterAtk": 3,
+   "story": "꼬리 끝의 불꽃이 생명의 불꽃인 도마뱀 포켓몬. 기운이 넘치면 불꽃이 커져. 진화하면 리자드, 그다음엔 날개 달린 리자몽이 돼."
   },
   {
    "id": "m10",
@@ -945,7 +968,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 10,
-   "personality": "따뜻함"
+   "personality": "따뜻함",
+   "story": "꼬리가 여섯 개인 여우 포켓몬. 태어날 땐 꼬리가 하나인데 자라면서 갈라진대. 몸속에 불꽃을 품고 있어."
   },
   {
    "id": "m19",
@@ -981,7 +1005,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 5,
-   "personality": "느릿느릿"
+   "personality": "느릿느릿",
+   "story": "용암 속에서 태어난 불 포켓몬. 몸이 아주 뜨거워서 가까이 가면 땀이 나. 뜨거운 곳을 찾아다녀."
   },
   {
    "id": "m25",
@@ -1017,7 +1042,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "충직함"
+   "personality": "충직함",
+   "story": "주인을 잘 따르는 강아지 포켓몬. 낯선 사람이 오면 큰 소리로 짖어. 용감해서 큰 상대에게도 덤벼."
   },
   {
    "id": "b03",
@@ -1059,7 +1085,8 @@
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "화산의 왕"
+   "personality": "화산의 왕",
+   "story": "커다란 날개로 하늘을 나는 불꽃 포켓몬. 바위도 녹일 만큼 뜨거운 불을 뿜어. 불의산 꼭대기에서 산을 지켜."
   },
   {
    "id": "m05",
@@ -1103,7 +1130,8 @@
    "starter": true,
    "personality": "느긋",
    "starterHp": 10,
-   "starterAtk": 3
+   "starterAtk": 3,
+   "story": "등딱지에 숨어 몸을 지키는 거북 포켓몬. 입에서 물대포를 쏘고, 물속에서 빠르게 헤엄쳐. 진화하면 어니부기, 그다음엔 거북왕이 돼."
   },
   {
    "id": "m20",
@@ -1139,7 +1167,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "멍~"
+   "personality": "멍~",
+   "story": "늘 머리가 아픈 오리 포켓몬. 두통이 심해지면 신기한 힘을 써. 물에 둥둥 떠서 멍하니 지내."
   },
   {
    "id": "m21",
@@ -1175,7 +1204,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "펄떡펄떡"
+   "personality": "펄떡펄떡",
+   "story": "튀어 오르기만 하는 물고기 포켓몬. 약해 보여도 아주 끈질겨. 열심히 튀어 오르면 언젠가 커다란 포켓몬이 될지도?"
   },
   {
    "id": "m22",
@@ -1211,7 +1241,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 3,
-   "personality": "빙글빙글"
+   "personality": "빙글빙글",
+   "story": "배의 소용돌이 무늬가 자랑인 올챙이 포켓몬. 헤엄이 빨라. 무늬를 보고 있으면 잠이 온대."
   },
   {
    "id": "m37",
@@ -1246,7 +1277,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 2,
-   "personality": "조용함"
+   "personality": "조용함",
+   "story": "단단한 조개껍질 속에 사는 물 포켓몬. 혀를 내밀어 모래 속 먹이를 찾아. 위험하면 껍질을 꽉 닫아."
   },
   {
    "id": "m38",
@@ -1281,7 +1313,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "심술"
+   "personality": "심술",
+   "story": "커다란 집게를 자랑하는 게 포켓몬. 모래사장에 구멍을 파고 살아. 집게로 거품을 뿜어 상대를 밀어내."
   },
   {
    "id": "m39",
@@ -1316,7 +1349,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 5,
-   "personality": "느긋"
+   "personality": "느긋",
+   "story": "늘 느긋한 물 포켓몬. 꼬리로 물고기를 낚고, 뭘 물려도 한참 뒤에야 알아채. 걱정이 하나도 없대."
   },
   {
    "id": "m40",
@@ -1356,7 +1390,8 @@
     "wins": 5
    },
    "favoriteNumber": 3,
-   "personality": "둥실둥실"
+   "personality": "둥실둥실",
+   "story": "투명한 몸이 물에 둥둥 뜨는 해파리 포켓몬. 촉수에 독이 있으니 조심. 진화하면 커다란 왕눈해가 돼."
   },
   {
    "id": "b04",
@@ -1398,7 +1433,8 @@
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "바다의 왕"
+   "personality": "바다의 왕",
+   "story": "등의 커다란 물대포로 물을 쏘는 거북 포켓몬. 무거운 몸으로 상대를 밀어붙여. 물의길 남쪽 섬의 왕이야."
   },
   {
    "id": "m15",
@@ -1434,7 +1470,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 20,
-   "personality": "신비로움"
+   "personality": "신비로움",
+   "story": "노래를 불러 상대를 재우는 풍선 포켓몬. 크게 부풀어 오를 수 있어. 꿈의우주에서 별에게 노래를 불러 줘."
   },
   {
    "id": "m23",
@@ -1470,7 +1507,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 5,
-   "personality": "달에서 온 아이"
+   "personality": "달에서 온 아이",
+   "story": "달빛을 좋아하는 페어리 포켓몬. 보름달 밤에 춤을 춰. 손가락을 흔들면 신기한 일이 일어나."
   },
   {
    "id": "m24",
@@ -1505,7 +1543,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 9,
-   "personality": "잠꾸러기"
+   "personality": "잠꾸러기",
+   "story": "하루에 열여덟 시간을 자는 에스퍼 포켓몬. 위험하면 자면서도 순간이동으로 도망가."
   },
   {
    "id": "m26",
@@ -1547,7 +1586,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 13,
-   "personality": "장난스러움"
+   "personality": "장난스러움",
+   "story": "그림자 속에 숨는 고스트 포켓몬. 어둠 속에서 혀로 살짝 핥아 놀라게 해. 장난을 아주 좋아해."
   },
   {
    "id": "m41",
@@ -1583,7 +1623,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 3,
-   "personality": "둥둥"
+   "personality": "둥둥",
+   "story": "자석과 나사로 된 전기 포켓몬. 둥둥 떠다니며 전기를 모아. 인공위성 근처를 맴돌기를 좋아해."
   },
   {
    "id": "b05",
@@ -1631,7 +1672,8 @@
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "우주의 수호자"
+   "personality": "우주의 수호자",
+   "story": "리자몽이 우주의 힘으로 더 강해진 모습. 파란 불꽃을 뿜고 몸이 별처럼 빛나. 꿈의우주 제단을 지키는 가장 센 포켓몬이야."
   },
   {
    "id": "m01e",
@@ -1679,7 +1721,8 @@
    },
    "favoriteNumber": 1,
    "evolvedFrom": "m01",
-   "personality": "든든함"
+   "personality": "든든함",
+   "story": "등의 씨앗이 봉오리가 됐어. 봉오리가 무거워서 뒷다리가 튼튼해졌대. 햇빛을 많이 받으면 꽃이 피어 이상해꽃이 돼."
   },
   {
    "id": "m01ee",
@@ -1727,7 +1770,8 @@
    "evolution": null,
    "favoriteNumber": 1,
    "evolvedFrom": "m01e",
-   "personality": "의젓함"
+   "personality": "의젓함",
+   "story": "등에 커다란 꽃이 활짝 핀 풀 포켓몬. 꽃에서 달콤한 향기가 나서 다른 포켓몬들이 모여든대. 푸른숲의 수호자야."
   },
   {
    "id": "m02e",
@@ -1774,7 +1818,8 @@
    },
    "favoriteNumber": 2,
    "evolvedFrom": "m02",
-   "personality": "용감함"
+   "personality": "용감함",
+   "story": "파이리가 진화한 모습. 성질이 사나워지고 발톱이 날카로워. 뜨거운 불을 뿜어 상대를 놀라게 해."
   },
   {
    "id": "m02ee",
@@ -1821,7 +1866,8 @@
    "evolution": null,
    "favoriteNumber": 2,
    "evolvedFrom": "m02e",
-   "personality": "용감함"
+   "personality": "용감함",
+   "story": "커다란 날개로 하늘을 나는 불꽃 포켓몬. 바위도 녹일 만큼 뜨거운 불을 뿜어. 불의산 꼭대기에서 산을 지켜."
   },
   {
    "id": "m03e",
@@ -1864,7 +1910,8 @@
    "evolution": null,
    "favoriteNumber": 3,
    "evolvedFrom": "m03",
-   "personality": "씩씩함"
+   "personality": "씩씩함",
+   "story": "피카츄가 진화한 모습. 꼬리로 땅에 전기를 흘려보내서 몸을 지켜. 전기를 너무 많이 모으면 몸이 살짝 빛나."
   },
   {
    "id": "m05e",
@@ -1912,7 +1959,8 @@
    },
    "favoriteNumber": 5,
    "evolvedFrom": "m05",
-   "personality": "믿음직함"
+   "personality": "믿음직함",
+   "story": "꼬부기가 진화한 모습. 꼬리와 귀에 보송한 털이 있어. 물살을 가르며 헤엄치고 등딱지로 몸을 지켜."
   },
   {
    "id": "m05ee",
@@ -1958,7 +2006,8 @@
    "evolution": null,
    "favoriteNumber": 5,
    "personality": "듬직함",
-   "evolvedFrom": "m05e"
+   "evolvedFrom": "m05e",
+   "story": "등의 커다란 물대포로 물을 쏘는 거북 포켓몬. 무거운 몸으로 상대를 밀어붙여. 물의길 남쪽 섬의 왕이야."
   },
   {
    "id": "m40e",
@@ -1999,7 +2048,8 @@
    "evolution": null,
    "favoriteNumber": 3,
    "personality": "위엄",
-   "evolvedFrom": "m40"
+   "evolvedFrom": "m40",
+   "story": "독파리가 진화한 모습. 붉은 구슬 같은 눈이 빛나고 촉수가 아주 길어. 파도를 일으켜 바다를 흔들어."
   }
  ]
 }

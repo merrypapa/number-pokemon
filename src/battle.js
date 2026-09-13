@@ -3,12 +3,13 @@ import { colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
 import { effectiveness, effectWord } from './types.js';
 import { tickModel } from './models.js';
+import { strongAgainst, weakTo } from './types.js';
 
 // 대결 장면 (포켓몬 배틀 느낌, 턴제):
 //  1) 카메라가 주인공 어깨 뒤로 내려가고, 내 대표 포켓몬이 앞으로 나가 상대 몬스터를 마주 본다
 //  2) 기술을 고르면 내 포켓몬이 돌진 → 빛덩이가 날아가 상대 체력을 (공격력 × 기술 배수) 만큼 깎는다
 //  3) 상대가 살아 있으면 반격해서 내 체력을 상대 공격력만큼 깎는다. 내 체력이 0이면 진다
-//  4) 상대 체력이 0이면 어질어질 → 숫자볼을 던져 잡는다 (볼이 흔들리고 "잡았다!")
+//  4) 상대 체력이 0이면 어질어질 → 넘버볼을 던져 잡는다 (볼이 흔들리고 "잡았다!")
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const SKILL_KEYS = ['skill1', 'skill2', 'skill3', 'skill4'];
 
@@ -40,11 +41,18 @@ export class Battle {
     Object.assign(this, { input, camera, say, sound, particles, confetti, party });
     this.active = false;
     this.el = document.getElementById('battle');
-    this.nameEl = document.getElementById('battle-name');
-    this.enemyEl = document.getElementById('battle-enemy');
+    this.tagEl = document.getElementById('battle-tag');
+    this.tagNameEl = document.getElementById('tag-name');
+    this.tagFillEl = document.getElementById('tag-fill');
+    this.tagHpEl = document.getElementById('tag-hp');
+    this.tagAtkEl = document.getElementById('tag-atk');
+    this.infoEl = document.getElementById('poke-info');
+    this.infoBodyEl = document.getElementById('poke-info-body');
+    this.infoOpen = false;
+    document.getElementById('btn-enemy-info').onclick = () => this.showInfo();
+    document.getElementById('btn-info-close').onclick = () => this.hideInfo();
+    this.infoEl.onclick = (e) => { if (e.target === this.infoEl) this.hideInfo(); };
     this.mineEl = document.getElementById('battle-mine');
-    this.hpEl = document.getElementById('battle-hp');
-    this.hpNumEl = document.getElementById('battle-hpnum');
     this.mineNameEl = document.getElementById('battle-mine-name');
     this.mineHpEl = document.getElementById('battle-mine-hp');
     this.mineHpNumEl = document.getElementById('battle-mine-hpnum');
@@ -139,8 +147,8 @@ export class Battle {
       }
     }
 
-    this.nameEl.textContent = (creature.isBoss ? '보스 ' : '') + creature.data.name;
-    this.nameEl.style.color = colorForCount(creature.data.favoriteNumber || creature.data.baseHp);
+    this.tagNameEl.textContent = (creature.isBoss ? '보스 ' : '') + creature.data.name;
+    this.tagNameEl.style.color = colorForCount(creature.data.favoriteNumber || creature.data.baseHp);
     const myName = this.party.name(member);
     this.msgEl.textContent = creature.hp === creature.data.baseHp
       ? `${creature.data.name}의 체력은 ${creature.hp}, 공격력은 ${creature.data.baseAtk}! 가라, ${myName}!`
@@ -152,7 +160,8 @@ export class Battle {
     this.runBtn.classList.remove('primary');
     this.render();
     this.el.classList.remove('hidden');
-    this.enemyEl.classList.remove('hidden');
+    this.tagEl.classList.remove('hidden');
+    this.placeTag();
     this.mineEl.classList.remove('hidden');
     document.body.classList.add('battle');
   }
@@ -185,8 +194,12 @@ export class Battle {
 
   render() {
     const c = this.creature, m = this.member;
-    this.cubes(this.hpEl, c.data.baseHp, c.hp, colorForCount(c.data.favoriteNumber || c.data.baseHp));
-    this.hpNumEl.textContent = `체력 ${c.hp} · 공격 ${c.data.baseAtk}`;
+    // 상대: 머리 위 체력 바
+    const ratio = Math.max(0, Math.min(1, c.hp / c.data.baseHp));
+    this.tagFillEl.style.width = `${ratio * 100}%`;
+    this.tagFillEl.style.background = ratio > 0.5 ? '#57b947' : ratio > 0.25 ? '#f7cf3e' : '#e8453c';
+    this.tagHpEl.textContent = `❤ ${c.hp}/${c.data.baseHp}`;
+    this.tagAtkEl.textContent = `· ⚔ ${c.data.baseAtk}`;
     this.mineNameEl.textContent = this.party.name(m);
     this.mineNameEl.style.color = this.party.color(m);
     this.cubes(this.mineHpEl, m.maxHp, Math.max(0, m.hp), this.party.color(m));
@@ -260,7 +273,7 @@ export class Battle {
     this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `체력 0! ${c.data.name}이(가) 어질어질해. 지금 숫자볼을 던지자!`;
+      this.msgEl.textContent = `체력 0! ${c.data.name}이(가) 어질어질해. 지금 넘버볼을 던지자!`;
       this.showBanner('쓰러뜨렸다!');
       this.ballBtn.classList.remove('hidden');
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
@@ -305,7 +318,7 @@ export class Battle {
     this.render();
   }
 
-  // ----- 숫자볼 던지기 -----
+  // ----- 넘버볼 던지기 -----
   throwBall() {
     if (this.phase !== 'dizzy') return;
     const ball = makeBall(colorForCount(this.creature.data.favoriteNumber || this.creature.data.baseHp));
@@ -317,6 +330,39 @@ export class Battle {
     this.ballBtn.classList.add('hidden');
     this.sound.throw_();
   }
+
+  /** 상대 머리 위에 이름표·체력 바를 놓는다 (화면 좌표로 투영) */
+  placeTag() {
+    const c = this.creature;
+    if (!c || !this.active) return;
+    const top = c.mesh.position.clone().add(new THREE.Vector3(0, 1.25 * (c.data.scale || 1), 0));
+    this.camera.updateMatrixWorld();
+    const v = top.project(this.camera);
+    this.tagEl.style.left = `${((v.x + 1) / 2) * window.innerWidth}px`;
+    this.tagEl.style.top = `${Math.max(70, ((1 - v.y) / 2) * window.innerHeight - 12)}px`;
+    this.tagEl.style.visibility = c.mesh.visible && v.z < 1 ? 'visible' : 'hidden';
+  }
+
+  /** (i) 상대 포켓몬 상세: 특징·기술·진화·이야기 */
+  showInfo() {
+    const d = this.creature.data;
+    const strong = strongAgainst(d.type || '노말'), weak = weakTo(d.type || '노말');
+    const skills = (d.skills || []).map((s) => `<span>${s.name} <small>(공격 ${s.atk}↑ ×${s.power})</small></span>`).join('');
+    const evo = d.evolution ? `<div class="row">✨ 진화: 공격 ${d.evolution.atk} · 체력 ${d.evolution.hp} · ${d.evolution.wins ? `대표로 ${d.evolution.wins}번 이기면` : `지역 보스 ${d.evolution.boss}명 이기면`} → <b>${this.speciesName?.(d.evolution.to) || '?'}</b></div>` : '';
+    const img = this.thumb ? this.thumb(d) : null;
+    this.infoBodyEl.innerHTML = `
+      <h2>${img ? `<img src="${img}" alt="">` : ''}<span>${d.isBoss || d.boss ? '보스 ' : ''}${d.name} <small style="font-size:14px;color:#777">${d.type} 속성</small></span></h2>
+      <div class="row">❤ 체력 <b>${this.creature.hp}/${d.baseHp}</b> · ⚔ 공격 <b>${d.baseAtk}</b> · 성격: <b>${d.personality || '-'}</b></div>
+      <div class="row">💪 강함: <b>${strong.length ? strong.join('·') : '-'}</b> &nbsp; 😖 약함: <b>${weak.length ? weak.join('·') : '-'}</b></div>
+      <div class="row">기술: <span class="skill-list">${skills}</span></div>
+      ${evo}
+      <div class="story">📖 ${d.story || '아직 알려진 이야기가 없어.'}</div>
+      <div class="row" style="color:#999;font-size:13px">상대 속성에 강한 포켓몬을 대표로 하면 피해가 1.5배! (닫기: ✕ 또는 ESC)</div>`;
+    this.infoEl.classList.remove('hidden');
+    this.infoOpen = true;
+    this.sound.click();
+  }
+  hideInfo() { this.infoEl.classList.add('hidden'); this.infoOpen = false; }
 
   showFloat(text, color, worldPos = this.targetPoint()) {
     const v = worldPos.project(this.camera);
@@ -365,7 +411,8 @@ export class Battle {
     this.lights = [];
     if (this.fogFar != null) { this.scene.fog.far = this.fogFar; this.fogFar = null; }
     this.el.classList.add('hidden');
-    this.enemyEl.classList.add('hidden');
+    this.tagEl.classList.add('hidden');
+    this.hideInfo();
     this.mineEl.classList.add('hidden');
     document.body.classList.remove('battle');
     this.bannerEl.classList.add('hidden');
@@ -389,6 +436,11 @@ export class Battle {
       this.camera.position.y += (Math.random() - 0.5) * 0.12;
     }
     this.camera.lookAt(this.camLook);
+    this.placeTag();
+    if (this.infoOpen) { // 정보 카드가 열려 있으면 조작은 잠시 멈춘다 (ESC 로 닫기)
+      if (this.input.wasPressed('cancel')) this.hideInfo();
+      return;
+    }
     if (this.phase === 'enter') {
       const t = Math.min(1, this.timer / 0.6);
       m.position.lerpVectors(this.stageFrom, this.stageTo, easeOut(t));
