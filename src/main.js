@@ -70,6 +70,7 @@ let msgTimer = 0;
 // face: 숫자블록 얼굴('1'~'10') 또는 faceImg: 얼굴 그림(데이터 URL, NPC 대화)
 function say(text, { face = null, faceImg = null, sec = 4 } = {}) {
   msgText.textContent = text;
+  msgFace.classList.toggle('photo', !!faceImg);
   if (faceImg) {
     msgFace.innerHTML = `<img src="${faceImg}" alt="">`;
     msgFace.style.background = '#fff';
