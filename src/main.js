@@ -262,6 +262,17 @@ const battle = new Battle({ input, camera, say, sound, particles, confetti, part
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
 battle.onUseBall = (id) => { if ((state.balls[id] || 0) <= 0) return false; state.balls[id]--; refreshHud(); return true; };
+battle.getBlocks = () => state.blocks;
+battle.onBuyBall = (id) => { // 대결 중 그 자리에서 블록으로 넘버볼 만들기
+  const b = BALL_BY_ID[id];
+  if (!b || state.blocks < b.cost) return false;
+  setBlocks(state.blocks - b.cost);
+  if (myStack.mesh && battle.active) { myStack.mesh.visible = false; battle.hidden.push(myStack.mesh); } // 새로 만든 블록 더미는 대결이 끝날 때까지 숨긴다
+  state.balls[id] = (state.balls[id] || 0) + 1;
+  autosave();
+  return true;
+};
+battle.onSwitched = (m) => attachLeader(m); // 대결 중 교체한 포켓몬이 대표가 된다
 battle.thumb = (sp) => dex.thumbs(speciesById[sp.id] || sp)?.color || null; // (i) 카드의 그림은 도감 썸네일을 쓴다
 
 // ---------- 내 포켓몬 (파티) ----------
@@ -1014,6 +1025,7 @@ function frame() {
           creature: c, player, scene: zone.scene, member: L,
           hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
           onCaught: () => {
+            const L = battle.member; // 대결 중 교체했을 수 있다
             c.becomeFriend();
             const already = party.members.find((m) => m.speciesId === c.data.id); // 같은 종은 파티에 한 마리만. 또 잡으면 누적 수만 오른다 (진화 조건)
             const member = already || party.add(c.data.id, c.mesh);
@@ -1045,6 +1057,7 @@ function frame() {
             autosave();
           },
           onLost: () => {
+            const L = battle.member;
             c.becomeShy();
             c.hp = c.data.baseHp; // 이긴 몬스터는 기운을 되찾는다
             L.hp = 0; // 기절. 올린 스탯은 그대로

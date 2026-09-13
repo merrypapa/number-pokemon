@@ -104,6 +104,9 @@ export class Battle {
     this.runBtn = document.getElementById('btn-run');
     this.ballBtn.onclick = () => this.throwBall();
     this.runBtn.onclick = () => this.leave();
+    this.switchBtn = document.getElementById('btn-switch');
+    this.switchEl = document.getElementById('battle-switch');
+    this.switchBtn.onclick = () => this.toggleSwitch();
     this.flying = [];
     this.sel = 0;
   }
@@ -117,6 +120,8 @@ export class Battle {
     this.sel = 0;
     this.skill = null;
     this.shakeCam = 0;
+    this.switched = false; this.firstMember = member; // 교체하면 대결이 끝날 때 새 포켓몬이 대표가 된다
+    this.switchEl.classList.add('hidden');
     if (creature.hp == null) creature.hp = creature.data.baseHp;
     this.input.endFrame();
     this.sound.ensure();
@@ -261,6 +266,9 @@ export class Battle {
       b.onclick = () => { this.sel = i; this.useSkill(i); };
       this.skillsEl.appendChild(b);
     });
+    const others = this.party.members.filter((x) => x !== m && !this.party.isFainted(x));
+    this.switchBtn.classList.toggle('hidden', !(choosing && others.length));
+    if (!choosing) this.switchEl.classList.add('hidden');
     const next = this.party.nextSkill(m);
     if (next) {
       const b = document.createElement('button');
@@ -283,6 +291,51 @@ export class Battle {
     this.meleeHitDone = false;
     this.msgEl.textContent = `${this.party.name(this.member)}의 ${skill.name}!`;
     this.sound.throw_();
+    this.render();
+  }
+
+  // ----- 포켓몬 교체 (한 턴을 쓴다: 바꾸는 동안 상대가 공격해 온다) -----
+  toggleSwitch() {
+    if (this.phase !== 'choose') return;
+    if (!this.switchEl.classList.contains('hidden')) { this.switchEl.classList.add('hidden'); return; }
+    this.switchEl.innerHTML = '';
+    const others = this.party.members.filter((x) => x !== this.member && !this.party.isFainted(x));
+    for (const x of others) {
+      const sp = this.party.species(x);
+      const b = document.createElement('button');
+      b.className = 'switch-btn';
+      const img = this.thumb ? this.thumb(sp) : null;
+      b.innerHTML = `${img ? `<img src="${img}" alt="">` : ''}<span class="sw-name">${sp.name}</span><span class="sw-stat">❤ ${x.hp}/${x.maxHp} · ⚔ ${x.atk}</span>`;
+      b.onclick = () => this.switchTo(x);
+      this.switchEl.appendChild(b);
+    }
+    const tip = document.createElement('div');
+    tip.className = 'ball-tip';
+    tip.textContent = '바꾸는 동안 상대가 한 번 공격해!';
+    this.switchEl.appendChild(tip);
+    this.switchEl.classList.remove('hidden');
+    this.sound.click();
+  }
+  switchTo(x) {
+    if (this.phase !== 'choose' || x === this.member || this.party.isFainted(x)) return;
+    const old = this.member;
+    old.mesh.visible = false;
+    const mesh = x.mesh;
+    this.scene.add(mesh);
+    this.mineScale = this.party.species(x).scale || 1;
+    mesh.visible = true;
+    mesh.scale.setScalar(this.mineScale);
+    mesh.rotation.set(0, Math.atan2(this.dir.x, this.dir.z), 0);
+    mesh.position.copy(this.mineTo);
+    this.member = x;
+    this.switched = true;
+    this.mineFrom = this.mineTo.clone();
+    this.particles.stars(this.scene, this.minePoint(), 14, new THREE.Color(this.party.color(x)).getHex(), 0.4);
+    this.switchEl.classList.add('hidden');
+    this.msgEl.textContent = `가라, ${this.party.name(x)}! 바꾸는 사이에 ${this.creature.data.name}이(가) 공격해 온다!`;
+    this.sound.throw_();
+    this.phase = 'enemyWind';
+    this.phaseStart = this.timer;
     this.render();
   }
 
@@ -418,19 +471,31 @@ export class Battle {
   renderBalls() {
     this.ballsEl.innerHTML = '';
     const stock = this.getBalls(), grade = this.creature.data.grade || 1;
+    const blocks = this.getBlocks ? this.getBlocks() : 0;
+    let crafted = false;
     for (const b of BALLS) {
       const n = stock[b.id] || 0, pct = this.chanceFor(b.tier);
       const btn = document.createElement('button');
-      btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
-      btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
-      btn.disabled = !n;
-      btn.onclick = () => this.throwBall(b.id);
+      if (n) {
+        btn.className = 'ball-btn';
+        btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
+        btn.onclick = () => this.throwBall(b.id);
+      } else if (this.onBuyBall && blocks >= b.cost) { // 볼이 없으면 그 자리에서 블록으로 만들 수 있다
+        btn.className = 'ball-btn craft';
+        btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">만들기</span><span class="ball-pct">블록 ${b.cost}</span>`;
+        btn.onclick = () => { if (this.onBuyBall(b.id)) { this.sound.pickup?.(); this.renderBalls(); } };
+        crafted = true;
+      } else {
+        btn.className = 'ball-btn none';
+        btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×0</span><span class="ball-pct">블록 ${b.cost}</span>`;
+        btn.disabled = true;
+      }
       this.ballsEl.appendChild(btn);
     }
     const tip = document.createElement('div');
     tip.className = 'ball-tip';
-    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률${this.creature.catchBonus ? ` (도망친 만큼 +${this.creature.catchBonus}%)` : ''}`;
+    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률${this.creature.catchBonus ? ` (도망친 만큼 +${this.creature.catchBonus}%)` : ''} · 내 블록 ${blocks}개${crafted ? ' · "만들기"를 누르면 바로 넘버볼이 돼' : ''}`;
     this.ballsEl.appendChild(tip);
   }
   throwBall(ballId = 'bronze') {
@@ -538,6 +603,9 @@ export class Battle {
     document.body.classList.remove('battle');
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');
+    this.switchEl.classList.add('hidden');
+    this.switchBtn.classList.add('hidden');
+    if (this.switched) this.onSwitched?.(this.member, this.firstMember); // 새 포켓몬이 대표로 따라온다
     if (result === 'caught') this.onCaught?.();
     else if (result === 'lost') this.onLost?.();
     else if (result === 'escaped') this.onEscaped?.();

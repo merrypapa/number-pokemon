@@ -402,6 +402,15 @@ body.intro #btn-save { display: none !important; }
 .ball-line { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .ball-btn:active { transform: translateY(2px); box-shadow: none; }
 .ball-btn.none { opacity: .45; cursor: default; }
+.ball-btn.craft { background: #fff4c2; border-style: dashed; }
+.ball-btn.craft .ball-n { color: #b8860b; }
+/* 대결 중 포켓몬 교체 */
+#btn-switch { background: #e3edfa !important; color: #1f5fa8 !important; font-size: 15px !important; }
+#battle-switch { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+.switch-btn { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; border: 3px solid #3fb8e8; background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; font-weight: 900; color: #20232e; }
+.switch-btn img { width: 34px; height: 34px; object-fit: contain; border-radius: 50%; background: #f7f3e3; }
+.switch-btn .sw-stat { font-size: 12px; color: #666; font-weight: 700; }
+.switch-btn:active { transform: translateY(2px); box-shadow: none; }
 .ball-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(var(--ball) 0 48%, #20232e 48% 56%, #fff 56%); border: 2px solid #20232e; }
 .ball-name { font-weight: 900; font-size: 16px; }
 .ball-n { font-weight: 900; font-size: 15px; color: #20232e; }
