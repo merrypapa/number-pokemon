@@ -907,7 +907,7 @@ export function buildWorld(scene) {
   }
 
   // ---------- 숲지기 (지역 안내 NPC): 시작 지점 옆. 액션으로 이야기, 마지막엔 연구소로 데려다준다 ----------
-  const ranger = makeNpc({ outfit: 'ranger', name: '숲지기 하나' });
+  const ranger = makeNpc({ outfit: 'ranger', name: '나미', model: '나미.glb' });
   ranger.position.set(4.5, meadowHeight(4.5, 15), 15);
   ranger.rotation.y = -0.6;
   decor.add(ranger); block(4.5, 15, 0.6);
@@ -962,8 +962,8 @@ export function buildWorld(scene) {
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
-    npcs: [{ x: 4.5, z: 15, mesh: ranger, name: '숲지기 하나', warp: true, lines: (c) => [
-      `안녕, ${c.name}! 난 푸른숲 숲지기 하나야. 여기 포켓몬은 공격 ${c.zone.atkRange} 정도면 편하게 이길 수 있어.`,
+    npcs: [{ x: 4.5, z: 15, mesh: ranger, name: '나미', warp: true, lines: (c) => [
+      `안녕, ${c.name}! 난 푸른숲 안내원 나미야. 여기 포켓몬은 공격 ${c.zone.atkRange} 정도면 편하게 이길 수 있어.`,
       '하얀 블록을 줍거나 대결에서 이기면 블록이 생겨. 도감(B)에서 블록으로 포켓몬을 키우자. 숫자블록 친구가 도와달라고 하면 문제를 풀어 주면 블록을 많이 줘!',
       '불 포켓몬은 풀에 세고, 물은 불에 세고, 풀은 물에 세. 전기는 물에 세지. 상대 속성을 보고 대표를 고르면 훨씬 쉬워!',
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구! 북쪽 산의 동굴 입구가 열렸어. 지하동굴에 가 보자.' : `서북쪽 돌기둥 아레나에 보스 이상해꽃이 있어. 공격 ${c.zone.targetAtk + 2} 이상, 체력 15쯤 되면 도전해 봐. 불 포켓몬이면 더 좋아!`,

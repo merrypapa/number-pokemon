@@ -3,14 +3,14 @@
  "zones": {
   "forest": {
    "name": "푸른숲",
-   "desc": "풀·노말·벌레·전기 포켓몬이 사는 시작 마을 숲",
+   "desc": "풀·노말·벌레·격투 포켓몬이 사는 시작 마을 숲",
    "targetAtk": 4,
    "atkRange": "3~6",
    "blockValue": 1
   },
   "cave": {
    "name": "지하동굴",
-   "desc": "땅·바위·독 포켓몬이 사는 어두운 동굴",
+   "desc": "땅·바위·독·격투·벌레 포켓몬이 사는 어두운 동굴",
    "targetAtk": 8,
    "atkRange": "6~10",
    "blockValue": 1
@@ -88,7 +88,7 @@
    "favoriteNumber": 1,
    "starter": true,
    "personality": "수줍음",
-   "starterHp": 11,
+   "starterHp": 10,
    "starterAtk": 3
   },
   {
@@ -104,7 +104,7 @@
     "color": "#FFD93D",
     "curls": 3
    },
-   "baseHp": 60,
+   "baseHp": 64,
    "baseAtk": 8,
    "skills": [
     {
@@ -132,8 +132,8 @@
    "favoriteNumber": 3,
    "starter": true,
    "personality": "겁 많지만 다정",
-   "starterHp": 9,
-   "starterAtk": 4
+   "starterHp": 10,
+   "starterAtk": 3
   },
   {
    "id": "m06",
@@ -148,7 +148,7 @@
     "color": "#7ED957",
     "dots": 6
    },
-   "baseHp": 9,
+   "baseHp": 8,
    "baseAtk": 1,
    "skills": [
     {
@@ -184,8 +184,8 @@
     "color": "#C9A27E",
     "wingSpots": 9
    },
-   "baseHp": 10,
-   "baseAtk": 2,
+   "baseHp": 9,
+   "baseAtk": 1,
    "skills": [
     {
      "name": "몸통박치기",
@@ -220,7 +220,7 @@
     "color": "#C68E5A",
     "points": 12
    },
-   "baseHp": 11,
+   "baseHp": 12,
    "baseAtk": 2,
    "skills": [
     {
@@ -323,6 +323,181 @@
    "personality": "잠꾸러기"
   },
   {
+   "id": "m28",
+   "name": "치코리타",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "model": "치코리타.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9ADE7B"
+   },
+   "baseHp": 11,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "덩굴채찍",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "잎날가르기",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "상냥함"
+  },
+  {
+   "id": "m29",
+   "name": "두두",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "두두.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#B08968"
+   },
+   "baseHp": 9,
+   "baseAtk": 1,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "쪼기",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "드릴부리",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "바쁨"
+  },
+  {
+   "id": "m30",
+   "name": "파오리",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "파오리.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C9B27A"
+   },
+   "baseHp": 11,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "파뿌리치기",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "베어가르기",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "진지함"
+  },
+  {
+   "id": "m31",
+   "name": "우츠동",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "model": "우츠동.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#F2D94E"
+   },
+   "baseHp": 10,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "덩굴채찍",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "산성",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "먹보"
+  },
+  {
+   "id": "m32",
+   "name": "망키",
+   "type": "격투",
+   "zone": "forest",
+   "catchable": true,
+   "model": "망키.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#E8D8B8"
+   },
+   "baseHp": 10,
+   "baseAtk": 1,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "할퀴기",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "안다리걸기",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "성급함"
+  },
+  {
    "id": "b01",
    "name": "이상해꽃",
    "type": "풀",
@@ -378,8 +553,8 @@
     "color": "#B5651D",
     "paws": 4
    },
-   "baseHp": 16,
-   "baseAtk": 2,
+   "baseHp": 21,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "몸통박치기",
@@ -414,7 +589,7 @@
     "color": "#5B6ED6",
     "ears": 2
    },
-   "baseHp": 19,
+   "baseHp": 22,
    "baseAtk": 3,
    "skills": [
     {
@@ -486,8 +661,8 @@
     "color": "#FF9A3C",
     "glowSegments": 7
    },
-   "baseHp": 21,
-   "baseAtk": 3,
+   "baseHp": 23,
+   "baseAtk": 4,
    "skills": [
     {
      "name": "몸통박치기",
@@ -509,6 +684,146 @@
    "favoriteNumber": 7,
    "personality": "밝음",
    "ability": "light"
+  },
+  {
+   "id": "m33",
+   "name": "탕구리",
+   "type": "땅",
+   "zone": "cave",
+   "catchable": true,
+   "model": "탕구리.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C9A27E"
+   },
+   "baseHp": 19,
+   "baseAtk": 3,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "뼈다귀치기",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "뼈다귀부메랑",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "외로움"
+  },
+  {
+   "id": "m34",
+   "name": "질퍽이",
+   "type": "독",
+   "zone": "cave",
+   "catchable": true,
+   "model": "질퍽이.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#8E6BAA"
+   },
+   "baseHp": 17,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "오물",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "오물폭탄",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "끈적함"
+  },
+  {
+   "id": "m35",
+   "name": "알통몬",
+   "type": "격투",
+   "zone": "cave",
+   "catchable": true,
+   "model": "알통몬.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#7EA0C8"
+   },
+   "baseHp": 16,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "가라테촙",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "지옥의바퀴",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "근성"
+  },
+  {
+   "id": "m36",
+   "name": "콘팡",
+   "type": "벌레",
+   "zone": "cave",
+   "catchable": true,
+   "model": "콘팡.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#B57EDC"
+   },
+   "baseHp": 18,
+   "baseAtk": 3,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "독가루",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "호기심"
   },
   {
    "id": "b02",
@@ -593,8 +908,8 @@
    "favoriteNumber": 2,
    "starter": true,
    "personality": "활발",
-   "starterHp": 9,
-   "starterAtk": 4
+   "starterHp": 10,
+   "starterAtk": 3
   },
   {
    "id": "m10",
@@ -759,8 +1074,8 @@
     "color": "#5DADE2",
     "bubbles": 5
    },
-   "baseHp": 28,
-   "baseAtk": 4,
+   "baseHp": 35,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "몸통박치기",
@@ -787,7 +1102,7 @@
    "favoriteNumber": 5,
    "starter": true,
    "personality": "느긋",
-   "starterHp": 12,
+   "starterHp": 10,
    "starterAtk": 3
   },
   {
@@ -839,7 +1154,7 @@
     "color": "#E85B3C",
     "bubbles": 3
    },
-   "baseHp": 32,
+   "baseHp": 37,
    "baseAtk": 5,
    "skills": [
     {
@@ -875,8 +1190,8 @@
     "color": "#5E8FD9",
     "curls": 1
    },
-   "baseHp": 36,
-   "baseAtk": 5,
+   "baseHp": 38,
+   "baseAtk": 6,
    "skills": [
     {
      "name": "몸통박치기",
@@ -897,6 +1212,151 @@
    "evolution": null,
    "favoriteNumber": 3,
    "personality": "빙글빙글"
+  },
+  {
+   "id": "m37",
+   "name": "셀러",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "셀러.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9A8FD6"
+   },
+   "baseHp": 30,
+   "baseAtk": 4,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "조개껍질조이기",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "물대포",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "조용함"
+  },
+  {
+   "id": "m38",
+   "name": "크랩",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "크랩.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "cube",
+    "color": "#F08A5D"
+   },
+   "baseHp": 33,
+   "baseAtk": 5,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "거품",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "집게망치",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "심술"
+  },
+  {
+   "id": "m39",
+   "name": "야돈",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "야돈.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F5A3B3"
+   },
+   "baseHp": 31,
+   "baseAtk": 5,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "물대포",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "염동력",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "느긋"
+  },
+  {
+   "id": "m40",
+   "name": "독파리",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "독파리.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#7FB3E6"
+   },
+   "baseHp": 28,
+   "baseAtk": 4,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "독침",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "물대포",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": {
+    "to": "m40e",
+    "atk": 10,
+    "hp": 15,
+    "wins": 5
+   },
+   "favoriteNumber": 3,
+   "personality": "둥실둥실"
   },
   {
    "id": "b04",
@@ -953,7 +1413,7 @@
     "color": "#FFB6E1",
     "glow": true
    },
-   "baseHp": 74,
+   "baseHp": 76,
    "baseAtk": 10,
    "skills": [
     {
@@ -989,8 +1449,8 @@
     "color": "#F7B7C6",
     "ears": 2
    },
-   "baseHp": 70,
-   "baseAtk": 9,
+   "baseHp": 72,
+   "baseAtk": 10,
    "skills": [
     {
      "name": "몸통박치기",
@@ -1014,17 +1474,17 @@
   },
   {
    "id": "m24",
-   "name": "캐이시",
+   "name": "케이시",
    "type": "에스퍼",
    "zone": "space",
    "catchable": true,
-   "model": "캐이시.glb",
+   "model": "케이시.glb",
    "scale": 0.9,
    "draftShape": {
     "body": "capsule",
     "color": "#E8C46A"
    },
-   "baseHp": 65,
+   "baseHp": 68,
    "baseAtk": 9,
    "skills": [
     {
@@ -1049,11 +1509,11 @@
   },
   {
    "id": "m26",
-   "name": "고오스",
+   "name": "고우스트",
    "type": "고스트",
    "zone": "space",
    "catchable": true,
-   "model": "고오스.glb",
+   "model": "고우스트.glb",
    "scale": 0.9,
    "draftShape": {
     "body": "sphere",
@@ -1061,7 +1521,7 @@
     "glow": true,
     "translucent": true
    },
-   "baseHp": 79,
+   "baseHp": 80,
    "baseAtk": 10,
    "skills": [
     {
@@ -1078,11 +1538,52 @@
      "name": "나이트헤드",
      "atk": 20,
      "power": 1.5
+    },
+    {
+     "name": "섀도볼",
+     "atk": 30,
+     "power": 1.75
     }
    ],
    "evolution": null,
    "favoriteNumber": 13,
    "personality": "장난스러움"
+  },
+  {
+   "id": "m41",
+   "name": "코일",
+   "type": "전기",
+   "zone": "space",
+   "catchable": true,
+   "model": "코일.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9AA6B2",
+    "glow": true
+   },
+   "baseHp": 60,
+   "baseAtk": 8,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "전기쇼크",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "전자포",
+     "atk": 20,
+     "power": 1.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "둥둥"
   },
   {
    "id": "b05",
@@ -1403,10 +1904,102 @@
      "power": 1.75
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m05ee",
+    "atk": 20,
+    "hp": 30,
+    "boss": 1
+   },
    "favoriteNumber": 5,
    "evolvedFrom": "m05",
    "personality": "믿음직함"
+  },
+  {
+   "id": "m05ee",
+   "name": "거북왕",
+   "type": "물",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "거북왕.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#3B6FB6"
+   },
+   "baseHp": 34,
+   "baseAtk": 11,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "물대포",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 20,
+     "power": 1.5
+    },
+    {
+     "name": "파도타기",
+     "atk": 30,
+     "power": 1.75
+    },
+    {
+     "name": "로켓박치기",
+     "atk": 40,
+     "power": 2
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "듬직함",
+   "evolvedFrom": "m05e"
+  },
+  {
+   "id": "m40e",
+   "name": "왕눈해",
+   "type": "물",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "왕눈해.glb",
+   "scale": 1.4,
+   "draftShape": {
+    "body": "drop",
+    "color": "#4F86C6"
+   },
+   "baseHp": 30,
+   "baseAtk": 10,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "독침",
+     "atk": 10,
+     "power": 1.25
+    },
+    {
+     "name": "물대포",
+     "atk": 20,
+     "power": 1.5
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 30,
+     "power": 1.75
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "위엄",
+   "evolvedFrom": "m40"
   }
  ]
 }

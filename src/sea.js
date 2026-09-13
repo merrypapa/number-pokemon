@@ -159,7 +159,7 @@ export function buildSea(scene) {
     obstacles.push({ ax: SEA.spawn.x + 1, az: SEA.spawn.z - 6, bx: SEA.spawn.x + 13, bz: SEA.spawn.z - 6, r: 1.6 });
   }
   // 선장 (지역 안내 NPC)
-  const captain = makeNpc({ outfit: 'captain', name: '선장 넷돌' });
+  const captain = makeNpc({ outfit: 'captain', name: '리리', model: '리리.glb' });
   captain.position.set(SEA.spawn.x - 5, seaHeight(SEA.spawn.x - 5, SEA.spawn.z - 3), SEA.spawn.z - 3);
   captain.rotation.y = 0.7;
   decor.add(captain); block(SEA.spawn.x - 5, SEA.spawn.z - 3, 0.6);
@@ -194,8 +194,8 @@ export function buildSea(scene) {
   const I = SEA.islands;
   return {
     sun, animate, terrain: SEA_TERRAIN, decor, spawn: SEA.spawn, dark: false,
-    npcs: [{ x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '선장 넷돌', warp: true, lines: (c) => [
-      `물의길에 온 걸 환영하네, ${c.name}! 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
+    npcs: [{ x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '리리', warp: true, lines: (c) => [
+      `물의길에 온 걸 환영해, ${c.name}! 난 선장 리리야. 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
       c.conquered.sea ? '보스 거북왕을 이겼군! 훌륭한 트레이너야.' : `남쪽 끝 섬에 보스 거북왕이 있어. 체력 100! 공격 ${c.zone.targetAtk + 3} 이상, 체력 35쯤 되면 도전해 보게. 전기 포켓몬이면 최고야.`,
       '여기 블록은 하나가 2개 가치야. 기차역의 기차를 타면 푸른숲으로 돌아가네.',

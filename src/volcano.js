@@ -190,7 +190,7 @@ export function buildVolcano(scene) {
   // 포탈 (푸른숲으로) + 안내판
   const P = VOLCANO.portal;
   const portal = makePortal(scene, P.x, volcanoHeight(P.x, P.z), P.z, { color: 0x66e0ff, label: '푸른숲으로 가는 포탈', labelBg: '#3a1a10', labelFg: '#ffd1a8' });
-  const geologist = makeNpc({ outfit: 'scientist', name: '화산학자 셋별' });
+  const geologist = makeNpc({ outfit: 'scientist', name: '봄이', model: '봄이.glb' });
   geologist.position.set(VOLCANO.spawn.x + 5, volcanoHeight(VOLCANO.spawn.x + 5, VOLCANO.spawn.z - 3), VOLCANO.spawn.z - 3);
   geologist.rotation.y = -0.7;
   decor.add(geologist); block(VOLCANO.spawn.x + 5, VOLCANO.spawn.z - 3, 0.6);
@@ -226,8 +226,8 @@ export function buildVolcano(scene) {
 
   return {
     sun, animate, terrain: VOLCANO_TERRAIN, decor, portal: P, spawn: VOLCANO.spawn, dark: false,
-    npcs: [{ x: VOLCANO.spawn.x + 5, z: VOLCANO.spawn.z - 3, mesh: geologist, name: '화산학자 셋별', warp: true, lines: (c) => [
-      `불의산에 온 걸 환영해, ${c.name}! 난 화산을 연구하는 셋별이야. 용암은 뜨거우니 밟지 마.`,
+    npcs: [{ x: VOLCANO.spawn.x + 5, z: VOLCANO.spawn.z - 3, mesh: geologist, name: '봄이', warp: true, lines: (c) => [
+      `불의산에 온 걸 환영해, ${c.name}! 난 화산을 연구하는 봄이야. 용암은 뜨거우니 밟지 마.`,
       `여기 포켓몬은 전부 불 속성이야. 공격 ${c.zone.atkRange}쯤 되면 편하게 이겨. 물 포켓몬(꼬부기!)이 불에 세고, 풀 포켓몬은 불에 약하니 조심.`,
       c.conquered.volcano ? '보스 리자몽을 이겼구나! 정말 강해졌는걸.' : `큰 화산 꼭대기에 보스 리자몽이 있어. 체력 140! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
       '여기 블록은 하나가 2개 가치야. 대결에서 이기면 상대 공격력만큼 블록을 받으니 싸우는 게 이득이지. 포탈로 푸른숲에 돌아갈 수 있어.',

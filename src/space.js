@@ -228,7 +228,7 @@ export function buildSpace(scene) {
   scene.add(rocket);
   const rocketObstacle = { x: rx, z: rz, r: 1.6 };
   obstacles.push(rocketObstacle);
-  const astronaut = makeNpc({ outfit: 'astronaut', name: '우주비행사 다섯' });
+  const astronaut = makeNpc({ outfit: 'astronaut', name: '코리', model: '코리.glb' });
   astronaut.position.set(SPACE.spawn.x - 5, spaceHeight(SPACE.spawn.x - 5, SPACE.spawn.z - 3), SPACE.spawn.z - 3);
   astronaut.rotation.y = 0.7;
   decor.add(astronaut); block(SPACE.spawn.x - 5, SPACE.spawn.z - 3, 0.6);
@@ -259,8 +259,8 @@ export function buildSpace(scene) {
 
   return {
     sun, animate, terrain: SPACE_TERRAIN, decor, spawn: SPACE.spawn, dark: true, gravity: SPACE.gravity,
-    npcs: [{ x: SPACE.spawn.x - 5, z: SPACE.spawn.z - 3, mesh: astronaut, name: '우주비행사 다섯', warp: true, lines: (c) => [
-      `꿈의우주에 온 걸 환영해, ${c.name}! 중력이 약해서 점프가 높고 오래 떠. 화면을 위로 밀면 태양과 행성이 보여.`,
+    npcs: [{ x: SPACE.spawn.x - 5, z: SPACE.spawn.z - 3, mesh: astronaut, name: '코리', warp: true, lines: (c) => [
+      `꿈의우주에 온 걸 환영해, ${c.name}! 난 우주비행사 코리야. 중력이 약해서 점프가 높고 오래 떠. 화면을 위로 밀면 태양과 행성이 보여.`,
       `여기 포켓몬은 페어리·에스퍼·고스트·전기 속성이야. 공격 ${c.zone.atkRange}쯤 되어야 편하게 이겨. 피카츄와 라이츄도 여기 살아.`,
       c.conquered.space ? '보스 메가리자몽을 이겼다니! 넌 최고의 트레이너야.' : `북쪽 제단에 보스 메가리자몽이 있어. 체력 210, 공격 15! 공격 ${c.zone.targetAtk + 3} 이상, 체력 60쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
       '여기 블록은 하나가 3개 가치야. 착륙장의 로켓을 타면 푸른숲으로 돌아가.',

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { addFace } from './util.js';
+import { makeNpc } from './npc.js';
 import { makeLabelTexture } from './world.js';
 import { NUMBER_COLORS } from './palette.js';
 
@@ -151,23 +151,8 @@ export function buildLab(scene) {
   warpLabel.scale.set(3.6, 0.9, 1); warpLabel.position.set(padPos.x, 2.4, padPos.z);
   decor.add(warpPad, warpRing, warpLabel);
 
-  // 오박사: 흰 가운, 회색 머리, 안경, 빨간 넥타이. 이름표를 머리 위에
-  const prof = new THREE.Group();
-  {
-    const coat = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.7, 6, 12), new THREE.MeshStandardMaterial({ color: 0xffffff })); coat.position.y = 0.75;
-    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.05), new THREE.MeshStandardMaterial({ color: 0xe8453c })); tie.position.set(0, 0.95, 0.38);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 14), new THREE.MeshStandardMaterial({ color: 0xffe0bd })); head.position.y = 1.55;
-    addFace(head, { y: 0.02, z: 0.32, spread: 0.12, size: 0.05 });
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), new THREE.MeshStandardMaterial({ color: 0xbfc5cc })); hair.position.y = 1.62;
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-    for (const gx of [-0.12, 0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14), glassMat); ring.position.set(gx, 1.58, 0.34); prof.add(ring); }
-    for (const ax of [-0.5, 0.5]) { const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.5, 4, 8), new THREE.MeshStandardMaterial({ color: 0xffffff })); arm.position.set(ax, 0.85, 0); arm.rotation.z = ax > 0 ? -0.3 : 0.3; prof.add(arm); }
-    for (const lx of [-0.16, 0.16]) { const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.3, 4, 8), new THREE.MeshStandardMaterial({ color: 0x556070 })); leg.position.set(lx, 0.25, 0); prof.add(leg); }
-    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('오박사', '#ffffff', '#20232e', 56), transparent: true, depthTest: false }));
-    tag.scale.set(1.6, 0.4, 1); tag.position.y = 2.25;
-    for (const o of [coat, head]) o.castShadow = true;
-    prof.add(coat, tie, head, hair, tag);
-  }
+  // 오박사 (모델 오박사.glb, 없으면 드래프트)
+  const prof = makeNpc({ outfit: 'professor', name: '오박사', model: '오박사.glb' });
   prof.position.set(5.5, 0, -3.5);
   prof.rotation.y = Math.PI; // 문(남쪽) 쪽을 본다
   decor.add(prof); block(5.5, -3.5, 0.7);

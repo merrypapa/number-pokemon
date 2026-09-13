@@ -209,7 +209,7 @@ export function buildCave(scene) {
   scene.add(portal);
 
   // 광부 아저씨 (지역 안내 NPC)
-  const miner = makeNpc({ outfit: 'miner', name: '광부 둘리' });
+  const miner = makeNpc({ outfit: 'miner', name: '웅이', model: '웅이.glb' });
   miner.position.set(CAVE.spawn.x + 4, caveHeight(CAVE.spawn.x + 4, CAVE.spawn.z - 2), CAVE.spawn.z - 2);
   miner.rotation.y = -0.7;
   scene.add(miner); block(CAVE.spawn.x + 4, CAVE.spawn.z - 2, 0.6);
@@ -236,8 +236,8 @@ export function buildCave(scene) {
     sun, animate, terrain: CAVE_TERRAIN, portal: P, spawn: CAVE.spawn,
     decor,
     dark: true,
-    npcs: [{ x: CAVE.spawn.x + 4, z: CAVE.spawn.z - 2, mesh: miner, name: '광부 둘리', warp: true, lines: (c) => [
-      `여긴 지하동굴이야, ${c.name}. 어두우니까 조심해. 포니타를 잡으면 동굴이 환해진단다.`,
+    npcs: [{ x: CAVE.spawn.x + 4, z: CAVE.spawn.z - 2, mesh: miner, name: '웅이', warp: true, lines: (c) => [
+      `여긴 지하동굴이야, ${c.name}. 난 광부 웅이! 어두우니까 조심해. 포니타를 잡으면 동굴이 환해진단다.`,
       `여기 포켓몬은 땅·바위·독 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 물이나 풀 포켓몬이 바위·땅에 세!`,
       c.conquered.cave ? '보스 롱스톤은 이미 네 친구구나! 대단해.' : `북쪽 끝에 보스 롱스톤이 있어. 체력이 56이나 되니 공격 ${c.zone.targetAtk + 2} 이상, 체력 25쯤 되면 도전해 봐. 물 포켓몬이 있으면 좋아.`,
       '남쪽의 빛나는 포탈로 푸른숲에 돌아갈 수 있어.',
