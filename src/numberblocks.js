@@ -36,11 +36,13 @@ const darkMat = new THREE.MeshStandardMaterial({ color: OUTLINE, roughness: 0.6 
 const cubeGeo = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK);
 const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
 
-// 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채운다.
+// 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채우고,
+// 31 이상은 너무 넓어지지 않게 10칸 기둥(=열이 하나) 으로 쌓는다. 45 = 10짜리 기둥 4개 + 5.
 function shapeFor(number) {
   if (SHAPES[number]) return SHAPES[number];
+  const per = number > 30 ? 10 : 5;
   const cells = [];
-  for (let i = 0; i < number; i++) cells.push({ col: Math.floor(i / 5), row: i % 5 });
+  for (let i = 0; i < number; i++) cells.push({ col: Math.floor(i / per), row: i % per });
   return cells;
 }
 

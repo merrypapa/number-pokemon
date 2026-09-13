@@ -161,7 +161,7 @@ const totalCreatures = Object.values(WILD_TOTAL).reduce((a, b) => a + b, 0);
 const ZONE_COUNT = Object.keys(BUILDERS).length;
 
 // ---------- 게임 상태 ----------
-const MAX_BLOCKS = 30;
+const MAX_BLOCKS = 100; // 블록 더미 최대 (31개부터는 10칸 기둥으로 쌓인다)
 const state = { name: PLAYER_NAME, blocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, regenTimer: 0, prompt: 0, autosave: 90 }; // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById, state.dex);
 const dex = new Dex(creatureData.creatures, Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])));
