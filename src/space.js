@@ -17,7 +17,7 @@ export const SPACE = {
     { x: -25, z: -55, r: 16, h: 2.8 }, { x: 70, z: 0, r: 14, h: 2.4 }, { x: -80, z: 5, r: 15, h: 2.6 }, { x: 25, z: 85, r: 12, h: 1.8 }, { x: 85, z: -85, r: 14, h: 2.6 },
     { x: -85, z: -80, r: 13, h: 2.4 }, { x: 0, z: 40, r: 10, h: 1.4 }, { x: 95, z: 50, r: 12, h: 2.0 },
   ],
-  altar: { x: 0, z: -40, r: 9 }, // 뮤가 사는 꿈의 제단
+  altar: { x: 0, z: -40, r: 9 }, // 메가리자몽이 지키는 꿈의 제단
   gravity: 0.45, // 지구의 절반도 안 되는 중력: 점프가 높고 오래 뜬다
 };
 
@@ -188,7 +188,7 @@ export function buildSpace(scene) {
     scene.add(satellite);
   }
 
-  // ---------- 꿈의 제단: 뮤가 사는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
+  // ---------- 꿈의 제단: 우주 보스 메가리자몽이 지키는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
   {
     const a = SPACE.altar;
     const y = spaceHeight(a.x, a.z);
@@ -229,7 +229,7 @@ export function buildSpace(scene) {
   obstacles.push(rocketObstacle);
   decor.add(makeSignAt('푸른숲행 로켓: 가까이 가서 E', rx - 5, spaceHeight(rx - 5, rz + 4), rz + 4, 0.5, { board: 0x2a1d4d, bg: '#2a1d4d', fg: '#e6dcff', post: 0x4a3c78 }));
   block(rx - 5, rz + 4, 0.25);
-  decor.add(makeSignAt('꿈의우주 - 신비한 포켓몬의 별. 북쪽 제단엔 뮤! 하늘엔 태양과 행성들', SPACE.spawn.x - 7, spaceHeight(SPACE.spawn.x - 7, SPACE.spawn.z - 3), SPACE.spawn.z - 3, 0.4, { board: 0x2a1d4d, bg: '#2a1d4d', fg: '#e6dcff', post: 0x4a3c78 }));
+  decor.add(makeSignAt('꿈의우주 - 신비한 포켓몬의 별. 북쪽 제단엔 보스 메가리자몽! 피카츄와 라이츄도 여기 살아요. 하늘엔 태양과 행성들', SPACE.spawn.x - 7, spaceHeight(SPACE.spawn.x - 7, SPACE.spawn.z - 3), SPACE.spawn.z - 3, 0.4, { board: 0x2a1d4d, bg: '#2a1d4d', fg: '#e6dcff', post: 0x4a3c78 }));
   block(SPACE.spawn.x - 7, SPACE.spawn.z - 3, 0.25);
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color: 0xc9b8ff, transparent: true, opacity: 0.25 }));
   drop.rotation.x = -Math.PI / 2;

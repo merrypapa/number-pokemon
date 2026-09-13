@@ -135,10 +135,15 @@ function getZone(name) {
   const z = makeZone(name, BUILDERS[name]);
   zones[name] = z;
   setActiveTerrain(z.terrain); // Creature 생성 시 지형 높이를 쓰므로 잠시 전환
-  const wild = creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && c.catchable);
+  const wild = creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && !c.special && c.catchable);
   z.world.wildSpots.forEach(([x, zz], i) => { if (wild.length) spawnCreature(z, wild[i % wild.length].id, x, zz); });
   const boss = creatureData.creatures.find((c) => c.zone === z.name && c.boss);
   if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z); c.mesh.userData.bossZone = z.name; }
+  // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
+  for (const c of creatureData.creatures.filter((c) => c.zone === z.name && c.special)) {
+    const spot = z.world.specialSpots?.[c.special];
+    if (spot) spawnCreature(z, c.id, spot.x, spot.z);
+  }
   for (const [x, zz] of z.world.pickupSpots) spawnPickup(z, x, zz);
   applyPendingCaught(z);
   if (name === 'forest' && state.conquered.forest) removeBoulder();

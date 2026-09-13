@@ -38,6 +38,7 @@ export const WORLD = {
   volcanoGate: { x: 88, z: -70 },  // 불의산 입구 (붉은 바위산 아치)
   station: { x: -88, z: 42 },      // 기차역 (물의길로 가는 기차)
   rocketPad: { x: 82, z: 82 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
+  sleepSpot: { x: -96, z: -96, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
     [[0, 33], [0, -9], [-3, -39], [0, -60]],
@@ -803,6 +804,38 @@ export function buildWorld(scene) {
     decor.add(stems, petals);
   }
 
+  // ---------- 북서쪽 구석: 잠만보가 자는 곳 (버섯 고리 + 낙엽 이불 + 팻말) ----------
+  const sleep = WORLD.sleepSpot;
+  {
+    const y0 = meadowHeight(sleep.x, sleep.z);
+    const bed = new THREE.Mesh(new THREE.CircleGeometry(sleep.r, 32), new THREE.MeshStandardMaterial({ color: 0xc9a86a, roughness: 1 }));
+    bed.rotation.x = -Math.PI / 2; bed.position.set(sleep.x, y0 + 0.04, sleep.z);
+    decor.add(bed);
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xe0503a }), stemMatB = new THREE.MeshStandardMaterial({ color: 0xf5eedc }), dotMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2, r = sleep.r + 1.2;
+      const x = sleep.x + Math.cos(a) * r, z = sleep.z + Math.sin(a) * r, h = 1.1 + (i % 3) * 0.35;
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, h, 10), stemMatB);
+      stem.position.set(x, meadowHeight(x, z) + h / 2, z);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
+      cap.position.y = h / 2; cap.scale.y = 0.65;
+      stem.add(cap);
+      for (let k = 0; k < 4; k++) { const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 5), dotMat); const b = k * 1.7 + i; dot.position.set(Math.cos(b) * 0.45, h / 2 + 0.3, Math.sin(b) * 0.45); stem.add(dot); }
+      stem.castShadow = cap.castShadow = true;
+      decor.add(stem);
+      block(x, z, 0.6);
+    }
+    for (let i = 0; i < 24; i++) { // 낙엽
+      const a = rand(0, Math.PI * 2), r = rand(0, sleep.r - 0.5);
+      const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.28, 6), new THREE.MeshStandardMaterial({ color: [0xd98c3a, 0xc46b2c, 0xe6b04a][i % 3], side: THREE.DoubleSide }));
+      leaf.rotation.x = -Math.PI / 2; leaf.rotation.z = a;
+      leaf.position.set(sleep.x + Math.cos(a) * r, y0 + 0.07, sleep.z + Math.sin(a) * r);
+      decor.add(leaf);
+    }
+    decor.add(makeSignAt('쉿! 잠만보가 자는 곳 · 체력이 엄청 높아요', sleep.x - sleep.r - 2.5, meadowHeight(sleep.x - sleep.r - 2.5, sleep.z + 3), sleep.z + 3, 0.9));
+    block(sleep.x - sleep.r - 2.5, sleep.z + 3, 0.25);
+  }
+
   // ---------- 구름, 나비 ----------
   const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
   const cloudItems = [];
@@ -847,6 +880,7 @@ export function buildWorld(scene) {
     // 몬스터 자리 (야생·보스), 블록 자리
     wildSpots: [[-30, 6], [15, 45], [-57, 21], [60, -60], [36, -21], [-21, 36], [60, 18], [-70, 55], [21, -6], [-39, 0], [45, 66], [70, -20], [-18, -39], [51, -39], [-60, 72], [30, 54], [-66, 48], [75, 40], [9, -33], [69, -66], [-30, -72], [-95, -30], [95, -20], [-40, 95], [30, 95], [-100, 70], [100, 50], [-96, -85], [50, -100]],
     bossSpot: { x: WORLD.arena.x, z: WORLD.arena.z },
+    specialSpots: { sleepSpot: { x: WORLD.sleepSpot.x, z: WORLD.sleepSpot.z } }, // creatures.json 의 special 이름 → 자리
     pickupSpots: [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0], [-90, 10], [90, -40], [-30, 90], [40, 90], [-95, 95], [95, 95], [-80, -95], [0, -100]],
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },

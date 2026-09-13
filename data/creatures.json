@@ -1,5 +1,5 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역(forest 푸른숲 / cave 지하동굴 / volcano 불의산 / sea 물의길 / space 꿈의우주 / evolution 진화형), type 은 속성. boss 가 true 면 그 지역의 보스(크고 세다. 잡으면 지역 정복). model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명을 넣으면 그 모델로 교체됩니다. 파일이 없으면 자동으로 드래프트 도형이 나오므로 보스·새 몬스터는 파일명을 미리 적어 두었습니다(같은 이름의 .glb 를 올리면 바로 적용). baseHp/baseAtk 는 야생일 때와 처음 잡았을 때의 체력/공격력, skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 공격력에 곱하는 배수), evolution 은 공격력·체력이 그 값 이상이고 그 종을 count 마리 잡았으면 진화할 수 있는 다음 몬스터입니다. starter 가 true 인 넷 중 하나를 시작할 때 고릅니다.",
+ "_comment": "몬스터 목록. zone 은 사는 지역(forest 푸른숲 / cave 지하동굴 / volcano 불의산 / sea 물의길 / space 꿈의우주 / evolution 진화형), type 은 속성. boss 가 true 면 그 지역의 보스(크고 세다. 잡으면 지역 정복). special 이 있으면 야생 자리 대신 그 지역의 specialSpots[special] 한 곳에만 나오고, sleeping 이 true 면 돌아다니지 않고 자고 있다(닿으면 대결). model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명을 넣으면 그 모델로 교체됩니다. 파일이 없으면 자동으로 드래프트 도형이 나오므로 보스·새 몬스터는 파일명을 미리 적어 두었습니다(같은 이름의 .glb 를 올리면 바로 적용). baseHp/baseAtk 는 야생일 때와 처음 잡았을 때의 체력/공격력, skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 공격력에 곱하는 배수), evolution 은 공격력·체력이 그 값 이상이고 그 종을 count 마리 잡았으면 진화할 수 있는 다음 몬스터입니다. starter 가 true 인 넷 중 하나를 시작할 때 고릅니다.",
  "zones": {
   "forest": {
    "name": "푸른숲",
@@ -69,7 +69,7 @@
    "id": "m03",
    "name": "피카츄",
    "type": "전기",
-   "zone": "forest",
+   "zone": "space",
    "catchable": true,
    "model": "피카츄.glb",
    "scale": 1.0,
@@ -250,6 +250,49 @@
    "evolution": null,
    "favoriteNumber": 8,
    "personality": "힘세고 착함"
+  },
+  {
+   "id": "m27",
+   "name": "잠만보",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "잠만보.glb",
+   "scale": 1.9,
+   "special": "sleepSpot",
+   "sleeping": true,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2F5D62",
+    "belly": "#F5E6C8"
+   },
+   "baseHp": 60,
+   "baseAtk": 1,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "배치기",
+     "atk": 10,
+     "power": 1.5
+    },
+    {
+     "name": "헤비봄버",
+     "atk": 20,
+     "power": 2
+    },
+    {
+     "name": "잠자기",
+     "atk": 30,
+     "power": 3
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 20,
+   "personality": "잠꾸러기"
   },
   {
    "id": "b01",
@@ -1011,20 +1054,20 @@
   },
   {
    "id": "b05",
-   "name": "뮤",
-   "type": "에스퍼",
+   "name": "메가리자몽",
+   "type": "불",
    "zone": "space",
    "catchable": true,
-   "model": "뮤.glb",
-   "scale": 2.2,
+   "model": "메가리자몽.glb",
+   "scale": 2.8,
    "draftShape": {
-    "body": "sphere",
-    "color": "#F7C7E3",
-    "glow": true,
-    "ears": 2
+    "body": "capsule",
+    "color": "#2E4A8C",
+    "flames": 10,
+    "glow": true
    },
-   "baseHp": 65,
-   "baseAtk": 8,
+   "baseHp": 70,
+   "baseAtk": 9,
    "skills": [
     {
      "name": "몸통박치기",
@@ -1032,25 +1075,30 @@
      "power": 1
     },
     {
-     "name": "사이코키네시스",
+     "name": "화염방사",
      "atk": 10,
      "power": 1.5
     },
     {
-     "name": "오로라빔",
+     "name": "불대문자",
      "atk": 20,
      "power": 2
     },
     {
-     "name": "환상빛",
+     "name": "드래곤클로",
      "atk": 30,
      "power": 3
+    },
+    {
+     "name": "블러스트번",
+     "atk": 40,
+     "power": 3.5
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "꿈의 수호자"
+   "personality": "우주의 수호자"
   },
   {
    "id": "m01e",
@@ -1058,7 +1106,7 @@
    "type": "풀",
    "zone": "evolution",
    "catchable": false,
-   "model": null,
+   "model": "이상해풀.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "sphere",
@@ -1090,10 +1138,63 @@
      "power": 3
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m01ee",
+    "atk": 20,
+    "hp": 30,
+    "count": 1
+   },
    "favoriteNumber": 1,
    "evolvedFrom": "m01",
    "personality": "든든함"
+  },
+  {
+   "id": "m01ee",
+   "name": "이상해꽃",
+   "type": "풀",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "이상해꽃.glb",
+   "scale": 1.5,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#3E9B4F",
+    "curls": 5,
+    "paws": 4
+   },
+   "baseHp": 30,
+   "baseAtk": 10,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "덩굴채찍",
+     "atk": 10,
+     "power": 1.5
+    },
+    {
+     "name": "잎날가르기",
+     "atk": 20,
+     "power": 2
+    },
+    {
+     "name": "솔라빔",
+     "atk": 30,
+     "power": 3
+    },
+    {
+     "name": "꽃잎댄스",
+     "atk": 40,
+     "power": 3.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "evolvedFrom": "m01e",
+   "personality": "의젓함"
   },
   {
    "id": "m02e",
@@ -1101,7 +1202,7 @@
    "type": "불",
    "zone": "evolution",
    "catchable": false,
-   "model": null,
+   "model": "리자드.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "capsule",
@@ -1132,18 +1233,70 @@
      "power": 3
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m02ee",
+    "atk": 20,
+    "hp": 30,
+    "count": 1
+   },
    "favoriteNumber": 2,
    "evolvedFrom": "m02",
+   "personality": "용감함"
+  },
+  {
+   "id": "m02ee",
+   "name": "리자몽",
+   "type": "불",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "리자몽.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F26B2B",
+    "flames": 8
+   },
+   "baseHp": 32,
+   "baseAtk": 11,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1
+    },
+    {
+     "name": "불꽃세례",
+     "atk": 10,
+     "power": 1.5
+    },
+    {
+     "name": "화염방사",
+     "atk": 20,
+     "power": 2
+    },
+    {
+     "name": "불대문자",
+     "atk": 30,
+     "power": 3
+    },
+    {
+     "name": "드래곤클로",
+     "atk": 40,
+     "power": 3.5
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "evolvedFrom": "m02e",
    "personality": "용감함"
   },
   {
    "id": "m03e",
    "name": "라이츄",
    "type": "전기",
-   "zone": "evolution",
-   "catchable": false,
-   "model": null,
+   "zone": "space",
+   "catchable": true,
+   "model": "라이츄.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "sphere",
