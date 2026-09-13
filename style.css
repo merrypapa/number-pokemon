@@ -417,6 +417,25 @@ body.battle #btn-code, body.intro #btn-code { display: none !important; }
 #btn-warp { flex-shrink: 0; font-size: 15px; font-weight: 900; padding: 10px 14px; border-radius: 12px; border: 0; background: #3fb8e8; color: #fff; cursor: pointer; box-shadow: 0 3px 0 #2a8ab0; white-space: nowrap; }
 #btn-warp:active { transform: translateY(2px); box-shadow: none; }
 /* 도감 360° 보기 */
-#dex-view { width: 150px; height: 150px; border-radius: 16px; background: #fff; border: 2px solid #ddd; touch-action: none; cursor: grab; flex-shrink: 0; }
+#dex-view { width: 220px; height: 220px; border-radius: 18px; background: radial-gradient(circle at 50% 40%, #fff, #f1efe2); border: 2px solid #ddd; touch-action: none; cursor: grab; flex-shrink: 0; display: block; }
+.detail-view { flex-shrink: 0; }
+.detail-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip { background: #f2f2f2; border-radius: 999px; padding: 3px 10px; font-size: 14px; font-weight: 800; color: #555; }
+.chip.hp { background: #fde8e6; color: #c0392b; } .chip.atk { background: #e3edfa; color: #1f5fa8; } .chip.gold { background: #fff3c4; color: #b8860b; }
+.detail-facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; font-weight: 700; color: #444; line-height: 1.45; }
+.detail-facts li { background: #fafafa; border-radius: 10px; padding: 6px 10px; }
+.detail-facts small { color: #999; font-weight: 700; font-size: 12px; }
+.detail-facts b { color: #333; }
 #dex-view:active { cursor: grabbing; }
 .detail-top .view-hint { font-size: 11px; color: #999; font-weight: 700; text-align: center; margin-top: 2px; }
+/* 좁은 화면(휴대폰): 3D 모습을 위에 크게, 설명은 아래에 가로로 넓게 */
+@media (max-width: 640px) {
+  .detail-top { flex-direction: column; align-items: center; gap: 8px; }
+  .detail-view { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  #dex-view { width: 200px; height: 200px; }
+  .detail-info { width: 100%; }
+  .detail-name { text-align: center; }
+  .detail-chips { justify-content: center; }
+  .detail-facts { font-size: 14px; gap: 5px; }
+  .chip { font-size: 13px; padding: 2px 9px; }
+}

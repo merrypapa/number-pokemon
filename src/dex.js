@@ -266,18 +266,27 @@ export class Dex {
       this.partyEl.appendChild(card);
       return;
     }
-    const skills = (sp.skills || []).map((s) => `${s.name}<small>(공격 ${s.atk}↑ · ×${s.power})</small>`).join(' · ');
+    // 아이가 한눈에 보게: 큰 3D 모습 + 짧은 사실 몇 줄 (사는 곳·체력·공격·강약·볼·기술·진화)
+    const ti = ctx?.typeInfo ? ctx.typeInfo(sp.type) : null;
+    const skills = (sp.skills || []).map((s, i) => (i === 0 ? s.name : `${s.name}<small>(공격 ${s.atk}부터)</small>`)).join(' · ');
+    const evoZone = evo ? (this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || '') : '';
     card.innerHTML = `
       <div class="detail-top">
-        <div><canvas id="dex-view" width="300" height="300"></canvas><div class="view-hint">← 끌어서 돌려 보기 →</div></div>
+        <div class="detail-view"><canvas id="dex-view" width="440" height="440"></canvas><div class="view-hint">← 끌어서 돌려 보기 →</div></div>
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}</div>
-          <div class="detail-sub">${from ? `${from.name}의 진화형` : `사는 곳: ${zone}`} · 성격: ${sp.personality || '-'} · 잡은 수: <b>${n}마리</b></div>
-          <div class="detail-stat"><span class="hp">❤ 기본 체력 ${sp.baseHp}</span> <span class="atk">⚔ 기본 공격 ${sp.baseAtk}</span></div>
-          <div class="detail-skills">기술: ${skills}</div>
-          ${ctx?.typeInfo ? (() => { const ti = ctx.typeInfo(sp.type); return `<div class="detail-type">💪 강함: ${ti.strong.length ? ti.strong.join('·') : '-'} &nbsp; 😖 약함: ${ti.weak.length ? ti.weak.join('·') : '-'}</div>`; })() : ''}
-          <div class="detail-grade">등급 ${gradeStars(sp.grade || 1)} ${GRADES[sp.grade || 1]} · 추천 넘버볼: ${recommendedBall(sp.grade || 1).name}</div>
-          ${evo ? `<div class="detail-evo">진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기기` : `지역 보스 ${evo.boss}명 이기기`} · <b>${this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || ''}에서만</b> → <b>${evoTo?.name || '?'}</b></div>` : ''}
+          <div class="detail-chips">
+            <span class="chip">🏠 ${from ? `${from.name}의 진화형` : zone}</span>
+            <span class="chip hp">❤ ${sp.baseHp}</span><span class="chip atk">⚔ ${sp.baseAtk}</span>
+            <span class="chip gold">${gradeStars(sp.grade || 1)}</span>
+            <span class="chip">잡은 수 ${n}</span>
+          </div>
+          <ul class="detail-facts">
+            ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
+            <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
+            <li>🎯 기술: ${skills}</li>
+            ${evo ? `<li>✨ ${evo.wins ? `${evo.wins}번 이기고` : `보스 ${evo.boss}명 이기고`} 공격 ${evo.atk}·체력 ${evo.hp}가 되면 <b>${evoZone}</b>에서 <b>${evoTo?.name || '?'}</b>로 진화!</li>` : ''}
+          </ul>
         </div>
       </div>`;
     // 내 포켓몬 중 이 종: 한 마리씩 줄로 (키우기·대표·진화)
@@ -299,14 +308,14 @@ export class Dex {
         row.innerHTML = `
           <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님께 치료</span>' : ''}
             <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}
-            <small>기술: ${party.skills(m).map((s) => `${s.name}(${party.damage(m, s)})`).join(' · ')}${next ? ` · 🔒 ${next.name}은 공격 ${next.atk}이면` : ''}</small></div>
+            <small>🎯 ${party.skills(m).map((s) => `${s.name} ${party.damage(m, s)}`).join(' · ')}${next ? ` · 🔒 ${next.name}은 공격 ${next.atk}부터` : ''}</small></div>
           <div class="member-actions">
-            <span>블록으로 키우기:</span>
+            <span>🌱 포켓몬 키우기:</span>
             <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ 체력 +1 <small>(블록 ${costHp})</small></button>
             <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ 공격 +1 <small>(블록 ${costAtk})</small></button>
             ${leader || fainted ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
             ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">✨ 진화!</button>` : ''}
-            ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가서 진화할 수 있어</span>` : ''}
+            ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가면 진화!</span>` : ''}
           </div>`;
         row.querySelectorAll('button[data-act]').forEach((b) => {
           b.onclick = () => {
@@ -340,7 +349,7 @@ export class Dex {
       } else if (this.viewRenderer.domElement !== canvas) { // 카드가 다시 그려져 캔버스가 바뀌었다
         this.viewRenderer.dispose(); this.viewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
       }
-      this.viewRenderer.setSize(300, 300, false);
+      this.viewRenderer.setSize(canvas.width, canvas.height, false);
     } catch (_) { return; }
     const mesh = buildDraftMesh({ ...sp, scale: 1 });
     this.viewScene.add(mesh);
