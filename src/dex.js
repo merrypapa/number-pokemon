@@ -416,7 +416,7 @@ export class Dex {
 
   }
 
-  show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); this.el.classList.remove('hidden'); this.open = true; }
+  show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); if (this.tab === 'balls') this.renderBalls(); this.el.classList.remove('hidden'); this.open = true; }
   hide() { this.el.classList.add('hidden'); this.open = false; this.stopView(); }
   toggle(caughtById) { if (this.open) this.hide(); else this.show(caughtById || this.lastCaught || {}); }
 }

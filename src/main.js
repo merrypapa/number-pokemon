@@ -495,7 +495,7 @@ function updateRide(dt) {
 }
 
 // ---------- 숫자블록 구출 (랜덤 출몰 + 문제 풀기) ----------
-// 지역마다 가끔(45~90초) 숫자블록 친구가 랜덤한 곳에 나타나 도와달라고 한다. 가까이 가서 액션을 누르면 문제가 나오고,
+// 지역마다 가끔(45~90초) 숫자블록 친구가 랜덤한 곳에 나타나 도와달라고 한다. 가까이 가서 구출하기 버튼을 누르면 문제가 나오고,
 // 맞히면 그 숫자만큼 블록이 내 숫자블록에 합쳐진다. 120초 안에 못 구하면 다른 곳으로 가 버린다.
 function dirWord(dx, dz) {
   const a = Math.atan2(dx, -dz); // 북(-z)=0
@@ -503,7 +503,7 @@ function dirWord(dx, dz) {
   return names[Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
 }
 // NPC와 이야기: 힌트를 한 줄씩 돌아가며 말해 준다. 오박사(heal)는 포켓몬을 모두 치료하고,
-// 지역 안내원(warp)은 마지막에 "연구소로 데려다줄까?" 하고 물어본다 (한 번 더 액션 → 연구소로).
+// 지역 안내원(warp)과 이야기하는 동안은 말풍선에 "오박사 연구실 가기" 버튼이 켜진다.
 const warpBtn = document.getElementById('btn-warp');
 let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
 warpBtn.onclick = () => {
@@ -512,6 +512,17 @@ warpBtn.onclick = () => {
   state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
   goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
 };
+// ----- 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차 타기·로켓 타기·구출)이 화면에 버튼으로 나타난다. E키/엔터도 같은 일을 한다 -----
+const ctxBtn = document.getElementById('ctx-action');
+let ctxAction = null, ctxClicked = false;
+ctxBtn.onclick = () => { ctxClicked = true; };
+function offer(label, run) { if (!ctxAction) ctxAction = { label, run }; }
+function updateCtxButton() {
+  const show = ctxAction && !battle.active && !dex.open && !quiz.open && !ride && !switching && !evo;
+  if (!show) { ctxBtn.classList.add('hidden'); return; }
+  if (ctxBtn.textContent !== ctxAction.label) ctxBtn.textContent = ctxAction.label;
+  ctxBtn.classList.remove('hidden');
+}
 function talkTo(npc) {
   state.prompt = 8;
   const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader };
@@ -549,7 +560,7 @@ function spawnRescue(z) {
     nb.help.scale.set(0.8, 0.8, 1);
     nb.mesh.add(nb.help);
     z.rescue = nb;
-    say(`${data.name}이(가) ${dirWord(x - player.position.x, zz - player.position.z)}쪽에서 도와달래! 찾아가서 액션으로 문제를 풀어 구출하자!`, { face: String(number), sec: 7 });
+    say(`${data.name}이(가) ${dirWord(x - player.position.x, zz - player.position.z)}쪽에서 도와달래! 찾아가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
     return;
   }
   z.nbTimer = 20; // 자리를 못 찾으면 잠시 뒤 다시
@@ -822,6 +833,7 @@ function frame() {
 
   if (evo) { // 진화 연출 중에는 그것만 그린다
     updateEvolution(dt);
+    updateCtxButton();
     zone.world.animate?.(t);
     particles.update(dt); confetti.update(dt);
     if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
@@ -830,6 +842,7 @@ function frame() {
     requestAnimationFrame(frame);
     return;
   }
+  ctxAction = null; // 이번 프레임에 할 수 있는 일은 아래 탐험 코드가 다시 채운다
   if (input.wasPressed('dex') && !battle.active && !quiz.open && !ride) dex.toggle(state.dex);
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
@@ -867,7 +880,7 @@ function frame() {
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
       } else if (near(w.labDoor, 1.5)) {
         moved = true;
-        switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 액션을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
+        switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 이야기 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
       }
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
       moved = true;
@@ -879,8 +892,8 @@ function frame() {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
-        if (input.wasPressed('action')) { talkTo(npc); moved = true; break; }
-        else if (state.prompt <= 0) { state.prompt = 8; say(`${npc.name}님이야! 액션을 누르면 이야기할 수 있어.`, { sec: 3, faceImg: npcFace(npc) }); }
+        offer(npc.talking ? `💬 ${npc.name} 계속 듣기` : `💬 ${npc.name}와 이야기`, () => talkTo(npc));
+        if (state.prompt <= 0 && !npc.talking) { state.prompt = 8; say(`${npc.name}님이야! 이야기 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); }
       } else if (npc.talking) { npc.talking = false; warpBtn.classList.add('hidden'); warpNpc = null; } // 멀어지면 버튼도 사라진다
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
@@ -894,8 +907,8 @@ function frame() {
     if (!moved) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.2)) continue;
       const dest = ZONE_INFO[v.to]?.name || v.to;
-      if (input.wasPressed('action')) startRide(v);
-      else if (state.prompt <= 0) { state.prompt = 8; say(v.kind === 'train' ? `기차역이야! 액션을 누르면 기차를 타고 ${dest}(으)로 가!` : `로켓이야! 액션을 누르면 로켓을 타고 ${dest}(으)로 가!`, { sec: 4 }); }
+      offer(v.kind === 'train' ? '🚂 기차 타기' : '🚀 로켓 타기', () => startRide(v));
+      if (state.prompt <= 0) { state.prompt = 8; say(v.kind === 'train' ? `기차역이야! 기차 타기 버튼을 누르면 ${dest}(으)로 가!` : `로켓이야! 로켓 타기 버튼을 누르면 ${dest}(으)로 가!`, { sec: 4 }); }
       break;
     }
 
@@ -986,7 +999,7 @@ function frame() {
               say(`${party.name(L)}이(가) 기절했어… ${party.name(other)}이(가) 대표로 나서! 오박사님께 가면 치료해 줘.`, { sec: 7 });
             } else {
               say('포켓몬이 모두 기절했어… 눈앞이 캄캄해…', { sec: 3 });
-              setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 액션을 누르면 치료해 줘!'), 900);
+              setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 이야기 버튼을 누르면 치료해 줘!'), 900);
             }
             refreshHud();
           },
@@ -1001,7 +1014,7 @@ function frame() {
       }
     }
 
-    // ----- 숫자블록 구출: 랜덤 출몰, 가까이 가서 액션 → 문제 -----
+    // ----- 숫자블록 구출: 랜덤 출몰, 가까이 가서 구출하기 버튼 → 문제 -----
     zone.nbTimer -= dt;
     if (!zone.rescue && zone.nbTimer <= 0 && !zone.world.indoor) spawnRescue(zone);
     const nb = zone.rescue;
@@ -1012,15 +1025,17 @@ function frame() {
       nb.mesh.rotation.y = Math.atan2(pp.x - nb.position.x, pp.z - nb.position.z); // 주인공을 본다
       animateNumberblock(nb.mesh, dt, true);
       if (nb.life <= 0) removeRescue(zone, true);
-      else if (nb.position.distanceTo(pp) < 2.4 && input.wasPressed('action')) {
+      else if (nb.position.distanceTo(pp) < 2.4) offer(`🧩 ${nb.data.name} 구출하기`, () => {
         input.endFrame();
         quiz.ask(nb.data.number, nb.data.name).then((ok) => {
           if (zone.rescue !== nb) return;
           if (ok) rescueSolved(zone, nb);
           else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
         });
-      }
+      });
     }
+    // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
+    if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();
 
     chain.update(dt);
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
@@ -1061,6 +1076,8 @@ function frame() {
     else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
     camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
   }
+  ctxClicked = false;
+  updateCtxButton();
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
 

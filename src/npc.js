@@ -5,7 +5,7 @@ import { swapDraftWithModel } from './models.js';
 
 export const NPC_HEIGHT = 1.8; // NPC 모델 키(m)
 
-// 지역 안내 NPC (드래프트 사람 캐릭터). 가까이 가서 액션을 누르면 한 줄씩 이야기하고, 마지막엔 연구소로 데려다준다.
+// 지역 안내 NPC (드래프트 사람 캐릭터). 가까이 가서 이야기 버튼을 누르면 한 줄씩 이야기하고, 마지막엔 연구소로 데려다준다.
 // outfit: 'ranger'(숲지기) | 'miner'(광부) | 'scientist'(화산학자) | 'captain'(선장) | 'astronaut'(우주비행사) | 'professor'(오박사)
 export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd, model = null } = {}) {
   const g = new THREE.Group();

@@ -694,7 +694,7 @@ export function buildWorld(scene) {
     decor.add(banner);
   }
 
-  // ---------- 기차역: 선로 + 플랫폼 지붕 + 기차 (가까이 가서 액션을 누르면 main 이 기차를 움직여 물의길로 보낸다) ----------
+  // ---------- 기차역: 선로 + 플랫폼 지붕 + 기차 (가까이 가서 기차 타기 버튼을 누르면 main 이 기차를 움직여 물의길로 보낸다) ----------
   const st = WORLD.station;
   let train;
   {
@@ -738,7 +738,7 @@ export function buildWorld(scene) {
   const trainObstacle = { ax: st.x - 13, az: st.z, bx: st.x + 5, bz: st.z, r: 1.6 };
   obstacles.push(trainObstacle);
 
-  // ---------- 로켓 발사장: 콘크리트 판 + 발사탑 + 로켓 (가까이 가서 액션을 누르면 main 이 로켓을 쏘아 꿈의우주로 보낸다) ----------
+  // ---------- 로켓 발사장: 콘크리트 판 + 발사탑 + 로켓 (가까이 가서 로켓 타기 버튼을 누르면 main 이 로켓을 쏘아 꿈의우주로 보낸다) ----------
   const rp = WORLD.rocketPad;
   let rocket, rocketFlame;
   {
@@ -909,7 +909,7 @@ export function buildWorld(scene) {
     }
   }
 
-  // ---------- 숲지기 (지역 안내 NPC): 시작 지점 옆. 액션으로 이야기, 마지막엔 연구소로 데려다준다 ----------
+  // ---------- 숲지기 (지역 안내 NPC): 시작 지점 옆. 이야기 버튼으로 이야기, 말하는 동안 연구소로 데려다준다 ----------
   const ranger = makeNpc({ outfit: 'ranger', name: '나미', model: '나미.glb' });
   ranger.position.set(4.5, meadowHeight(4.5, 15), 15);
   ranger.rotation.y = -0.6;

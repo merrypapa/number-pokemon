@@ -108,6 +108,11 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 #touch-actions button { width: 72px; height: 72px; }
 #touch-actions button.run { background: rgba(255,217,61,.85); }
+/* 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차·로켓·구출)이 있을 때만 나타난다 */
+#ctx-action { position: fixed; right: 16px; bottom: 96px; z-index: 8; padding: 14px 24px; border: 0; border-radius: 999px; background: #ffd93d; color: #333; font-size: 19px; font-weight: 900; box-shadow: 0 4px 0 #c99400, 0 6px 14px rgba(0,0,0,.25); cursor: pointer; animation: ctxPop .25s ease-out; }
+#ctx-action:active { transform: translateY(3px); box-shadow: 0 1px 0 #c99400; }
+body.touch #ctx-action { bottom: 178px; }
+@keyframes ctxPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 #title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; z-index: 20; padding: 28px 16px 22px; pointer-events: none; background: linear-gradient(rgba(60,120,220,.25), rgba(0,0,0,0) 35%, rgba(0,0,0,0) 65%, rgba(20,60,20,.45)); }
 #title > * { pointer-events: auto; }
@@ -349,6 +354,8 @@ body.intro #btn-save { display: none !important; }
   .detail-top img { width: 96px; height: 96px; }
   #touch-actions { right: 12px; bottom: 80px; gap: 8px; }
   #touch-actions button { width: 64px; height: 64px; font-size: 16px; }
+  #ctx-action { font-size: 16px; padding: 12px 18px; right: 12px; }
+  body.touch #ctx-action { bottom: 156px; }
 }
 
 .party-badge.faint { background: #e8453c; color: #fff; }

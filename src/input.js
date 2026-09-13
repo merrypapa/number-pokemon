@@ -37,7 +37,7 @@ export class Input {
 
     // 터치 UI (조이스틱 + 버튼)
     const touch = document.getElementById('touch');
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) touch.classList.remove('hidden');
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) { touch.classList.remove('hidden'); document.body.classList.add('touch'); }
 
     touch.querySelectorAll('button').forEach((btn) => {
       const k = btn.dataset.key;
