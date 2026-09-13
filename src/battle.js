@@ -279,7 +279,7 @@ export class Battle {
     unlocked.forEach((s, i) => {
       const b = document.createElement('button');
       b.className = 'skill' + (i === this.sel ? ' sel' : '');
-      b.innerHTML = `<span class="skill-name">${s.name}</span><span class="skill-dmg">-${this.party.damage(m, s)}</span>`;
+      b.innerHTML = `<span class="skill-name">${s.name}</span><span class="skill-dmg">${this.party.damage(m, s)}</span>`;
       b.disabled = !choosing;
       b.onclick = () => { this.sel = i; this.useSkill(i); };
       this.skillsEl.appendChild(b);
@@ -287,14 +287,6 @@ export class Battle {
     const others = this.party.members.filter((x) => x !== m && !this.party.isFainted(x));
     this.switchBtn.classList.toggle('hidden', !(choosing && others.length));
     if (!choosing && this.switchOpen) this.closeSwitch();
-    const next = this.party.nextSkill(m);
-    if (next) {
-      const b = document.createElement('button');
-      b.className = 'skill locked';
-      b.innerHTML = `<span class="skill-name">🔒 ${next.name}</span><span class="skill-dmg">공격 ${next.atk}이면!</span>`;
-      b.disabled = true;
-      this.skillsEl.appendChild(b);
-    }
     document.documentElement.style.setProperty('--battle-h', `${this.el.offsetHeight}px`); // 좁은 화면에서 내 포켓몬 패널을 조작판 위에 올리기 위해
   }
 
@@ -518,23 +510,19 @@ export class Battle {
   chanceFor(tier) { return Math.min(100, catchChance(this.creature.data.grade || 1, tier) + (this.creature.catchBonus || 0)); }
   renderBalls() {
     this.ballsEl.innerHTML = '';
-    const stock = this.getBalls(), grade = this.creature.data.grade || 1;
-    const blocks = this.getBlocks ? this.getBlocks() : 0;
+    const stock = this.getBalls();
     for (const b of BALLS) {
       const n = stock[b.id] || 0, pct = this.chanceFor(b.tier);
       const btn = document.createElement('button');
       btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
       btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
+      btn.title = `잡힐 확률 ${pct}%`;
       btn.disabled = !n;
       btn.onclick = () => this.throwBall(b.id);
       this.ballsEl.appendChild(btn);
     }
-    const tip = document.createElement('div');
-    tip.className = 'ball-tip';
-    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률${this.creature.catchBonus ? ` (도망친 만큼 +${this.creature.catchBonus}%)` : ''} · 내 블록 ${blocks}개`;
     this.craftBtn.classList.toggle('hidden', !this.onBuyBall); // 팝업에서 블록을 넘버볼로 바꾼다
-    this.ballsEl.appendChild(tip);
   }
   throwBall(ballId = 'bronze') {
     if (this.phase !== 'dizzy') return;

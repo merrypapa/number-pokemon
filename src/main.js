@@ -578,9 +578,10 @@ function talkTo(npc) {
   }
   if (!healed) sound.click();
   const text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
-  say(text, { sec: 9, faceImg: npcFace(npc) });
+  say(text, { sec: 6, faceImg: npcFace(npc) });
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
-  if (npc.warp) { npc.talking = true; warpNpc = npc; warpBtn.classList.remove('hidden'); }
+  npc.talking = true;
+  if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
 }
 /** 연구소로 순간이동 (모두 기절했을 때, 안내원이 데려다줄 때) */
 function goToLab(text, faceImg = null) {
@@ -944,7 +945,7 @@ function frame() {
       } else if (near(w.volcanoGate, 2.4)) {
         moved = true;
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
-      } else if (near(w.labDoor, 1.5)) {
+      } else if (Math.abs(pp.x - w.labDoor.x) < 1.6 && pp.z > w.labDoor.z - 0.6 && pp.z < w.labDoor.z + 1.6) { // 문 앞 네모 칸 (문 틈으로 들어서면 바로)
         moved = true;
         switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 대화 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
       }
@@ -959,8 +960,8 @@ function frame() {
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
         offer('💬 대화', () => talkTo(npc), '💬\n대화');
-        if (state.prompt <= 0 && !npc.talking) { state.prompt = 8; say(`${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); }
-      } else if (npc.talking) { npc.talking = false; warpBtn.classList.add('hidden'); warpNpc = null; } // 멀어지면 버튼도 사라진다
+        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(`${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
+      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
     if (!moved && zone.world.warpPad && near(zone.world.warpPad, 1.5)) {

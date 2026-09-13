@@ -521,8 +521,8 @@ export function buildWorld(scene) {
     const winMat = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.35 });
     for (const wx of [-5.5, -3, 3, 5.5]) { const win = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 0.1), winMat); win.position.set(wx, 3.6, -D / 2 - 0.05); g.add(win); }
     for (const wz of [-2.5, 2.5]) for (const side of [-1, 1]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 1.6), winMat); win.position.set(side * (W / 2 + 0.05), 3.6, wz); g.add(win); }
-    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('오박사 연구소', '#20232e', '#ffd93d', 64), transparent: true }));
-    sign.scale.set(6.5, 1.6, 1); sign.position.set(0, 5.2, -D / 2 - 0.4);
+    const sign = makePillSprite('🏥 오박사 연구소', { bg: '#fffbe6', fg: '#20232e', border: '#3fb8e8' }, 1.6);
+    sign.position.set(0, 5.4, -D / 2 - 0.4);
     const steps = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1.6), stoneMat);
     steps.position.set(0, 0.15, -D / 2 - 0.9);
     for (const o of [body, roof, dome, dish]) o.castShadow = true;
@@ -530,7 +530,11 @@ export function buildWorld(scene) {
     g.position.set(lab.x, meadowHeight(lab.x, lab.z), lab.z);
     g.userData = { solid: true, radius: 9.5, box: { hx: 8.6, hz: 6.2 } }; // 카메라가 건물 안으로 못 들어가게 (main 의 시야 처리, 건물 모양 상자)
     decor.add(g);
-    for (const [ox, oz, r] of [[-5.5, 0, 4.2], [0, 2, 4.2], [5.5, 0, 4.2], [-5.5, -3, 3.2], [5.5, -3, 3.2], [-3.4, -3.8, 2.3], [3.4, -3.8, 2.3]]) block(lab.x + ox, lab.z + oz, r);
+    // 벽은 선분 장애물로 (원 여러 개로는 틈이 생겨 건물을 뚫고 들어가던 버그). 북쪽 벽은 문(폭 2.6) 자리만 비운다
+    const hw = W / 2, hd = D / 2, wr = 0.5, doorHalf = 1.3;
+    for (const [ax, az, bx, bz] of [[-hw, -hd, -doorHalf, -hd], [doorHalf, -hd, hw, -hd], [-hw, hd, hw, hd], [-hw, -hd, -hw, hd], [hw, -hd, hw, hd], [-doorHalf, -hd + 1.2, doorHalf, -hd + 1.2]]) {
+      obstacles.push({ ax: lab.x + ax, az: lab.z + az, bx: lab.x + bx, bz: lab.z + bz, r: wr });
+    }
     for (const [px, pz] of [[-4, -8.5], [4, -8.5]]) { // 문 앞 화분
       const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 0.7, 10), new THREE.MeshStandardMaterial({ color: 0xc46b2c }));
       pot.position.set(lab.x + px, meadowHeight(lab.x + px, lab.z + pz) + 0.35, lab.z + pz);
@@ -721,8 +725,7 @@ export function buildWorld(scene) {
       decor.add(crack);
     }
     // 아치 위 큰 간판 + 길 입구 팻말
-    const banner = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🔥 불의산 입구', '#3a0f08', '#ffb347', 64), transparent: true, depthTest: false }));
-    banner.scale.set(7, 1.75, 1);
+    const banner = makePillSprite('🔥 불의산 입구', { bg: '#3a0f08', fg: '#ffb347', border: '#ff6a1a' }, 2.4);
     banner.position.set(vg.x, meadowHeight(vg.x, vg.z + 3.6) + 5.2, vg.z + 3.6);
     decor.add(banner);
   }
@@ -743,8 +746,7 @@ export function buildWorld(scene) {
     roof.position.set(st.x, y0 + 3.4, st.z + 3.6);
     roof.castShadow = true;
     decor.add(roof);
-    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🚂 기차역 → 물의길', '#1f3a93', '#9fe8ff', 64), transparent: true, depthTest: false })); // 불의산 입구처럼 멀리서 보이는 표지판
-    sign.scale.set(7, 1.75, 1);
+    const sign = makePillSprite('🚂 기차역', { bg: '#1f3a93', fg: '#ffffff', border: '#9fe8ff' }, 2.4); // 불의산 입구처럼 멀리서 보이는 둥근 표지판
     sign.position.set(st.x, y0 + 5.4, st.z + 3.6);
     decor.add(sign);
     for (const dx of [-7, 0, 7]) for (const dz of [1.9, 5.3]) {
@@ -790,8 +792,7 @@ export function buildWorld(scene) {
     tower.position.set(rp.x + 4, y0 + 6, rp.z);
     tower.castShadow = true;
     decor.add(tower); block(rp.x + 4, rp.z, 1.0);
-    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🚀 로켓 발사장 → 꿈의우주', '#1b1236', '#ffd93d', 64), transparent: true, depthTest: false }));
-    sign.scale.set(8, 2, 1);
+    const sign = makePillSprite('🚀 로켓 발사장', { bg: '#1b1236', fg: '#ffd93d', border: '#c9b8ff' }, 2.4);
     sign.position.set(rp.x - 2, y0 + 8.5, rp.z + 10);
     decor.add(sign);
     for (let i = 1; i <= 4; i++) { const arm = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x7f8c8d })); arm.position.set(rp.x + 2.3, y0 + i * 2.6, rp.z); decor.add(arm); }
