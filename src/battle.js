@@ -4,7 +4,7 @@ import { terrainHeight } from './world.js';
 import { effectiveness, effectWord } from './types.js';
 import { tickModel } from './models.js';
 import { strongAgainst, weakTo } from './types.js';
-import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall } from './balls.js';
+import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
 
 // 대결 장면 (포켓몬 배틀 느낌, 턴제):
 //  1) 카메라가 주인공 어깨 뒤로 내려가고, 내 대표 포켓몬이 앞으로 나가 상대 몬스터를 마주 본다
@@ -413,11 +413,13 @@ export class Battle {
 
   // ----- 넘버볼 던지기 -----
   /** 어질어질할 때 넘버볼 고르기 버튼들 (재고·잡힐 확률) */
+  /** 잡힐 확률 (등급·볼 + 이 포켓몬에게 실패한 만큼 보너스) */
+  chanceFor(tier) { return Math.min(100, catchChance(this.creature.data.grade || 1, tier) + (this.creature.catchBonus || 0)); }
   renderBalls() {
     this.ballsEl.innerHTML = '';
     const stock = this.getBalls(), grade = this.creature.data.grade || 1;
     for (const b of BALLS) {
-      const n = stock[b.id] || 0, pct = catchChance(grade, b.tier);
+      const n = stock[b.id] || 0, pct = this.chanceFor(b.tier);
       const btn = document.createElement('button');
       btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
@@ -428,7 +430,7 @@ export class Battle {
     }
     const tip = document.createElement('div');
     tip.className = 'ball-tip';
-    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률`;
+    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률${this.creature.catchBonus ? ` (도망친 만큼 +${this.creature.catchBonus}%)` : ''}`;
     this.ballsEl.appendChild(tip);
   }
   throwBall(ballId = 'bronze') {
@@ -470,7 +472,7 @@ export class Battle {
     this.infoBodyEl.innerHTML = `
       <h2>${img ? `<img src="${img}" alt="">` : ''}<span>${d.isBoss || d.boss ? '보스 ' : ''}${d.name} <small style="font-size:14px;color:#777">${d.type} 속성</small></span></h2>
       <div class="row">❤ 체력 <b>${this.creature.hp}/${d.baseHp}</b> · ⚔ 공격 <b>${d.baseAtk}</b> · 성격: <b>${d.personality || '-'}</b></div>
-      <div class="row">등급: <b>${gradeStars(d.grade || 1)} ${GRADES[d.grade || 1]}</b> · 추천 넘버볼: <b>${recommendedBall(d.grade || 1).name}</b> (${BALLS.map((b) => `${b.name.replace('볼', '')} ${catchChance(d.grade || 1, b.tier)}%`).join(' · ')})</div>
+      <div class="row">등급: <b>${gradeStars(d.grade || 1)} ${GRADES[d.grade || 1]}</b> · 추천 넘버볼: <b>${recommendedBall(d.grade || 1).name}</b></div>
       <div class="row">💪 강함: <b>${strong.length ? strong.join('·') : '-'}</b> &nbsp; 😖 약함: <b>${weak.length ? weak.join('·') : '-'}</b></div>
       <div class="row">기술: <span class="skill-list">${skills}</span></div>
       ${evo}
@@ -689,7 +691,7 @@ export class Battle {
         if (idx > this.wobbles - 1 && local < 0.05) { this.wobbles = idx + 1; this.sound.bounce(); }
       } else this.ball.rotation.z = 0;
       if (bt > 0.3 + 3 * 0.55 + 0.35) {
-        const pct = catchChance(c.data.grade || 1, this.ballSpec?.tier || 1);
+        const pct = this.chanceFor(this.ballSpec?.tier || 1);
         if (this.catchRoll == null) this.catchRoll = Math.random() * 100;
         if (this.catchRoll < pct) this.startSuccess(); else this.startEscape();
       }
@@ -735,8 +737,9 @@ export class Battle {
     this.particles.cubes(this.scene, this.ball.position, 8, this.ballSpec?.color || 0xffffff);
     this.scene.remove(this.ball); this.ball = null;
     this.sound.bounce();
+    c.catchBonus = (c.catchBonus || 0) + RETRY_BONUS;
     this.showBanner('앗, 도망쳤다!');
-    this.msgEl.textContent = `${c.data.name}이(가) ${this.ballSpec?.name || '넘버볼'}에서 튀어나와 도망쳤어… 더 좋은 넘버볼로 다시 도전하자!`;
+    this.msgEl.textContent = `${c.data.name}이(가) ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
     this.runBtn.textContent = '돌아가기 ▶';
   }
   startSuccess() {

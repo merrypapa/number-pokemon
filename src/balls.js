@@ -14,12 +14,14 @@ export function gradeStars(g) { return '★'.repeat(Math.min(6, Math.max(1, g)))
 // 잡힐 확률(%) [등급][볼 등급]. 체력을 0으로 만든 뒤 넘버볼을 던졌을 때. 실패하면 도망간다.
 const CHANCE = {
   1: [100, 100, 100, 100],
-  2: [60, 100, 100, 100],
-  3: [30, 70, 100, 100],
-  4: [15, 45, 80, 100],
-  5: [5, 25, 60, 95],
-  6: [3, 15, 40, 85],
+  2: [65, 100, 100, 100],
+  3: [35, 75, 100, 100],
+  4: [20, 50, 85, 100],
+  5: [10, 35, 70, 98],
+  6: [10, 30, 60, 95],
 };
+// 같은 포켓몬에게 실패할 때마다 잡힐 확률이 이만큼 오른다 (계속 도망만 가지 않게)
+export const RETRY_BONUS = 15;
 export function catchChance(grade, tier) { return (CHANCE[Math.min(6, Math.max(1, grade))] || CHANCE[1])[Math.min(4, Math.max(1, tier)) - 1]; }
 /** 이 등급을 확실히(90% 이상) 잡을 수 있는 가장 싼 볼 */
 export function recommendedBall(grade) { return BALLS.find((b) => catchChance(grade, b.tier) >= 90) || BALLS[BALLS.length - 1]; }

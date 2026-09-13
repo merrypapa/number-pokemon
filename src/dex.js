@@ -97,6 +97,7 @@ export class Dex {
     this.bodyEl.classList.toggle('hidden', tab !== 'poke');
     this.mapViewEl.classList.toggle('hidden', tab !== 'map');
     this.ballsEl.classList.toggle('hidden', tab !== 'balls');
+    if (tab !== 'poke') this.stopView(); else if (this.selectedId && this.byId[this.selectedId]) this.render(this.lastCaught || {});
     if (tab === 'map') this.renderMap(this.lastCaught || {});
     if (tab === 'balls') this.renderBalls();
   }
@@ -268,7 +269,7 @@ export class Dex {
     const skills = (sp.skills || []).map((s) => `${s.name}<small>(공격 ${s.atk}↑ · ×${s.power})</small>`).join(' · ');
     card.innerHTML = `
       <div class="detail-top">
-        ${t ? `<img src="${t.color}" alt="">` : ''}
+        <div><canvas id="dex-view" width="300" height="300"></canvas><div class="view-hint">← 끌어서 돌려 보기 →</div></div>
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}</div>
           <div class="detail-sub">${from ? `${from.name}의 진화형` : `사는 곳: ${zone}`} · 성격: ${sp.personality || '-'} · 잡은 수: <b>${n}마리</b></div>
@@ -321,6 +322,59 @@ export class Dex {
       card.appendChild(list);
     }
     this.partyEl.appendChild(card);
+    this.startView(sp);
+  }
+
+  // ----- 360° 보기: 선택한 포켓몬을 작은 3D 화면에서 천천히 돌리고, 끌면 직접 돌릴 수 있다 -----
+  startView(sp) {
+    const canvas = document.getElementById('dex-view');
+    if (!canvas) return;
+    this.stopView();
+    try {
+      if (!this.viewRenderer) {
+        this.viewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        this.viewScene = new THREE.Scene();
+        this.viewScene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.viewScene.add(sun);
+        this.viewCamera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+      } else if (this.viewRenderer.domElement !== canvas) { // 카드가 다시 그려져 캔버스가 바뀌었다
+        this.viewRenderer.dispose(); this.viewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      }
+      this.viewRenderer.setSize(300, 300, false);
+    } catch (_) { return; }
+    const mesh = buildDraftMesh({ ...sp, scale: 1 });
+    this.viewScene.add(mesh);
+    this.viewMesh = mesh;
+    this.viewSpin = 0.8; this.viewAngle = -0.4; this.viewDrag = null;
+    const fit = () => {
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+      const r = Math.max(size.x, size.y, size.z, 0.8);
+      const dist = r / Math.tan(THREE.MathUtils.degToRad(15)) * 0.6 + r * 0.6;
+      this.viewCamera.position.set(0, center.y + r * 0.25, dist);
+      this.viewCamera.lookAt(0, center.y, 0);
+    };
+    fit();
+    canvas.onpointerdown = (e) => { this.viewDrag = { x: e.clientX, angle: this.viewAngle }; canvas.setPointerCapture(e.pointerId); };
+    canvas.onpointermove = (e) => { if (this.viewDrag) { this.viewAngle = this.viewDrag.angle + (e.clientX - this.viewDrag.x) * 0.02; } };
+    canvas.onpointerup = canvas.onpointercancel = () => { this.viewDrag = null; };
+    let last = performance.now(), frames = 0;
+    const loop = (now) => {
+      if (this.viewMesh !== mesh || !this.open) return;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (!this.viewDrag) this.viewAngle += this.viewSpin * dt;
+      mesh.rotation.y = this.viewAngle;
+      if (++frames % 30 === 0) fit(); // 모델이 나중에 도착해 크기가 바뀌어도 맞춘다
+      this.viewRenderer.render(this.viewScene, this.viewCamera);
+      this.viewRaf = requestAnimationFrame(loop);
+    };
+    this.viewRaf = requestAnimationFrame(loop);
+  }
+  stopView() {
+    if (this.viewRaf) cancelAnimationFrame(this.viewRaf);
+    this.viewRaf = null;
+    if (this.viewMesh && this.viewScene) this.viewScene.remove(this.viewMesh);
+    this.viewMesh = null;
   }
 
   render(caughtById) {
@@ -363,6 +417,6 @@ export class Dex {
   }
 
   show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); this.el.classList.remove('hidden'); this.open = true; }
-  hide() { this.el.classList.add('hidden'); this.open = false; }
+  hide() { this.el.classList.add('hidden'); this.open = false; this.stopView(); }
   toggle(caughtById) { if (this.open) this.hide(); else this.show(caughtById || this.lastCaught || {}); }
 }

@@ -504,14 +504,16 @@ function dirWord(dx, dz) {
 }
 // NPC와 이야기: 힌트를 한 줄씩 돌아가며 말해 준다. 오박사(heal)는 포켓몬을 모두 치료하고,
 // 지역 안내원(warp)은 마지막에 "연구소로 데려다줄까?" 하고 물어본다 (한 번 더 액션 → 연구소로).
+const warpBtn = document.getElementById('btn-warp');
+let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
+warpBtn.onclick = () => {
+  const npc = warpNpc; if (!npc) return;
+  warpBtn.classList.add('hidden'); npc.talking = false; warpNpc = null;
+  state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
+  goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
+};
 function talkTo(npc) {
   state.prompt = 8;
-  if (npc.offer) { // "데려다줄까?"에 대답: 연구소로
-    npc.offer = false; npc.line = -1;
-    state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
-    goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
-    return;
-  }
   const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader };
   const lines = typeof npc.lines === 'function' ? npc.lines(ctx) : npc.lines;
   npc.line = ((npc.line ?? -1) + 1) % lines.length;
@@ -521,9 +523,10 @@ function talkTo(npc) {
     if (healed) { sound.fanfare(); particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5); refreshHud(); }
   }
   if (!healed) sound.click();
-  let text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
-  if (npc.warp && npc.line === lines.length - 1) { npc.offer = true; text += ' 연구소로 데려다줄까? 한 번 더 액션을 누르면 데려다줄게!'; }
+  const text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
   say(text, { sec: 9, faceImg: npcFace(npc) });
+  // 데려다줄 수 있는 안내원과 이야기하는 동안은 말풍선에 "연구실 가기" 버튼이 켜진다
+  if (npc.warp) { npc.talking = true; warpNpc = npc; warpBtn.classList.remove('hidden'); }
 }
 /** 연구소로 순간이동 (모두 기절했을 때, 안내원이 데려다줄 때) */
 function goToLab(text, faceImg = null) {
@@ -878,7 +881,7 @@ function frame() {
       if (d < 2.8) {
         if (input.wasPressed('action')) { talkTo(npc); moved = true; break; }
         else if (state.prompt <= 0) { state.prompt = 8; say(`${npc.name}님이야! 액션을 누르면 이야기할 수 있어.`, { sec: 3, faceImg: npcFace(npc) }); }
-      } else npc.offer = false; // 멀어지면 "데려다줄까?" 제안은 취소
+      } else if (npc.talking) { npc.talking = false; warpBtn.classList.add('hidden'); warpNpc = null; } // 멀어지면 버튼도 사라진다
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
     if (!moved && zone.world.warpPad && near(zone.world.warpPad, 1.5)) {
