@@ -13,8 +13,8 @@ const MAP_REGIONS = [
   { id: 'forest', x: 50, y: 33, rx: 17, ry: 10.5, icon: '🌲', fill: '#7ccf5a', desc: '시작 마을이 있는 숲. 풀·노말·벌레·전기 포켓몬이 산다. 다른 지역으로 가는 길이 모두 여기서 시작해.', how: '처음 시작하는 곳. 다른 지역에서 포탈·기차·로켓으로 돌아온다.' },
   { id: 'cave', x: 50, y: 10, rx: 13, ry: 8, icon: '🕳️', fill: '#4b5261', desc: '어두운 지하 동굴. 땅·바위·독 포켓몬이 산다. 호수와 다리, 빛나는 웅덩이가 있어.', how: '푸른숲 북쪽 큰 구멍에 빠지거나, 푸른숲 보스를 잡은 뒤 북쪽 산의 동굴 입구로. 포탈로 돌아온다.' },
   { id: 'volcano', x: 83, y: 15, rx: 14, ry: 8.5, icon: '🌋', fill: '#c0533a', desc: '용암이 끓는 화산. 불 포켓몬이 산다. 큰 화산 꼭대기에 보스가 있어.', how: '푸른숲 동북쪽 붉은 바위 아치로 들어간다. 포탈로 돌아온다.' },
-  { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어.', how: '푸른숲 서쪽 기차역에서 기차를 탄다 (E). 돌아올 때도 그곳 기차역에서 기차를 탄다.' },
-  { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓을 탄다 (E). 돌아올 때도 착륙장의 로켓을 탄다.' },
+  { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어.', how: '푸른숲 서쪽 기차역에서 기차 타기 버튼을 누른다. 돌아올 때도 그곳 기차역에서 탄다.' },
+  { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓 타기 버튼을 누른다. 돌아올 때도 착륙장의 로켓을 탄다.' },
 ];
 
 export class Dex {
@@ -107,17 +107,25 @@ export class Dex {
     const ctx = this.partyCtx;
     if (!ctx) return;
     const stock = ctx.getBalls?.() || {}, blocks = ctx.getBlocks();
-    let html = `<div class="shop-title">🔮 내 넘버볼</div><div class="shop-grid">`;
+    // 위: 볼마다 한 줄씩 (그림 · 이름 · 몇 개 · 만들기 버튼)
+    let html = `<div class="shop-title">🔮 내 넘버볼</div><div class="ball-rows">`;
     for (const b of BALLS) {
-      const grades = Object.keys(GRADES).filter((g) => catchChance(+g, b.tier) >= 90);
-      html += `<div class="shop-card" style="--ball:${b.css}">
-        <div class="shop-head"><span class="ball-dot" style="--ball:${b.css}"></span>${b.name}</div>
-        <div class="shop-count">${stock[b.id] || 0}<small>개</small></div>
-        <div class="shop-for">${gradeStars(+grades[grades.length - 1] || 1)} 까지 잘 잡혀</div>
+      html += `<div class="ball-row" style="--ball:${b.css}">
+        <span class="ball-dot big"></span><span class="ball-name">${b.name}</span>
+        <span class="ball-count">${stock[b.id] || 0}<small>개</small></span>
         <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>
       </div>`;
     }
-    html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가!</div>`;
+    // 아래: 볼마다 설명 한 줄 (어느 ★까지, 어느 지역 포켓몬까지 잘 잡히는지)
+    const GRADE_ZONE = { 1: 'forest', 2: 'cave', 3: 'sea', 4: 'volcano', 5: 'space' };
+    html += `</div><div class="shop-title">📖 넘버볼 설명</div><div class="ball-infos">`;
+    for (const b of BALLS) {
+      const grades = Object.keys(GRADES).map(Number).filter((g) => catchChance(g, b.tier) >= 90);
+      const top = grades[grades.length - 1] || 1;
+      const where = top >= 6 ? '모든 지역의 보스까지' : `${this.zoneName[GRADE_ZONE[top]] || ''} 포켓몬까지`;
+      html += `<div class="ball-info" style="--ball:${b.css}"><span class="ball-dot"></span><b>${b.name}</b><span>블록 ${b.cost}개 · ${gradeStars(top)} ${where} 잘 잡혀</span></div>`;
+    }
+    html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가! (다시 만나면 잡힐 확률이 15%씩 올라)</div>`;
     this.ballsEl.innerHTML = html;
     this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
   }
@@ -182,10 +190,15 @@ export class Dex {
       svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})" filter="url(#shadow)">
         ${draw[r.id](r)}
         <g transform="translate(0,${r.ry + 1.5})"><rect x="-10" y="-2.6" width="20" height="5.2" rx="2.6" class="label-bg"/><text class="name" y="1.3" text-anchor="middle">${this.zoneName[r.id]}</text></g>
-        ${done ? `<g transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3" fill="#ffd93d" stroke="#20232e" stroke-width=".3"/><text class="star" y="1.3" text-anchor="middle">★</text></g>` : ''}
+        ${done
+          ? `<g class="mark" transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3.4" fill="#ffd93d" stroke="#20232e" stroke-width=".35"/><text class="star" y="1.4" text-anchor="middle">★</text></g>`
+          : `<g class="mark" transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3.2" fill="#f4f4f8" stroke="#20232e" stroke-width=".35"/><text class="lock" y="1.2" text-anchor="middle">?</text></g>`}
         ${here === r.id ? `<g class="pin" transform="translate(0,${-r.ry - 2})"><path d="M0,0 L-2.4,-4 A2.6,2.6 0 1 1 2.4,-4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-4.6" r="1" fill="#fff"/></g>` : ''}
       </g>`;
     }
+    svg += `<g class="legend" transform="translate(-3,63)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
+      <circle cx="3.2" cy="-.3" r="1.8" fill="#ffd93d" stroke="#20232e" stroke-width=".25"/><text x="6" y=".9">정복한 곳</text>
+      <circle cx="24" cy="-.3" r="1.8" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><text x="26.8" y=".9">아직 정복 전</text></g>`;
     svg += '</svg>';
     this.mapEl.innerHTML = svg;
     this.mapEl.querySelectorAll('.region').forEach((g) => { g.onclick = () => { this.mapSel = g.dataset.zone; this.renderMap(caughtById); }; });

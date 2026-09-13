@@ -190,7 +190,7 @@ party.zoneOf = () => zone?.name || 'forest';
 const dex = new Dex(creatureData.creatures, Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])));
 dex.lastCaught = state.dex;
 const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && !c.boss && !c.evolvedFrom), sound });
-for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); }); // 모델이 오면 도감/선택 그림도 새로
+for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
@@ -222,16 +222,36 @@ function setBlocks(n, { glow = false } = {}) {
 const hudBlocks = document.getElementById('hud-blocks');
 const hudLeader = document.getElementById('hud-leader');
 const hudBlockIcon = document.querySelector('.hud-icon.block');
-const hudPokeIcon = document.querySelector('.hud-icon.poke');
+const hudPokeIcon = document.getElementById('hud-poke-icon');
+const hudPokeImg = document.getElementById('hud-poke-img');
+const hudSwap = document.querySelector('#hud-leader-row .hud-swap');
 function refreshHud() {
-  hudBlocks.textContent = `블록 ${state.blocks}개`;
+  hudBlocks.textContent = `${state.blocks}개`;
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   const L = party.leader;
   if (L) {
-    hudLeader.textContent = `${party.name(L)} ${L.hp <= 0 ? '😵기절 ' : ''}❤${L.hp}/${L.maxHp} ⚔${L.atk}`;
-    hudPokeIcon.style.background = party.color(L);
-  } else hudLeader.textContent = '대표 포켓몬 없음';
+    hudLeader.textContent = `${party.name(L)}${L.hp <= 0 ? ' 😵' : ''}`;
+    const thumb = dex.thumbs(party.species(L))?.color || null; // 대표 포켓몬의 작은 모습
+    if (thumb) { hudPokeImg.src = thumb; hudPokeImg.hidden = false; hudPokeIcon.hidden = true; }
+    else { hudPokeImg.hidden = true; hudPokeIcon.hidden = false; hudPokeIcon.style.background = party.color(L); }
+    hudSwap.hidden = party.members.length < 2;
+  } else { hudLeader.textContent = '대표 없음'; hudPokeImg.hidden = true; hudPokeIcon.hidden = false; hudSwap.hidden = true; }
 }
+// 대표 포켓몬 이름을 누르면 다음 포켓몬(기절하지 않은)이 대표가 된다
+document.getElementById('hud-leader-row').onclick = () => {
+  if (battle.active || switching || evo) return;
+  const ms = party.members, L = party.leader;
+  if (ms.length < 2) { if (L) say('포켓몬이 한 마리뿐이야. 더 잡으면 여기서 바꿀 수 있어!', { sec: 3 }); return; }
+  const i = ms.indexOf(L);
+  for (let k = 1; k < ms.length; k++) {
+    const cand = ms[(i + k) % ms.length];
+    if (party.isFainted(cand)) continue;
+    attachLeader(cand); sound.click(); refreshHud();
+    say(`${party.name(cand)}이(가) 대표 포켓몬이 됐어!`, { sec: 3 });
+    return;
+  }
+  say('다른 포켓몬은 모두 기절했어. 오박사님께 치료받자!', { sec: 3 });
+};
 refreshHud();
 
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });

@@ -5,8 +5,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .hidden { display: none !important; }
 body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !important; } /* 시작 화면에서는 HUD 숨김 */
 
-#hud { position: fixed; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
-.hud-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 700; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+#hud { position: fixed; top: 12px; left: 12px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; z-index: 5; max-width: calc(100vw - 24px); }
+.hud-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 18px; font-weight: 700; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); border: 0; font-family: inherit; white-space: nowrap; }
+button.hud-row { cursor: pointer; }
+button.hud-row:active { transform: scale(.96); }
+.hud-thumb { width: 30px; height: 30px; border-radius: 9px; object-fit: contain; background: #f7f3e3; border: 2px solid #20232e; margin: -3px 0; }
+.hud-swap { font-size: 14px; color: #888; margin-left: -2px; }
+.hud-icon[hidden], .hud-thumb[hidden], .hud-swap[hidden] { display: none; }
 .hud-icon { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
 .hud-icon.block { background: #fff; border: 2px solid #999; }
 .hud-icon.mon { background: #ffd93d; border-radius: 50%; }
@@ -299,7 +304,11 @@ body.intro #btn-save { display: none !important; }
 #dex-map svg { width: 100%; height: 100%; display: block; }
 #dex-map .region { cursor: pointer; }
 #dex-map .region .blob { stroke: rgba(32,35,46,.35); stroke-width: .5; transition: transform .15s; }
-#dex-map .region:not(.conquered) .blob { filter: saturate(.55); }
+#dex-map .region:not(.conquered) .blob { filter: saturate(.25) brightness(.92); stroke-dasharray: 1.4 .8; }
+#dex-map .region:not(.conquered) > *:not(.blob):not(.mark):not(.pin) { opacity: .7; }
+#dex-map .region.conquered .label-bg { fill: #ffe98a; }
+#dex-map .region .lock { font-size: 3.8px; fill: #666; }
+#dex-map .legend text { font-size: 2.9px; font-weight: 800; fill: #20232e; }
 #dex-map .label-bg { fill: rgba(255,251,230,.95); stroke: #20232e; stroke-width: .35; }
 #dex-map .wave { fill: none; stroke: rgba(255,255,255,.35); stroke-width: .5; }
 #dex-map .land { stroke: #6aa84f; stroke-width: .8; }
@@ -348,6 +357,13 @@ body.intro #btn-save { display: none !important; }
   #dex-title { font-size: 15px; }
   #dex-count { display: none; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }
+  .hud-row { font-size: 14px; padding: 4px 10px 4px 6px; gap: 6px; }
+  .hud-icon { width: 18px; height: 18px; }
+  .hud-thumb { width: 26px; height: 26px; }
+  .ball-row { gap: 8px; padding: 6px 8px; }
+  .ball-row .ball-name { width: 64px; font-size: 14px; }
+  .ball-row .ball-count { font-size: 20px; }
+  .ball-row button { font-size: 12px; padding: 7px 8px; }
   #dex-tabs button { font-size: 13px; padding: 5px 10px; }
   #btn-dex-close { width: 46px; height: 46px; font-size: 24px; background: #ffd93d; box-shadow: 0 3px 0 #c99400; }
   #dex-map { max-height: 34vh; height: calc(100vw * 72 / 110 - 16px); }
@@ -411,6 +427,17 @@ body.battle #btn-code, body.intro #btn-code { display: none !important; }
 .shop-count { font-size: 34px; font-weight: 900; line-height: 1; color: #20232e; }
 .shop-count small { font-size: 14px; font-weight: 800; color: #777; margin-left: 2px; }
 .shop-note { margin-top: 10px; font-size: 13px; font-weight: 700; color: #777; }
+.ball-rows { display: flex; flex-direction: column; gap: 8px; }
+.ball-row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 14px; padding: 8px 12px; border: 3px solid var(--ball); }
+.ball-dot.big { width: 34px; height: 34px; }
+.ball-row .ball-name { font-weight: 900; font-size: 17px; width: 84px; }
+.ball-row .ball-count { font-weight: 900; font-size: 24px; color: #333; flex: 1; }
+.ball-row .ball-count small { font-size: 13px; color: #888; margin-left: 2px; }
+.ball-row button { font-size: 14px; font-weight: 900; padding: 8px 12px; border-radius: 12px; border: 0; background: #ffd93d; color: #20232e; cursor: pointer; box-shadow: 0 3px 0 #d4b02e; white-space: nowrap; }
+.ball-row button:disabled { background: #e9e9e9; box-shadow: 0 3px 0 #bbb; color: #999; cursor: default; }
+.ball-infos { display: flex; flex-direction: column; gap: 6px; }
+.ball-info { display: flex; align-items: center; gap: 10px; background: #fafafa; border-radius: 10px; padding: 6px 10px; font-size: 14px; font-weight: 700; color: #555; }
+.ball-info b { color: #333; width: 70px; flex-shrink: 0; }
 @media (max-width: 760px) { #dex-count { display: none; } #dex-head { gap: 8px; padding: 10px 12px; } #dex-title { font-size: 17px; } }
 
 /* 말풍선 안 "연구실 가기" 버튼 (안내원과 이야기 중일 때만) */
