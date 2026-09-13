@@ -283,11 +283,18 @@ export class Dex {
     }
     // 아이가 한눈에 보게: 큰 3D 모습 + 짧은 사실 몇 줄 (사는 곳·체력·공격·강약·볼·기술·진화)
     const ti = ctx?.typeInfo ? ctx.typeInfo(sp.type) : null;
-    const skills = (sp.skills || []).map((s, i) => (i === 0 ? s.name : `${s.name}<small>(공격 ${s.atk}부터)</small>`)).join(' · ');
+    const mineAll = party ? party.members.filter((m) => m.speciesId === sp.id) : [];
+    const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
+    const skills = (sp.skills || []).map((s) => {
+      const locked = rep0 ? rep0.atk < s.atk : false;
+      return locked ? `<span class="skill-chip locked">🔒 ${s.name} <small>공격 ${s.atk}</small></span>` : `<span class="skill-chip">${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
+    }).join('');
     const evoZone = evo ? (this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || '') : '';
+    const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;
+    const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';
     card.innerHTML = `
       <div class="detail-top">
-        <div class="detail-view"><canvas id="dex-view" width="440" height="440"></canvas><div class="view-hint">← 끌어서 돌려 보기 →</div></div>
+        <div class="detail-view"><div class="view-wrap"><canvas id="dex-view" width="440" height="440"></canvas>${star}</div><div class="view-hint">${rep0 ? '★ 별을 누르면 대표 · ' : ''}끌어서 돌려 보기</div></div>
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}</div>
           <div class="detail-chips">
@@ -299,13 +306,15 @@ export class Dex {
           <ul class="detail-facts">
             ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
             <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
-            <li>🎯 기술: ${skills}</li>
+            <li class="skills">🎯 ${skills}</li>
             ${evo ? `<li>✨ ${evo.wins ? `${evo.wins}번 이기고` : `보스 ${evo.boss}명 이기고`} 공격 ${evo.atk}·체력 ${evo.hp}가 되면 <b>${evoZone}</b>에서 <b>${evoTo?.name || '?'}</b>로 진화!</li>` : ''}
           </ul>
         </div>
       </div>`;
+    const starBtn = card.querySelector('.view-star');
+    if (starBtn && starTarget && !party.isLeader(starTarget)) starBtn.onclick = () => { ctx.onLeader(starTarget); this.render(this.lastCaught || {}); };
     // 내 포켓몬 중 이 종: 한 마리씩 줄로 (키우기·대표·진화)
-    const mine = party ? party.members.filter((m) => m.speciesId === sp.id) : [];
+    const mine = mineAll;
     if (mine.length) {
       const blocks = ctx.getBlocks();
       const list = document.createElement('div');
@@ -315,20 +324,18 @@ export class Dex {
         const canEvolve = party.canEvolve(m);
         const need = party.evolveNeed(m);
         const zoneBlocked = need && party.readyExceptZone(m) && !canEvolve;
-        const next = party.nextSkill(m);
         const fainted = party.isFainted(m);
         const costHp = party.upgradeCost(m, 'hp'), costAtk = party.upgradeCost(m, 'atk');
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
           <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님께 치료</span>' : ''}
-            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}
-            <small>🎯 ${party.skills(m).map((s) => `${s.name} ${party.damage(m, s)}`).join(' · ')}${next ? ` · 🔒 ${next.name}은 공격 ${next.atk}부터` : ''}</small></div>
+            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}</div>
           <div class="member-actions">
-            <span>🌱 포켓몬 키우기:</span>
-            <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ 체력 +1 <small>(블록 ${costHp})</small></button>
-            <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ 공격 +1 <small>(블록 ${costAtk})</small></button>
-            ${leader || fainted ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
+            <span>🌱 키우기</span>
+            <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ +1 <small>🧱${costHp}</small></button>
+            <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ +1 <small>🧱${costAtk}</small></button>
+            ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
             ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">✨ 진화!</button>` : ''}
             ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가면 진화!</span>` : ''}
           </div>`;

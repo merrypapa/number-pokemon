@@ -383,7 +383,7 @@ dex.bindParty({
     const just = stat === 'atk' && party.skills(m).length && party.skills(m)[party.skills(m).length - 1].atk > m.atk - n;
     if (just && party.skills(m).length > 1) { const s = party.skills(m)[party.skills(m).length - 1]; sound.fanfare(); say(`${party.name(m)}이(가) 새 기술 ${s.name}을(를) 배웠어!`, { sec: 5 }); }
     else if (party.canEvolve(m) && !m.evolveTold) { m.evolveTold = true; say(`${party.name(m)}이(가) 진화할 수 있어! ✨ 진화! 버튼을 눌러봐.`, { sec: 6 }); }
-    else say(stat === 'atk' ? `${party.name(m)} 공격력 ${m.atk}! (다음 +1은 블록 ${party.upgradeCost(m, 'atk')}개)${next ? ` 공격 ${next.atk}이 되면 ${next.name}!` : ''}` : `${party.name(m)} 체력 ${m.maxHp}! (다음 +1은 블록 ${party.upgradeCost(m, 'hp')}개)`, { sec: 3 });
+    else say(stat === 'atk' ? `${party.name(m)} 공격 ${m.atk}!` : `${party.name(m)} 체력 ${m.maxHp}!`, { sec: 2, faceImg: dex.thumbs(party.species(m))?.color || null });
     refreshHud();
   },
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
