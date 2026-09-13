@@ -16,7 +16,7 @@ body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !importa
 .hud-icon.nb { background: linear-gradient(#f7cf3e 0 33%, #f2872f 33% 66%, #e8453c 66%); border: 2px solid #20232e; }
 
 #msg { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.96); border-radius: 20px; padding: 12px 24px 12px 12px; width: max-content; max-width: min(96vw, 1040px); box-shadow: 0 4px 14px rgba(0,0,0,.2); z-index: 6; }
-body.battle #msg { bottom: auto; top: 14px; }
+body.battle #msg { bottom: auto; top: 14px; left: 14px; transform: none; max-width: calc(100vw - min(46vw, 420px) - 44px); } /* 상대 패널(오른쪽 위)과 겹치지 않게 왼쪽 위에 */
 #msg-face { width: 44px; height: 44px; border-radius: 8px; background: #e8453c; border: 3px solid #20232e; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
 #msg-text { font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; color: #333; line-height: 1.4; word-break: keep-all; }
 
@@ -24,22 +24,28 @@ body.battle #msg { bottom: auto; top: 14px; }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .45s; z-index: 15; }
 #fade.on { opacity: 1; pointer-events: auto; }
 
-#battle { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(96vw, 620px); background: rgba(255,251,230,.96); border-radius: 22px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,.3); z-index: 10; }
+#battle { position: fixed; right: 14px; bottom: 14px; width: min(58vw, 560px); background: rgba(255,251,230,.96); border-radius: 22px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,.3); z-index: 10; }
 @media (min-width: 900px) { #battle { left: auto; right: 16px; transform: none; } } /* 넓은 화면: 패널은 오른쪽, 내 포켓몬은 왼쪽 아래 */
-#battle-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* 상대 포켓몬: 오른쪽 위 (내 포켓몬 정보와 분리) */
+#battle-enemy { position: fixed; top: 12px; right: 12px; z-index: 10; width: min(46vw, 420px); background: rgba(255,251,230,.96); border: 3px solid #e8453c; border-radius: 18px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+#battle-enemy #battle-name::before { content: '상대 '; font-size: 12px; color: #777; font-weight: 800; }
+.hp-group { display: inline-flex; gap: 3px; margin-right: 8px; margin-bottom: 4px; padding: 2px 3px; border-radius: 7px; background: rgba(0,0,0,.06); }
+body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !important; } /* 대결 중엔 상대 정보가 그 자리에 */
 #battle-name { font-size: 22px; font-weight: 900; }
 #battle-hp { display: flex; gap: 4px; flex-wrap: wrap; }
 .hp-cube { width: 22px; height: 22px; border-radius: 5px; border: 2px solid #20232e; display: inline-block; transition: transform .25s, opacity .25s; }
 .hp-cube.gone { opacity: .15; transform: scale(.6); }
-#battle-hpnum { font-weight: 800; color: #555; margin-left: auto; }
+#battle-hpnum { font-weight: 800; color: #555; margin-top: 4px; }
 #battle-msg { min-height: 26px; font-size: 18px; font-weight: 700; color: #333; margin: 8px 0; }
-#battle-mine { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: rgba(255,255,255,.6); border-radius: 14px; padding: 6px 10px; margin-bottom: 8px; }
+/* 내 포켓몬: 왼쪽 아래 */
+#battle-mine { position: fixed; left: 14px; bottom: 14px; z-index: 10; width: min(36vw, 300px); background: rgba(255,255,255,.96); border: 3px solid #3fb8e8; border-radius: 18px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 #battle-mine-name { font-size: 18px; font-weight: 900; }
 #battle-mine-name::before { content: '내 포켓몬 '; font-size: 12px; color: #777; font-weight: 800; }
 #battle-mine-hp { display: flex; gap: 3px; flex-wrap: wrap; }
 #battle-mine-hpnum, #battle-mine-atk { font-weight: 800; color: #555; font-size: 14px; }
-#battle-mine-atk { margin-left: auto; }
+#battle-mine-stats { margin-top: 4px; display: flex; gap: 10px; }
 #battle-hp.many .hp-cube, #battle-mine-hp.many .hp-cube { width: 14px; height: 14px; border-radius: 3px; border-width: 1.5px; }
+#battle-hp.lots .hp-cube { width: 11px; height: 11px; border-radius: 2px; border-width: 1px; }
 #battle-mine-hp .hp-cube { width: 16px; height: 16px; border-radius: 4px; }
 #battle-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 #battle-skills { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
@@ -58,6 +64,13 @@ body.battle #msg { bottom: auto; top: 14px; }
 #btn-run.primary { background: #57b947 !important; color: #fff !important; font-size: 18px !important; }
 #battle-controls > button:disabled { opacity: .35; cursor: default; }
 #battle-help { font-size: 12px; color: #999; margin-top: 8px; }
+@media (max-width: 760px) { /* 좁은 화면: 상대는 위, 내 포켓몬은 조작판 바로 위, 조작판은 가로 전체 */
+  #battle { left: 8px; right: 8px; width: auto; bottom: 8px; }
+  #battle-mine { left: 8px; bottom: calc(var(--battle-h, 170px) + 16px); width: min(62vw, 260px); }
+  #battle-enemy { width: min(72vw, 360px); padding: 8px 10px; }
+  #battle-hp .hp-cube, #battle-hp.many .hp-cube { width: 10px; height: 10px; border-radius: 2px; border-width: 1px; }
+  body.battle #msg { display: none; } /* 좁은 화면에선 대결 중 말풍선을 숨긴다 (대결판에 같은 내용이 있다) */
+}
 @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.07); } }
 
 #battle-banner { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); font-size: clamp(34px, 7vw, 64px); font-weight: 900; color: #fff; -webkit-text-stroke: 2px #20232e; text-shadow: 0 6px 0 #e8453c, 0 10px 20px rgba(0,0,0,.35); z-index: 11; pointer-events: none; white-space: nowrap; }
@@ -80,7 +93,6 @@ body.battle #msg { bottom: auto; top: 14px; }
 #title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; z-index: 20; padding: 28px 16px 22px; pointer-events: none; background: linear-gradient(rgba(60,120,220,.25), rgba(0,0,0,0) 35%, rgba(0,0,0,0) 65%, rgba(20,60,20,.45)); }
 #title > * { pointer-events: auto; }
 #title-top, #title-bottom { display: flex; flex-direction: column; align-items: center; text-align: center; }
-#title-badge { background: #fff; color: #e8453c; font-weight: 900; font-size: 15px; padding: 6px 16px; border-radius: 999px; box-shadow: 0 3px 0 rgba(0,0,0,.15); letter-spacing: .5px; animation: title-drop .7s cubic-bezier(.2,1.4,.4,1) both; }
 #title h1 { margin: 12px 0 8px; display: flex; flex-direction: column; align-items: center; line-height: 1; font-weight: 900; }
 #title h1 span { display: block; color: #fff; -webkit-text-stroke: 2px #20232e; paint-order: stroke fill; text-shadow: 0 6px 0 #20232e, 0 10px 18px rgba(0,0,0,.35); animation: title-bounce 2.4s ease-in-out infinite; }
 #title h1 .w1 { font-size: clamp(40px, 9vw, 74px); color: #ffd93d; }

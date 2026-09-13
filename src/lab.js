@@ -1,0 +1,188 @@
+import * as THREE from 'three';
+import { addFace } from './util.js';
+import { makeLabelTexture } from './world.js';
+import { NUMBER_COLORS } from './palette.js';
+
+// 오박사 연구소 내부: 푸른숲 마을의 연구소 문으로 들어오면 오는 작은 실내 지역.
+// 몬스터·블록·구출은 없고, 오박사에게 가까이 가서 액션을 누르면 이야기(힌트)를 해 주고 포켓몬을 치료해 준다.
+export const LAB = { size: 40, room: { w: 26, d: 18 }, spawn: { x: 0, z: 6 }, door: { x: 0, z: 9.6 } };
+const R = LAB.room;
+const inDoorway = (x, z) => Math.abs(x) < 1.3 && z > R.d / 2 - 0.6;
+export const LAB_TERRAIN = {
+  height: () => 0, inHole: () => false, size: LAB.size, obstacles: [],
+  blocked: (x, z) => !inDoorway(x, z) && (Math.abs(x) > R.w / 2 - 0.6 || Math.abs(z) > R.d / 2 - 0.6), // 벽 밖으로는 못 나간다 (문 쪽만 열림)
+};
+
+export function buildLab(scene) {
+  const decor = new THREE.Group();
+  scene.add(decor);
+  const obstacles = LAB_TERRAIN.obstacles;
+  obstacles.length = 0;
+  const block = (x, z, r) => obstacles.push({ x, z, r });
+
+  scene.background = new THREE.Color(0x1b2230);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa4b8, 1.5));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+  sun.position.set(8, 20, 6);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 60 });
+  scene.add(sun, sun.target);
+  for (const [lx, lz] of [[-7, -3], [7, -3], [-7, 4], [7, 4]]) { const l = new THREE.PointLight(0xfff4d6, 1.2, 16); l.position.set(lx, 3.6, lz); scene.add(l); }
+
+  // 바닥: 밝은 타일 (체크무늬) + 문 앞 러그
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(R.w, R.d, 13, 9), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }));
+  {
+    const pos = floor.geometry.attributes.position, cols = [];
+    const a = new THREE.Color(0xe9eef5), b = new THREE.Color(0xd3dbe6);
+    for (let i = 0; i < pos.count; i++) { const c = (Math.floor(pos.getX(i) / 2) + Math.floor(pos.getY(i) / 2)) % 2 === 0 ? a : b; cols.push(c.r, c.g, c.b); }
+    floor.geometry.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  }
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+  decor.add(floor);
+  const rug = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
+  rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.02, 5.5);
+  decor.add(rug);
+
+  // 벽: 흰 벽 + 파란 띠, 남쪽 벽 가운데는 문
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf6f3ea }), bandMat = new THREE.MeshStandardMaterial({ color: 0x3fb8e8 });
+  const H = 4;
+  const wall = (w, d, x, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat); m.position.set(x, H / 2, z); m.receiveShadow = true; decor.add(m); const band = new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, 0.5, d + 0.02), bandMat); band.position.set(x, 1.1, z); decor.add(band); };
+  wall(R.w + 1, 0.5, 0, -R.d / 2 - 0.25);
+  wall(0.5, R.d + 1, -R.w / 2 - 0.25, 0);
+  wall(0.5, R.d + 1, R.w / 2 + 0.25, 0);
+  wall(R.w / 2 - 1.5, 0.5, -(R.w / 4 + 0.75), R.d / 2 + 0.25);
+  wall(R.w / 2 - 1.5, 0.5, R.w / 4 + 0.75, R.d / 2 + 0.25);
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.6, 0.6), new THREE.MeshStandardMaterial({ color: 0x3a5f9b }));
+  doorFrame.position.set(0, 3.2, R.d / 2 + 0.25);
+  decor.add(doorFrame);
+  const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (마을)', '#3a5f9b', '#ffffff', 48), transparent: true, depthTest: false }));
+  exitSign.scale.set(3, 0.75, 1); exitSign.position.set(0, 2.6, R.d / 2 - 0.4);
+  decor.add(exitSign);
+
+  // 북쪽 벽 큰 화면
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(9, 3.2), new THREE.MeshBasicMaterial({ map: makeLabelTexture('포켓몬 연구 데이터 · 도감 34종', '#0f1a2e', '#9fe8ff', 60) }));
+  screen.position.set(0, 2.3, -R.d / 2 + 0.02);
+  decor.add(screen);
+  const screenGlow = new THREE.PointLight(0x4fc3f7, 1.5, 12); screenGlow.position.set(0, 2.3, -R.d / 2 + 1.5); decor.add(screenGlow);
+
+  // 책상 + 모니터 (북쪽 벽 앞)
+  const deskMat = new THREE.MeshStandardMaterial({ color: 0xc9a15a }), metalMat = new THREE.MeshStandardMaterial({ color: 0x8a94a6 });
+  const monitorMat = new THREE.MeshStandardMaterial({ color: 0x1f2a3a, emissive: 0x4fc3f7, emissiveIntensity: 0.6 });
+  for (const dx of [-9, -3.5, 3.5, 9]) {
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 1.6), deskMat); desk.position.set(dx, 0.9, -6.5); desk.castShadow = true;
+    for (const lx of [-1.8, 1.8]) for (const lz of [-0.6, 0.6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), metalMat); leg.position.set(dx + lx, 0.45, -6.5 + lz); decor.add(leg); }
+    const mon = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 0.08), monitorMat); mon.position.set(dx, 1.6, -6.9);
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.2), metalMat); stand.position.set(dx, 1.1, -6.9);
+    const kb = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.06, 0.4), new THREE.MeshStandardMaterial({ color: 0xdddddd })); kb.position.set(dx, 1.0, -6.1);
+    decor.add(desk, mon, stand, kb);
+    obstacles.push({ ax: dx - 2, az: -6.5, bx: dx + 2, bz: -6.5, r: 1.0 });
+  }
+
+  // 책장 (서쪽 벽)
+  for (const bz of [-3, 1, 5]) {
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.2, 3), new THREE.MeshStandardMaterial({ color: 0x7a4d22 })); shelf.position.set(-R.w / 2 + 0.3, 1.6, bz); shelf.castShadow = true;
+    decor.add(shelf);
+    for (let row = 0; row < 3; row++) for (let k = 0; k < 6; k++) {
+      const book = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.7, 0.32), new THREE.MeshStandardMaterial({ color: NUMBER_COLORS[(k + row * 2) % 10 + 1].base }));
+      book.position.set(-R.w / 2 + 0.75, 0.55 + row * 1.0, bz - 1.2 + k * 0.45);
+      decor.add(book);
+    }
+    obstacles.push({ ax: -R.w / 2 + 0.6, az: bz - 1.5, bx: -R.w / 2 + 0.6, bz: bz + 1.5, r: 0.8 });
+  }
+
+  // 몬스터볼 선반 (동쪽 벽): 숫자 색 볼이 줄지어
+  {
+    const rack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3, 6), new THREE.MeshStandardMaterial({ color: 0xdfe6ee })); rack.position.set(R.w / 2 - 0.3, 1.5, 0);
+    decor.add(rack);
+    for (let row = 0; row < 3; row++) for (let k = 0; k < 8; k++) {
+      const n = (row * 8 + k) % 10 + 1;
+      const ball = new THREE.Group();
+      const top = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: NUMBER_COLORS[n].base }));
+      const bottom = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      const btn = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshStandardMaterial({ color: 0x20232e })); btn.position.x = -0.2;
+      ball.add(top, bottom, btn);
+      ball.position.set(R.w / 2 - 0.75, 0.6 + row * 0.9, -2.6 + k * 0.75);
+      decor.add(ball);
+    }
+    obstacles.push({ ax: R.w / 2 - 0.6, az: -3, bx: R.w / 2 - 0.6, bz: 3, r: 0.8 });
+  }
+
+  // 치료·연구 캡슐 (동쪽 앞): 유리 원통 안에 빛나는 몬스터볼
+  {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.4, 0.5, 20), metalMat); base.position.y = 0.25;
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 2.6, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.35, side: THREE.DoubleSide })); glass.position.y = 1.8;
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 0.4, 20), metalMat); cap.position.y = 3.3;
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 1 })); orb.position.y = 1.8; orb.userData.orb = true;
+    const light = new THREE.PointLight(0xffd36b, 2.5, 8); light.position.y = 1.8;
+    g.add(base, glass, cap, orb, light);
+    g.position.set(8.5, 0, -2);
+    decor.add(g); block(8.5, -2, 1.6);
+  }
+
+  // 가운데 실험 탁자 두 개: 비커·시험관
+  for (const tx of [-4.5, 3]) {
+    const table = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.15, 1.8), new THREE.MeshStandardMaterial({ color: 0xe9eef5 })); table.position.set(tx, 0.95, 1); table.castShadow = true;
+    for (const lx of [-2, 2]) for (const lz of [-0.7, 0.7]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.95, 0.12), metalMat); leg.position.set(tx + lx, 0.47, 1 + lz); decor.add(leg); }
+    decor.add(table);
+    for (let k = 0; k < 4; k++) {
+      const col = [0x4fc3f7, 0x7ed957, 0xff6b9d, 0xffd93d][k];
+      const beaker = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.55, 10), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, transparent: true, opacity: 0.85 }));
+      beaker.position.set(tx - 1.4 + k * 0.9, 1.3, 1 + (k % 2 ? 0.4 : -0.3));
+      decor.add(beaker);
+    }
+    obstacles.push({ ax: tx - 2.2, az: 1, bx: tx + 2.2, bz: 1, r: 1.1 });
+  }
+  // 화분
+  for (const [px, pz] of [[-11.5, 7.5], [11.5, 7.5], [11.5, -7.5]]) {
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 0.7, 10), new THREE.MeshStandardMaterial({ color: 0xc46b2c })); pot.position.set(px, 0.35, pz);
+    const plant = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 8), new THREE.MeshStandardMaterial({ color: 0x3f9d3a })); plant.position.set(px, 1.5, pz);
+    decor.add(pot, plant); block(px, pz, 0.6);
+  }
+
+  // 오박사: 흰 가운, 회색 머리, 안경, 빨간 넥타이. 이름표를 머리 위에
+  const prof = new THREE.Group();
+  {
+    const coat = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.7, 6, 12), new THREE.MeshStandardMaterial({ color: 0xffffff })); coat.position.y = 0.75;
+    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.05), new THREE.MeshStandardMaterial({ color: 0xe8453c })); tie.position.set(0, 0.95, 0.38);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 14), new THREE.MeshStandardMaterial({ color: 0xffe0bd })); head.position.y = 1.55;
+    addFace(head, { y: 0.02, z: 0.32, spread: 0.12, size: 0.05 });
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), new THREE.MeshStandardMaterial({ color: 0xbfc5cc })); hair.position.y = 1.62;
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    for (const gx of [-0.12, 0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14), glassMat); ring.position.set(gx, 1.58, 0.34); prof.add(ring); }
+    for (const ax of [-0.5, 0.5]) { const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.5, 4, 8), new THREE.MeshStandardMaterial({ color: 0xffffff })); arm.position.set(ax, 0.85, 0); arm.rotation.z = ax > 0 ? -0.3 : 0.3; prof.add(arm); }
+    for (const lx of [-0.16, 0.16]) { const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.3, 4, 8), new THREE.MeshStandardMaterial({ color: 0x556070 })); leg.position.set(lx, 0.25, 0); prof.add(leg); }
+    const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('오박사', '#ffffff', '#20232e', 56), transparent: true, depthTest: false }));
+    tag.scale.set(1.6, 0.4, 1); tag.position.y = 2.25;
+    for (const o of [coat, head]) o.castShadow = true;
+    prof.add(coat, tie, head, hair, tag);
+  }
+  prof.position.set(5.5, 0, -3.5);
+  prof.rotation.y = Math.PI; // 문(남쪽) 쪽을 본다
+  decor.add(prof); block(5.5, -3.5, 0.7);
+
+  let orb = null;
+  decor.traverse((o) => { if (o.userData.orb) orb = o; });
+  function animate(t) {
+    prof.position.y = Math.sin(t * 2) * 0.03;
+    if (orb) { orb.position.y = 1.8 + Math.sin(t * 1.5) * 0.25; orb.rotation.y = t; }
+  }
+
+  return {
+    sun, animate, terrain: LAB_TERRAIN, decor, spawn: LAB.spawn, portal: LAB.door, dark: false, indoor: true,
+    wildSpots: [], pickupSpots: [],
+    npc: {
+      x: prof.position.x, z: prof.position.z, mesh: prof, name: '오박사',
+      lines: [
+        '안녕, {name}! 난 오박사란다. 이 연구소에서 포켓몬을 연구하고 있지. 포켓몬을 잡아서 함께 모험하렴!',
+        '하얀 숫자블록을 모으면 도감(B)에서 포켓몬의 체력이나 공격력을 1씩 올릴 수 있단다.',
+        '공격력이 10, 20이 되면 새 기술을 배운단다. 같은 포켓몬을 3마리 잡고 공격 10·체력 15가 되면 진화할 수 있어!',
+        '이상해씨는 이상해풀을 거쳐 이상해꽃으로, 파이리는 리자드를 거쳐 리자몽으로 두 번 진화한단다. 두 번째 진화는 공격 20·체력 30이 필요해.',
+        '지역마다 보스가 있어. 보스를 잡으면 그 지역을 정복한 거야. 푸른숲 보스 이상해꽃을 잡으면 지하동굴 문이 열리지.',
+        '북서쪽 구석의 버섯 고리에는 잠만보가 자고 있단다. 체력이 60이나 되니 충분히 강해진 다음 도전하렴.',
+        '피카츄와 라이츄는 꿈의우주에 산단다. 남동쪽 로켓 발사장에서 로켓을 타면 갈 수 있어.',
+      ],
+    },
+  };
+}

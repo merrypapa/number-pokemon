@@ -5,6 +5,7 @@ import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
 import { buildSpace } from './space.js';
+import { buildLab } from './lab.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
@@ -108,7 +109,7 @@ function makeZone(name, builder) {
   return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescue: null, nbTimer: rand(25, 50), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace };
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace, lab: buildLab };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 14, space: 18 }; // 지역별 야생 몬스터 자리 수 (각 지역 wildSpots 길이)
 const zones = {};
 let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
@@ -163,7 +164,7 @@ function removeBoulder() {
   if (bi >= 0) obs.splice(bi, 1); // 바위가 치워지면 지나갈 수 있다
 }
 const totalCreatures = Object.values(WILD_TOTAL).reduce((a, b) => a + b, 0);
-const ZONE_COUNT = Object.keys(BUILDERS).length;
+const ZONE_COUNT = Object.keys(BUILDERS).filter((n) => creatureData.creatures.some((c) => c.zone === n && c.boss)).length; // 보스가 있는 지역만 정복 대상 (연구소 제외)
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 100; // 블록 더미 최대 (31개부터는 10칸 기둥으로 쌓인다)
@@ -375,12 +376,22 @@ function updateRide(dt) {
 }
 
 // ---------- 숫자블록 구출 (랜덤 출몰 + 문제 풀기) ----------
-// 지역마다 가끔(45~90초) 숫자블록 친구가 랜덤한 곳에 나타나 도와달라고 한다. 가까이 가서 E 를 누르면 문제가 나오고,
+// 지역마다 가끔(45~90초) 숫자블록 친구가 랜덤한 곳에 나타나 도와달라고 한다. 가까이 가서 액션을 누르면 문제가 나오고,
 // 맞히면 그 숫자만큼 블록이 내 숫자블록에 합쳐진다. 120초 안에 못 구하면 다른 곳으로 가 버린다.
 function dirWord(dx, dz) {
   const a = Math.atan2(dx, -dz); // 북(-z)=0
   const names = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'];
   return names[Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
+}
+// 오박사와 이야기: 힌트를 한 줄씩 돌아가며 말해 주고, 다친 포켓몬을 치료해 준다
+function talkTo(npc) {
+  npc.line = ((npc.line ?? -1) + 1) % npc.lines.length;
+  let healed = false;
+  for (const m of party.members) if (m.hp < m.maxHp) { party.heal(m); healed = true; }
+  if (healed) { sound.fanfare(); particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5); refreshHud(); }
+  else sound.click();
+  say(`${npc.name}: ${npc.lines[npc.line].replace('{name}', state.name)}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`, { sec: 8 });
+  state.prompt = 8;
 }
 function spawnRescue(z) {
   const number = 2 + Math.floor(Math.random() * 9); // 2~10
@@ -397,7 +408,7 @@ function spawnRescue(z) {
     nb.help.scale.set(0.8, 0.8, 1);
     nb.mesh.add(nb.help);
     z.rescue = nb;
-    say(`${data.name}이(가) ${dirWord(x - player.position.x, zz - player.position.z)}쪽에서 도와달래! 찾아가서 E(액션)로 문제를 풀어 구출하자!`, { face: String(number), sec: 7 });
+    say(`${data.name}이(가) ${dirWord(x - player.position.x, zz - player.position.z)}쪽에서 도와달래! 찾아가서 액션으로 문제를 풀어 구출하자!`, { face: String(number), sec: 7 });
     return;
   }
   z.nbTimer = 20; // 자리를 못 찾으면 잠시 뒤 다시
@@ -651,17 +662,30 @@ function frame() {
       } else if (near(w.volcanoGate, 2.4)) {
         moved = true;
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
+      } else if (near(w.labDoor, 1.5)) {
+        moved = true;
+        switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 액션을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
       }
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
       moved = true;
       const back = zones.forest.world.arrivals[zone.name] || zones.forest.world.spawn;
       switchZone('forest', back, { text: '푸른숲으로 돌아왔어!', sec: 4 });
     }
+    // ----- 사람과 이야기하기 (오박사) -----
+    const npc = zone.world.npc;
+    if (!moved && npc) {
+      const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
+      if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
+      if (d < 2.8) {
+        if (input.wasPressed('action')) talkTo(npc);
+        else if (state.prompt <= 0) { state.prompt = 8; say(`${npc.name}님이야! 액션을 누르면 이야기할 수 있어.`, { sec: 3 }); }
+      }
+    }
     if (!moved) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.2)) continue;
       const dest = ZONE_INFO[v.to]?.name || v.to;
       if (input.wasPressed('action')) startRide(v);
-      else if (state.prompt <= 0) { state.prompt = 8; say(v.kind === 'train' ? `기차역이야! E(액션)를 누르면 기차를 타고 ${dest}(으)로 가!` : `로켓이야! E(액션)를 누르면 로켓을 타고 ${dest}(으)로 가!`, { sec: 4 }); }
+      else if (state.prompt <= 0) { state.prompt = 8; say(v.kind === 'train' ? `기차역이야! 액션을 누르면 기차를 타고 ${dest}(으)로 가!` : `로켓이야! 액션을 누르면 로켓을 타고 ${dest}(으)로 가!`, { sec: 4 }); }
       break;
     }
 
@@ -762,7 +786,7 @@ function frame() {
 
     // ----- 숫자블록 구출: 랜덤 출몰, 가까이 가서 액션 → 문제 -----
     zone.nbTimer -= dt;
-    if (!zone.rescue && zone.nbTimer <= 0) spawnRescue(zone);
+    if (!zone.rescue && zone.nbTimer <= 0 && !zone.world.indoor) spawnRescue(zone);
     const nb = zone.rescue;
     if (nb) {
       nb.t += dt;

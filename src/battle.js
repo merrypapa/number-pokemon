@@ -40,6 +40,8 @@ export class Battle {
     this.active = false;
     this.el = document.getElementById('battle');
     this.nameEl = document.getElementById('battle-name');
+    this.enemyEl = document.getElementById('battle-enemy');
+    this.mineEl = document.getElementById('battle-mine');
     this.hpEl = document.getElementById('battle-hp');
     this.hpNumEl = document.getElementById('battle-hpnum');
     this.mineNameEl = document.getElementById('battle-mine-name');
@@ -149,16 +151,23 @@ export class Battle {
     this.runBtn.classList.remove('primary');
     this.render();
     this.el.classList.remove('hidden');
+    this.enemyEl.classList.remove('hidden');
+    this.mineEl.classList.remove('hidden');
+    document.body.classList.add('battle');
   }
 
+  // 체력 칸: 10개씩 묶고, 묶음마다 다른 색(10·20·30… 단위를 한눈에 세게)
   cubes(el, total, now, color) {
     el.innerHTML = '';
     el.classList.toggle('many', total > 16);
+    el.classList.toggle('lots', total > 30);
+    let group = null;
     for (let i = 0; i < total; i++) {
+      if (i % 10 === 0) { group = document.createElement('span'); group.className = 'hp-group'; el.appendChild(group); }
       const cube = document.createElement('span');
       cube.className = 'hp-cube' + (i >= now ? ' gone' : '');
-      cube.style.background = color;
-      el.appendChild(cube);
+      cube.style.background = i < 10 ? color : colorForCount(Math.floor(i / 10) + 1); // 첫 10개는 원래 색, 11~20 은 2의 색, 21~30 은 3의 색…
+      group.appendChild(cube);
     }
   }
 
@@ -193,6 +202,7 @@ export class Battle {
       b.disabled = true;
       this.skillsEl.appendChild(b);
     }
+    document.documentElement.style.setProperty('--battle-h', `${this.el.offsetHeight}px`); // 좁은 화면에서 내 포켓몬 패널을 조작판 위에 올리기 위해
   }
 
   // ----- 내 공격 -----
@@ -338,6 +348,9 @@ export class Battle {
     this.lights = [];
     if (this.fogFar != null) { this.scene.fog.far = this.fogFar; this.fogFar = null; }
     this.el.classList.add('hidden');
+    this.enemyEl.classList.add('hidden');
+    this.mineEl.classList.add('hidden');
+    document.body.classList.remove('battle');
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');
     if (result === 'caught') this.onCaught?.();

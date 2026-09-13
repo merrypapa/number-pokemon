@@ -50,8 +50,8 @@ export function buildIntro(creatures) {
 
   // 캐릭터: 주인공이 가운데, 몬스터 친구들이 양옆에서 반원으로
   const actors = [];
-  const withModels = creatures.filter((c) => c.model && (c.starter || c.boss || c.special)); // 시작 포켓몬 + 지역 보스 + 잠만보
-  const slots = [[-2.2, 0.9], [2.2, 0.9], [-3.8, -0.6], [3.8, -0.6], [-5.2, -2.6], [5.2, -2.6], [-3.2, -3.4], [3.2, -3.4], [-1.1, -3.9], [1.1, -3.9], [-6.4, -0.2], [6.4, -0.2], [0, -5.2]];
+  const withModels = creatures.filter((c) => c.model && c.starter); // 시작 포켓몬 넷만 (가볍게)
+  const slots = [[-2.3, 0.8], [2.3, 0.8], [-4.2, -0.9], [4.2, -0.9]];
   let disposed = false, placed = 0;
   const place = (file, x0, z0, height, phase) => onModelLoaded(file, () => {
     if (disposed) return;
@@ -65,7 +65,7 @@ export function buildIntro(creatures) {
     actors.push({ mesh: m, x, z, phase, height, baseRot: m.rotation.y, pop: 0 }); // 도착한 순서대로 "뿅" 등장
   });
   place(PLAYER_MODEL, 0, 1.4, PLAYER_HEIGHT, 0);
-  withModels.forEach((c, i) => place(c.model, null, null, c.boss ? 1.9 : c.special ? 1.6 : 1.15, i + 1));
+  withModels.forEach((c, i) => place(c.model, null, null, 1.2, i + 1));
 
   // 둥둥 떠다니는 숫자블록 (1~5)
   const floaters = [];

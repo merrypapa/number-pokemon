@@ -39,6 +39,7 @@ export const WORLD = {
   station: { x: -88, z: 42 },      // 기차역 (물의길로 가는 기차)
   rocketPad: { x: 82, z: 82 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
   sleepSpot: { x: -96, z: -96, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
+  lab: { x: 0, z: 64 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
     [[0, 33], [0, -9], [-3, -39], [0, -60]],
@@ -46,8 +47,10 @@ export const WORLD = {
     [[0, -9], [-24, -21], [-45, -45], [-60, -54]],
     [[0, -60], [-14, -70], [-27, -74]],
     [[0, -60], [40, -66], [84, -70]],
+    [[88, -46], [88, -66]], // 불의산 입구 협곡 길
     [[-9, 45], [-50, 44], [-84, 42]],
     [[14, 52], [50, 70], [78, 80]],
+    [[0, 50], [0, 58]], // 마을 광장 → 연구소 문
   ],
 };
 
@@ -419,14 +422,15 @@ export function buildWorld(scene) {
   decor.add(makeSign('연못 →', v.x + 4, v.z - 5, -0.4)); block(v.x + 4, v.z - 5, 0.25);
   decor.add(makeSign('↑ 큰 구멍 · 동굴', v.x, v.z - 8, 0)); block(v.x, v.z - 8, 0.25);
   const fenceMat = new THREE.MeshStandardMaterial({ color: 0xd9b077 });
-  for (let i = 0; i < 12; i++) { // 나무 주변 반원 울타리
+  for (let i = 0; i < 12; i++) { // 나무 주변 반원 울타리 (남쪽 가운데는 연구소로 가는 문으로 터 둔다)
     const a = Math.PI * 0.15 + (i / 11) * Math.PI * 0.7;
     const x = v.x + Math.cos(a) * 9, z = v.z + Math.sin(a) * 9;
+    if (i === 5 || i === 6) continue;
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.1, 0.25), fenceMat);
     post.position.set(x, meadowHeight(x, z) + 0.55, z);
     post.castShadow = true;
     decor.add(post); block(x, z, 0.25);
-    if (i < 11) {
+    if (i < 11 && i !== 4 && i !== 6) {
       const a2 = Math.PI * 0.15 + ((i + 1) / 11) * Math.PI * 0.7;
       const x2 = v.x + Math.cos(a2) * 9, z2 = v.z + Math.sin(a2) * 9;
       obstacles.push({ ax: x, az: z, bx: x2, bz: z2, r: 0.15 }); // 울타리 가로대
@@ -461,6 +465,49 @@ export function buildWorld(scene) {
     return g;
   }
   decor.add(house(1, v.x - 13, v.z - 4, 0.5), house(2, v.x + 13, v.z - 4, -0.5), house(3, v.x - 15, v.z + 8, 0.9), house(4, v.x + 15, v.z + 8, -0.9));
+  // 오박사 연구소: 마을 남쪽 가운데의 큰 흰 건물. 문(북쪽)으로 들어가면 main 이 연구소 내부(lab 지역)로 보낸다
+  const lab = WORLD.lab;
+  {
+    const g = new THREE.Group();
+    const W = 16, H = 6.5, D = 11;
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xfaf6ea });
+    const bandMat = new THREE.MeshStandardMaterial({ color: 0x3fb8e8 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), wallMat);
+    body.position.y = H / 2;
+    const band = new THREE.Mesh(new THREE.BoxGeometry(W + 0.1, 0.7, D + 0.1), bandMat);
+    band.position.y = H - 0.9;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(W + 1.2, 0.5, D + 1.2), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
+    roof.position.y = H + 0.25;
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(2.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.85 }));
+    dome.position.set(-3.5, H + 0.5, 0);
+    const dishPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0x777 }));
+    dishPost.position.set(4.5, H + 1.6, -1);
+    const dish = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 10, 0, Math.PI * 2, 0, Math.PI / 3), new THREE.MeshStandardMaterial({ color: 0xdddddd, side: THREE.DoubleSide }));
+    dish.position.set(4.5, H + 2.7, -1); dish.rotation.x = -Math.PI / 2.6;
+    const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 0.2), new THREE.MeshStandardMaterial({ color: 0x3a5f9b }));
+    door.position.set(0, 1.4, -D / 2 - 0.05); // 문은 북쪽(마을 광장 쪽)
+    const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 0.05), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.4 }));
+    doorGlass.position.set(0, 1.9, -D / 2 - 0.2);
+    const winMat = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.35 });
+    for (const wx of [-5.5, -3, 3, 5.5]) { const win = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 0.1), winMat); win.position.set(wx, 3.6, -D / 2 - 0.05); g.add(win); }
+    for (const wz of [-2.5, 2.5]) for (const side of [-1, 1]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 1.6), winMat); win.position.set(side * (W / 2 + 0.05), 3.6, wz); g.add(win); }
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('오박사 연구소', '#20232e', '#ffd93d', 64), transparent: true }));
+    sign.scale.set(6.5, 1.6, 1); sign.position.set(0, 5.2, -D / 2 - 0.4);
+    const steps = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1.6), stoneMat);
+    steps.position.set(0, 0.15, -D / 2 - 0.9);
+    for (const o of [body, roof, dome, dish]) o.castShadow = true;
+    g.add(body, band, roof, dome, dishPost, dish, door, doorGlass, sign, steps);
+    g.position.set(lab.x, meadowHeight(lab.x, lab.z), lab.z);
+    decor.add(g);
+    for (const [ox, oz, r] of [[-5.5, 0, 4.2], [0, 2, 4.2], [5.5, 0, 4.2], [-5.5, -3, 3.2], [5.5, -3, 3.2], [-3.4, -3.8, 2.3], [3.4, -3.8, 2.3]]) block(lab.x + ox, lab.z + oz, r);
+    for (const [px, pz] of [[-4, -8.5], [4, -8.5]]) { // 문 앞 화분
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 0.7, 10), new THREE.MeshStandardMaterial({ color: 0xc46b2c }));
+      pot.position.set(lab.x + px, meadowHeight(lab.x + px, lab.z + pz) + 0.35, lab.z + pz);
+      const bush = new THREE.Mesh(new THREE.SphereGeometry(0.7, 10, 8), new THREE.MeshStandardMaterial({ color: 0x3f9d3a }));
+      bush.position.set(lab.x + px, pot.position.y + 0.8, lab.z + pz);
+      decor.add(pot, bush); block(lab.x + px, lab.z + pz, 0.6);
+    }
+  }
   // 우물
   {
     const g = new THREE.Group();
@@ -614,10 +661,44 @@ export function buildWorld(scene) {
     }
     g.position.set(vg.x, meadowHeight(vg.x, vg.z), vg.z);
     decor.add(g);
-    decor.add(makeSign('불의산 입구', vg.x + 7, vg.z + 9, -0.5)); block(vg.x + 7, vg.z + 9, 0.25);
+    // 아치 앞으로 이어지는 협곡 길: 양옆에 붉은 바위 벽이 점점 높아지고, 횃불과 용암 줄기가 길을 안내한다
+    const torchMat = new THREE.MeshStandardMaterial({ color: 0x4a2a1a });
+    for (let i = 0; i < 6; i++) {
+      const z = vg.z + 22 - i * 3.2, spread = 7.5 - i * 0.55, r = 2.2 + i * 0.35, h = 3 + i * 0.8;
+      for (const side of [-1, 1]) {
+        const x = vg.x + side * spread;
+        const rock = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), redRock);
+        rock.position.set(x, meadowHeight(x, z) + h / 2 - 0.4, z);
+        rock.rotation.y = i * 0.7 + side;
+        rock.castShadow = true;
+        decor.add(rock); block(x, z, r * 0.7);
+        if (i % 2 === 1) { // 횃불
+          const tx = x - side * (r + 0.6);
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.8, 6), torchMat);
+          post.position.set(tx, meadowHeight(tx, z) + 0.9, z);
+          const flame = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xff7f11, emissive: 0xff5500, emissiveIntensity: 1.2 }));
+          flame.position.set(tx, meadowHeight(tx, z) + 2.15, z);
+          flame.userData.flame = true;
+          const light = new THREE.PointLight(0xff8833, 1.4, 10);
+          light.position.copy(flame.position);
+          decor.add(post, flame, light); block(tx, z, 0.15);
+        }
+      }
+      // 길 가운데 용암 줄기 (빛나는 얇은 판)
+      const crack = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 2.4), new THREE.MeshStandardMaterial({ color: 0xff6a1a, emissive: 0xff3300, emissiveIntensity: 1.1 }));
+      crack.rotation.x = -Math.PI / 2; crack.rotation.z = (i % 2 ? 0.25 : -0.25);
+      crack.position.set(vg.x + (i % 2 ? 1.1 : -1.1), meadowHeight(vg.x, z) + 0.04, z);
+      decor.add(crack);
+    }
+    // 아치 위 큰 간판 + 길 입구 팻말
+    const banner = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🔥 불의산 입구', '#3a0f08', '#ffb347', 64), transparent: true, depthTest: false }));
+    banner.scale.set(7, 1.75, 1);
+    banner.position.set(vg.x, meadowHeight(vg.x, vg.z + 3.6) + 5.2, vg.z + 3.6);
+    decor.add(banner);
+    decor.add(makeSign('↑ 불의산 가는 길', vg.x + 4, vg.z + 25, -0.3)); block(vg.x + 4, vg.z + 25, 0.25);
   }
 
-  // ---------- 기차역: 선로 + 플랫폼 지붕 + 기차 (가까이 가서 E 를 누르면 main 이 기차를 움직여 물의길로 보낸다) ----------
+  // ---------- 기차역: 선로 + 플랫폼 지붕 + 기차 (가까이 가서 액션을 누르면 main 이 기차를 움직여 물의길로 보낸다) ----------
   const st = WORLD.station;
   let train;
   {
@@ -662,7 +743,7 @@ export function buildWorld(scene) {
   const trainObstacle = { ax: st.x - 13, az: st.z, bx: st.x + 5, bz: st.z, r: 1.6 };
   obstacles.push(trainObstacle);
 
-  // ---------- 로켓 발사장: 콘크리트 판 + 발사탑 + 로켓 (가까이 가서 E 를 누르면 main 이 로켓을 쏘아 꿈의우주로 보낸다) ----------
+  // ---------- 로켓 발사장: 콘크리트 판 + 발사탑 + 로켓 (가까이 가서 액션을 누르면 main 이 로켓을 쏘아 꿈의우주로 보낸다) ----------
   const rp = WORLD.rocketPad;
   let rocket, rocketFlame;
   {
@@ -884,9 +965,10 @@ export function buildWorld(scene) {
     pickupSpots: [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0], [-90, 10], [90, -40], [-30, 90], [40, 90], [-95, 95], [95, 95], [-80, -95], [0, -100]],
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
+    labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
     train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },
     // 다른 지역에서 돌아올 때 도착하는 자리
-    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 } },
+    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10 } },
   };
 }
