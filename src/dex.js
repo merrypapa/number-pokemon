@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { buildDraftMesh } from './creatures.js';
+import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 
 // 몬스터 도감 + 내 포켓몬.
@@ -31,6 +32,7 @@ export class Dex {
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
     this.partyCtx = null;
+    this.view = new View3D(); // 카드의 360° 화면
     this.selectedId = null;
     this.tab = 'poke';
     this.mapSel = null;
@@ -348,56 +350,8 @@ export class Dex {
   }
 
   // ----- 360° 보기: 선택한 포켓몬을 작은 3D 화면에서 천천히 돌리고, 끌면 직접 돌릴 수 있다 -----
-  startView(sp) {
-    const canvas = document.getElementById('dex-view');
-    if (!canvas) return;
-    this.stopView();
-    try {
-      if (!this.viewRenderer) {
-        this.viewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-        this.viewScene = new THREE.Scene();
-        this.viewScene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
-        const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.viewScene.add(sun);
-        this.viewCamera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-      } else if (this.viewRenderer.domElement !== canvas) { // 카드가 다시 그려져 캔버스가 바뀌었다
-        this.viewRenderer.dispose(); this.viewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-      }
-      this.viewRenderer.setSize(canvas.width, canvas.height, false);
-    } catch (_) { return; }
-    const mesh = buildDraftMesh({ ...sp, scale: 1 });
-    this.viewScene.add(mesh);
-    this.viewMesh = mesh;
-    this.viewSpin = 0.8; this.viewAngle = -0.4; this.viewDrag = null;
-    const fit = () => {
-      const box = new THREE.Box3().setFromObject(mesh);
-      const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-      const r = Math.max(size.x, size.y, size.z, 0.8);
-      const dist = r / Math.tan(THREE.MathUtils.degToRad(15)) * 0.6 + r * 0.6;
-      this.viewCamera.position.set(0, center.y + r * 0.25, dist);
-      this.viewCamera.lookAt(0, center.y, 0);
-    };
-    fit();
-    canvas.onpointerdown = (e) => { this.viewDrag = { x: e.clientX, angle: this.viewAngle }; canvas.setPointerCapture(e.pointerId); };
-    canvas.onpointermove = (e) => { if (this.viewDrag) { this.viewAngle = this.viewDrag.angle + (e.clientX - this.viewDrag.x) * 0.02; } };
-    canvas.onpointerup = canvas.onpointercancel = () => { this.viewDrag = null; };
-    let last = performance.now(), frames = 0;
-    const loop = (now) => {
-      if (this.viewMesh !== mesh || !this.open) return;
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      if (!this.viewDrag) this.viewAngle += this.viewSpin * dt;
-      mesh.rotation.y = this.viewAngle;
-      if (++frames % 30 === 0) fit(); // 모델이 나중에 도착해 크기가 바뀌어도 맞춘다
-      this.viewRenderer.render(this.viewScene, this.viewCamera);
-      this.viewRaf = requestAnimationFrame(loop);
-    };
-    this.viewRaf = requestAnimationFrame(loop);
-  }
-  stopView() {
-    if (this.viewRaf) cancelAnimationFrame(this.viewRaf);
-    this.viewRaf = null;
-    if (this.viewMesh && this.viewScene) this.viewScene.remove(this.viewMesh);
-    this.viewMesh = null;
-  }
+  startView(sp) { this.view.show(document.getElementById('dex-view'), sp, () => this.open); }
+  stopView() { this.view.stop(); }
 
   render(caughtById) {
     const ctx = this.partyCtx;

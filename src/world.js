@@ -743,6 +743,10 @@ export function buildWorld(scene) {
     roof.position.set(st.x, y0 + 3.4, st.z + 3.6);
     roof.castShadow = true;
     decor.add(roof);
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🚂 기차역 → 물의길', '#1f3a93', '#9fe8ff', 64), transparent: true, depthTest: false })); // 불의산 입구처럼 멀리서 보이는 표지판
+    sign.scale.set(7, 1.75, 1);
+    sign.position.set(st.x, y0 + 5.4, st.z + 3.6);
+    decor.add(sign);
     for (const dx of [-7, 0, 7]) for (const dz of [1.9, 5.3]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8), woodMat);
       post.position.set(st.x + dx, y0 + 1.7, st.z + dz);
@@ -786,6 +790,10 @@ export function buildWorld(scene) {
     tower.position.set(rp.x + 4, y0 + 6, rp.z);
     tower.castShadow = true;
     decor.add(tower); block(rp.x + 4, rp.z, 1.0);
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🚀 로켓 발사장 → 꿈의우주', '#1b1236', '#ffd93d', 64), transparent: true, depthTest: false }));
+    sign.scale.set(8, 2, 1);
+    sign.position.set(rp.x - 2, y0 + 8.5, rp.z + 10);
+    decor.add(sign);
     for (let i = 1; i <= 4; i++) { const arm = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x7f8c8d })); arm.position.set(rp.x + 2.3, y0 + i * 2.6, rp.z); decor.add(arm); }
     rocket = new THREE.Group();
     const white = new THREE.MeshStandardMaterial({ color: 0xf4f4f8, roughness: 0.4 });

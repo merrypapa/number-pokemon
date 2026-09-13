@@ -5,6 +5,7 @@ import { effectiveness, effectWord } from './types.js';
 import { tickModel } from './models.js';
 import { strongAgainst, weakTo } from './types.js';
 import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
+import { View3D } from './view3d.js';
 
 // 대결 장면 (포켓몬 배틀 느낌, 턴제):
 //  1) 카메라가 주인공 어깨 뒤로 내려가고, 내 대표 포켓몬이 앞으로 나가 상대 몬스터를 마주 본다
@@ -104,9 +105,25 @@ export class Battle {
     this.runBtn = document.getElementById('btn-run');
     this.ballBtn.onclick = () => this.throwBall();
     this.runBtn.onclick = () => this.leave();
+    // 교체 팝업 (왼쪽 위 버튼): ◀ ▶ 로 넘기며 3D 모습·스탯·특징을 보고 교체한다
     this.switchBtn = document.getElementById('btn-switch');
-    this.switchEl = document.getElementById('battle-switch');
-    this.switchBtn.onclick = () => this.toggleSwitch();
+    this.switchEl = document.getElementById('switch-modal');
+    this.switchInfoEl = document.getElementById('switch-info');
+    this.switchPosEl = document.getElementById('switch-pos');
+    this.switchView = new View3D();
+    this.switchBtn.onclick = () => this.openSwitch();
+    document.getElementById('btn-switch-close').onclick = () => this.closeSwitch();
+    document.getElementById('switch-prev').onclick = () => this.moveSwitch(-1);
+    document.getElementById('switch-next').onclick = () => this.moveSwitch(1);
+    document.getElementById('btn-switch-go').onclick = () => { const x = this.switchList?.[this.switchIdx]; this.closeSwitch(); if (x) this.switchTo(x); };
+    // 넘버볼 만들기 팝업 (볼을 고를 때): 종류별로 블록을 넘버볼로 바꾼다
+    this.craftBtn = document.getElementById('btn-craft');
+    this.craftEl = document.getElementById('craft-modal');
+    this.craftRowsEl = document.getElementById('craft-rows');
+    this.craftBlocksEl = document.getElementById('craft-blocks');
+    this.craftBtn.onclick = () => this.openCraft();
+    document.getElementById('btn-craft-close').onclick = () => this.closeCraft();
+    document.getElementById('btn-craft-done').onclick = () => this.closeCraft();
     this.flying = [];
     this.sel = 0;
   }
@@ -121,7 +138,8 @@ export class Battle {
     this.skill = null;
     this.shakeCam = 0;
     this.switched = false; this.firstMember = member; // 교체하면 대결이 끝날 때 새 포켓몬이 대표가 된다
-    this.switchEl.classList.add('hidden');
+    this.switchOpen = false; this.craftOpen = false;
+    this.switchEl.classList.add('hidden'); this.craftEl.classList.add('hidden'); this.craftBtn.classList.add('hidden');
     if (creature.hp == null) creature.hp = creature.data.baseHp;
     this.input.endFrame();
     this.sound.ensure();
@@ -201,7 +219,7 @@ export class Battle {
     this.ballBtn.classList.add('hidden');
     this.ballsEl.classList.add('hidden');
     this.bannerEl.classList.add('hidden');
-    this.runBtn.textContent = '나중에';
+    this.runBtn.textContent = '도망치기';
     this.runBtn.classList.remove('primary');
     this.render();
     this.el.classList.remove('hidden');
@@ -268,7 +286,7 @@ export class Battle {
     });
     const others = this.party.members.filter((x) => x !== m && !this.party.isFainted(x));
     this.switchBtn.classList.toggle('hidden', !(choosing && others.length));
-    if (!choosing) this.switchEl.classList.add('hidden');
+    if (!choosing && this.switchOpen) this.closeSwitch();
     const next = this.party.nextSkill(m);
     if (next) {
       const b = document.createElement('button');
@@ -295,26 +313,57 @@ export class Battle {
   }
 
   // ----- 포켓몬 교체 (한 턴을 쓴다: 바꾸는 동안 상대가 공격해 온다) -----
-  toggleSwitch() {
+  openSwitch() {
     if (this.phase !== 'choose') return;
-    if (!this.switchEl.classList.contains('hidden')) { this.switchEl.classList.add('hidden'); return; }
-    this.switchEl.innerHTML = '';
-    const others = this.party.members.filter((x) => x !== this.member && !this.party.isFainted(x));
-    for (const x of others) {
-      const sp = this.party.species(x);
-      const b = document.createElement('button');
-      b.className = 'switch-btn';
-      const img = this.thumb ? this.thumb(sp) : null;
-      b.innerHTML = `${img ? `<img src="${img}" alt="">` : ''}<span class="sw-name">${sp.name}</span><span class="sw-stat">❤ ${x.hp}/${x.maxHp} · ⚔ ${x.atk}</span>`;
-      b.onclick = () => this.switchTo(x);
-      this.switchEl.appendChild(b);
-    }
-    const tip = document.createElement('div');
-    tip.className = 'ball-tip';
-    tip.textContent = '바꾸는 동안 상대가 한 번 공격해!';
-    this.switchEl.appendChild(tip);
+    this.switchList = this.party.members.filter((x) => x !== this.member && !this.party.isFainted(x));
+    if (!this.switchList.length) return;
+    this.switchIdx = 0;
+    this.switchOpen = true;
     this.switchEl.classList.remove('hidden');
+    this.renderSwitch();
     this.sound.click();
+  }
+  closeSwitch() { this.switchOpen = false; this.switchEl.classList.add('hidden'); this.switchView.stop(); }
+  moveSwitch(d) { const n = this.switchList.length; this.switchIdx = (this.switchIdx + d + n) % n; this.sound.click(); this.renderSwitch(); }
+  renderSwitch() {
+    const x = this.switchList[this.switchIdx], sp = this.party.species(x), c = this.creature.data;
+    const n = this.switchList.length;
+    this.switchPosEl.textContent = `${this.switchIdx + 1} / ${n}`;
+    const myType = sp.type || '노말', enemyType = c.type || '노말';
+    const atkMult = effectiveness(myType, enemyType), defMult = effectiveness(enemyType, myType);
+    const word = (m) => (m > 1 ? '<b class="good">굉장해! ×1.5</b>' : m < 1 ? '<b class="bad">별로… ×0.5</b>' : '보통');
+    const skills = this.party.skills(x).map((s) => `${s.name} <small>-${this.party.damage(x, s)}</small>`).join(' · ');
+    this.switchInfoEl.innerHTML = `
+      <div class="sw-name">${sp.name} <span class="party-type">${myType}</span></div>
+      <div class="sw-stat"><span class="hp">❤ ${x.hp}/${x.maxHp}</span> <span class="atk">⚔ ${x.atk}</span></div>
+      <div class="sw-row">🎯 ${skills || '기술 없음'}</div>
+      <div class="sw-row">💥 ${c.name}(${enemyType})에게 내 공격: ${word(atkMult)}</div>
+      <div class="sw-row">🛡 ${c.name}의 공격을 받으면: ${word(defMult === 1 ? 1 : defMult > 1 ? 0.5 : 1.5)}</div>
+      ${sp.story ? `<div class="sw-story">📖 ${sp.story}</div>` : ''}
+      <div class="sw-tip">바꾸는 동안 상대가 한 번 공격해!</div>`;
+    this.switchView.show(document.getElementById('switch-view'), sp, () => this.switchOpen);
+  }
+  // ----- 넘버볼 만들기 팝업 -----
+  openCraft() {
+    if (this.phase !== 'dizzy') return;
+    this.craftOpen = true;
+    this.craftEl.classList.remove('hidden');
+    this.renderCraft();
+    this.sound.click();
+  }
+  closeCraft() { this.craftOpen = false; this.craftEl.classList.add('hidden'); if (this.phase === 'dizzy') this.renderBalls(); }
+  renderCraft() {
+    const stock = this.getBalls(), blocks = this.getBlocks ? this.getBlocks() : 0;
+    this.craftBlocksEl.innerHTML = `내 블록 <b>${blocks}개</b> · ${gradeStars(this.creature.data.grade || 1)} ${this.creature.data.name}에게는 <b>${recommendedBall(this.creature.data.grade || 1).name}</b>이 잘 맞아`;
+    this.craftRowsEl.innerHTML = '';
+    for (const b of BALLS) {
+      const row = document.createElement('div');
+      row.className = 'ball-row';
+      row.style.setProperty('--ball', b.css);
+      row.innerHTML = `<span class="ball-dot big"></span><span class="ball-name">${b.name}</span><span class="ball-count">${stock[b.id] || 0}<small>개</small></span><span class="ball-pct-sm">${this.chanceFor(b.tier)}%</span><button ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>`;
+      row.querySelector('button').onclick = () => { if (this.onBuyBall?.(b.id)) { this.sound.pickup?.(); this.renderCraft(); } };
+      this.craftRowsEl.appendChild(row);
+    }
   }
   switchTo(x) {
     if (this.phase !== 'choose' || x === this.member || this.party.isFainted(x)) return;
@@ -331,7 +380,6 @@ export class Battle {
     this.switched = true;
     this.mineFrom = this.mineTo.clone();
     this.particles.stars(this.scene, this.minePoint(), 14, new THREE.Color(this.party.color(x)).getHex(), 0.4);
-    this.switchEl.classList.add('hidden');
     this.msgEl.textContent = `가라, ${this.party.name(x)}! 바꾸는 사이에 ${this.creature.data.name}이(가) 공격해 온다!`;
     this.sound.throw_();
     this.phase = 'enemyWind';
@@ -472,30 +520,20 @@ export class Battle {
     this.ballsEl.innerHTML = '';
     const stock = this.getBalls(), grade = this.creature.data.grade || 1;
     const blocks = this.getBlocks ? this.getBlocks() : 0;
-    let crafted = false;
     for (const b of BALLS) {
       const n = stock[b.id] || 0, pct = this.chanceFor(b.tier);
       const btn = document.createElement('button');
+      btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
-      if (n) {
-        btn.className = 'ball-btn';
-        btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
-        btn.onclick = () => this.throwBall(b.id);
-      } else if (this.onBuyBall && blocks >= b.cost) { // 볼이 없으면 그 자리에서 블록으로 만들 수 있다
-        btn.className = 'ball-btn craft';
-        btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">만들기</span><span class="ball-pct">블록 ${b.cost}</span>`;
-        btn.onclick = () => { if (this.onBuyBall(b.id)) { this.sound.pickup?.(); this.renderBalls(); } };
-        crafted = true;
-      } else {
-        btn.className = 'ball-btn none';
-        btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×0</span><span class="ball-pct">블록 ${b.cost}</span>`;
-        btn.disabled = true;
-      }
+      btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
+      btn.disabled = !n;
+      btn.onclick = () => this.throwBall(b.id);
       this.ballsEl.appendChild(btn);
     }
     const tip = document.createElement('div');
     tip.className = 'ball-tip';
-    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률${this.creature.catchBonus ? ` (도망친 만큼 +${this.creature.catchBonus}%)` : ''} · 내 블록 ${blocks}개${crafted ? ' · "만들기"를 누르면 바로 넘버볼이 돼' : ''}`;
+    tip.textContent = `${gradeStars(grade)} · 숫자는 잡힐 확률${this.creature.catchBonus ? ` (도망친 만큼 +${this.creature.catchBonus}%)` : ''} · 내 블록 ${blocks}개`;
+    this.craftBtn.classList.toggle('hidden', !this.onBuyBall); // 팝업에서 블록을 넘버볼로 바꾼다
     this.ballsEl.appendChild(tip);
   }
   throwBall(ballId = 'bronze') {
@@ -511,6 +549,7 @@ export class Battle {
     this.phase = 'ball_fly';
     this.ballBtn.classList.add('hidden');
     this.ballsEl.classList.add('hidden');
+    this.craftBtn.classList.add('hidden');
     this.msgEl.textContent = `${spec.name} 던지기!`;
     this.sound.throw_();
   }
@@ -603,8 +642,8 @@ export class Battle {
     document.body.classList.remove('battle');
     this.bannerEl.classList.add('hidden');
     this.floatEl.classList.add('hidden');
-    this.switchEl.classList.add('hidden');
-    this.switchBtn.classList.add('hidden');
+    this.closeSwitch(); this.switchBtn.classList.add('hidden');
+    this.craftOpen = false; this.craftEl.classList.add('hidden'); this.craftBtn.classList.add('hidden');
     if (this.switched) this.onSwitched?.(this.member, this.firstMember); // 새 포켓몬이 대표로 따라온다
     if (result === 'caught') this.onCaught?.();
     else if (result === 'lost') this.onLost?.();
@@ -627,8 +666,8 @@ export class Battle {
     }
     this.camera.lookAt(this.camLook);
     this.placeTag();
-    if (this.infoOpen) { // 정보 카드가 열려 있으면 조작은 잠시 멈춘다 (ESC 로 닫기)
-      if (this.input.wasPressed('cancel')) this.hideInfo();
+    if (this.infoOpen || this.switchOpen || this.craftOpen) { // 팝업이 열려 있으면 조작은 잠시 멈춘다 (ESC 로 닫기)
+      if (this.input.wasPressed('cancel')) { this.hideInfo(); this.closeSwitch(); this.closeCraft(); }
       return;
     }
     if (this.phase === 'enter') {
