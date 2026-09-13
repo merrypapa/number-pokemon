@@ -117,9 +117,12 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 #touch-actions button { width: 72px; height: 72px; }
 #touch-actions button.run { background: rgba(255,217,61,.85); }
+/* 점프 버튼이 '대화'·'타기'·'구출' 버튼으로 바뀌었을 때: 파란색 + 살짝 커짐 */
+#touch-actions button.ctx { background: #3fb8e8; color: #fff; white-space: pre-line; line-height: 1.15; font-size: 15px; box-shadow: 0 0 0 4px rgba(63,184,232,.35), 0 3px 8px rgba(0,0,0,.25); animation: ctxPop .25s ease-out; }
 /* 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차·로켓·구출)이 있을 때만 나타난다 */
 :root { --ctx-bottom: 96px; } /* 상황 버튼 높이 (연구소 가기 버튼은 그 위에 쌓인다) */
 body.touch { --ctx-bottom: 178px; }
+body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) 버튼 바로 위 */
 #ctx-action { position: fixed; right: 16px; bottom: var(--ctx-bottom); z-index: 8; padding: 14px 24px; border: 0; border-radius: 999px; background: #ffd93d; color: #333; font-size: 19px; font-weight: 900; box-shadow: 0 4px 0 #c99400, 0 6px 14px rgba(0,0,0,.25); cursor: pointer; animation: ctxPop .25s ease-out; }
 #ctx-action:active { transform: translateY(3px); box-shadow: 0 1px 0 #c99400; }
 @keyframes ctxPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -381,6 +384,9 @@ body.intro #btn-save { display: none !important; }
   #ctx-action { font-size: 16px; padding: 12px 18px; right: 12px; }
   body.touch { --ctx-bottom: 156px; }
   #btn-warp { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 54px); }
+  body.touch #btn-warp { bottom: var(--ctx-bottom); }
+  body.touch #msg { bottom: auto; top: 104px; } /* 휴대폰: 말풍선이 조이스틱·버튼을 가리지 않게 위쪽에 */
+  body.touch #zone-banner { top: 34%; } /* 지역 이름은 말풍선 아래로 */
 }
 
 .party-badge.faint { background: #e8453c; color: #fff; }

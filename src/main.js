@@ -541,9 +541,16 @@ warpBtn.onclick = () => {
 const ctxBtn = document.getElementById('ctx-action');
 let ctxAction = null, ctxClicked = false;
 ctxBtn.onclick = () => { ctxClicked = true; };
-function offer(label, run) { if (!ctxAction) ctxAction = { label, run }; }
+const jumpBtn = document.querySelector('#touch-actions button[data-key="jump"]');
+function offer(label, run, short = label) { if (!ctxAction) ctxAction = { label, run, short }; }
 function updateCtxButton() {
   const show = ctxAction && !battle.active && !dex.open && !quiz.open && !ride && !switching && !evo;
+  if (document.body.classList.contains('touch')) { // 터치 화면: 점프 버튼이 그 일을 하는 버튼으로 바뀐다 (색도 바뀜)
+    ctxBtn.classList.add('hidden');
+    const label = show ? ctxAction.short : '점프';
+    if (jumpBtn.textContent !== label) { jumpBtn.textContent = label; jumpBtn.classList.toggle('ctx', !!show); jumpBtn.dataset.key = show ? 'action' : 'jump'; }
+    return;
+  }
   if (!show) { ctxBtn.classList.add('hidden'); return; }
   if (ctxBtn.textContent !== ctxAction.label) ctxBtn.textContent = ctxAction.label;
   ctxBtn.classList.remove('hidden');
@@ -939,7 +946,7 @@ function frame() {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
-        offer('💬 대화', () => talkTo(npc));
+        offer('💬 대화', () => talkTo(npc), '💬\n대화');
         if (state.prompt <= 0 && !npc.talking) { state.prompt = 8; say(`${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); }
       } else if (npc.talking) { npc.talking = false; warpBtn.classList.add('hidden'); warpNpc = null; } // 멀어지면 버튼도 사라진다
     }
@@ -954,7 +961,7 @@ function frame() {
     if (!moved) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.2)) continue;
       const dest = ZONE_INFO[v.to]?.name || v.to;
-      offer(v.kind === 'train' ? '🚂 기차 타기' : '🚀 로켓 타기', () => startRide(v));
+      offer(v.kind === 'train' ? '🚂 기차 타기' : '🚀 로켓 타기', () => startRide(v), v.kind === 'train' ? '🚂\n타기' : '🚀\n타기');
       if (state.prompt <= 0) { state.prompt = 8; say(v.kind === 'train' ? `기차역이야! 기차 타기 버튼을 누르면 ${dest}(으)로 가!` : `로켓이야! 로켓 타기 버튼을 누르면 ${dest}(으)로 가!`, { sec: 4 }); }
       break;
     }
@@ -1089,7 +1096,7 @@ function frame() {
           if (ok) rescueSolved(zone, nb);
           else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
         });
-      });
+      }, '🧩\n구출');
     }
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
     if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();
