@@ -23,6 +23,9 @@ button.hud-row:active { transform: scale(.96); }
 #msg { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.96); border-radius: 20px; padding: 12px 24px 12px 12px; width: max-content; max-width: min(96vw, 1040px); box-shadow: 0 4px 14px rgba(0,0,0,.2); z-index: 6; }
 body.battle #msg { display: none; } /* 대결 중엔 말풍선을 숨긴다 (같은 내용이 대결판에 나온다) */
 #msg-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; display: block; }
+/* 말풍선 기본 얼굴: 넘버볼 */
+.ball-face { display: block; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #20232e; background: linear-gradient(#e8453c 0 44%, #20232e 44% 56%, #f4f4f8 56%); position: relative; }
+.ball-face::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #fff; border: 3px solid #20232e; box-sizing: border-box; }
 #msg-face { width: 54px; height: 54px; overflow: hidden; border-radius: 8px; background: #e8453c; border: 3px solid #20232e; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
 #msg-text { font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; color: #333; line-height: 1.4; word-break: keep-all; }
 
@@ -218,6 +221,7 @@ body.touch #ctx-action { bottom: 178px; }
 #quiz-text { font-size: clamp(19px, 3vw, 26px); font-weight: 900; color: #20232e; margin: 8px 0 12px; line-height: 1.35; word-break: keep-all; }
 #quiz-icons { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .quiz-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; background: #fff; border-radius: 14px; padding: 8px 10px; width: 100%; }
+.quiz-row.note { background: #fff4d6; font-weight: 900; color: #b8860b; font-size: 15px; }
 .quiz-cell { width: 52px; height: 52px; border-radius: 12px; background: #f7f3e3; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #999; }
 .quiz-cell img { width: 100%; height: 100%; object-fit: contain; }
 .quiz-cell.faded { opacity: .22; position: relative; }

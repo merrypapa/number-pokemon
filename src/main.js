@@ -8,7 +8,7 @@ import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
 import { strongAgainst, weakTo } from './types.js';
 import { portrait } from './portrait.js';
-import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall } from './balls.js';
+import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
@@ -68,10 +68,13 @@ const msgText = document.getElementById('msg-text');
 const msgFace = document.getElementById('msg-face');
 let msgTimer = 0;
 // face: 숫자블록 얼굴('1'~'10') 또는 faceImg: 얼굴 그림(데이터 URL, NPC 대화)
-function say(text, { face = '1', faceImg = null, sec = 4 } = {}) {
+function say(text, { face = null, faceImg = null, sec = 4 } = {}) {
   msgText.textContent = text;
   if (faceImg) {
     msgFace.innerHTML = `<img src="${faceImg}" alt="">`;
+    msgFace.style.background = '#fff';
+  } else if (!face) { // 기본 얼굴은 넘버볼
+    msgFace.innerHTML = '<span class="ball-face"></span>';
     msgFace.style.background = '#fff';
   } else {
     msgFace.textContent = face;
@@ -580,14 +583,27 @@ function spawnRescue(z) {
     nb.help.scale.set(0.8, 0.8, 1);
     nb.mesh.add(nb.help);
     z.rescue = nb;
-    say(`${data.name}이(가) ${dirWord(x - player.position.x, zz - player.position.z)}쪽에서 도와달래! 찾아가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
+    nb.arrow = makeRescueArrow(); nb.arrowT = 18; // 처음 18초 동안 머리 위 화살표가 친구 쪽을 가리킨다
+    z.scene.add(nb.arrow);
+    say(`${data.name}이(가) 도와달래! 머리 위 빨간 화살표를 따라가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
     return;
   }
   z.nbTimer = 20; // 자리를 못 찾으면 잠시 뒤 다시
 }
+/** 구출 친구가 어디 있는지 가리키는 빨간 화살표 (주인공 머리 위에 떠서 친구 쪽을 향한다) */
+function makeRescueArrow() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0xe8453c, emissive: 0xe8453c, emissiveIntensity: 0.55 });
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.6, 10), mat); shaft.rotation.x = Math.PI / 2; shaft.position.z = 0.8;
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 12), mat); tip.rotation.x = Math.PI / 2; tip.position.z = 2.05;
+  g.add(shaft, tip);
+  return g;
+}
+function removeRescueArrow(z, nb) { if (nb.arrow) { z.scene.remove(nb.arrow); nb.arrow = null; } }
 function removeRescue(z, escaped) {
   const nb = z.rescue;
   if (!nb) return;
+  removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescue = null;
   z.nbTimer = rand(45, 90);
@@ -597,6 +613,7 @@ function rescueSolved(z, nb) {
   nb.rescued = true;
   const n = nb.data.number;
   particles.stars(z.scene, nb.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 24, new THREE.Color(colorForCount(n)).getHex(), 0.5);
+  removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescue = null;
   z.nbTimer = rand(45, 90);
@@ -608,6 +625,14 @@ function rescueSolved(z, nb) {
   say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${gain > n ? ` (이 지역 블록은 ${blockValue()}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
   refreshHud();
   autosave();
+}
+
+/** 대결에서 이기면 받는 블록: 상대 공격력 × 지역 블록 가치 (보스는 2배). 단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값보다 항상 조금 더 많다 (볼을 만들어도 남게) */
+const ZONE_GRADE = { forest: 1, cave: 2, sea: 3, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
+function winReward(c) {
+  const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
+  const ball = BALLS.find((b) => catchChance(grade, b.tier) >= 75) || BALLS[BALLS.length - 1];
+  return Math.max(c.data.baseAtk * blockValue() * (c.isBoss ? 2 : 1), ball.cost + 1);
 }
 
 // ---------- 튜토리얼/진행 ----------
@@ -986,7 +1011,7 @@ function frame() {
             (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
             L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수
-            const reward = c.data.baseAtk; // 이기면 상대 공격력만큼 블록
+            const reward = winReward(c);
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             const cnt = state.dex[c.data.id];
@@ -1044,10 +1069,20 @@ function frame() {
       nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 3)) * 0.12;
       nb.mesh.rotation.y = Math.atan2(pp.x - nb.position.x, pp.z - nb.position.z); // 주인공을 본다
       animateNumberblock(nb.mesh, dt, true);
+      if (nb.arrow) { // 화살표: 주인공 머리 위에서 친구 쪽을 가리키다가 시간이 지나거나 가까워지면 사라진다
+        nb.arrowT -= dt;
+        const far = nb.position.distanceTo(pp);
+        if (nb.arrowT <= 0 || far < 7) removeRescueArrow(zone, nb);
+        else {
+          nb.arrow.position.set(pp.x, pp.y + 3.4 + Math.sin(nb.t * 4) * 0.2, pp.z);
+          nb.arrow.rotation.y = Math.atan2(nb.position.x - pp.x, nb.position.z - pp.z);
+          nb.arrow.scale.setScalar(nb.arrowT < 1.5 ? Math.max(0.01, nb.arrowT / 1.5) : 1);
+        }
+      }
       if (nb.life <= 0) removeRescue(zone, true);
       else if (nb.position.distanceTo(pp) < 2.4) offer(`🧩 ${nb.data.name} 구출하기`, () => {
         input.endFrame();
-        quiz.ask(nb.data.number, nb.data.name).then((ok) => {
+        quiz.ask(nb.data.number, nb.data.name, zone.name).then((ok) => {
           if (zone.rescue !== nb) return;
           if (ok) rescueSolved(zone, nb);
           else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });

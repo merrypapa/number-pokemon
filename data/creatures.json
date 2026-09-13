@@ -61,7 +61,7 @@
     "eyes": 1
    },
    "baseHp": 8,
-   "baseAtk": 1,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "덩굴채찍",
@@ -110,7 +110,7 @@
     "curls": 3
    },
    "baseHp": 64,
-   "baseAtk": 8,
+   "baseAtk": 14,
    "skills": [
     {
      "name": "전기쇼크",
@@ -159,7 +159,7 @@
     "dots": 6
    },
    "baseHp": 8,
-   "baseAtk": 1,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "실뿜기",
@@ -200,7 +200,7 @@
     "wingSpots": 9
    },
    "baseHp": 9,
-   "baseAtk": 1,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "쪼기",
@@ -241,7 +241,7 @@
     "points": 12
    },
    "baseHp": 12,
-   "baseAtk": 2,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "모래뿌리기",
@@ -282,7 +282,7 @@
     "cracks": 8
    },
    "baseHp": 12,
-   "baseAtk": 2,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "할퀴기",
@@ -371,7 +371,7 @@
     "color": "#9ADE7B"
    },
    "baseHp": 11,
-   "baseAtk": 2,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "잎날가르기",
@@ -411,7 +411,7 @@
     "color": "#B08968"
    },
    "baseHp": 9,
-   "baseAtk": 1,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "쪼기",
@@ -451,7 +451,7 @@
     "color": "#C9B27A"
    },
    "baseHp": 11,
-   "baseAtk": 2,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "파뿌리치기",
@@ -491,7 +491,7 @@
     "color": "#F2D94E"
    },
    "baseHp": 10,
-   "baseAtk": 2,
+   "baseAtk": 3,
    "skills": [
     {
      "name": "덩굴채찍",
@@ -531,7 +531,7 @@
     "color": "#E8D8B8"
    },
    "baseHp": 10,
-   "baseAtk": 1,
+   "baseAtk": 2,
    "skills": [
     {
      "name": "할퀴기",
@@ -621,7 +621,7 @@
     "paws": 4
    },
    "baseHp": 21,
-   "baseAtk": 3,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "모래뿌리기",
@@ -662,7 +662,7 @@
     "ears": 2
    },
    "baseHp": 22,
-   "baseAtk": 3,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "초음파",
@@ -703,7 +703,7 @@
     "paws": 2
    },
    "baseHp": 24,
-   "baseAtk": 4,
+   "baseAtk": 6,
    "skills": [
     {
      "name": "바위던지기",
@@ -744,7 +744,7 @@
     "glowSegments": 7
    },
    "baseHp": 23,
-   "baseAtk": 4,
+   "baseAtk": 6,
    "skills": [
     {
      "name": "불꽃",
@@ -785,7 +785,7 @@
     "color": "#C9A27E"
    },
    "baseHp": 19,
-   "baseAtk": 3,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "뼈다귀치기",
@@ -825,7 +825,7 @@
     "color": "#8E6BAA"
    },
    "baseHp": 17,
-   "baseAtk": 2,
+   "baseAtk": 4,
    "skills": [
     {
      "name": "오물",
@@ -865,7 +865,7 @@
     "color": "#7EA0C8"
    },
    "baseHp": 16,
-   "baseAtk": 2,
+   "baseAtk": 4,
    "skills": [
     {
      "name": "가라테촙",
@@ -905,7 +905,7 @@
     "color": "#B57EDC"
    },
    "baseHp": 18,
-   "baseAtk": 3,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "독가루",
@@ -994,7 +994,7 @@
     "ears": 2
    },
    "baseHp": 40,
-   "baseAtk": 6,
+   "baseAtk": 10,
    "skills": [
     {
      "name": "불꽃",
@@ -1043,7 +1043,7 @@
     "flames": 10
    },
    "baseHp": 51,
-   "baseAtk": 7,
+   "baseAtk": 11,
    "skills": [
     {
      "name": "불꽃",
@@ -1084,7 +1084,7 @@
     "glow": true
    },
    "baseHp": 45,
-   "baseAtk": 7,
+   "baseAtk": 11,
    "skills": [
     {
      "name": "불꽃세례",
@@ -1125,7 +1125,7 @@
     "ears": 2
    },
    "baseHp": 56,
-   "baseAtk": 8,
+   "baseAtk": 13,
    "skills": [
     {
      "name": "물기",
@@ -1214,7 +1214,7 @@
     "bubbles": 5
    },
    "baseHp": 35,
-   "baseAtk": 5,
+   "baseAtk": 8,
    "skills": [
     {
      "name": "물대포",
@@ -1263,7 +1263,7 @@
     "eyes": 2
    },
    "baseHp": 40,
-   "baseAtk": 6,
+   "baseAtk": 9,
    "skills": [
     {
      "name": "물대포",
@@ -1304,7 +1304,7 @@
     "bubbles": 3
    },
    "baseHp": 37,
-   "baseAtk": 5,
+   "baseAtk": 8,
    "skills": [
     {
      "name": "튀어오르기",
@@ -1345,7 +1345,7 @@
     "curls": 1
    },
    "baseHp": 38,
-   "baseAtk": 6,
+   "baseAtk": 9,
    "skills": [
     {
      "name": "거품",
@@ -1385,7 +1385,7 @@
     "color": "#9A8FD6"
    },
    "baseHp": 30,
-   "baseAtk": 4,
+   "baseAtk": 7,
    "skills": [
     {
      "name": "조개껍질조이기",
@@ -1425,7 +1425,7 @@
     "color": "#F08A5D"
    },
    "baseHp": 33,
-   "baseAtk": 5,
+   "baseAtk": 8,
    "skills": [
     {
      "name": "거품",
@@ -1465,7 +1465,7 @@
     "color": "#F5A3B3"
    },
    "baseHp": 31,
-   "baseAtk": 5,
+   "baseAtk": 8,
    "skills": [
     {
      "name": "물대포",
@@ -1505,7 +1505,7 @@
     "color": "#7FB3E6"
    },
    "baseHp": 28,
-   "baseAtk": 4,
+   "baseAtk": 7,
    "skills": [
     {
      "name": "독침",
@@ -1599,7 +1599,7 @@
     "glow": true
    },
    "baseHp": 76,
-   "baseAtk": 10,
+   "baseAtk": 17,
    "skills": [
     {
      "name": "노래하기",
@@ -1640,7 +1640,7 @@
     "ears": 2
    },
    "baseHp": 72,
-   "baseAtk": 10,
+   "baseAtk": 17,
    "skills": [
     {
      "name": "손가락흔들기",
@@ -1680,7 +1680,7 @@
     "color": "#E8C46A"
    },
    "baseHp": 68,
-   "baseAtk": 9,
+   "baseAtk": 15,
    "skills": [
     {
      "name": "염동력",
@@ -1722,7 +1722,7 @@
     "translucent": true
    },
    "baseHp": 80,
-   "baseAtk": 10,
+   "baseAtk": 17,
    "skills": [
     {
      "name": "핥기",
@@ -1769,7 +1769,7 @@
     "glow": true
    },
    "baseHp": 60,
-   "baseAtk": 8,
+   "baseAtk": 14,
    "skills": [
     {
      "name": "전기쇼크",
@@ -2082,7 +2082,7 @@
     "curls": 3
    },
    "baseHp": 84,
-   "baseAtk": 11,
+   "baseAtk": 18,
    "skills": [
     {
      "name": "10만볼트",
