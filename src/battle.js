@@ -536,7 +536,7 @@ export class Battle {
   throwBall(ballId = 'bronze') {
     if (this.phase !== 'dizzy') return;
     const spec = BALL_BY_ID[ballId] || BALLS[0];
-    if (this.onUseBall && !this.onUseBall(spec.id)) { this.msgEl.textContent = `${spec.name}이 없어! 도감(B)의 넘버볼 탭에서 블록으로 바꿀 수 있어.`; return; }
+    if (this.onUseBall && !this.onUseBall(spec.id)) { this.msgEl.textContent = `${spec.name}이 없어! 도감의 넘버볼 탭에서 블록으로 바꿀 수 있어.`; return; }
     this.ballSpec = spec;
     const ball = makeBall(spec.color);
     const from = this.throwFrom.clone();
@@ -703,7 +703,7 @@ export class Battle {
       if (f.keepRot) { if (f.spin) f.mesh.rotateX(dt * f.spin); }
       else { f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 4; }
       if (t >= 1) {
-        this.scene.remove(f.mesh);
+        if (f.kind !== 'ball') this.scene.remove(f.mesh); // 넘버볼은 그대로 남아 상대에게 맞고 튕겨 떨어진다
         f.done = true;
         if (f.kind === 'bolt') this.onBoltHit();
         else if (f.kind === 'ball') this.startCapture();
@@ -834,7 +834,6 @@ export class Battle {
     this.captureStart = this.timer;
     this.catchRoll = null;
     this.ballHit = this.targetPoint();
-    this.scene.add(this.ball); // 날아가기가 끝나며 장면에서 빠진 볼을 다시 넣는다 (튕기고 흔들리는 동안 보여야 한다)
     this.ball.position.copy(this.ballHit);
     this.ballLand = new THREE.Vector3().copy(this.stageTo).addScaledVector(this.dir, -1.9);
     this.ballLand.y = terrainHeight(this.ballLand.x, this.ballLand.z) + 0.32;
@@ -880,7 +879,7 @@ export class Battle {
     this.confetti.burst(160);
     this.sound.fanfare();
     this.showBanner(`잡았다! ${c.data.name}!`);
-    this.msgEl.textContent = `${c.data.name}이(가) 친구가 되었어요! 도감(B)에서 대표로 고를 수 있어.`;
+    this.msgEl.textContent = `${c.data.name}이(가) 친구가 되었어요! 도감에서 대표로 고를 수 있어.`;
     this.runBtn.textContent = '계속하기 ▶';
     this.runBtn.classList.add('primary');
   }

@@ -662,8 +662,8 @@ function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)를 열면 블록으로 포켓몬의 공격력이나 체력을 올릴 수 있어.', { sec: 7 }); }
-  else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 체력이 0이 되면 지니까 도감(B)에서 체력도 올려 두자.', { sec: 7 }); }
-  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감(B)에서 대표를 바꿀 수 있어. 숫자블록 친구가 도와달라고 나타나면 문제를 풀어 구출해 줘!', { sec: 7 }); }
+  else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 체력이 0이 되면 지니까 도감에서 체력도 올려 두자.', { sec: 7 }); }
+  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 도와달라고 나타나면 문제를 풀어 구출해 줘!', { sec: 7 }); }
   else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
 function conquer(zoneName) {
@@ -985,7 +985,7 @@ function frame() {
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
       if (b.position.distanceTo(pp) < 1.1) {
-        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감(B)에서 포켓몬을 키우는 데 쓰자!`); } continue; }
+        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감에서 포켓몬을 키우는 데 쓰자!`); } continue; }
         zone.scene.remove(b);
         zone.pickups.splice(i, 1);
         setBlocks(state.blocks + blockValue(), { glow: !!b.userData.glow });
@@ -1048,12 +1048,12 @@ function frame() {
               state.caught++;
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
-              const winNote = party.canEvolve(L) ? ` ${party.name(L)}이(가) 진화할 수 있어! 도감(B)에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
+              const winNote = party.canEvolve(L) ? ` ${party.name(L)}이(가) 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
               if (already) say(`${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리. 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
-              else say(`${c.data.name}이(가) 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감(B)에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
+              else say(`${c.data.name}이(가) 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
             }
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
-            if (!already && party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감(B)에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
+            if (!already && party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
             autosave();
           },
@@ -1074,7 +1074,7 @@ function frame() {
           },
           onEscaped: () => { // 넘버볼에서 튀어나와 도망: 승리 아님, 블록·승수 없음. 한동안 사라졌다가 돌아온다
             c.flee();
-            say(`${c.data.name}이(가) 도망쳤어… 등급이 높은 포켓몬은 더 좋은 넘버볼이 필요해. 도감(B) 넘버볼 탭에서 블록으로 바꾸자!`, { sec: 7 });
+            say(`${c.data.name}이(가) 도망쳤어… 등급이 높은 포켓몬은 더 좋은 넘버볼이 필요해. 도감 넘버볼 탭에서 블록으로 바꾸자!`, { sec: 7 });
             refreshHud();
           },
           onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 모아서 더 강해진 다음 다시 오자!'); refreshHud(); },
@@ -1160,6 +1160,12 @@ function frame() {
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
 
+  if (zone.name === 'lab' && zone.world.setScreenSubjects && (zone.screenFedAt == null || t - zone.screenFedAt > 20)) { // 연구 모니터에 내가 만난 포켓몬 그림을 넣는다
+    zone.screenFedAt = t;
+    const ids = Object.keys(state.dex).filter((id) => state.dex[id] > 0 && speciesById[id]);
+    const list = (ids.length ? ids : ['m01', 'm02', 'm05', 'm03']).slice(0, 8).map((id) => speciesById[id]).map((sp) => ({ name: sp.name, type: sp.type, hp: sp.baseHp, atk: sp.baseAtk, src: dex.thumbs(sp)?.color })).filter((s) => s.src);
+    if (list.length) zone.world.setScreenSubjects(list);
+  }
   zone.world.animate?.(t);
   const sun = zone.world.sun;
   if (sun) { sun.position.set(player.position.x + 20, 30, player.position.z + 10); sun.target.position.copy(player.position); }

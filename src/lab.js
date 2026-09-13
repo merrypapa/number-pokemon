@@ -61,9 +61,64 @@ export function buildLab(scene) {
   decor.add(exitSign);
 
   // 북쪽 벽 큰 화면
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(9, 3.2), new THREE.MeshBasicMaterial({ map: makeLabelTexture('포켓몬 연구 데이터 · 도감 34종', '#0f1a2e', '#9fe8ff', 60) }));
+  // 연구 모니터: 포켓몬 그림을 스캔하며 체력·공격 막대와 분석 그래프가 움직이는 화면 (그림은 main 이 도감에서 넣어 준다)
+  const screenCanvas = document.createElement('canvas'); screenCanvas.width = 1024; screenCanvas.height = 364;
+  const screenTex = new THREE.CanvasTexture(screenCanvas); screenTex.colorSpace = THREE.SRGBColorSpace;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(9, 3.2), new THREE.MeshBasicMaterial({ map: screenTex }));
   screen.position.set(0, 2.3, -R.d / 2 + 0.02);
   decor.add(screen);
+  const screenState = { subjects: [], idx: 0, switchAt: 0, lastPaint: -1 };
+  function setScreenSubjects(list) { // [{ name, type, hp, atk, src }]
+    screenState.subjects = list.map((s) => { const img = new Image(); img.src = s.src; return { ...s, img }; });
+    screenState.idx = 0;
+  }
+  function paintScreen(t) {
+    const c = screenCanvas, ctx = c.getContext('2d'), W = c.width, H = c.height;
+    ctx.fillStyle = '#0f1a2e'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(79,195,247,.12)'; ctx.lineWidth = 1; // 모눈
+    for (let x = 0; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    ctx.fillStyle = '#16294a'; ctx.fillRect(0, 0, W, 54); // 제목 줄
+    ctx.fillStyle = '#9fe8ff'; ctx.font = '900 30px sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText('🔬 포켓몬 연구 모니터', 24, 27);
+    ctx.textAlign = 'right'; ctx.font = '700 22px sans-serif'; ctx.fillStyle = Math.floor(t * 2) % 2 ? '#ff6a6a' : '#ffb3b3';
+    ctx.fillText('● REC', W - 24, 27);
+    const s = screenState.subjects[screenState.idx];
+    // 왼쪽: 스캔 틀 + 포켓몬 그림
+    const fx = 40, fy = 78, fw = 300, fh = 260;
+    ctx.fillStyle = 'rgba(79,195,247,.08)'; ctx.fillRect(fx, fy, fw, fh);
+    ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 3; ctx.strokeRect(fx, fy, fw, fh);
+    for (const [cx, cy, dx, dy] of [[fx, fy, 1, 1], [fx + fw, fy, -1, 1], [fx, fy + fh, 1, -1], [fx + fw, fy + fh, -1, -1]]) { // 모서리 표시
+      ctx.beginPath(); ctx.moveTo(cx, cy + dy * 26); ctx.lineTo(cx, cy); ctx.lineTo(cx + dx * 26, cy); ctx.lineWidth = 6; ctx.stroke();
+    }
+    if (s?.img?.complete && s.img.naturalWidth) ctx.drawImage(s.img, fx + 20, fy + 20, fw - 40, fh - 40);
+    const sy = fy + ((t * 90) % fh); // 스캔 선
+    const grad = ctx.createLinearGradient(0, sy - 30, 0, sy); grad.addColorStop(0, 'rgba(79,195,247,0)'); grad.addColorStop(1, 'rgba(79,195,247,.45)');
+    ctx.fillStyle = grad; ctx.fillRect(fx, Math.max(fy, sy - 30), fw, Math.min(30, sy - fy));
+    ctx.fillStyle = '#9fe8ff'; ctx.fillRect(fx, sy, fw, 3);
+    // 오른쪽: 이름·속성·막대·분석 그래프
+    const rx = 380;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    if (s) {
+      ctx.fillStyle = '#ffffff'; ctx.font = '900 46px sans-serif'; ctx.fillText(s.name, rx, 124);
+      ctx.fillStyle = '#ffd93d'; ctx.font = '800 24px sans-serif'; ctx.fillText(`${s.type} 속성 · 분석 ${Math.min(99, Math.floor(60 + (t * 7) % 40))}%`, rx, 158);
+      const bar = (label, val, max, y, col) => {
+        ctx.fillStyle = '#9fe8ff'; ctx.font = '800 22px sans-serif'; ctx.fillText(label, rx, y - 6);
+        ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(rx, y, 560, 22);
+        ctx.fillStyle = col; ctx.fillRect(rx, y, Math.max(12, Math.min(560, 560 * val / max)), 22);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(String(val), rx + 560, y - 6); ctx.textAlign = 'left';
+      };
+      bar('❤ 체력', s.hp, 120, 198, '#e8453c');
+      bar('⚔ 공격', s.atk, 20, 254, '#3fb8e8');
+    } else {
+      ctx.fillStyle = '#ffffff'; ctx.font = '900 40px sans-serif'; ctx.fillText('포켓몬을 분석하는 중…', rx, 140);
+    }
+    ctx.strokeStyle = '#7fd4f5'; ctx.lineWidth = 3; ctx.beginPath(); // 아래 분석 파형
+    for (let x = 0; x <= 560; x += 8) { const y = 318 + Math.sin(x * 0.05 + t * 4) * 12 * Math.sin(x * 0.011 + t) ; x === 0 ? ctx.moveTo(rx + x, y) : ctx.lineTo(rx + x, y); }
+    ctx.stroke();
+    screenTex.needsUpdate = true;
+  }
+  paintScreen(0);
   const screenGlow = new THREE.PointLight(0x4fc3f7, 1.5, 12); screenGlow.position.set(0, 2.3, -R.d / 2 + 1.5); decor.add(screenGlow);
 
   // 책상 + 모니터 (북쪽 벽 앞)
@@ -161,6 +216,8 @@ export function buildLab(scene) {
   decor.traverse((o) => { if (o.userData.orb) orb = o; });
   function animate(t) {
     prof.position.y = Math.sin(t * 2) * 0.03;
+    if (t - screenState.lastPaint > 0.1) { screenState.lastPaint = t; paintScreen(t); } // 모니터는 초당 10번 새로 그린다
+    if (screenState.subjects.length > 1 && t > screenState.switchAt) { screenState.switchAt = t + 6; screenState.idx = (screenState.idx + 1) % screenState.subjects.length; }
     if (orb) { orb.position.y = 1.8 + Math.sin(t * 1.5) * 0.25; orb.rotation.y = t; }
     warpRing.position.y = 0.5 + Math.sin(t * 2) * 0.15; warpRing.rotation.z = t;
   }
@@ -169,11 +226,12 @@ export function buildLab(scene) {
     sun, animate, terrain: LAB_TERRAIN, decor, spawn: LAB.spawn, portal: LAB.door, dark: false, indoor: true,
     wildSpots: [], pickupSpots: [],
     warpPad: padPos,
+    setScreenSubjects,
     npcs: [{
       x: prof.position.x, z: prof.position.z, mesh: prof, name: '오박사', heal: true,
       lines: (c) => [
         `안녕, ${c.name}! 난 오박사란다. 다친 포켓몬은 언제든 여기서 치료해 줄게. 포켓몬을 잡아서 함께 모험하렴!`,
-        '숫자블록으로 도감(B)에서 포켓몬의 체력이나 공격력을 올릴 수 있단다. 스탯이 10을 넘으면 블록 2개, 20을 넘으면 3개가 들지.',
+        '숫자블록으로 도감에서 포켓몬의 체력이나 공격력을 올릴 수 있단다. 스탯이 10을 넘으면 블록 2개, 20을 넘으면 3개가 들지.',
         '공격력이 10, 20이 되면 새 기술을 배운단다. 공격 10·체력 15가 되고 대표로 5번 이기면 진화할 수 있어!',
         '이상해씨는 이상해풀을 거쳐 이상해꽃으로, 파이리는 리자드를 거쳐 리자몽으로 두 번 진화한단다. 두 번째 진화는 공격 20·체력 30에 지역 보스를 한 명 이겨야 해.',
         '대결에서 지면 그 포켓몬은 기절해서 못 싸워. 여기서 치료받으면 낫지. 다른 지역의 안내원에게 부탁하면 연구소로 데려다준단다.',
