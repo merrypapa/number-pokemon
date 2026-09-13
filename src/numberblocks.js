@@ -20,6 +20,16 @@ export const SHAPES = {
   6: rect(2, 3), 7: rect(1, 7), 8: rect(2, 4), 9: rect(3, 3), 10: rect(2, 5),
 };
 
+// 지역별 블록 색 테마. 주인공 뒤를 따라오는 블록 더미는 지금 있는 지역의 기운을 띤다.
+// colors: 아래 줄부터 순서대로 칠하고 넘치면 반복. emissive: 스스로 빛나는 정도(형광). light: 함께 켜는 작은 불빛 색.
+export const BLOCK_THEMES = {
+  forest:  { name: '풀',   colors: ['#2f9e44', '#51cf66', '#8ce99a', '#a9e34b', '#69db7c'], emissive: 0 },
+  volcano: { name: '불',   colors: ['#c92a2a', '#f03e3e', '#ff6b1a', '#ff922b', '#ffd43b'], emissive: 0.35, light: 0xff7a30 },
+  sea:     { name: '물',   colors: ['#1c7ed6', '#339af0', '#4dabf7', '#74c0fc', '#a5d8ff'], emissive: 0.15, light: 0x74d0ff },
+  cave:    { name: '형광', colors: ['#39ff14', '#00fff2', '#7cff00', '#18ffb2', '#c6ff00'], emissive: 0.85, light: 0x5dffc8 },
+  space:   { name: '우주', colors: ['#ff2bd6', '#b026ff', '#2bffea', '#ff6ec7', '#7d5cff'], emissive: 0.9, light: 0xff5cf0 },
+};
+
 const outlineMat = new THREE.LineBasicMaterial({ color: OUTLINE });
 const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
 const darkMat = new THREE.MeshStandardMaterial({ color: OUTLINE, roughness: 0.6 });
@@ -34,7 +44,8 @@ function shapeFor(number) {
   return cells;
 }
 
-function cellColor(number, cell, index) {
+function cellColor(number, cell, index, theme) {
+  if (theme) return theme.colors[(cell.row + cell.col) % theme.colors.length];
   if (number === 7) return RAINBOW[cell.row % RAINBOW.length];
   if (number === 10) return cell.col === 0 ? NUMBER_COLORS[10].base : NUMBER_COLORS[10].alt; // 1(빨강) + 0(하양)
   if (number > 10) {
@@ -74,8 +85,10 @@ function limb(from, to, radius, mat) {
   return m;
 }
 
-export function buildNumberblockMesh(nb, { glow = false } = {}) {
+export function buildNumberblockMesh(nb, { glow = false, theme = null } = {}) {
   const number = nb.number;
+  const th = BLOCK_THEMES[theme] || null;
+  const emissive = th?.emissive || (glow ? 0.5 : 0); // 형광 블록을 들고 있거나 빛나는 테마면 스스로 빛난다
   const cells = shapeFor(number);
   const cols = Math.max(...cells.map((c) => c.col)) + 1;
   const maxRow = Math.max(...cells.map((c) => c.row));
@@ -84,19 +97,20 @@ export function buildNumberblockMesh(nb, { glow = false } = {}) {
   const x0 = -((cols - 1) * BLOCK) / 2;
   const cy = (row) => LEG + BLOCK / 2 + row * BLOCK;
 
-  // 블록 (glow: 동굴 형광 블록을 들고 있으면 스스로 빛난다)
+  // 블록
   const glowMats = [];
   for (const [index, cell] of cells.entries()) {
-    const cube = makeCube(cellColor(number, cell, index));
+    const cube = makeCube(cellColor(number, cell, index, th));
     cube.position.set(x0 + cell.col * BLOCK, cy(cell.row), 0);
-    if (glow) { cube.material.emissive = cube.material.color.clone(); cube.material.emissiveIntensity = 0.5; glowMats.push(cube.material); }
+    if (emissive > 0) { cube.material.emissive = cube.material.color.clone(); cube.material.emissiveIntensity = emissive; glowMats.push(cube.material); }
     g.add(cube);
   }
-  if (glow) {
-    const light = new THREE.PointLight(0xfff4c0, 3, 8);
+  if (emissive > 0) {
+    const lightBase = 3 * Math.min(1, emissive / 0.5);
+    const light = new THREE.PointLight(th?.light || 0xfff4c0, lightBase, 8);
     light.position.y = LEG + (maxRow + 1) * BLOCK * 0.6;
     g.add(light);
-    g.userData.glow = { mats: glowMats, light };
+    g.userData.glow = { mats: glowMats, light, base: emissive, lightBase };
   }
 
   // 얼굴: 맨 윗줄 중 가운데에 가까운 블록

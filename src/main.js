@@ -171,6 +171,7 @@ for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderSt
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
+const STACK_SCALE = 0.72; // 따라오는 블록 더미는 조금 작게 (주인공을 가리지 않게)
 function setBlocks(n, { glow = false } = {}) {
   n = Math.max(0, Math.min(MAX_BLOCKS, n));
   if (n > state.blocks && glow) state.glowBlocks += n - state.blocks; // 형광 블록 획득
@@ -181,7 +182,8 @@ function setBlocks(n, { glow = false } = {}) {
     if (old) { chain.remove(old); zone.scene.remove(old); }
     myStack.mesh = null;
   } else {
-    const mesh = buildNumberblockMesh({ number: n }, { glow: state.glowBlocks > 0 });
+    const mesh = buildNumberblockMesh({ number: n }, { glow: state.glowBlocks > 0, theme: zone.name });
+    mesh.scale.setScalar(STACK_SCALE);
     if (old) { chain.replace(old, mesh); zone.scene.remove(old); }
     else {
       mesh.position.copy(player.position).addScaledVector(camForward(), 1.6); // 카메라 반대편(안쪽)에 생긴다
@@ -302,6 +304,7 @@ function switchZone(name, spawn, message) {
     for (const m of partyMeshes()) { from.scene.remove(m); zone.scene.add(m); }
     player.teleport(spawn.x, spawn.z);
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
+    if (state.blocks > 0) setBlocks(state.blocks); // 블록 더미를 새 지역 색(불·물·풀·형광)으로 다시 만든다
     applyZoneEnv();
     camera.position.copy(player.position).add(camOffset());
     snapCam = true;
@@ -789,15 +792,15 @@ function frame() {
     }
     if (myStack.mesh && myStack.pop > 0) {
       myStack.pop = Math.max(0, myStack.pop - dt * 3);
-      myStack.mesh.scale.setScalar(1 + Math.sin(myStack.pop * Math.PI) * 0.25);
+      myStack.mesh.scale.setScalar(STACK_SCALE * (1 + Math.sin(myStack.pop * Math.PI) * 0.25));
     }
     const glow = myStack.mesh?.userData.glow;
     if (glow) {
-      const pulse = 0.45 + Math.sin(t * 5) * 0.3;
-      for (const m of glow.mats) m.emissiveIntensity = pulse;
-      glow.light.intensity = 2.5 + Math.sin(t * 5) * 1.5;
+      const wave = Math.sin(t * 5);
+      for (const m of glow.mats) m.emissiveIntensity = glow.base * (1 + wave * 0.45);
+      glow.light.intensity = glow.lightBase * (0.8 + wave * 0.4);
       state.sparkleTimer = (state.sparkleTimer || 0) - dt;
-      if (state.sparkleTimer <= 0) {
+      if (state.sparkleTimer <= 0 && glow.base >= 0.5) { // 형광(동굴·우주)일 때만 반짝이 입자
         state.sparkleTimer = 0.9;
         particles.stars(zone.scene, myStack.mesh.position.clone().add(new THREE.Vector3(rand(-0.5, 0.5), 0.6 + Math.random() * state.blocks * 0.3, rand(-0.5, 0.5))), 3, 0xfff6a0, 0.22);
       }
