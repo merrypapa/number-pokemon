@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { buildDraftMesh } from './creatures.js';
+import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 
 // 몬스터 도감 + 내 포켓몬.
@@ -12,8 +14,8 @@ const MAP_REGIONS = [
   { id: 'forest', x: 50, y: 33, rx: 17, ry: 10.5, icon: '🌲', fill: '#7ccf5a', desc: '시작 마을이 있는 숲. 풀·노말·벌레·전기 포켓몬이 산다. 다른 지역으로 가는 길이 모두 여기서 시작해.', how: '처음 시작하는 곳. 다른 지역에서 포탈·기차·로켓으로 돌아온다.' },
   { id: 'cave', x: 50, y: 10, rx: 13, ry: 8, icon: '🕳️', fill: '#4b5261', desc: '어두운 지하 동굴. 땅·바위·독 포켓몬이 산다. 호수와 다리, 빛나는 웅덩이가 있어.', how: '푸른숲 북쪽 큰 구멍에 빠지거나, 푸른숲 보스를 잡은 뒤 북쪽 산의 동굴 입구로. 포탈로 돌아온다.' },
   { id: 'volcano', x: 83, y: 15, rx: 14, ry: 8.5, icon: '🌋', fill: '#c0533a', desc: '용암이 끓는 화산. 불 포켓몬이 산다. 큰 화산 꼭대기에 보스가 있어.', how: '푸른숲 동북쪽 붉은 바위 아치로 들어간다. 포탈로 돌아온다.' },
-  { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어.', how: '푸른숲 서쪽 기차역에서 기차를 탄다 (E). 돌아올 때도 그곳 기차역에서 기차를 탄다.' },
-  { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓을 탄다 (E). 돌아올 때도 착륙장의 로켓을 탄다.' },
+  { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어.', how: '푸른숲 서쪽 기차역에서 기차 타기 버튼을 누른다. 돌아올 때도 그곳 기차역에서 탄다.' },
+  { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓 타기 버튼을 누른다. 돌아올 때도 착륙장의 로켓을 탄다.' },
 ];
 
 export class Dex {
@@ -30,12 +32,14 @@ export class Dex {
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
     this.partyCtx = null;
+    this.view = new View3D(); // 카드의 360° 화면
     this.selectedId = null;
     this.tab = 'poke';
     this.mapSel = null;
     this.bodyEl = document.getElementById('dex-body');
     this.mapViewEl = document.getElementById('dex-mapview');
     this.mapEl = document.getElementById('dex-map');
+    this.ballsEl = document.getElementById('dex-balls');
     this.mapDetailEl = document.getElementById('dex-map-detail');
     document.querySelectorAll('#dex-tabs button').forEach((b) => { b.onclick = () => this.setTab(b.dataset.tab); });
     document.getElementById('map-prev').onclick = () => this.stepMap(-1);
@@ -94,7 +98,38 @@ export class Dex {
     document.querySelectorAll('#dex-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     this.bodyEl.classList.toggle('hidden', tab !== 'poke');
     this.mapViewEl.classList.toggle('hidden', tab !== 'map');
+    this.ballsEl.classList.toggle('hidden', tab !== 'balls');
+    if (tab !== 'poke') this.stopView(); else if (this.selectedId && this.byId[this.selectedId]) this.render(this.lastCaught || {});
     if (tab === 'map') this.renderMap(this.lastCaught || {});
+    if (tab === 'balls') this.renderBalls();
+  }
+
+  // ----- 넘버볼 탭: 블록으로 넘버볼 만들기 + 등급표 -----
+  renderBalls() {
+    const ctx = this.partyCtx;
+    if (!ctx) return;
+    const stock = ctx.getBalls?.() || {}, blocks = ctx.getBlocks();
+    // 위: 볼마다 한 줄씩 (그림 · 이름 · 몇 개 · 만들기 버튼)
+    let html = `<div class="shop-title">🔮 내 넘버볼</div><div class="ball-rows">`;
+    for (const b of BALLS) {
+      html += `<div class="ball-row" style="--ball:${b.css}">
+        <span class="ball-dot big"></span><span class="ball-name">${b.name}</span>
+        <span class="ball-count">${stock[b.id] || 0}<small>개</small></span>
+        <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>
+      </div>`;
+    }
+    // 아래: 볼마다 설명 한 줄 (어느 ★까지, 어느 지역 포켓몬까지 잘 잡히는지)
+    const GRADE_ZONE = { 1: 'forest', 2: 'cave', 3: 'sea', 4: 'volcano', 5: 'space' };
+    html += `</div><div class="shop-title">📖 넘버볼 설명</div><div class="ball-infos">`;
+    for (const b of BALLS) {
+      const grades = Object.keys(GRADES).map(Number).filter((g) => catchChance(g, b.tier) >= 90);
+      const top = grades[grades.length - 1] || 1;
+      const where = top >= 6 ? '모든 지역의 보스까지' : `${this.zoneName[GRADE_ZONE[top]] || ''} 포켓몬까지`;
+      html += `<div class="ball-info" style="--ball:${b.css}"><span class="ball-dot"></span><b>${b.name}</b><span>블록 ${b.cost}개 · ${gradeStars(top)} ${where} 잘 잡혀</span></div>`;
+    }
+    html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가! (다시 만나면 잡힐 확률이 15%씩 올라)</div>`;
+    this.ballsEl.innerHTML = html;
+    this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
   }
 
   /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주) */
@@ -112,19 +147,60 @@ export class Dex {
     const here = ctx?.getZoneName?.();
     if (!this.mapSel) this.mapSel = here || 'forest';
     const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
-    const line = (a, b, cls) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - 4} ${B.x},${B.y}"/>`; };
-    let svg = `<svg viewBox="-5 -5 110 72" preserveAspectRatio="xMidYMid meet">`;
-    svg += line('forest', 'cave', 'path') + line('forest', 'volcano', 'path') + line('forest', 'sea', 'rail') + line('forest', 'space', 'flight');
+    const curve = (a, b, cls, lift = 6) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - lift} ${B.x},${B.y}"/>`; };
+    // 배경: 양피지 + 바다 + 잔물결
+    let svg = `<svg viewBox="-5 -5 110 72" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="gSea" cx="30%" cy="55%" r="70%"><stop offset="0" stop-color="#7fd4f5"/><stop offset="1" stop-color="#3a9fd6"/></radialGradient>
+        <linearGradient id="gLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b7e07f"/><stop offset="1" stop-color="#7ccf5a"/></linearGradient>
+        <linearGradient id="gRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3b3"/><stop offset="1" stop-color="#4b5261"/></linearGradient>
+        <linearGradient id="gLava" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e06b3a"/><stop offset="1" stop-color="#8a2f1a"/></linearGradient>
+        <radialGradient id="gSpace" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#6a4ca8"/><stop offset="1" stop-color="#1b1236"/></radialGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.8" flood-color="#20232e" flood-opacity=".35"/></filter>
+      </defs>
+      <rect x="-5" y="-5" width="110" height="72" fill="url(#gSea)"/>
+      ${[8, 20, 32, 44, 56].map((y) => `<path class="wave" d="M-5,${y} q4,-1.5 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0"/>`).join('')}
+      <!-- 큰 섬(육지): 푸른숲 + 동굴 산 + 화산 + 우주 착륙지 -->
+      <path class="land" d="M28,58 C18,50 20,34 34,26 C36,14 46,6 58,8 C66,2 80,2 92,8 C104,12 104,26 98,34 C104,44 100,58 88,62 C76,66 60,66 48,63 C40,64 32,64 28,58 Z" fill="url(#gLand)"/>
+      <!-- 흙길 / 철길 / 항로 -->
+      ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}
+      <!-- 기차 -->
+      <g transform="translate(31,40)"><rect x="-3" y="-1.6" width="6" height="3.2" rx=".6" fill="#e8453c"/><rect x="-3" y="-2.6" width="2.4" height="1.2" fill="#e8453c"/><circle cx="-1.6" cy="1.9" r=".7" fill="#20232e"/><circle cx="1.6" cy="1.9" r=".7" fill="#20232e"/></g>`;
+    // 지역 그림
+    const draw = {
+      forest: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="url(#gLand)"/>
+        ${[[-11, 3], [-6, -4], [0, 5], [7, -3], [11, 3], [4, 0], [-3, 0]].map(([x, y]) => `<g transform="translate(${x},${y})"><rect x="-.5" y="1.5" width="1" height="2.2" fill="#8b5a2b"/><path d="M0,-4 L3,1.8 L-3,1.8 Z" fill="#2e9e4f"/><path d="M0,-2 L2.4,2.2 L-2.4,2.2 Z" fill="#3fb85a"/></g>`).join('')}
+        <g transform="translate(-1,-2)"><rect x="-2.2" y="-1.4" width="4.4" height="3.2" fill="#fff4dc" stroke="#20232e" stroke-width=".25"/><path d="M-2.8,-1.4 L0,-3.6 L2.8,-1.4 Z" fill="#e8453c"/></g>`,
+      cave: (r) => `<path d="M${-r.rx},${r.ry} Q${-r.rx * 0.5},${-r.ry * 1.3} 0,${-r.ry} Q${r.rx * 0.5},${-r.ry * 1.3} ${r.rx},${r.ry} Z" class="blob" fill="url(#gRock)"/>
+        <path d="M-3,${r.ry} Q-3,${r.ry - 6} 0,${r.ry - 6} Q3,${r.ry - 6} 3,${r.ry} Z" fill="#1b1f2a"/>
+        <circle cx="-6" cy="-1" r=".9" fill="#9fe8ff"/><circle cx="6" cy="0" r=".7" fill="#c9b8ff"/><circle cx="-2" cy="-4" r=".6" fill="#9fe8ff"/>`,
+      volcano: (r) => `<path d="M${-r.rx},${r.ry} L-4,${-r.ry} L4,${-r.ry} L${r.rx},${r.ry} Z" class="blob" fill="url(#gLava)"/>
+        <path d="M-4,${-r.ry} L4,${-r.ry} L2,${-r.ry + 3} L0,${-r.ry + 1.5} L-2,${-r.ry + 3} Z" fill="#ff6a1a"/>
+        <path d="M-1,${-r.ry} L-2,${-r.ry + 6} L0,${-r.ry + 4} L1,${-r.ry + 9} " fill="none" stroke="#ff9a3c" stroke-width="1" stroke-linecap="round"/>
+        <g class="smoke"><circle cx="0" cy="${-r.ry - 3}" r="2" fill="#ddd" opacity=".8"/><circle cx="2.5" cy="${-r.ry - 5}" r="1.6" fill="#eee" opacity=".7"/></g>`,
+      sea: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="#4fc3f7"/>
+        ${[[-7, -2, 4], [3, -4, 3.5], [7, 3, 3], [-3, 4, 3.5]].map(([x, y, rr]) => `<ellipse cx="${x}" cy="${y}" rx="${rr}" ry="${rr * 0.65}" fill="#e8d9a0" stroke="#d1b76a" stroke-width=".3"/>`).join('')}
+        <g transform="translate(-7,-4)"><rect x="-.3" y="-4" width=".6" height="4" fill="#8b5a2b"/><path d="M0,-4 q3,1 2,3 z" fill="#3f9d3a"/><path d="M0,-4 q-3,1 -2,3 z" fill="#3f9d3a"/></g>
+        <path d="M-4,-1 L2,-4 M3,-2 L6,2 M-2,3 L2,5" stroke="#b07a3c" stroke-width=".6" stroke-dasharray=".8 .5"/>`,
+      space: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="url(#gSpace)"/>
+        ${[[-9, -3], [-4, 4], [2, -5], [8, 2], [10, -3], [5, 5], [-7, 3]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".5" fill="#fff"/>`).join('')}
+        <circle cx="-6" cy="1" r="2.2" fill="#c9b8ff"/><ellipse cx="-6" cy="1" rx="3.6" ry=".8" fill="none" stroke="#e6dcff" stroke-width=".4" transform="rotate(-20 -6 1)"/>
+        <g transform="translate(3,0) rotate(-30)"><rect x="-1.1" y="-3" width="2.2" height="5" rx="1" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><path d="M-1.1,-2 L0,-4.2 L1.1,-2 Z" fill="#e8453c"/><circle cx="0" cy="-1" r=".55" fill="#66e0ff"/><path d="M-.8,2 L0,4 L.8,2 Z" fill="#ffb347"/></g>`,
+    };
     for (const r of MAP_REGIONS) {
       const done = !!conquered[r.id];
-      svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})">
-        <ellipse class="blob" rx="${r.rx}" ry="${r.ry}" style="fill:${done ? r.fill : '#d8d8d8'}"/>
-        <text class="icon" y="-0.5" text-anchor="middle">${r.icon}</text>
-        <text class="name" y="6.5" text-anchor="middle">${this.zoneName[r.id]}</text>
-        ${done ? `<text class="star" x="${r.rx - 3}" y="${-r.ry + 4}" text-anchor="middle">★</text>` : ''}
-        ${here === r.id ? `<text class="here" y="${r.ry + 4}" text-anchor="middle">▲ 지금 여기</text>` : ''}
+      svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})" filter="url(#shadow)">
+        ${draw[r.id](r)}
+        <g transform="translate(0,${r.ry + 1.5})"><rect x="-10" y="-2.6" width="20" height="5.2" rx="2.6" class="label-bg"/><text class="name" y="1.3" text-anchor="middle">${this.zoneName[r.id]}</text></g>
+        ${done
+          ? `<g class="mark" transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3.4" fill="#ffd93d" stroke="#20232e" stroke-width=".35"/><text class="star" y="1.4" text-anchor="middle">★</text></g>`
+          : `<g class="mark" transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3.2" fill="#f4f4f8" stroke="#20232e" stroke-width=".35"/><text class="lock" y="1.2" text-anchor="middle">?</text></g>`}
+        ${here === r.id ? `<g class="pin" transform="translate(0,${-r.ry - 2})"><path d="M0,0 L-2.4,-4 A2.6,2.6 0 1 1 2.4,-4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-4.6" r="1" fill="#fff"/></g>` : ''}
       </g>`;
     }
+    svg += `<g class="legend" transform="translate(-3,63)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
+      <circle cx="3.2" cy="-.3" r="1.8" fill="#ffd93d" stroke="#20232e" stroke-width=".25"/><text x="6" y=".9">정복한 곳</text>
+      <circle cx="24" cy="-.3" r="1.8" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><text x="26.8" y=".9">아직 정복 전</text></g>`;
     svg += '</svg>';
     this.mapEl.innerHTML = svg;
     this.mapEl.querySelectorAll('.region').forEach((g) => { g.onclick = () => { this.mapSel = g.dataset.zone; this.renderMap(caughtById); }; });
@@ -169,7 +245,7 @@ export class Dex {
       const t = this.thumbs(sp);
       const chip = document.createElement('button');
       chip.className = 'member-chip' + (party.isLeader(m) ? ' leader' : '') + (sp.id === this.selectedId ? ' sel' : '');
-      chip.innerHTML = `${t ? `<img src="${t.color}" alt="">` : ''}<span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}`;
+      chip.innerHTML = `${t ? `<img src="${t.color}" alt="">` : ''}<span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}${m.hp <= 0 ? '<i>😵</i>' : ''}`;
       chip.onclick = () => this.select(sp.id);
       this.membersEl.appendChild(chip);
     }
@@ -205,20 +281,40 @@ export class Dex {
       this.partyEl.appendChild(card);
       return;
     }
-    const skills = (sp.skills || []).map((s) => `${s.name}<small>(공격 ${s.atk}↑ · ×${s.power})</small>`).join(' · ');
+    // 아이가 한눈에 보게: 큰 3D 모습 + 짧은 사실 몇 줄 (사는 곳·체력·공격·강약·볼·기술·진화)
+    const ti = ctx?.typeInfo ? ctx.typeInfo(sp.type) : null;
+    const mineAll = party ? party.members.filter((m) => m.speciesId === sp.id) : [];
+    const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
+    const skills = (sp.skills || []).map((s) => {
+      const locked = rep0 ? rep0.atk < s.atk : false;
+      return locked ? `<span class="skill-chip locked">🔒 ${s.name} <small>공격 ${s.atk}</small></span>` : `<span class="skill-chip">${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
+    }).join('');
+    const evoZone = evo ? (this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || '') : '';
+    const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;
+    const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';
     card.innerHTML = `
       <div class="detail-top">
-        ${t ? `<img src="${t.color}" alt="">` : ''}
+        <div class="detail-view"><div class="view-wrap"><canvas id="dex-view" width="440" height="440"></canvas>${star}</div><div class="view-hint">${rep0 ? '★ 별을 누르면 대표 · ' : ''}끌어서 돌려 보기</div></div>
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}</div>
-          <div class="detail-sub">${from ? `${from.name}의 진화형` : `사는 곳: ${zone}`} · 성격: ${sp.personality || '-'} · 잡은 수: <b>${n}마리</b></div>
-          <div class="detail-stat"><span class="hp">❤ 기본 체력 ${sp.baseHp}</span> <span class="atk">⚔ 기본 공격 ${sp.baseAtk}</span></div>
-          <div class="detail-skills">기술: ${skills}</div>
-          ${evo ? `<div class="detail-evo">진화: 공격 ${evo.atk} · 체력 ${evo.hp} · ${sp.name} ${evo.count || 1}마리 잡기 → <b>${evoTo?.name || '?'}</b></div>` : ''}
+          <div class="detail-chips">
+            <span class="chip">🏠 ${from ? `${from.name}의 진화형` : zone}</span>
+            <span class="chip hp">❤ ${sp.baseHp}</span><span class="chip atk">⚔ ${sp.baseAtk}</span>
+            <span class="chip gold">${gradeStars(sp.grade || 1)}</span>
+            <span class="chip">잡은 수 ${n}</span>
+          </div>
+          <ul class="detail-facts">
+            ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
+            <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
+            <li class="skills">🎯 ${skills}</li>
+            ${evo ? `<li>✨ ${evo.wins ? `${evo.wins}번 이기고` : `보스 ${evo.boss}명 이기고`} 공격 ${evo.atk}·체력 ${evo.hp}가 되면 <b>${evoZone}</b>에서 <b>${evoTo?.name || '?'}</b>로 진화!</li>` : ''}
+          </ul>
         </div>
       </div>`;
+    const starBtn = card.querySelector('.view-star');
+    if (starBtn && starTarget && !party.isLeader(starTarget)) starBtn.onclick = () => { ctx.onLeader(starTarget); this.render(this.lastCaught || {}); };
     // 내 포켓몬 중 이 종: 한 마리씩 줄로 (키우기·대표·진화)
-    const mine = party ? party.members.filter((m) => m.speciesId === sp.id) : [];
+    const mine = mineAll;
     if (mine.length) {
       const blocks = ctx.getBlocks();
       const list = document.createElement('div');
@@ -226,26 +322,29 @@ export class Dex {
       mine.forEach((m, i) => {
         const leader = party.isLeader(m);
         const canEvolve = party.canEvolve(m);
-        const next = party.nextSkill(m);
+        const need = party.evolveNeed(m);
+        const zoneBlocked = need && party.readyExceptZone(m) && !canEvolve;
+        const fainted = party.isFainted(m);
+        const costHp = party.upgradeCost(m, 'hp'), costAtk = party.upgradeCost(m, 'atk');
         const row = document.createElement('div');
-        row.className = 'member-row' + (leader ? ' leader' : '');
+        row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
-          <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}
-            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>
-            <small>기술: ${party.skills(m).map((s) => `${s.name}(${party.damage(m, s)})`).join(' · ')}${next ? ` · 🔒 ${next.name}은 공격 ${next.atk}이면` : ''}</small></div>
+          <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님께 치료</span>' : ''}
+            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}</div>
           <div class="member-actions">
-            <span>블록으로 키우기:</span>
-            <button data-act="hp1" ${blocks < 1 ? 'disabled' : ''}>❤ 체력 +1</button>
-            <button data-act="atk1" ${blocks < 1 ? 'disabled' : ''}>⚔ 공격 +1</button>
-            ${leader ? '' : '<button data-act="leader" class="btn-leader">대표로 하기</button>'}
-            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.count || 1}마리 잡으면 진화">✨ 진화!</button>` : ''}
+            <span>🌱 키우기</span>
+            <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ +1 <small>🧱${costHp}</small></button>
+            <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ +1 <small>🧱${costAtk}</small></button>
+            ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
+            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">✨ 진화!</button>` : ''}
+            ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가면 진화!</span>` : ''}
           </div>`;
         row.querySelectorAll('button[data-act]').forEach((b) => {
           b.onclick = () => {
             const act = b.dataset.act;
             if (act === 'leader') ctx.onLeader(m);
             else if (act === 'evolve') { ctx.onEvolve(m); this.selectedId = m.speciesId; }
-            else ctx.onUpgrade(m, act.startsWith('hp') ? 'hp' : 'atk', 1);
+            else ctx.onUpgrade(m, act.startsWith('hp') ? 'hp' : 'atk');
             this.render(this.lastCaught || {});
           };
         });
@@ -254,13 +353,18 @@ export class Dex {
       card.appendChild(list);
     }
     this.partyEl.appendChild(card);
+    this.startView(sp);
   }
+
+  // ----- 360° 보기: 선택한 포켓몬을 작은 3D 화면에서 천천히 돌리고, 끌면 직접 돌릴 수 있다 -----
+  startView(sp) { this.view.show(document.getElementById('dex-view'), sp, () => this.open); }
+  stopView() { this.view.stop(); }
 
   render(caughtById) {
     const ctx = this.partyCtx;
     if (ctx) {
       const blocks = ctx.getBlocks();
-      this.blocksEl.textContent = `블록 ${blocks}개`;
+      this.blocksEl.textContent = `${blocks}`;
       this.blocksEl.style.background = blocks > 0 ? colorForCount(blocks) : '#bbb';
       const L = ctx.party.leader;
       if (!this.selectedId || !this.byId[this.selectedId]) this.selectedId = L ? L.speciesId : (this.species.find((s) => caughtById[s.id])?.id || null);
@@ -280,9 +384,9 @@ export class Dex {
       const zone = this.zoneName[sp.zone] || '???';
       const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
-      const sub = known
+      const sub = (known
         ? (from ? `${from.name}의 진화형 · ${n}마리` : `${zone}${sp.boss ? ' 보스' : ''} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ' 보스' : ''}`);
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ' 보스' : ''}`)) + ` · ${gradeStars(sp.grade || 1)}`;
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}
@@ -295,7 +399,7 @@ export class Dex {
 
   }
 
-  show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); this.el.classList.remove('hidden'); this.open = true; }
-  hide() { this.el.classList.add('hidden'); this.open = false; }
+  show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); if (this.tab === 'balls') this.renderBalls(); this.el.classList.remove('hidden'); this.open = true; }
+  hide() { this.el.classList.add('hidden'); this.open = false; this.stopView(); }
   toggle(caughtById) { if (this.open) this.hide(); else this.show(caughtById || this.lastCaught || {}); }
 }

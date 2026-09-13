@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced } from './world.js';
 
@@ -207,6 +208,12 @@ export function buildCave(scene) {
   portal.position.set(P.x, caveHeight(P.x, P.z), P.z);
   scene.add(portal);
 
+  // 광부 아저씨 (지역 안내 NPC)
+  const miner = makeNpc({ outfit: 'miner', name: '웅이', model: '웅이.glb' });
+  miner.position.set(CAVE.spawn.x + 4, caveHeight(CAVE.spawn.x + 4, CAVE.spawn.z - 2), CAVE.spawn.z - 2);
+  miner.rotation.y = -0.7;
+  scene.add(miner); block(CAVE.spawn.x + 4, CAVE.spawn.z - 2, 0.6);
+
   // 도착 지점 표시 (떨어진 곳의 빛)
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2, 24), new THREE.MeshBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.25 }));
   drop.rotation.x = -Math.PI / 2;
@@ -229,6 +236,12 @@ export function buildCave(scene) {
     sun, animate, terrain: CAVE_TERRAIN, portal: P, spawn: CAVE.spawn,
     decor,
     dark: true,
+    npcs: [{ x: CAVE.spawn.x + 4, z: CAVE.spawn.z - 2, mesh: miner, name: '웅이', warp: true, lines: (c) => [
+      `여긴 지하동굴이야, ${c.name}. 난 광부 웅이! 어두우니까 조심해. 포니타를 잡으면 동굴이 환해진단다.`,
+      `여기 포켓몬은 땅·바위·독 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 물이나 풀 포켓몬이 바위·땅에 세!`,
+      c.conquered.cave ? '보스 롱스톤은 이미 네 친구구나! 대단해.' : `북쪽 끝에 보스 롱스톤이 있어. 체력이 56이나 되니 공격 ${c.zone.targetAtk + 2} 이상, 체력 25쯤 되면 도전해 봐. 물 포켓몬이 있으면 좋아.`,
+      '남쪽의 빛나는 포탈로 푸른숲에 돌아갈 수 있어.',
+    ] }],
     wildSpots: [[-24, -9], [21, 6], [-30, 50], [-36, -33], [12, -45], [48, -50], [39, 12], [-9, -24], [-45, -48], [60, 40], [-65, 50], [65, -25], [-70, -40], [0, -50], [30, 60], [-20, 70]],
     bossSpot: { x: 0, z: -68 },
     pickupSpots: [[6, 6], [-9, 3], [15, -12], [-21, 12], [-27, -21], [24, -33], [-6, -45], [42, -6], [-42, 6], [9, 30], [-30, 30], [30, 36], [-48, -12], [48, 24], [0, -60], [-20, 50], [40, -60], [-65, 20], [65, 60], [-60, -65], [60, -70], [0, 70], [-70, 70], [70, 0]],

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildGround, makeSignAt, makeLabelTexture, makeInstanced } from './world.js';
 
@@ -17,7 +18,7 @@ export const SPACE = {
     { x: -25, z: -55, r: 16, h: 2.8 }, { x: 70, z: 0, r: 14, h: 2.4 }, { x: -80, z: 5, r: 15, h: 2.6 }, { x: 25, z: 85, r: 12, h: 1.8 }, { x: 85, z: -85, r: 14, h: 2.6 },
     { x: -85, z: -80, r: 13, h: 2.4 }, { x: 0, z: 40, r: 10, h: 1.4 }, { x: 95, z: 50, r: 12, h: 2.0 },
   ],
-  altar: { x: 0, z: -40, r: 9 }, // 뮤가 사는 꿈의 제단
+  altar: { x: 0, z: -40, r: 9 }, // 메가리자몽이 지키는 꿈의 제단
   gravity: 0.45, // 지구의 절반도 안 되는 중력: 점프가 높고 오래 뜬다
 };
 
@@ -188,7 +189,7 @@ export function buildSpace(scene) {
     scene.add(satellite);
   }
 
-  // ---------- 꿈의 제단: 뮤가 사는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
+  // ---------- 꿈의 제단: 우주 보스 메가리자몽이 지키는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
   {
     const a = SPACE.altar;
     const y = spaceHeight(a.x, a.z);
@@ -227,10 +228,10 @@ export function buildSpace(scene) {
   scene.add(rocket);
   const rocketObstacle = { x: rx, z: rz, r: 1.6 };
   obstacles.push(rocketObstacle);
-  decor.add(makeSignAt('푸른숲행 로켓: 가까이 가서 E', rx - 5, spaceHeight(rx - 5, rz + 4), rz + 4, 0.5, { board: 0x2a1d4d, bg: '#2a1d4d', fg: '#e6dcff', post: 0x4a3c78 }));
-  block(rx - 5, rz + 4, 0.25);
-  decor.add(makeSignAt('꿈의우주 - 신비한 포켓몬의 별. 북쪽 제단엔 뮤! 하늘엔 태양과 행성들', SPACE.spawn.x - 7, spaceHeight(SPACE.spawn.x - 7, SPACE.spawn.z - 3), SPACE.spawn.z - 3, 0.4, { board: 0x2a1d4d, bg: '#2a1d4d', fg: '#e6dcff', post: 0x4a3c78 }));
-  block(SPACE.spawn.x - 7, SPACE.spawn.z - 3, 0.25);
+  const astronaut = makeNpc({ outfit: 'astronaut', name: '코리', model: '코리.glb' });
+  astronaut.position.set(SPACE.spawn.x - 5, spaceHeight(SPACE.spawn.x - 5, SPACE.spawn.z - 3), SPACE.spawn.z - 3);
+  astronaut.rotation.y = 0.7;
+  decor.add(astronaut); block(SPACE.spawn.x - 5, SPACE.spawn.z - 3, 0.6);
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color: 0xc9b8ff, transparent: true, opacity: 0.25 }));
   drop.rotation.x = -Math.PI / 2;
   drop.position.set(SPACE.spawn.x, spaceHeight(SPACE.spawn.x, SPACE.spawn.z) + 0.03, SPACE.spawn.z);
@@ -258,6 +259,12 @@ export function buildSpace(scene) {
 
   return {
     sun, animate, terrain: SPACE_TERRAIN, decor, spawn: SPACE.spawn, dark: true, gravity: SPACE.gravity,
+    npcs: [{ x: SPACE.spawn.x - 5, z: SPACE.spawn.z - 3, mesh: astronaut, name: '코리', warp: true, lines: (c) => [
+      `꿈의우주에 온 걸 환영해, ${c.name}! 난 우주비행사 코리야. 중력이 약해서 점프가 높고 오래 떠. 화면을 위로 밀면 태양과 행성이 보여.`,
+      `여기 포켓몬은 페어리·에스퍼·고스트·전기 속성이야. 공격 ${c.zone.atkRange}쯤 되어야 편하게 이겨. 피카츄와 라이츄도 여기 살아.`,
+      c.conquered.space ? '보스 메가리자몽을 이겼다니! 넌 최고의 트레이너야.' : `북쪽 제단에 보스 메가리자몽이 있어. 체력 210, 공격 15! 공격 ${c.zone.targetAtk + 3} 이상, 체력 60쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
+      '여기 블록은 하나가 3개 가치야. 착륙장의 로켓을 타면 푸른숲으로 돌아가.',
+    ] }],
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rx - 2.6, z: rz + 2.6 }, to: 'forest' },
     wildSpots: [[-40, 50], [40, 55], [-55, 5], [60, 10], [-20, -30], [30, -25], [-75, -30], [75, -55], [-40, -80], [40, -80], [-85, 55], [85, 60], [0, 25], [-95, -80], [95, -20], [-15, 100], [70, -95], [-70, 95]],
     bossSpot: { x: SPACE.altar.x, z: SPACE.altar.z },

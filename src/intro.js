@@ -50,13 +50,14 @@ export function buildIntro(creatures) {
 
   // 캐릭터: 주인공이 가운데, 몬스터 친구들이 양옆에서 반원으로
   const actors = [];
-  const withModels = creatures.filter((c) => c.model);
-  const slots = [[-2.2, 0.9], [2.2, 0.9], [-3.8, -0.6], [3.8, -0.6], [-5.2, -2.6], [5.2, -2.6], [-3.2, -3.4], [3.2, -3.4], [-1.1, -3.9], [1.1, -3.9], [-6.4, -0.2], [6.4, -0.2], [0, -5.2]];
-  let disposed = false;
-  const place = (file, x, z, height, phase) => onModelLoaded(file, () => {
+  const withModels = creatures.filter((c) => c.model && c.starter); // 시작 포켓몬 넷만 (가볍게)
+  const slots = [[-2.3, 0.8], [2.3, 0.8], [-4.2, -0.9], [4.2, -0.9]];
+  let disposed = false, placed = 0;
+  const place = (file, x0, z0, height, phase) => onModelLoaded(file, () => {
     if (disposed) return;
     const m = instantiate(file);
     if (!m) return;
+    const [x, z] = x0 == null ? slots[placed++ % slots.length] : [x0, z0]; // 도착한 순서대로 빈자리에
     m.scale.setScalar(0.001);
     m.position.set(x, 0, z);
     m.rotation.y = Math.atan2(-x, 12 - z) * 0.6; // 살짝 카메라 쪽을 보게
@@ -64,7 +65,7 @@ export function buildIntro(creatures) {
     actors.push({ mesh: m, x, z, phase, height, baseRot: m.rotation.y, pop: 0 }); // 도착한 순서대로 "뿅" 등장
   });
   place(PLAYER_MODEL, 0, 1.4, PLAYER_HEIGHT, 0);
-  withModels.forEach((c, i) => { const [x, z] = slots[i % slots.length]; place(c.model, x, z, 1.15 * (c.scale || 1), i + 1); });
+  withModels.forEach((c, i) => place(c.model, null, null, 1.2, i + 1));
 
   // 둥둥 떠다니는 숫자블록 (1~5)
   const floaters = [];

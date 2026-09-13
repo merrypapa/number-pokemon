@@ -37,12 +37,13 @@ export class Input {
 
     // 터치 UI (조이스틱 + 버튼)
     const touch = document.getElementById('touch');
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) touch.classList.remove('hidden');
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) { touch.classList.remove('hidden'); document.body.classList.add('touch'); }
 
     touch.querySelectorAll('button').forEach((btn) => {
-      const k = btn.dataset.key;
-      const down = (e) => { e.preventDefault(); if (!this.held.has(k)) this.pressed.add(k); this.held.add(k); };
-      const up = (e) => { e.preventDefault(); this.held.delete(k); };
+      // 키는 누를 때 읽는다 (점프 버튼은 NPC·기차 근처에서 '대화'·'타기' 버튼으로 바뀐다: data-key 가 action 이 된다)
+      let heldKey = null;
+      const down = (e) => { e.preventDefault(); const k = btn.dataset.key; heldKey = k; if (!this.held.has(k)) this.pressed.add(k); this.held.add(k); };
+      const up = (e) => { e.preventDefault(); if (heldKey) this.held.delete(heldKey); heldKey = null; };
       btn.addEventListener('pointerdown', down);
       btn.addEventListener('pointerup', up);
       btn.addEventListener('pointercancel', up);

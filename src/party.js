@@ -1,18 +1,21 @@
 // 내 포켓몬(파티). 잡은 몬스터는 여기에 들어오고, 그중 한 마리가 "대표"로 주인공 뒤를 따라다니며 대결에 나간다.
-//  - 스탯: atk(공격력), maxHp(체력), hp(지금 체력). 처음엔 종의 baseAtk/baseHp.
-//  - 숫자블록 1개 = 공격력 +1 또는 체력 +1.
-//  - 기술: 종의 skills 중 atk 가 문턱(skill.atk) 이상인 것만 쓸 수 있다. 피해 = atk × skill.power.
-//  - 진화: 종의 evolution 조건(atk, hp)을 넘으면 진화할 수 있다. 진화하면 다음 종이 되고 스탯 보너스를 받는다.
-//  - 대결에서 지면 체력이 종의 baseHp 로 돌아간다(공격력은 그대로).
+//  - 스탯: atk(공격력), maxHp(체력), hp(지금 체력). 야생을 잡으면 그 종의 baseAtk/baseHp, 시작 포켓몬은 starterAtk/starterHp.
+//  - 키우기: 숫자블록으로 공격력 +1 또는 체력 +1. 비용은 10단위마다 오른다 (0~9: 1개, 10~19: 2개, 20~29: 3개 …).
+//  - 기술: 종의 skills 중 atk 가 문턱(skill.atk) 이상인 것만 쓸 수 있다. 피해 = atk × skill.power × 속성 상성.
+//  - 진화: 공격·체력 조건 + wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면. 진화하면 다음 종이 되고 스탯 보너스를 받는다.
+//  - 대결에서 지면 그 포켓몬은 기절(hp 0)해서 대결에 못 나간다. 올린 스탯은 그대로. 오박사에게 치료받으면 낫는다.
+import { evolveZoneOf } from './types.js';
+
 export const EVOLVE_BONUS = { atk: 3, hp: 5 };
 
 export class Party {
-  constructor(speciesById, caughtCounts = {}) {
+  constructor(speciesById) {
     this.speciesById = speciesById;
-    this.caughtCounts = caughtCounts; // 종별로 잡은 마리 수 (main 의 state.dex 와 같은 객체)
     this.members = [];
     this.leaderUid = null;
     this.nextUid = 1;
+    this.conqueredCount = () => 0; // main 이 정복한 지역 수를 넣어 준다 (2단계 진화 조건)
+    this.zoneOf = () => 'forest';      // main 이 지금 있는 지역 이름을 넣어 준다 (진화는 속성의 고향에서만)
   }
 
   species(m) { return this.speciesById[m.speciesId]; }
@@ -20,10 +23,11 @@ export class Party {
   setLeader(m) { this.leaderUid = m.uid; }
   isLeader(m) { return m.uid === this.leaderUid; }
 
-  /** 새 멤버. mesh 는 따라다닐 때 쓰는 3D 오브젝트 (잡은 몬스터의 mesh 또는 새로 만든 것). */
-  add(speciesId, mesh) {
+  /** 새 멤버. mesh 는 따라다닐 때 쓰는 3D 오브젝트. stats 로 시작 스탯을 덮어쓸 수 있다 (시작 포켓몬). */
+  add(speciesId, mesh, stats = {}) {
     const sp = this.speciesById[speciesId];
-    const m = { uid: this.nextUid++, speciesId, atk: sp.baseAtk, maxHp: sp.baseHp, hp: sp.baseHp, mesh, evolveTold: false };
+    const atk = stats.atk ?? sp.baseAtk, hp = stats.hp ?? sp.baseHp;
+    const m = { uid: this.nextUid++, speciesId, atk, maxHp: hp, hp, mesh, wins: 0, evolveTold: false };
     this.members.push(m);
     if (!this.leader) this.leaderUid = m.uid;
     return m;
@@ -31,29 +35,48 @@ export class Party {
 
   name(m) { return this.species(m).name; }
   color(m) { return this.species(m).draftShape?.color || '#ffd93d'; }
+  type(m) { return this.species(m).type || '노말'; }
+  isFainted(m) { return m.hp <= 0; }
+  /** 기절하지 않은 멤버들 */
+  healthy() { return this.members.filter((m) => m.hp > 0); }
 
   /** 지금 쓸 수 있는 기술들 (공격력 문턱을 넘은 것) */
   skills(m) { return (this.species(m).skills || []).filter((s) => m.atk >= s.atk); }
   /** 다음에 열릴 기술 (없으면 null) */
   nextSkill(m) { return (this.species(m).skills || []).find((s) => m.atk < s.atk) || null; }
-  damage(m, skill) { return Math.max(1, Math.round(m.atk * (skill?.power || 1))); }
+  damage(m, skill, mult = 1) { return Math.max(1, Math.round(m.atk * (skill?.power || 1) * mult)); }
 
-  /** 블록 n개로 공격력/체력 올리기. 체력을 올리면 지금 체력도 같이 오른다. */
-  upgrade(m, stat, n = 1) {
-    if (stat === 'atk') m.atk += n;
-    else { m.maxHp += n; m.hp += n; }
+  /** 스탯을 1 올리는 데 드는 블록 수: 0~9 → 1, 10~19 → 2, 20~29 → 3 … */
+  upgradeCost(m, stat) { return 1 + Math.floor((stat === 'atk' ? m.atk : m.maxHp) / 10); }
+  /** 블록으로 공격력/체력 +1. 체력을 올리면 지금 체력도 같이 오른다(기절 중이면 그대로). 드는 블록 수를 돌려준다. */
+  upgrade(m, stat) {
+    const cost = this.upgradeCost(m, stat);
+    if (stat === 'atk') m.atk += 1;
+    else { m.maxHp += 1; if (m.hp > 0) m.hp += 1; }
+    return cost;
   }
 
   heal(m) { m.hp = m.maxHp; }
-  /** 대결에서 졌을 때: 체력이 종의 기본 체력으로 돌아간다 */
-  loseReset(m) { const sp = this.species(m); m.maxHp = sp.baseHp; m.hp = sp.baseHp; }
-  /** 탐험 중 천천히 회복 (1씩) */
-  regen(m) { if (m.hp < m.maxHp) { m.hp += 1; return true; } return false; }
+  healAll() { let n = 0; for (const m of this.members) if (m.hp < m.maxHp) { m.hp = m.maxHp; n++; } return n; }
 
-  caughtOf(m) { return this.caughtCounts[m.speciesId] || 0; }
-  canEvolve(m) {
+  /** 진화 조건 */
+  evolveNeed(m) {
     const e = this.species(m).evolution;
-    return !!(e && this.speciesById[e.to] && m.atk >= e.atk && m.maxHp >= e.hp && this.caughtOf(m) >= (e.count || 1));
+    if (!e || !this.speciesById[e.to]) return null;
+    return { ...e, winsNow: m.wins || 0, bossNow: this.conqueredCount(), zone: evolveZoneOf(this.type(m)), here: this.zoneOf() };
+  }
+  /** 지역만 빼고 조건을 다 채웠나 (도감 안내용) */
+  readyExceptZone(m) {
+    const e = this.evolveNeed(m);
+    if (!e) return false;
+    if (m.atk < e.atk || m.maxHp < e.hp) return false;
+    if (e.wins && (m.wins || 0) < e.wins) return false;
+    if (e.boss && this.conqueredCount() < e.boss) return false;
+    return true;
+  }
+  canEvolve(m) {
+    const e = this.evolveNeed(m);
+    return !!e && this.readyExceptZone(m) && e.zone === e.here;
   }
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
   evolve(m) {
@@ -61,8 +84,9 @@ export class Party {
     const next = this.speciesById[e.to];
     m.speciesId = next.id;
     m.atk += EVOLVE_BONUS.atk;
-    m.maxHp = Math.max(m.maxHp + EVOLVE_BONUS.hp, next.baseHp);
+    m.maxHp += EVOLVE_BONUS.hp;
     m.hp = m.maxHp;
+    m.wins = 0;
     m.evolveTold = false;
     return next;
   }

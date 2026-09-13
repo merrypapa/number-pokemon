@@ -1,25 +1,49 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역(forest 푸른숲 / cave 지하동굴 / volcano 불의산 / sea 물의길 / space 꿈의우주 / evolution 진화형), type 은 속성. boss 가 true 면 그 지역의 보스(크고 세다. 잡으면 지역 정복). model 이 null 이면 코드에서 만든 기본 도형이 나오고, assets/models/ 안의 .glb 파일명을 넣으면 그 모델로 교체됩니다. 파일이 없으면 자동으로 드래프트 도형이 나오므로 보스·새 몬스터는 파일명을 미리 적어 두었습니다(같은 이름의 .glb 를 올리면 바로 적용). baseHp/baseAtk 는 야생일 때와 처음 잡았을 때의 체력/공격력, skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 공격력에 곱하는 배수), evolution 은 공격력·체력이 그 값 이상이고 그 종을 count 마리 잡았으면 진화할 수 있는 다음 몬스터입니다. starter 가 true 인 넷 중 하나를 시작할 때 고릅니다.",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing).",
  "zones": {
   "forest": {
    "name": "푸른숲",
-   "desc": "풀·노말·벌레·전기 포켓몬이 사는 시작 마을 숲"
+   "desc": "풀·노말·벌레·격투 포켓몬이 사는 시작 마을 숲",
+   "targetAtk": 4,
+   "atkRange": "3~6",
+   "blockValue": 1
   },
   "cave": {
    "name": "지하동굴",
-   "desc": "땅·바위·독 포켓몬이 사는 어두운 동굴"
+   "desc": "땅·바위·독·격투·벌레 포켓몬이 사는 어두운 동굴",
+   "targetAtk": 8,
+   "atkRange": "6~10",
+   "blockValue": 1
   },
   "volcano": {
    "name": "불의산",
-   "desc": "불 포켓몬이 사는 용암 화산"
+   "desc": "불 포켓몬이 사는 용암 화산",
+   "targetAtk": 17,
+   "atkRange": "15~20",
+   "blockValue": 2
   },
   "sea": {
    "name": "물의길",
-   "desc": "물 포켓몬이 사는 바다 섬들"
+   "desc": "물 포켓몬이 사는 바다 섬들",
+   "targetAtk": 12,
+   "atkRange": "10~15",
+   "blockValue": 2
   },
   "space": {
    "name": "꿈의우주",
-   "desc": "신비한 포켓몬이 사는 우주"
+   "desc": "신비한 포켓몬이 사는 우주",
+   "targetAtk": 22,
+   "atkRange": "20~25",
+   "blockValue": 3
+  },
+  "lab": {
+   "name": "오박사 연구소",
+   "desc": "푸른숲 마을 남쪽의 연구소. 오박사가 힌트를 주고 포켓몬을 치료해 준다",
+   "blockValue": 1
+  },
+  "evolution": {
+   "name": "진화형",
+   "desc": "진화해야 만날 수 있는 모습"
   }
  },
  "creatures": [
@@ -36,40 +60,47 @@
     "color": "#7ED957",
     "eyes": 1
    },
-   "baseHp": 5,
-   "baseAtk": 1,
+   "baseHp": 8,
+   "baseAtk": 2,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "덩굴채찍",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "whip"
     },
     {
-     "name": "덩굴채찍",
+     "name": "덩굴휘두르기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "whip"
     },
     {
      "name": "잎날가르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "leaf"
     }
    ],
    "evolution": {
     "to": "m01e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 1,
    "starter": true,
-   "personality": "수줍음"
+   "personality": "수줍음",
+   "starterHp": 10,
+   "starterAtk": 3,
+   "story": "등에 씨앗을 지고 태어난 풀 포켓몬. 햇빛을 받으면 씨앗이 조금씩 자라. 진화하면 이상해풀, 그다음엔 커다란 꽃이 피는 이상해꽃이 돼.",
+   "grade": 1
   },
   {
    "id": "m03",
    "name": "피카츄",
    "type": "전기",
-   "zone": "forest",
+   "zone": "space",
    "catchable": true,
    "model": "피카츄.glb",
    "scale": 1.0,
@@ -78,34 +109,41 @@
     "color": "#FFD93D",
     "curls": 3
    },
-   "baseHp": 6,
-   "baseAtk": 2,
+   "baseHp": 64,
+   "baseAtk": 14,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "전기쇼크",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "bolt"
     },
     {
-     "name": "전기쇼크",
+     "name": "번개",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "bolt"
     },
     {
      "name": "백만볼트",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "bolt"
     }
    ],
    "evolution": {
     "to": "m03e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 3,
    "starter": true,
-   "personality": "겁 많지만 다정"
+   "personality": "겁 많지만 다정",
+   "starterHp": 10,
+   "starterAtk": 3,
+   "story": "볼의 빨간 주머니에 전기를 모아 두는 전기 포켓몬. 기분이 좋으면 꼬리를 흔들고, 놀라면 찌릿 전기를 내보내. 꿈의우주의 별빛을 좋아해.",
+   "grade": 5
   },
   {
    "id": "m06",
@@ -120,28 +158,33 @@
     "color": "#7ED957",
     "dots": 6
    },
-   "baseHp": 7,
+   "baseHp": 8,
    "baseAtk": 2,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "실뿜기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "bug"
     },
     {
-     "name": "실뿜기",
+     "name": "실묶기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "bug"
     },
     {
      "name": "벌레먹기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "bug"
     }
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "무뚝뚝"
+   "personality": "무뚝뚝",
+   "story": "초록 애벌레 포켓몬. 머리의 더듬이에서 냄새를 내서 적을 쫓아. 나뭇잎을 아주 많이 먹고 무럭무럭 자라.",
+   "grade": 1
   },
   {
    "id": "m09",
@@ -156,28 +199,33 @@
     "color": "#C9A27E",
     "wingSpots": 9
    },
-   "baseHp": 8,
+   "baseHp": 9,
    "baseAtk": 2,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "쪼기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "peck"
     },
     {
      "name": "날개치기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "tackle"
     },
     {
      "name": "돌풍",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "tackle"
     }
    ],
    "evolution": null,
    "favoriteNumber": 9,
-   "personality": "장난꾸러기"
+   "personality": "장난꾸러기",
+   "story": "작고 순한 새 포켓몬. 풀숲에 숨어 있다가 모래를 차서 상대를 놀라게 해. 방향을 잘 찾아서 집으로 꼭 돌아와.",
+   "grade": 1
   },
   {
    "id": "m11",
@@ -192,28 +240,33 @@
     "color": "#C68E5A",
     "points": 12
    },
-   "baseHp": 9,
+   "baseHp": 12,
    "baseAtk": 3,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "모래뿌리기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "tackle"
     },
     {
-     "name": "모래뿌리기",
+     "name": "몸통박치기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "tackle"
     },
     {
      "name": "속임수",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "tackle"
     }
    ],
    "evolution": null,
    "favoriteNumber": 12,
-   "personality": "조용함"
+   "personality": "조용함",
+   "story": "여러 모습으로 진화할 수 있는 신기한 포켓몬. 사는 곳에 따라 몸이 바뀐대. 푸른숲에서는 보송보송한 털로 지내.",
+   "grade": 1
   },
   {
    "id": "m08",
@@ -228,28 +281,282 @@
     "color": "#F4E1A6",
     "cracks": 8
    },
-   "baseHp": 10,
+   "baseHp": 12,
    "baseAtk": 3,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "할퀴기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "scratch"
     },
     {
-     "name": "할퀴기",
+     "name": "베어가르기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "tackle"
     },
     {
      "name": "고양이돈받기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "tackle"
     }
    ],
    "evolution": null,
    "favoriteNumber": 8,
-   "personality": "힘세고 착함"
+   "personality": "힘세고 착함",
+   "story": "이마의 금색 동전을 아끼는 고양이 포켓몬. 반짝이는 것만 보면 모아 두고 싶어 해. 밤에 눈이 빛나.",
+   "grade": 1
+  },
+  {
+   "id": "m27",
+   "name": "잠만보",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "잠만보.glb",
+   "scale": 1.9,
+   "special": "sleepSpot",
+   "sleeping": true,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2F5D62",
+    "belly": "#F5E6C8"
+   },
+   "baseHp": 60,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "배치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "헤비봄버",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    },
+    {
+     "name": "잠자기",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 20,
+   "personality": "잠꾸러기",
+   "story": "하루 종일 먹고 자는 커다란 포켓몬. 배가 부르면 어디서든 잠들어. 잘 때 건드리면 느긋하게 일어나 몸통으로 밀어붙여.",
+   "grade": 3
+  },
+  {
+   "id": "m28",
+   "name": "치코리타",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "model": "치코리타.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9ADE7B"
+   },
+   "baseHp": 11,
+   "baseAtk": 3,
+   "skills": [
+    {
+     "name": "잎날가르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "덩굴채찍",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "whip"
+    },
+    {
+     "name": "풀베기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "상냥함",
+   "story": "머리의 잎사귀로 날씨를 알아내는 풀 포켓몬. 잎에서 좋은 향기가 나서 마음이 편해져. 햇볕 쬐기를 좋아해.",
+   "grade": 1
+  },
+  {
+   "id": "m29",
+   "name": "두두",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "두두.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#B08968"
+   },
+   "baseHp": 9,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "쪼기",
+     "atk": 1,
+     "power": 1,
+     "kind": "peck"
+    },
+    {
+     "name": "드릴부리",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "바쁨",
+   "story": "머리가 둘인 새 포켓몬. 두 머리가 서로 다른 생각을 해서 가끔 싸우지만, 달릴 때는 아주 빨라.",
+   "grade": 1
+  },
+  {
+   "id": "m30",
+   "name": "파오리",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "파오리.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C9B27A"
+   },
+   "baseHp": 11,
+   "baseAtk": 3,
+   "skills": [
+    {
+     "name": "파뿌리치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "베어가르기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "진지함",
+   "story": "파 줄기를 늘 들고 다니는 오리 포켓몬. 파를 검처럼 휘두르고, 좋은 파를 찾으면 오래 아껴 써.",
+   "grade": 1
+  },
+  {
+   "id": "m31",
+   "name": "우츠동",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "model": "우츠동.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#F2D94E"
+   },
+   "baseHp": 10,
+   "baseAtk": 3,
+   "skills": [
+    {
+     "name": "덩굴채찍",
+     "atk": 1,
+     "power": 1,
+     "kind": "whip"
+    },
+    {
+     "name": "덩굴휘두르기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "whip"
+    },
+    {
+     "name": "산성",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "먹보",
+   "story": "입이 아주 큰 식물 포켓몬. 벌레가 오면 덥석 물고, 입에서 신맛 나는 액체를 뿜어. 꼬리로 나뭇가지에 매달려.",
+   "grade": 1
+  },
+  {
+   "id": "m32",
+   "name": "망키",
+   "type": "격투",
+   "zone": "forest",
+   "catchable": true,
+   "model": "망키.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#E8D8B8"
+   },
+   "baseHp": 10,
+   "baseAtk": 2,
+   "skills": [
+    {
+     "name": "할퀴기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch"
+    },
+    {
+     "name": "베어가르기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "punch"
+    },
+    {
+     "name": "안다리걸기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "punch"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "성급함",
+   "story": "화가 나면 얼굴이 빨개지는 원숭이 포켓몬. 성질이 급해서 금방 뛰어들지만, 진정하면 금세 잊어버려.",
+   "grade": 1
   },
   {
    "id": "b01",
@@ -265,34 +572,40 @@
     "curls": 5,
     "paws": 4
    },
-   "baseHp": 40,
-   "baseAtk": 6,
+   "baseHp": 28,
+   "baseAtk": 3,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "잎날가르기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "leaf"
     },
     {
      "name": "덩굴채찍",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "whip"
     },
     {
-     "name": "잎날가르기",
+     "name": "풀베기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "leaf"
     },
     {
      "name": "솔라빔",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "leaf"
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "숲의 수호자"
+   "personality": "숲의 수호자",
+   "story": "등에 커다란 꽃이 활짝 핀 풀 포켓몬. 꽃에서 달콤한 향기가 나서 다른 포켓몬들이 모여든대. 푸른숲의 수호자야.",
+   "grade": 6
   },
   {
    "id": "m04",
@@ -307,28 +620,33 @@
     "color": "#B5651D",
     "paws": 4
    },
-   "baseHp": 8,
-   "baseAtk": 2,
+   "baseHp": 21,
+   "baseAtk": 5,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "모래뿌리기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "rock"
     },
     {
      "name": "구멍파기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "rock"
     },
     {
      "name": "땅고르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "rock"
     }
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "부지런"
+   "personality": "부지런",
+   "story": "땅속에서 사는 두더지 포켓몬. 땅을 파고 다니며 뿌리를 먹어. 지상으로 고개만 내밀고 있어서 아래쪽은 아무도 못 봤대.",
+   "grade": 2
   },
   {
    "id": "m17",
@@ -343,28 +661,33 @@
     "color": "#5B6ED6",
     "ears": 2
    },
-   "baseHp": 9,
-   "baseAtk": 3,
+   "baseHp": 22,
+   "baseAtk": 5,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "초음파",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "wind"
     },
     {
      "name": "흡혈",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "poison"
     },
     {
-     "name": "초음파",
+     "name": "독안개",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "poison"
     }
    ],
    "evolution": null,
    "favoriteNumber": 7,
-   "personality": "장난꾸러기"
+   "personality": "장난꾸러기",
+   "story": "눈이 없는 대신 초음파로 길을 찾는 박쥐 포켓몬. 어두운 동굴 천장에 매달려 살아.",
+   "grade": 2
   },
   {
    "id": "m18",
@@ -379,28 +702,33 @@
     "color": "#8D8D8D",
     "paws": 2
    },
-   "baseHp": 14,
-   "baseAtk": 4,
+   "baseHp": 24,
+   "baseAtk": 6,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "바위던지기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "rock"
     },
     {
      "name": "돌떨구기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "rock"
     },
     {
      "name": "바위굴리기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "rock"
     }
    ],
    "evolution": null,
    "favoriteNumber": 8,
-   "personality": "힘세고 착함"
+   "personality": "힘세고 착함",
+   "story": "돌멩이랑 똑같이 생긴 바위 포켓몬. 산길에 굴러다니다가 밟히면 화를 내. 팔로 바위를 오르내려.",
+   "grade": 2
   },
   {
    "id": "m07",
@@ -415,29 +743,194 @@
     "color": "#FF9A3C",
     "glowSegments": 7
    },
-   "baseHp": 10,
-   "baseAtk": 3,
+   "baseHp": 23,
+   "baseAtk": 6,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "불꽃",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "fire"
     },
     {
-     "name": "불꽃",
+     "name": "불꽃세례",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "fire"
     },
     {
      "name": "불꽃질주",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 7,
    "personality": "밝음",
-   "ability": "light"
+   "ability": "light",
+   "story": "갈기가 불꽃으로 타오르는 말 포켓몬. 태어날 때는 약하지만 뛰어놀며 금세 빨라져. 동굴을 환하게 밝혀 줘.",
+   "grade": 2
+  },
+  {
+   "id": "m33",
+   "name": "탕구리",
+   "type": "땅",
+   "zone": "cave",
+   "catchable": true,
+   "model": "탕구리.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C9A27E"
+   },
+   "baseHp": 19,
+   "baseAtk": 5,
+   "skills": [
+    {
+     "name": "뼈다귀치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "bone"
+    },
+    {
+     "name": "바위굴리기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "rock"
+    },
+    {
+     "name": "뼈다귀부메랑",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "rock"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "외로움",
+   "story": "엄마를 그리워하며 머리에 뼈 투구를 쓴 포켓몬. 뼈다귀를 부메랑처럼 던져. 슬플 때 우는 소리가 동굴에 울려.",
+   "grade": 2
+  },
+  {
+   "id": "m34",
+   "name": "질퍽이",
+   "type": "독",
+   "zone": "cave",
+   "catchable": true,
+   "model": "질퍽이.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#8E6BAA"
+   },
+   "baseHp": 17,
+   "baseAtk": 4,
+   "skills": [
+    {
+     "name": "오물",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "오물폭탄",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison"
+    },
+    {
+     "name": "독안개",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "poison"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "끈적함",
+   "story": "끈적한 진흙으로 된 독 포켓몬. 좁은 틈으로도 스르륵 들어가. 지나간 자리에는 냄새가 남아.",
+   "grade": 2
+  },
+  {
+   "id": "m35",
+   "name": "알통몬",
+   "type": "격투",
+   "zone": "cave",
+   "catchable": true,
+   "model": "알통몬.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#7EA0C8"
+   },
+   "baseHp": 16,
+   "baseAtk": 4,
+   "skills": [
+    {
+     "name": "가라테촙",
+     "atk": 1,
+     "power": 1,
+     "kind": "punch"
+    },
+    {
+     "name": "펀치",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "punch"
+    },
+    {
+     "name": "지옥의바퀴",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "punch"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "근성",
+   "story": "힘 기르기를 좋아하는 격투 포켓몬. 커다란 바위를 들어 올리며 매일 운동해. 절대 지치지 않아.",
+   "grade": 2
+  },
+  {
+   "id": "m36",
+   "name": "콘팡",
+   "type": "벌레",
+   "zone": "cave",
+   "catchable": true,
+   "model": "콘팡.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#B57EDC"
+   },
+   "baseHp": 18,
+   "baseAtk": 5,
+   "skills": [
+    {
+     "name": "독가루",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "실묶기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bug"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "호기심",
+   "story": "커다란 겹눈으로 어둠 속을 보는 벌레 포켓몬. 밤에 불빛을 향해 날아들어. 몸의 털이 독가루를 뿜어.",
+   "grade": 2
   },
   {
    "id": "b02",
@@ -452,34 +945,40 @@
     "color": "#8F8F8F",
     "dots": 6
    },
-   "baseHp": 45,
+   "baseHp": 56,
    "baseAtk": 6,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "바위떨구기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "rock"
     },
     {
      "name": "조이기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "rock"
     },
     {
-     "name": "바위떨구기",
+     "name": "바위굴리기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "rock"
     },
     {
      "name": "지진",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "rock"
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "동굴의 지킴이"
+   "personality": "동굴의 지킴이",
+   "story": "바위가 길게 이어진 커다란 뱀 포켓몬. 땅속을 빠르게 파고 다니며 지하동굴을 지켜. 몸이 아주 단단해.",
+   "grade": 6
   },
   {
    "id": "m02",
@@ -494,34 +993,41 @@
     "color": "#FF8C42",
     "ears": 2
    },
-   "baseHp": 6,
-   "baseAtk": 2,
+   "baseHp": 40,
+   "baseAtk": 10,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "불꽃",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "fire"
     },
     {
      "name": "불꽃세례",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "fire"
     },
     {
      "name": "화염방사",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     }
    ],
    "evolution": {
     "to": "m02e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 2,
    "starter": true,
-   "personality": "활발"
+   "personality": "활발",
+   "starterHp": 10,
+   "starterAtk": 3,
+   "story": "꼬리 끝의 불꽃이 생명의 불꽃인 도마뱀 포켓몬. 기운이 넘치면 불꽃이 커져. 진화하면 리자드, 그다음엔 날개 달린 리자몽이 돼.",
+   "grade": 4
   },
   {
    "id": "m10",
@@ -536,28 +1042,33 @@
     "color": "#FF7F11",
     "flames": 10
    },
-   "baseHp": 12,
-   "baseAtk": 4,
+   "baseHp": 51,
+   "baseAtk": 11,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "불꽃",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "fire"
     },
     {
      "name": "불씨",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "fire"
     },
     {
      "name": "불기둥",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
-   "personality": "따뜻함"
+   "personality": "따뜻함",
+   "story": "꼬리가 여섯 개인 여우 포켓몬. 태어날 땐 꼬리가 하나인데 자라면서 갈라진대. 몸속에 불꽃을 품고 있어.",
+   "grade": 4
   },
   {
    "id": "m19",
@@ -572,28 +1083,33 @@
     "color": "#E0442D",
     "glow": true
    },
-   "baseHp": 11,
-   "baseAtk": 4,
+   "baseHp": 45,
+   "baseAtk": 11,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "불꽃세례",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "fire"
     },
     {
      "name": "불꽃",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "fire"
     },
     {
      "name": "용암덩이",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 5,
-   "personality": "느릿느릿"
+   "personality": "느릿느릿",
+   "story": "용암 속에서 태어난 불 포켓몬. 몸이 아주 뜨거워서 가까이 가면 땀이 나. 뜨거운 곳을 찾아다녀.",
+   "grade": 4
   },
   {
    "id": "m25",
@@ -608,28 +1124,33 @@
     "color": "#F4A43C",
     "ears": 2
    },
-   "baseHp": 13,
-   "baseAtk": 4,
+   "baseHp": 56,
+   "baseAtk": 13,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "물기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "tackle"
     },
     {
-     "name": "물기",
+     "name": "불꽃놀이",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "fire"
     },
     {
      "name": "화염방사",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "충직함"
+   "personality": "충직함",
+   "story": "주인을 잘 따르는 강아지 포켓몬. 낯선 사람이 오면 큰 소리로 짖어. 용감해서 큰 상대에게도 덤벼.",
+   "grade": 4
   },
   {
    "id": "b03",
@@ -644,34 +1165,40 @@
     "color": "#F08A3C",
     "ears": 2
    },
-   "baseHp": 55,
-   "baseAtk": 7,
+   "baseHp": 140,
+   "baseAtk": 12,
    "skills": [
     {
-     "name": "몸통박치기",
-     "atk": 1,
-     "power": 1
-    },
-    {
      "name": "화염방사",
-     "atk": 10,
-     "power": 1.5
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
     },
     {
      "name": "불대문자",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃놀이",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     },
     {
      "name": "드래곤클로",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "화산의 왕"
+   "personality": "화산의 왕",
+   "story": "커다란 날개로 하늘을 나는 불꽃 포켓몬. 바위도 녹일 만큼 뜨거운 불을 뿜어. 불의산 꼭대기에서 산을 지켜.",
+   "grade": 6
   },
   {
    "id": "m05",
@@ -686,34 +1213,41 @@
     "color": "#5DADE2",
     "bubbles": 5
    },
-   "baseHp": 7,
-   "baseAtk": 2,
+   "baseHp": 35,
+   "baseAtk": 8,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "물대포",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "water"
     },
     {
-     "name": "물대포",
+     "name": "물뿌리기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "water"
     },
     {
      "name": "하이드로펌프",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "water"
     }
    ],
    "evolution": {
     "to": "m05e",
     "atk": 10,
     "hp": 15,
-    "count": 3
+    "wins": 5
    },
    "favoriteNumber": 5,
    "starter": true,
-   "personality": "느긋"
+   "personality": "느긋",
+   "starterHp": 10,
+   "starterAtk": 3,
+   "story": "등딱지에 숨어 몸을 지키는 거북 포켓몬. 입에서 물대포를 쏘고, 물속에서 빠르게 헤엄쳐. 진화하면 어니부기, 그다음엔 거북왕이 돼.",
+   "grade": 3
   },
   {
    "id": "m20",
@@ -728,28 +1262,33 @@
     "color": "#F2D75C",
     "eyes": 2
    },
-   "baseHp": 12,
-   "baseAtk": 3,
+   "baseHp": 40,
+   "baseAtk": 9,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "물대포",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "water"
     },
     {
-     "name": "물대포",
+     "name": "물뿌리기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "water"
     },
     {
      "name": "염동력",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "water"
     }
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "personality": "멍~"
+   "personality": "멍~",
+   "story": "늘 머리가 아픈 오리 포켓몬. 두통이 심해지면 신기한 힘을 써. 물에 둥둥 떠서 멍하니 지내.",
+   "grade": 3
   },
   {
    "id": "m21",
@@ -764,28 +1303,33 @@
     "color": "#E85B3C",
     "bubbles": 3
    },
-   "baseHp": 10,
-   "baseAtk": 3,
+   "baseHp": 37,
+   "baseAtk": 8,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "튀어오르기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "tackle"
     },
     {
-     "name": "튀어오르기",
+     "name": "물놀이",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "water"
     },
     {
      "name": "물대포",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "water"
     }
    ],
    "evolution": null,
    "favoriteNumber": 4,
-   "personality": "펄떡펄떡"
+   "personality": "펄떡펄떡",
+   "story": "튀어 오르기만 하는 물고기 포켓몬. 약해 보여도 아주 끈질겨. 열심히 튀어 오르면 언젠가 커다란 포켓몬이 될지도?",
+   "grade": 3
   },
   {
    "id": "m22",
@@ -800,28 +1344,198 @@
     "color": "#5E8FD9",
     "curls": 1
    },
-   "baseHp": 11,
-   "baseAtk": 4,
+   "baseHp": 38,
+   "baseAtk": 9,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "거품",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "water"
     },
     {
-     "name": "거품",
+     "name": "물대포",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "water"
     },
     {
      "name": "최면술",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "water"
     }
    ],
    "evolution": null,
    "favoriteNumber": 3,
-   "personality": "빙글빙글"
+   "personality": "빙글빙글",
+   "story": "배의 소용돌이 무늬가 자랑인 올챙이 포켓몬. 헤엄이 빨라. 무늬를 보고 있으면 잠이 온대.",
+   "grade": 3
+  },
+  {
+   "id": "m37",
+   "name": "셀러",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "셀러.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9A8FD6"
+   },
+   "baseHp": 30,
+   "baseAtk": 7,
+   "skills": [
+    {
+     "name": "조개껍질조이기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "물놀이",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "물대포",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "조용함",
+   "story": "단단한 조개껍질 속에 사는 물 포켓몬. 혀를 내밀어 모래 속 먹이를 찾아. 위험하면 껍질을 꽉 닫아.",
+   "grade": 3
+  },
+  {
+   "id": "m38",
+   "name": "크랩",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "크랩.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "cube",
+    "color": "#F08A5D"
+   },
+   "baseHp": 33,
+   "baseAtk": 8,
+   "skills": [
+    {
+     "name": "거품",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "물대포",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "집게망치",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "심술",
+   "story": "커다란 집게를 자랑하는 게 포켓몬. 모래사장에 구멍을 파고 살아. 집게로 거품을 뿜어 상대를 밀어내.",
+   "grade": 3
+  },
+  {
+   "id": "m39",
+   "name": "야돈",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "야돈.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F5A3B3"
+   },
+   "baseHp": 31,
+   "baseAtk": 8,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "물뿌리기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "염동력",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "느긋",
+   "story": "늘 느긋한 물 포켓몬. 꼬리로 물고기를 낚고, 뭘 물려도 한참 뒤에야 알아채. 걱정이 하나도 없대.",
+   "grade": 3
+  },
+  {
+   "id": "m40",
+   "name": "독파리",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "독파리.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#7FB3E6"
+   },
+   "baseHp": 28,
+   "baseAtk": 7,
+   "skills": [
+    {
+     "name": "독침",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "독찌르기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "물대포",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    }
+   ],
+   "evolution": {
+    "to": "m40e",
+    "atk": 10,
+    "hp": 15,
+    "wins": 5
+   },
+   "favoriteNumber": 3,
+   "personality": "둥실둥실",
+   "story": "투명한 몸이 물에 둥둥 뜨는 해파리 포켓몬. 촉수에 독이 있으니 조심. 진화하면 커다란 왕눈해가 돼.",
+   "grade": 3
   },
   {
    "id": "b04",
@@ -836,34 +1550,40 @@
     "color": "#2E7DB8",
     "bubbles": 5
    },
-   "baseHp": 55,
-   "baseAtk": 7,
+   "baseHp": 100,
+   "baseAtk": 9,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "하이드로펌프",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "water"
     },
     {
      "name": "물대포",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "water"
     },
     {
-     "name": "하이드로펌프",
+     "name": "물놀이",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "water"
     },
     {
      "name": "파도타기",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "water"
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "바다의 왕"
+   "personality": "바다의 왕",
+   "story": "등의 커다란 물대포로 물을 쏘는 거북 포켓몬. 무거운 몸으로 상대를 밀어붙여. 물의길 남쪽 섬의 왕이야.",
+   "grade": 6
   },
   {
    "id": "m15",
@@ -878,28 +1598,33 @@
     "color": "#FFB6E1",
     "glow": true
    },
-   "baseHp": 14,
-   "baseAtk": 4,
+   "baseHp": 76,
+   "baseAtk": 17,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "노래하기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "sing"
     },
     {
-     "name": "노래하기",
+     "name": "자장가",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "sing"
     },
     {
      "name": "더블슬랩",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "sing"
     }
    ],
    "evolution": null,
    "favoriteNumber": 20,
-   "personality": "신비로움"
+   "personality": "신비로움",
+   "story": "노래를 불러 상대를 재우는 풍선 포켓몬. 크게 부풀어 오를 수 있어. 꿈의우주에서 별에게 노래를 불러 줘.",
+   "grade": 5
   },
   {
    "id": "m23",
@@ -914,71 +1639,81 @@
     "color": "#F7B7C6",
     "ears": 2
    },
-   "baseHp": 13,
-   "baseAtk": 4,
+   "baseHp": 72,
+   "baseAtk": 17,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "손가락흔들기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "sing"
     },
     {
-     "name": "손가락흔들기",
+     "name": "자장가",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "sing"
     },
     {
      "name": "달빛",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "sing"
     }
    ],
    "evolution": null,
    "favoriteNumber": 5,
-   "personality": "달에서 온 아이"
+   "personality": "달에서 온 아이",
+   "story": "달빛을 좋아하는 페어리 포켓몬. 보름달 밤에 춤을 춰. 손가락을 흔들면 신기한 일이 일어나.",
+   "grade": 5
   },
   {
    "id": "m24",
-   "name": "캐이시",
+   "name": "케이시",
    "type": "에스퍼",
    "zone": "space",
    "catchable": true,
-   "model": "캐이시.glb",
+   "model": "케이시.glb",
    "scale": 0.9,
    "draftShape": {
     "body": "capsule",
     "color": "#E8C46A"
    },
-   "baseHp": 12,
-   "baseAtk": 5,
+   "baseHp": 68,
+   "baseAtk": 15,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "염동력",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "psychic"
     },
     {
      "name": "순간이동",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "psychic"
     },
     {
-     "name": "염동력",
+     "name": "사이코키네시스",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "psychic"
     }
    ],
    "evolution": null,
    "favoriteNumber": 9,
-   "personality": "잠꾸러기"
+   "personality": "잠꾸러기",
+   "story": "하루에 열여덟 시간을 자는 에스퍼 포켓몬. 위험하면 자면서도 순간이동으로 도망가.",
+   "grade": 5
   },
   {
    "id": "m26",
-   "name": "고오스",
+   "name": "고우스트",
    "type": "고스트",
    "zone": "space",
    "catchable": true,
-   "model": "고오스.glb",
+   "model": "고우스트.glb",
    "scale": 0.9,
    "draftShape": {
     "body": "sphere",
@@ -986,71 +1721,135 @@
     "glow": true,
     "translucent": true
    },
-   "baseHp": 15,
-   "baseAtk": 5,
+   "baseHp": 80,
+   "baseAtk": 17,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "핥기",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "ghost"
     },
     {
-     "name": "핥기",
+     "name": "그림자펀치",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "ghost"
     },
     {
      "name": "나이트헤드",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "ghost"
+    },
+    {
+     "name": "섀도볼",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "ghost"
     }
    ],
    "evolution": null,
    "favoriteNumber": 13,
-   "personality": "장난스러움"
+   "personality": "장난스러움",
+   "story": "그림자 속에 숨는 고스트 포켓몬. 어둠 속에서 혀로 살짝 핥아 놀라게 해. 장난을 아주 좋아해.",
+   "grade": 5
+  },
+  {
+   "id": "m41",
+   "name": "코일",
+   "type": "전기",
+   "zone": "space",
+   "catchable": true,
+   "model": "코일.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9AA6B2",
+    "glow": true
+   },
+   "baseHp": 60,
+   "baseAtk": 14,
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "번개",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bolt"
+    },
+    {
+     "name": "전자포",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "둥둥",
+   "story": "자석과 나사로 된 전기 포켓몬. 둥둥 떠다니며 전기를 모아. 인공위성 근처를 맴돌기를 좋아해.",
+   "grade": 5
   },
   {
    "id": "b05",
-   "name": "뮤",
-   "type": "에스퍼",
+   "name": "메가리자몽",
+   "type": "불",
    "zone": "space",
    "catchable": true,
-   "model": "뮤.glb",
-   "scale": 2.2,
+   "model": "메가리자몽.glb",
+   "scale": 2.8,
    "draftShape": {
-    "body": "sphere",
-    "color": "#F7C7E3",
-    "glow": true,
-    "ears": 2
+    "body": "capsule",
+    "color": "#2E4A8C",
+    "flames": 10,
+    "glow": true
    },
-   "baseHp": 65,
-   "baseAtk": 8,
+   "baseHp": 210,
+   "baseAtk": 15,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "푸른불꽃",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "fire"
     },
     {
-     "name": "사이코키네시스",
+     "name": "화염방사",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "fire"
     },
     {
-     "name": "오로라빔",
+     "name": "불대문자",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "fire"
     },
     {
-     "name": "환상빛",
+     "name": "드래곤클로",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "fire"
+    },
+    {
+     "name": "블러스트번",
+     "atk": 40,
+     "power": 2,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "꿈의 수호자"
+   "personality": "우주의 수호자",
+   "story": "리자몽이 우주의 힘으로 더 강해진 모습. 파란 불꽃을 뿜고 몸이 별처럼 빛나. 꿈의우주 제단을 지키는 가장 센 포켓몬이야.",
+   "grade": 6
   },
   {
    "id": "m01e",
@@ -1058,7 +1857,7 @@
    "type": "풀",
    "zone": "evolution",
    "catchable": false,
-   "model": null,
+   "model": "이상해풀.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "sphere",
@@ -1070,30 +1869,96 @@
    "baseAtk": 6,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "덩굴채찍",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "whip"
     },
     {
-     "name": "덩굴채찍",
+     "name": "덩굴휘두르기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "whip"
     },
     {
      "name": "잎날가르기",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "leaf"
     },
     {
      "name": "솔라빔",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": {
+    "to": "m01ee",
+    "atk": 20,
+    "hp": 30,
+    "boss": 1
+   },
+   "favoriteNumber": 1,
+   "evolvedFrom": "m01",
+   "personality": "든든함",
+   "story": "등의 씨앗이 봉오리가 됐어. 봉오리가 무거워서 뒷다리가 튼튼해졌대. 햇빛을 많이 받으면 꽃이 피어 이상해꽃이 돼.",
+   "grade": 2
+  },
+  {
+   "id": "m01ee",
+   "name": "이상해꽃",
+   "type": "풀",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "이상해꽃.glb",
+   "scale": 1.5,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#3E9B4F",
+    "curls": 5,
+    "paws": 4
+   },
+   "baseHp": 30,
+   "baseAtk": 10,
+   "skills": [
+    {
+     "name": "잎날가르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "덩굴채찍",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "whip"
+    },
+    {
+     "name": "풀베기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    },
+    {
+     "name": "솔라빔",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "leaf"
+    },
+    {
+     "name": "꽃잎댄스",
+     "atk": 40,
+     "power": 2,
+     "kind": "leaf"
     }
    ],
    "evolution": null,
    "favoriteNumber": 1,
-   "evolvedFrom": "m01",
-   "personality": "든든함"
+   "evolvedFrom": "m01e",
+   "personality": "의젓함",
+   "story": "등에 커다란 꽃이 활짝 핀 풀 포켓몬. 꽃에서 달콤한 향기가 나서 다른 포켓몬들이 모여든대. 푸른숲의 수호자야.",
+   "grade": 3
   },
   {
    "id": "m02e",
@@ -1101,7 +1966,7 @@
    "type": "불",
    "zone": "evolution",
    "catchable": false,
-   "model": null,
+   "model": "리자드.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "capsule",
@@ -1112,38 +1977,103 @@
    "baseAtk": 7,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "화염방사",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "fire"
     },
     {
      "name": "불꽃세례",
      "atk": 10,
-     "power": 1.5
-    },
-    {
-     "name": "화염방사",
-     "atk": 20,
-     "power": 2
+     "power": 1.25,
+     "kind": "fire"
     },
     {
      "name": "불대문자",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃놀이",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": {
+    "to": "m02ee",
+    "atk": 20,
+    "hp": 30,
+    "boss": 1
+   },
+   "favoriteNumber": 2,
+   "evolvedFrom": "m02",
+   "personality": "용감함",
+   "story": "파이리가 진화한 모습. 성질이 사나워지고 발톱이 날카로워. 뜨거운 불을 뿜어 상대를 놀라게 해.",
+   "grade": 5
+  },
+  {
+   "id": "m02ee",
+   "name": "리자몽",
+   "type": "불",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "리자몽.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F26B2B",
+    "flames": 8
+   },
+   "baseHp": 32,
+   "baseAtk": 11,
+   "skills": [
+    {
+     "name": "화염방사",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃세례",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "불대문자",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃놀이",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    },
+    {
+     "name": "드래곤클로",
+     "atk": 40,
+     "power": 2,
+     "kind": "fire"
     }
    ],
    "evolution": null,
    "favoriteNumber": 2,
-   "evolvedFrom": "m02",
-   "personality": "용감함"
+   "evolvedFrom": "m02e",
+   "personality": "용감함",
+   "story": "커다란 날개로 하늘을 나는 불꽃 포켓몬. 바위도 녹일 만큼 뜨거운 불을 뿜어. 불의산 꼭대기에서 산을 지켜.",
+   "grade": 6
   },
   {
    "id": "m03e",
    "name": "라이츄",
    "type": "전기",
-   "zone": "evolution",
-   "catchable": false,
-   "model": null,
+   "zone": "space",
+   "catchable": true,
+   "model": "라이츄.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "sphere",
@@ -1151,34 +2081,40 @@
     "ears": 2,
     "curls": 3
    },
-   "baseHp": 17,
-   "baseAtk": 7,
+   "baseHp": 84,
+   "baseAtk": 18,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "10만볼트",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "bolt"
     },
     {
      "name": "전기쇼크",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "bolt"
     },
     {
      "name": "백만볼트",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "bolt"
     },
     {
      "name": "볼트태클",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "bolt"
     }
    ],
    "evolution": null,
    "favoriteNumber": 3,
    "evolvedFrom": "m03",
-   "personality": "씩씩함"
+   "personality": "씩씩함",
+   "story": "피카츄가 진화한 모습. 꼬리로 땅에 전기를 흘려보내서 몸을 지켜. 전기를 너무 많이 모으면 몸이 살짝 빛나.",
+   "grade": 5
   },
   {
    "id": "m05e",
@@ -1198,30 +2134,141 @@
    "baseAtk": 6,
    "skills": [
     {
-     "name": "몸통박치기",
+     "name": "물대포",
      "atk": 1,
-     "power": 1
+     "power": 1,
+     "kind": "water"
     },
     {
-     "name": "물대포",
+     "name": "물뿌리기",
      "atk": 10,
-     "power": 1.5
+     "power": 1.25,
+     "kind": "water"
     },
     {
      "name": "하이드로펌프",
      "atk": 20,
-     "power": 2
+     "power": 1.5,
+     "kind": "water"
     },
     {
      "name": "파도타기",
      "atk": 30,
-     "power": 3
+     "power": 1.75,
+     "kind": "water"
+    }
+   ],
+   "evolution": {
+    "to": "m05ee",
+    "atk": 20,
+    "hp": 30,
+    "boss": 1
+   },
+   "favoriteNumber": 5,
+   "evolvedFrom": "m05",
+   "personality": "믿음직함",
+   "story": "꼬부기가 진화한 모습. 꼬리와 귀에 보송한 털이 있어. 물살을 가르며 헤엄치고 등딱지로 몸을 지켜.",
+   "grade": 4
+  },
+  {
+   "id": "m05ee",
+   "name": "거북왕",
+   "type": "물",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "거북왕.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#3B6FB6"
+   },
+   "baseHp": 34,
+   "baseAtk": 11,
+   "skills": [
+    {
+     "name": "하이드로펌프",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "물대포",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "물놀이",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    },
+    {
+     "name": "파도타기",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water"
+    },
+    {
+     "name": "로켓박치기",
+     "atk": 40,
+     "power": 2,
+     "kind": "water"
     }
    ],
    "evolution": null,
    "favoriteNumber": 5,
-   "evolvedFrom": "m05",
-   "personality": "믿음직함"
+   "personality": "듬직함",
+   "evolvedFrom": "m05e",
+   "story": "등의 커다란 물대포로 물을 쏘는 거북 포켓몬. 무거운 몸으로 상대를 밀어붙여. 물의길 남쪽 섬의 왕이야.",
+   "grade": 5
+  },
+  {
+   "id": "m40e",
+   "name": "왕눈해",
+   "type": "물",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "왕눈해.glb",
+   "scale": 1.4,
+   "draftShape": {
+    "body": "drop",
+    "color": "#4F86C6"
+   },
+   "baseHp": 30,
+   "baseAtk": 10,
+   "skills": [
+    {
+     "name": "독침",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "독찌르기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "물대포",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "위엄",
+   "evolvedFrom": "m40",
+   "story": "독파리가 진화한 모습. 붉은 구슬 같은 눈이 빛나고 촉수가 아주 길어. 파도를 일으켜 바다를 흔들어.",
+   "grade": 4
   }
  ]
 }

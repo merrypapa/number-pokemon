@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildGround, makePortal, makeSignAt, makeInstanced } from './world.js';
 
@@ -189,8 +190,10 @@ export function buildVolcano(scene) {
   // 포탈 (푸른숲으로) + 안내판
   const P = VOLCANO.portal;
   const portal = makePortal(scene, P.x, volcanoHeight(P.x, P.z), P.z, { color: 0x66e0ff, label: '푸른숲으로 가는 포탈', labelBg: '#3a1a10', labelFg: '#ffd1a8' });
-  decor.add(makeSignAt('불의산 - 불 포켓몬의 땅. 큰 화산 꼭대기엔 리자몽!', VOLCANO.spawn.x + 6, volcanoHeight(VOLCANO.spawn.x + 6, VOLCANO.spawn.z - 4), VOLCANO.spawn.z - 4, -0.4, { board: 0x6b3d33, bg: '#6b3d33', fg: '#ffd1a8', post: 0x3a2320 }));
-  block(VOLCANO.spawn.x + 6, VOLCANO.spawn.z - 4, 0.25);
+  const geologist = makeNpc({ outfit: 'scientist', name: '봄이', model: '봄이.glb' });
+  geologist.position.set(VOLCANO.spawn.x + 5, volcanoHeight(VOLCANO.spawn.x + 5, VOLCANO.spawn.z - 3), VOLCANO.spawn.z - 3);
+  geologist.rotation.y = -0.7;
+  decor.add(geologist); block(VOLCANO.spawn.x + 5, VOLCANO.spawn.z - 3, 0.6);
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color: 0xffb080, transparent: true, opacity: 0.25 }));
   drop.rotation.x = -Math.PI / 2;
   drop.position.set(VOLCANO.spawn.x, volcanoHeight(VOLCANO.spawn.x, VOLCANO.spawn.z) + 0.03, VOLCANO.spawn.z);
@@ -223,6 +226,12 @@ export function buildVolcano(scene) {
 
   return {
     sun, animate, terrain: VOLCANO_TERRAIN, decor, portal: P, spawn: VOLCANO.spawn, dark: false,
+    npcs: [{ x: VOLCANO.spawn.x + 5, z: VOLCANO.spawn.z - 3, mesh: geologist, name: '봄이', warp: true, lines: (c) => [
+      `불의산에 온 걸 환영해, ${c.name}! 난 화산을 연구하는 봄이야. 용암은 뜨거우니 밟지 마.`,
+      `여기 포켓몬은 전부 불 속성이야. 공격 ${c.zone.atkRange}쯤 되면 편하게 이겨. 물 포켓몬(꼬부기!)이 불에 세고, 풀 포켓몬은 불에 약하니 조심.`,
+      c.conquered.volcano ? '보스 리자몽을 이겼구나! 정말 강해졌는걸.' : `큰 화산 꼭대기에 보스 리자몽이 있어. 체력 140! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
+      '여기 블록은 하나가 2개 가치야. 대결에서 이기면 상대 공격력만큼 블록을 받으니 싸우는 게 이득이지. 포탈로 푸른숲에 돌아갈 수 있어.',
+    ] }],
     wildSpots: [[-30, 45], [30, 55], [-55, -20], [60, -30], [-25, -70], [30, -75], [-85, 40], [90, 50], [-70, 90], [60, 95], [0, 55], [-90, -40], [90, -80], [-45, -95], [100, 0], [-100, 90], [15, -105], [-15, 15]],
     bossSpot: { x: c.x, z: c.z + c.r + 0.5 }, // 큰 화산 꼭대기 (분화구 둘레)
     pickupSpots: [[-15, 70], [15, 70], [-40, 55], [45, 60], [-65, 15], [65, 20], [-45, -40], [48, -45], [-30, -80], [32, -82], [0, 45], [-85, 85], [90, 80], [-80, -70], [80, -90], [0, -90], [-12, 12], [12, 15], [-100, 30], [100, -30], [-60, 100], [60, -100], [0, 100], [-100, -30]],

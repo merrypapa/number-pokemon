@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
-import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture } from './world.js';
+import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture, makePillSprite } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
 // model 에 .glb 파일명이 있고 그 파일을 미리 받아 두었다면(models.js preloadModels) 드래프트 대신 그 모델을 쓴다.
-export function buildDraftMesh(c) {
+export function buildDraftMesh(c, opts = {}) {
   const g = new THREE.Group();
   const draft = new THREE.Group(); // 드래프트 부품은 여기에 모아서 한 번에 교체할 수 있게 한다
   g.add(draft);
@@ -66,7 +66,7 @@ export function buildDraftMesh(c) {
     }
   }
   if (glows && c.boss) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); } // 점광원은 보스만 (야생 여럿이 빛을 켜면 느려진다)
-  if (c.model) swapDraftWithModel(g, c.model); // 진짜 모델이 있으면 드래프트 도형 대신 사용
+  if (c.model) swapDraftWithModel(g, c.model, { onSwap: opts.onSwap }); // 진짜 모델이 있으면 드래프트 도형 대신 사용
   g.scale.setScalar(c.scale || 1);
   return g;
 }
@@ -74,12 +74,13 @@ export function buildDraftMesh(c) {
 export class Creature {
   constructor(scene, data, home) {
     this.data = data;
-    this.mesh = buildDraftMesh(data);
+    this.sleeping = !!data.sleeping; // 자는 몬스터(잠만보): 돌아다니지 않고 제자리에서 잔다. 닿으면 대결
+    this.mesh = buildDraftMesh(data, { onSwap: (m) => { if (this.sleeping) this.lieDown(m); } });
     this.home = home.clone();
     this.mesh.position.copy(home);
     this.mesh.position.y = terrainHeight(home.x, home.z);
     this.target = home.clone();
-    this.state = 'wander'; // wander | approach | caught | shy
+    this.state = this.sleeping ? 'sleep' : 'wander'; // wander | approach | caught | shy | sleep
     this.shyTimer = 0;
     this.cooldown = 0;        // 결투 화면을 닫은 직후 잠깐은 다시 열리지 않음
     this.isBoss = !!data.boss;
@@ -95,15 +96,35 @@ export class Creature {
       ring.rotation.x = Math.PI / 2; ring.position.y = 0.06;
       this.mesh.add(ring);
       this.bossRing = ring;
-      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(`보스 ${data.name}`, '#20232e', '#ffd93d', 56), transparent: true, depthTest: false }));
-      label.scale.set(2.2, 0.55, 1);
+      const label = makePillSprite(`👑 보스 ${data.name}`, { bg: '#ffd93d', fg: '#20232e', border: '#b8860b' }, 0.95);
       label.position.y = 1.65;
       this.mesh.add(label);
+    }
+    if (this.sleeping) { // 머리 위 "Zzz"
+      const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('z Z z', '#ffffff', '#5a7bd6', 56), transparent: true, depthTest: false }));
+      z.scale.set(1.6, 0.4, 1);
+      z.position.set(0.4, 1.3 * (data.scale || 1), 0);
+      this.mesh.add(z);
+      this.zzz = z;
     }
     scene.add(this.mesh);
   }
 
   get position() { return this.mesh.position; }
+
+  /** 모델을 등을 대고 눕힌다 (앞 +Z 가 하늘을 보게). 발바닥 원점이라 등 두께만큼 띄운다 */
+  lieDown(model) {
+    this.model = model;
+    const box = new THREE.Box3().setFromObject(model.children[0]);
+    model.rotation.x = -Math.PI / 2;
+    model.position.y = -box.min.z * (model.userData.targetScale || 1);
+    if (this.zzz) this.zzz.visible = true;
+  }
+  /** 일어난다 (대결 시작, 잡혔을 때) */
+  standUp() {
+    if (this.model) { this.model.rotation.x = 0; this.model.position.y = 0; }
+    if (this.zzz) this.zzz.visible = false;
+  }
 
   pickTarget() {
     for (let i = 0; i < 10; i++) {
@@ -135,19 +156,36 @@ export class Creature {
   update(dt, playerPos) {
     this.t += dt;
     this.cooldown = Math.max(0, this.cooldown - dt);
+    if (this.fledTimer > 0) { // 도망간 동안은 보이지 않는다
+      this.fledTimer -= dt;
+      if (this.fledTimer <= 0) { this.mesh.visible = true; this.state = this.sleeping ? 'sleep' : 'wander'; if (this.sleeping && this.model) this.lieDown(this.model); }
+      return null;
+    }
     const p = this.mesh.position;
     const touchDist = 1.7 + (this.data.scale || 1) * 0.5;
     if (this.cooldown <= 0 && p.distanceTo(playerPos) < touchDist) {
       this.hint.visible = false;
+      if (this.sleeping) this.standUp(); // 건드리면 벌떡 일어나 대결
       return 'meet';
     }
     // 보스는 아레나(집) 근처에 플레이어가 와야 반응한다
     const playerNear = this.isBoss ? playerPos.distanceTo(this.home) < this.approachRange : p.distanceTo(playerPos) < this.approachRange;
     let bob = 0;
-    if (this.state === 'shy') {
+    if (this.state === 'sleep') {
+      // 자는 중: 움직이지 않고 숨만 쉰다. 가까이 오면 체력 숫자만 보여 준다
+      bob = Math.sin(this.t * 1.5) * 0.02;
+      if (this.zzz) { this.zzz.position.y = 1.3 * (this.data.scale || 1) + Math.sin(this.t * 2) * 0.15; this.zzz.material.opacity = 0.7 + Math.sin(this.t * 2) * 0.3; }
+      this.hint.visible = playerNear;
+      p.y = terrainHeight(p.x, p.z) + bob;
+      tickModel(this.mesh, dt, 'idle');
+      return null;
+    } else if (this.state === 'shy') {
       this.shyTimer -= dt;
       this.moveToward(this.home.x, this.home.z, 4, dt);
-      if (this.shyTimer <= 0) this.state = 'wander';
+      if (this.shyTimer <= 0) {
+        this.state = this.sleeping ? 'sleep' : 'wander';
+        if (this.sleeping && this.model) this.lieDown(this.model); // 집에 돌아와 다시 잔다
+      }
       bob = Math.abs(Math.sin(this.t * 10)) * 0.15;
     } else if (this.state === 'wander') {
       const d = this.moveToward(this.target.x, this.target.z, 1.2, dt);
@@ -166,9 +204,19 @@ export class Creature {
     return null;
   }
 
+  /** 넘버볼에서 튀어나와 도망: 한동안 사라졌다가 집에서 다시 나타난다 */
+  flee() {
+    this.state = 'shy';
+    this.shyTimer = 0.1;
+    this.cooldown = 6;
+    this.hint.visible = false;
+    this.mesh.visible = false;
+    this.fledTimer = 45;
+    this.mesh.position.copy(this.home); this.mesh.position.y = terrainHeight(this.home.x, this.home.z);
+  }
   becomeShy() {
     this.state = 'shy';
-    this.shyTimer = this.isBoss ? 2 : 5;
+    this.shyTimer = this.isBoss || this.sleeping ? 2 : 5;
     this.cooldown = 3;
     this.hint.visible = false;
   }
@@ -176,5 +224,6 @@ export class Creature {
   becomeFriend() {
     this.state = 'caught';
     this.hint.visible = false;
+    if (this.sleeping) { this.standUp(); if (this.zzz) { this.mesh.remove(this.zzz); this.zzz = null; } } // 잡힌 잠만보는 일어나서 따라온다
   }
 }
