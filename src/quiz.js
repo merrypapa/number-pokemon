@@ -2,11 +2,11 @@
 // 지역마다 문제 종류가 다르다 (구출할 숫자블록의 숫자가 7 이상이면 조금 더 어렵게):
 //  - 푸른숲: 더하기        "피카츄 3마리와 파이리 2마리, 모두 몇 마리?" (큰 숫자면 세 무리)
 //  - 지하동굴: 세기 · 10 만들기  "꼬부기 6마리. 몇 마리 더 오면 10마리?"
-//  - 물의길: 빼기          "이상해씨 7마리 중 3마리가 숨었어. 남은 건?"
+//  - 물의길: 빼기 또는 나누기  "이상해씨 7마리 중 3마리가 숨었어. 남은 건?" / "12마리를 3무리로 똑같이 나누면 한 무리에?" (나누기는 블록 2배)
 //  - 불의산: 곱하기        "파이리가 3마리씩 4무리. 모두 몇 마리? (3×4)"
 //  - 꿈의우주: 세제곱      "케이시가 3마리씩 3줄, 그런 층이 3층. 모두 몇 마리? (3×3×3)"
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-const TIER_NAME = { 1: '세기', 2: '더하기', 3: '빼기', 4: '10 만들기', 5: '세 무리 더하기', 6: '곱하기', 7: '세제곱' };
+const TIER_NAME = { 1: '세기', 2: '더하기', 3: '빼기', 4: '10 만들기', 5: '세 무리 더하기', 6: '곱하기', 7: '세제곱', 8: '나누기 (블록 2배!)' };
 const ZONE_KIND = { forest: 'add', cave: 'ten', sea: 'sub', volcano: 'mul', space: 'cube' };
 
 export function makeProblem(number, species, zone = 'forest') {
@@ -30,6 +30,10 @@ export function makeProblem(number, species, zone = 'forest') {
     }
     const a = ri(2, 8);
     return { tier: 4, text: `${A.name} ${a}마리가 있어. ${B.name}이(가) 몇 마리 더 오면 10마리가 될까?`, groups: [{ sp: A, count: a }, { sp: B, count: 10 - a, ghost: true }], answer: 10 - a, hint: `${a}에서 10까지 몇 칸 남았는지 세어 봐!` };
+  }
+  if (kind === 'sub' && Math.random() < 0.5) { // 물의길: 절반은 나누기 (더 어려우니 블록 2배)
+    const groups = ri(2, hard ? 4 : 3), each = ri(2, hard ? 5 : 4), total = groups * each;
+    return { tier: 8, bonus: 2, text: `${A.name} ${total}마리를 ${groups}무리로 똑같이 나누면 한 무리에 몇 마리? (${total}÷${groups})`, groups: [{ sp: A, count: total }], answer: each, choices: [each + 1, groups, total - groups], hint: `${groups}무리에 한 마리씩 돌아가며 나눠 봐. ${each}씩 ${groups}번이면 ${total}!` };
   }
   if (kind === 'sub') {
     const a = hard ? ri(7, 12) : ri(4, 9), b = ri(1, a - 1);

@@ -123,12 +123,12 @@ const nbByNumber = Object.fromEntries(nbData.numberblocks.map((n) => [n.number, 
 function makeZone(name, builder) {
   const scene = new THREE.Scene();
   const world = builder(scene);
-  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescue: null, nbTimer: rand(25, 50), respawnTimer: 6 };
+  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescue: null, nbTimer: rand(10, 25), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace, lab: buildLab };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 14, space: 18 }; // 지역별 야생 몬스터 자리 수 (각 지역 wildSpots 길이)
-const PICKUP_CAP = { forest: 24, cave: 16, volcano: 16, sea: 20, space: 16 }; // 줍는 블록 자리 수 (줄여서 대결로 블록을 얻게)
+const PICKUP_CAP = { forest: 12, cave: 8, volcano: 8, sea: 10, space: 8 }; // 줍는 블록 자리 수 (적게: 블록은 대결·구출 퀴즈로 얻는다)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
 let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
@@ -597,7 +597,7 @@ function spawnRescue(z) {
     say(`${data.name}이(가) 도와달래! 머리 위 빨간 화살표를 따라가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
     return;
   }
-  z.nbTimer = 20; // 자리를 못 찾으면 잠시 뒤 다시
+  z.nbTimer = 10; // 자리를 못 찾으면 잠시 뒤 다시
 }
 /** 구출 친구가 어디 있는지 가리키는 빨간 화살표 (주인공 머리 위에 떠서 친구 쪽을 향한다) */
 function makeRescueArrow() {
@@ -615,7 +615,7 @@ function removeRescue(z, escaped) {
   removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescue = null;
-  z.nbTimer = rand(45, 90);
+  z.nbTimer = rand(20, 40);
   if (escaped) say(`${nb.data.name}이(가) 다른 곳으로 가 버렸어… 다음에 또 나타날 거야.`, { face: String(nb.data.number), sec: 4 });
 }
 function rescueSolved(z, nb) {
@@ -625,13 +625,14 @@ function rescueSolved(z, nb) {
   removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescue = null;
-  z.nbTimer = rand(45, 90);
+  z.nbTimer = rand(20, 40);
   state.rescued++;
-  const before = state.blocks, gain = n * blockValue();
+  const bonus = quiz.problem?.bonus || 1; // 나누기처럼 어려운 문제는 블록을 더 준다
+  const before = state.blocks, gain = n * blockValue() * bonus;
   setBlocks(state.blocks + gain);
   sound.fanfare();
   confetti.burst(100);
-  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${gain > n ? ` (이 지역 블록은 ${blockValue()}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
+  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${bonus > 1 ? ` (나누기 문제라 ${bonus}배!)` : gain > n ? ` (이 지역 블록은 ${blockValue()}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
   refreshHud();
   autosave();
 }
@@ -683,7 +684,7 @@ function renderStarter() {
     item.innerHTML = `
       ${t ? `<img src="${t.color}" alt="">` : ''}
       <div class="starter-name">${sp.name}</div>
-      <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${sp.baseHp} · ⚔ 공격 ${sp.baseAtk}</div>
+      <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${sp.starterHp ?? sp.baseHp} · ⚔ 공격 ${sp.starterAtk ?? sp.baseAtk}</div>
       <div class="starter-skill">기술: ${first ? first.name : '-'}${sp.skills?.[1] ? ` → ${sp.skills[1].name}` : ''}</div>`;
     item.onclick = () => chooseStarter(sp.id);
     starterGrid.appendChild(item);
@@ -984,8 +985,8 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 8 && !zone.world.indoor) { // 블록은 드물게 다시 생긴다 (대결로 얻는 게 주 수입)
-      zone.respawnTimer = 30;
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 4 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·구출 퀴즈가 주 수입)
+      zone.respawnTimer = 60;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
         const x = pp.x + rand(-36, 36), zz = pp.z + rand(-36, 36);
