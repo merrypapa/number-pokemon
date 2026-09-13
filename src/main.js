@@ -71,6 +71,8 @@ function say(text, { face = '1', sec = 4 } = {}) {
   msgEl.classList.remove('hidden');
   msgTimer = sec;
 }
+// 메시지 창을 누르면(터치/클릭) 바로 사라진다
+msgEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); msgEl.classList.add('hidden'); msgTimer = 0; });
 // 지역 이름 배너 (지역에 들어갈 때 크게)
 const zoneBannerEl = document.getElementById('zone-banner');
 let zoneBannerTimer = 0;
