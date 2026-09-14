@@ -123,6 +123,10 @@ export function inHole(x, z) { return active.inHole(x, z); }
 export function worldSize() { return active.size; }
 export function isBlocked(x, z) { return active.blocked ? active.blocked(x, z) : false; }
 export function insideObstacle(x, z, r = 0.4) { return (active.obstacles || []).some((o) => obstacleDist(o, x, z) < o.r + r); }
+/** 이 지역의 수면 높이 (바다가 있는 지역만, 없으면 null) */
+export function waterLevel() { return active.waterY ?? null; }
+/** 배를 타고 갈 수 있는 물 위인가 (바다가 있는 지역만) */
+export function canSail(x, z) { return active.sailable ? active.sailable(x, z) : false; }
 function obstacleDist(o, x, z) {
   if (o.ax === undefined) return Math.hypot(x - o.x, z - o.z);
   return distToSegment(x, z, o.ax, o.az, o.bx, o.bz);

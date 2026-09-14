@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
-import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, WORLD } from './world.js';
+import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -135,7 +135,7 @@ function makeZone(name, builder) {
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace, lab: buildLab };
-const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 14, space: 18 }; // 지역별 야생 몬스터 자리 수 (각 지역 wildSpots 길이)
+const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
 const PICKUP_CAP = { forest: 6, cave: 4, volcano: 4, sea: 5, space: 4 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
 const MAX_RESCUES = 3; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
@@ -165,7 +165,11 @@ function getZone(name) {
   zones[name] = z;
   setActiveTerrain(z.terrain); // Creature 생성 시 지형 높이를 쓰므로 잠시 전환
   const wild = creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && !c.special && c.catchable);
-  z.world.wildSpots.forEach(([x, zz], i) => { if (wild.length) spawnCreature(z, wild[i % wild.length].id, x, zz); });
+  const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
+  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) spawnCreature(z, land[i % land.length].id, x, zz); });
+  // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
+  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) spawnCreature(z, swimmers[i % swimmers.length].id, x, zz); });
+  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) spawnCreature(z, deep[i % deep.length].id, x, zz); });
   const boss = creatureData.creatures.find((c) => c.zone === z.name && c.boss);
   if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z); c.mesh.userData.bossZone = z.name; }
   // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
@@ -464,6 +468,12 @@ function applyZoneEnv() {
 function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   if (switching || !BUILDERS[name]) return;
+  if (sailing) { // 다른 지역으로 가면 배는 선착장에 두고 내린다
+    const b = boatHere();
+    sailing = false; player.boat = null;
+    if (b) { b.mesh.userData.sailing = false; b.mesh.position.copy(b.base); b.mesh.rotation.set(0, 0, 0); }
+    for (const f of chain.followers) f.mesh.visible = true;
+  }
   switching = true;
   fadeEl.classList.add('on');
   sound.portal();
@@ -490,12 +500,63 @@ function switchZone(name, spawn, message) {
 // 타는 것: 기차(푸른숲 ↔ 물의길), 로켓(푸른숲 ↔ 꿈의우주). 주인공과 친구들을 숨기고 탈것을 움직인 뒤 지역을 바꾼다.
 // 각 지역 world 의 train / rocket 에 { kind, mesh, base, boardPoint, to, dir?, flame? } 가 있다.
 const RIDE_MSG = {
-  sea: '물의길에 도착! 물 포켓몬들이 사는 바다야. 다리로 섬을 건너자. 돌아갈 땐 기차역에서 E!',
+  sea: '물의길에 도착! 다리로 섬을 건너고, 동쪽 선착장에서 배를 타면 먼바다의 포켓몬도 만날 수 있어. 돌아갈 땐 기차역에서 E!',
   space: '꿈의우주에 도착! 중력이 약해서 높이 뛸 수 있어. 화면을 위로 밀어 하늘의 태양과 행성들도 봐! 돌아갈 땐 로켓에서 E!',
   forest: '푸른숲으로 돌아왔어!',
 };
 let ride = null;
 function vehiclesHere() { return [zone.world.train, zone.world.rocket].filter(Boolean); }
+
+// ---------- 배 타기 (물의길): 선착장에서 배를 타고 바다를 돌아다닌다 ----------
+// 배를 타면 주인공이 배 위에 서고, 물 위만 갈 수 있게 된다(뭍에서 막힘). 따라오던 친구들은 잠시 배웅.
+let sailing = false;
+function boatHere() { return zone.world.boat || null; }
+function boardBoat() {
+  const b = boatHere();
+  if (!b || sailing || battle.active || ride || switching) return;
+  const surface = waterLevel() ?? 0;
+  sailing = true;
+  b.mesh.userData.sailing = true;
+  b.mesh.rotation.z = 0;
+  player.boat = { canGo: canSail, floorY: surface + (b.deckY ?? 0.5), speed: 8.5 }; // 갑판 높이에 서고, 걷기보다 조금 빠르다
+  player.position.set(b.mesh.position.x, surface + 0.95, b.mesh.position.z);
+  player.vx = player.vz = player.vy = 0;
+  for (const f of chain.followers) f.mesh.visible = false; // 물 위를 걸을 수는 없으니 잠시 쉰다
+  sound.portal();
+  say('배를 탔어! 방향키(조이스틱)로 바다를 돌아다녀 봐. 헤엄치는 포켓몬을 만나면 대결이야!', { sec: 7 });
+}
+function leaveBoat() {
+  const b = boatHere();
+  if (!b || !sailing) return;
+  const spot = landingSpot() || dockLanding(); // 뭍이 없으면 선착장으로 돌아간다
+  sailing = false;
+  b.mesh.userData.sailing = false;
+  b.mesh.position.copy(b.base);
+  b.mesh.rotation.set(0, 0, 0);
+  player.boat = null;
+  player.teleport(spot.x, spot.z);
+  for (const f of chain.followers) { f.mesh.visible = true; f.mesh.position.set(spot.x + rand(-1.2, 1.2), terrainHeight(spot.x, spot.z), spot.z + rand(1, 2)); }
+  sound.portal();
+  say('땅에 내렸어! 배는 선착장에 돌아가 있어.', { sec: 4 });
+}
+/** 선착장 앞 (배에서 내리는 기본 자리) */
+function dockLanding() {
+  const d = zone.world.dock;
+  return d ? { x: +(d.x - 1.5).toFixed(1), z: +d.z.toFixed(1) } : { x: +zone.world.spawn.x.toFixed(1), z: +zone.world.spawn.z.toFixed(1) };
+}
+/** 배에서 내릴 수 있는 가장 가까운 뭍. 없으면 null */
+function landingSpot() {
+  const p = player.position;
+  const d = zone.world.dock;
+  if (d && Math.hypot(p.x - d.x, p.z - d.z) < 7) return { x: d.x - 1.5, z: d.z };
+  for (let r = 3; r <= 9; r += 1.5) { // 둘레를 돌며 걸어 다닐 수 있는 모래밭을 찾는다
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
+      const x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
+      if (!isBlocked(x, z) && !insideObstacle(x, z, 0.6) && terrainHeight(x, z) > 0.5) return { x, z };
+    }
+  }
+  return null;
+}
 function startRide(v) {
   if (ride || switching) return;
   ride = { v, t: 0, from: zone.name, switched: false, puff: 0 };
@@ -796,7 +857,7 @@ document.getElementById('btn-continue').disabled = listSaves().length === 0;
 function buildSaveData() {
   return {
     v: 1, name: state.name, savedAt: Date.now(),
-    zone: zone.name, pos: { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1) },
+    zone: zone.name, pos: sailing ? { ...dockLanding() } : { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1) }, // 배 위에서 저장하면 선착장에서 다시 시작
     blocks: state.blocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
@@ -983,6 +1044,22 @@ function frame() {
         switchZone(r.zone, r.spawn, { text: `${ZONE_INFO[r.zone]?.name || r.zone}(으)로 돌아왔어!`, sec: 4 });
       } else if (state.prompt <= 0) { state.prompt = 8; say('워프 패드야. 다른 지역의 안내원이 데려다줬을 때 그 지역으로 돌아갈 수 있어.', { sec: 4 }); }
     }
+    // ----- 배 타기 / 내리기 (물의길 선착장) -----
+    if (!moved && boatHere()) {
+      const b = boatHere(), d = zone.world.dock;
+      if (sailing) {
+        // 배가 주인공을 따라다닌다 (주인공은 갑판 위에 서 있다)
+        const surface = waterLevel() ?? 0;
+        b.mesh.position.set(pp.x, surface + Math.sin(t * 1.6) * 0.1, pp.z);
+        b.mesh.rotation.y = player.facing - Math.PI / 2; // 뱃머리(+x)가 가는 방향을 본다
+        b.mesh.rotation.z = Math.sin(t * 1.3) * 0.05;
+        if (Math.random() < 0.25) particles.stars(zone.scene, b.mesh.position.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.2, rand(-1.5, 1.5))), 1, 0xf4f4f8, 0.25); // 물보라
+        if (landingSpot()) offer('⚓ 내리기', () => leaveBoat(), '⚓\n내리기');
+      } else if (d && Math.hypot(pp.x - d.x, pp.z - d.z) < 4.5) {
+        offer('⛵ 배 타기', () => boardBoat(), '⛵\n배 타기');
+        if (state.prompt <= 0) { state.prompt = 8; say('선착장이야! 배 타기 버튼을 누르면 먼바다로 나갈 수 있어.', { sec: 4 }); }
+      }
+    }
     if (!moved) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.2)) continue;
       const dest = ZONE_INFO[v.to]?.name || v.to;
@@ -1035,7 +1112,7 @@ function frame() {
         const hp = c.hp ?? c.data.baseHp;
         say(c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${c.data.name}이(가) 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
         battle.start({
-          creature: c, player, scene: zone.scene, member: L,
+          creature: c, player, scene: zone.scene, member: L, onWater: !!c.swim,
           hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
           onCaught: () => {
             const L = battle.member; // 대결 중 교체했을 수 있다
@@ -1132,7 +1209,8 @@ function frame() {
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
     if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();
 
-    chain.update(dt);
+    if (!sailing) chain.update(dt);
+    else for (const f of chain.followers) f.mesh.visible = false; // 대결이 끝나 돌아와도 물 위를 걷지 않게
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
     for (const f of chain.followers) {
       const occluding = f.mesh.position.distanceTo(camera.position) < pp.distanceTo(camera.position) - 0.3 && f.mesh.position.distanceTo(pp) < 3.5;

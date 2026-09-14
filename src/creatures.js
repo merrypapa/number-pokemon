@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
-import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture, makePillSprite } from './world.js';
+import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture, makePillSprite, waterLevel, canSail } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
@@ -75,10 +75,11 @@ export class Creature {
   constructor(scene, data, home) {
     this.data = data;
     this.sleeping = !!data.sleeping; // 자는 몬스터(잠만보): 돌아다니지 않고 제자리에서 잔다. 닿으면 대결
+    this.swim = !!data.swim;         // 헤엄치는 몬스터(잉어킹 등): 물 위에서만 돌아다닌다. 배를 타야 만난다
     this.mesh = buildDraftMesh(data, { onSwap: (m) => { if (this.sleeping) this.lieDown(m); } });
     this.home = home.clone();
     this.mesh.position.copy(home);
-    this.mesh.position.y = terrainHeight(home.x, home.z);
+    this.mesh.position.y = this.groundY(home.x, home.z);
     this.target = home.clone();
     this.state = this.sleeping ? 'sleep' : 'wander'; // wander | approach | caught | shy | sleep
     this.shyTimer = 0;
@@ -126,10 +127,18 @@ export class Creature {
     if (this.zzz) this.zzz.visible = false;
   }
 
+  /** 이 몬스터가 서(떠) 있는 높이. 헤엄치는 몬스터는 수면 */
+  groundY(x, z) { return this.swim ? (waterLevel() ?? 0) - 0.15 : terrainHeight(x, z); }
+  /** 이 자리로 갈 수 있나. 헤엄치는 몬스터는 물 위만, 나머지는 땅 위만 */
+  canGo(x, z) {
+    if (Math.abs(x) > worldSize() / 2 - 3 || Math.abs(z) > worldSize() / 2 - 3) return false;
+    if (this.swim) return canSail(x, z) && !insideObstacle(x, z, 1.2);
+    return !inHole(x, z) && !isBlocked(x, z) && !insideObstacle(x, z, 0.6);
+  }
   pickTarget() {
     for (let i = 0; i < 10; i++) {
       const x = this.home.x + rand(-this.leash, this.leash), z = this.home.z + rand(-this.leash, this.leash);
-      if (!inHole(x, z) && !isBlocked(x, z) && !insideObstacle(x, z, 0.6) && Math.abs(x) < worldSize() / 2 - 3 && Math.abs(z) < worldSize() / 2 - 3) {
+      if (this.canGo(x, z)) {
         this.target.set(x, 0, z);
         return;
       }
@@ -145,8 +154,8 @@ export class Creature {
     const ox = p.x, oz = p.z;
     p.x += (dx / dist) * step;
     p.z += (dz / dist) * step;
-    resolveObstacles(p, 0.5 * (this.data.scale || 1));
-    if (isBlocked(p.x, p.z)) { p.x = ox; p.z = oz; } // 물 앞에서는 멈춘다
+    if (!this.swim) resolveObstacles(p, 0.5 * (this.data.scale || 1));
+    if (!this.canGo(p.x, p.z)) { p.x = ox; p.z = oz; } // 물가(헤엄치는 몬스터는 뭍) 앞에서는 멈춘다
     this.mesh.rotation.y = Math.atan2(dx, dz);
     return dist;
   }
@@ -176,7 +185,7 @@ export class Creature {
       bob = Math.sin(this.t * 1.5) * 0.02;
       if (this.zzz) { this.zzz.position.y = 1.3 * (this.data.scale || 1) + Math.sin(this.t * 2) * 0.15; this.zzz.material.opacity = 0.7 + Math.sin(this.t * 2) * 0.3; }
       this.hint.visible = playerNear;
-      p.y = terrainHeight(p.x, p.z) + bob;
+      p.y = this.groundY(p.x, p.z) + bob;
       tickModel(this.mesh, dt, 'idle');
       return null;
     } else if (this.state === 'shy') {
@@ -199,7 +208,7 @@ export class Creature {
     }
     this.hint.visible = this.state === 'approach';
     if (this.bossRing) this.bossRing.rotation.z = this.t * 0.8;
-    p.y = terrainHeight(p.x, p.z) + bob;
+    p.y = this.groundY(p.x, p.z) + bob;
     tickModel(this.mesh, dt, 'walk'); // walk 클립이 없으면 첫 번째 클립(보통 idle)을 돈다
     return null;
   }
@@ -212,7 +221,7 @@ export class Creature {
     this.hint.visible = false;
     this.mesh.visible = false;
     this.fledTimer = 45;
-    this.mesh.position.copy(this.home); this.mesh.position.y = terrainHeight(this.home.x, this.home.z);
+    this.mesh.position.copy(this.home); this.mesh.position.y = this.groundY(this.home.x, this.home.z);
   }
   becomeShy() {
     this.state = 'shy';

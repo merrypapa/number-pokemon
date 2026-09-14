@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { colorForCount } from './palette.js';
-import { terrainHeight } from './world.js';
+import { terrainHeight, waterLevel } from './world.js';
 import { effectiveness, effectWord, skillIcon } from './types.js';
 import { tickModel } from './models.js';
 import { strongAgainst, weakTo } from './types.js';
@@ -130,8 +130,12 @@ export class Battle {
     this.sel = 0;
   }
 
-  start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, hideMeshes = [], decor = null }) {
+  /** 대결이 벌어지는 바닥 높이. 바다 위(배를 타고 만난 포켓몬)면 수면 위에서 싸운다 */
+  groundY(x, z) { return this.floorY == null ? terrainHeight(x, z) : Math.max(terrainHeight(x, z), this.floorY); }
+
+  start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, hideMeshes = [], decor = null, onWater = false }) {
     Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, onEscaped, decor });
+    this.floorY = onWater ? waterLevel() : null; // 물 위 대결: 바닥 대신 수면
     this.active = true;
     this.phase = 'enter';
     this.timer = 0;
@@ -154,7 +158,7 @@ export class Battle {
     const dist = 5.2 + (creature.data.scale || 1) * 0.8;
     this.stageFrom = m.clone();
     this.stageTo = new THREE.Vector3(p.x + dir.x * dist, 0, p.z + dir.z * dist);
-    this.stageTo.y = terrainHeight(this.stageTo.x, this.stageTo.z);
+    this.stageTo.y = this.groundY(this.stageTo.x, this.stageTo.z);
     creature.mesh.rotation.y = Math.atan2(-dir.x, -dir.z);
     player.facing = Math.atan2(dir.x, dir.z);
     player.group.rotation.y = player.facing;
@@ -175,7 +179,7 @@ export class Battle {
     const ray = new THREE.Vector3(-0.78, -0.4, 0.5).unproject(cam).sub(this.camPos).normalize();
     const tGround = ray.y < -0.02 ? (p.y - this.camPos.y) / ray.y : 4;
     this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(2, Math.min(6, tGround)));
-    this.mineTo.y = terrainHeight(this.mineTo.x, this.mineTo.z);
+    this.mineTo.y = this.groundY(this.mineTo.x, this.mineTo.z);
     this.mineScale = this.party.species(member).scale || 1;
     // 둘이 서로 마주 본다: 내 포켓몬은 상대 자리를, 상대는 내 포켓몬 자리를 향한다
     this.mineYaw = Math.atan2(this.stageTo.x - this.mineTo.x, this.stageTo.z - this.mineTo.z);
@@ -676,9 +680,9 @@ export class Battle {
     if (this.phase === 'enter') {
       const t = Math.min(1, this.timer / 0.6);
       m.position.lerpVectors(this.stageFrom, this.stageTo, easeOut(t));
-      m.position.y = terrainHeight(m.position.x, m.position.z) + Math.sin(t * Math.PI) * 1.2;
+      m.position.y = this.groundY(m.position.x, m.position.z) + Math.sin(t * Math.PI) * 1.2;
       mine.position.lerpVectors(this.mineFrom, this.mineTo, easeOut(t));
-      mine.position.y = terrainHeight(mine.position.x, mine.position.z) + Math.sin(t * Math.PI) * 0.8;
+      mine.position.y = this.groundY(mine.position.x, mine.position.z) + Math.sin(t * Math.PI) * 0.8;
       if (t >= 1) { this.phase = 'choose'; this.render(); }
     }
 
@@ -717,7 +721,7 @@ export class Battle {
     this.flying = this.flying.filter((f) => !f.done);
 
     // 내 포켓몬: 돌진, 맞았을 때 흔들림, 숨쉬기
-    const mineGround = terrainHeight(this.mineTo.x, this.mineTo.z);
+    const mineGround = this.groundY(this.mineTo.x, this.mineTo.z);
     if (this.phase !== 'enter') {
       mine.position.copy(this.mineTo);
       mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 3)) * 0.05;
@@ -730,7 +734,7 @@ export class Battle {
           const t = Math.min(1, (this.timer - this.phaseStart) / 0.62);
           const reach = Math.sin(t * Math.PI);
           mine.position.lerpVectors(this.mineTo, this.stageTo, reach * 0.78);
-          mine.position.y = terrainHeight(mine.position.x, mine.position.z) + reach * 0.7;
+          mine.position.y = this.groundY(mine.position.x, mine.position.z) + reach * 0.7;
           if (!this.meleeHitDone && t >= 0.5) { this.meleeHitDone = true; this.meleeFx(); this.onBoltHit(); }
           if (t >= 1 && this.phase === 'attack') this.phase = 'choose';
         } else {
@@ -756,7 +760,7 @@ export class Battle {
 
     // 상대 리액션
     const base = c.data.scale || 1;
-    const ground = terrainHeight(m.position.x, m.position.z);
+    const ground = this.groundY(m.position.x, m.position.z);
     if (this.phase === 'choose' || this.phase === 'attack' || this.phase === 'bolt' || this.phase === 'lost') {
       m.position.copy(this.stageTo);
       m.position.y = ground + Math.abs(Math.sin(this.timer * 4)) * 0.12;
@@ -775,7 +779,7 @@ export class Battle {
       const t = Math.min(1, (this.timer - this.phaseStart) / 0.6);
       const reach = Math.sin(t * Math.PI);
       m.position.lerpVectors(this.stageTo, this.mineTo, reach * 0.75);
-      m.position.y = terrainHeight(m.position.x, m.position.z) + reach * 0.9;
+      m.position.y = this.groundY(m.position.x, m.position.z) + reach * 0.9;
       m.scale.setScalar(base);
       if (!this.enemyHitDone && t >= 0.5) { this.enemyHitDone = true; this.onEnemyHit(); }
       if (t >= 1) this.afterEnemyTurn();
@@ -797,7 +801,7 @@ export class Battle {
     } else if (this.phase === 'wobble') {
       const bt = this.timer - this.wobbleStart;
       // 공이 땅에 떨어진 뒤 0.55초마다 흔들림 (총 3번), 그다음 잡혔는지 판정
-      const groundY = terrainHeight(this.ball.position.x, this.ball.position.z) + 0.32;
+      const groundY = this.groundY(this.ball.position.x, this.ball.position.z) + 0.32;
       this.ball.position.y += (groundY - this.ball.position.y) * Math.min(1, dt * 6);
       const idx = Math.floor((bt - 0.3) / 0.55);
       const local = ((bt - 0.3) % 0.55) / 0.55;
@@ -815,7 +819,7 @@ export class Battle {
       m.visible = true;
       m.scale.setScalar(base * Math.min(1, t * 3));
       m.position.copy(this.stageTo).addScaledVector(this.dir, t * 9);
-      m.position.y = terrainHeight(m.position.x, m.position.z) + Math.abs(Math.sin(t * 14)) * 0.6;
+      m.position.y = this.groundY(m.position.x, m.position.z) + Math.abs(Math.sin(t * 14)) * 0.6;
       m.rotation.z = 0;
       if (this.timer - this.escapeStart > 1.7) this.end('escaped');
     } else if (this.phase === 'success') {
@@ -841,7 +845,7 @@ export class Battle {
     this.ballHit = this.targetPoint();
     this.ball.position.copy(this.ballHit);
     this.ballLand = new THREE.Vector3().copy(this.stageTo).addScaledVector(this.dir, -1.9);
-    this.ballLand.y = terrainHeight(this.ballLand.x, this.ballLand.z) + 0.32;
+    this.ballLand.y = this.groundY(this.ballLand.x, this.ballLand.z) + 0.32;
     this.sound.hit();
     this.particles.stars(this.scene, this.ball.position, 14, 0xffffff, 0.35);
     this.showFloat('탁!', '#fff', this.ballHit);
@@ -877,7 +881,7 @@ export class Battle {
     this.catchShown = false;
     const c = this.creature;
     c.mesh.position.copy(this.ball.position);
-    c.mesh.position.y = terrainHeight(c.mesh.position.x, c.mesh.position.z);
+    c.mesh.position.y = this.groundY(c.mesh.position.x, c.mesh.position.z);
     this.scene.remove(this.ball); this.ball = null;
     this.particles.stars(this.scene, this.targetPoint(), 28, 0xffd93d);
     this.particles.stars(this.scene, this.targetPoint(), 16, colorForCount(c.data.favoriteNumber || c.data.baseHp));

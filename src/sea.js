@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
-import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, makeInstanced, WHITE_MAT } from './world.js';
+import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
-// 물의길 (180x180). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
-// 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 바다는 못 들어가고 다리로만 건넌다.
+// 물의길 (240x240). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
+// 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 걸어서는 바다에 못 들어가고 다리로만 건너지만,
+// 도착 섬 선착장에서 뱃사공에게 배를 빌리면 바다를 자유롭게 돌아다니며 헤엄치는 포켓몬(잉어킹 등)을 만날 수 있다.
 export const SEA = {
-  size: 180,
+  size: 240,
   base: -1.6,     // 바다 밑바닥
   waterY: -0.35,  // 수면
   islands: [
@@ -19,7 +20,21 @@ export const SEA = {
     { x: 4, z: -66, r: 18, h: 4.6 },    // 보스 섬 (거북왕)
   ],
   spawn: { x: 0, z: 62 },
+  dock: { x1: 16, z1: 60, x2: 33, z2: 60, w: 1.7, rise: 0 }, // 선착장: 도착 섬 동쪽에서 바다로 뻗은 나무 잔교 (걸어 다닐 수 있는 다리)
+  lighthouse: { x: 86, z: 26 },      // 먼바다 등대 바위
 };
+/** 배를 탄 채 갈 수 있는 곳: 물 위이고 맵 안. (섬·다리 위는 배가 못 간다) */
+export function seaSailable(x, z) {
+  const lim = SEA.size / 2 - 3;
+  if (Math.abs(x) > lim || Math.abs(z) > lim) return false;
+  let y = SEA.base;
+  for (const i of SEA.islands) { const dx = x - i.x, dz = z - i.z; y += i.h * Math.exp(-(dx * dx + dz * dz) / (i.r * i.r)); }
+  const d = SEA.dock; // 선착장 위로는 배가 지나가지 않는다 (다른 다리 아래로는 지나갈 수 있다)
+  if (Math.abs(z - d.z1) < d.w + 0.8 && x > d.x1 - 1 && x < d.x2 + 1) return false;
+  const L = SEA.lighthouse; // 등대 바위는 피해서 돈다
+  if (Math.hypot(x - L.x, z - L.z) < 7) return false;
+  return y < SEA.waterY - 0.35; // 물가 얕은 곳은 배가 못 들어간다 (걸어서 내릴 수 있게)
+}
 // 다리: 이웃한 섬끼리 (섬 가장자리에서 가장자리로)
 function link(a, b) {
   const A = SEA.islands[a], B = SEA.islands[b];
@@ -27,7 +42,7 @@ function link(a, b) {
   const ux = dx / d, uz = dz / d;
   return { x1: A.x + ux * (A.r - 5), z1: A.z + uz * (A.r - 5), x2: B.x - ux * (B.r - 5), z2: B.z - uz * (B.r - 5), w: 1.3, rise: 0.8 };
 }
-const SEA_BRIDGES = [link(0, 1), link(0, 2), link(1, 3), link(2, 3), link(1, 4), link(2, 5), link(3, 6), link(4, 6), link(5, 6)];
+const SEA_BRIDGES = [link(0, 1), link(0, 2), link(1, 3), link(2, 3), link(1, 4), link(2, 5), link(3, 6), link(4, 6), link(5, 6), SEA.dock];
 
 function seaHeight(x, z) {
   let y = SEA.base;
@@ -43,7 +58,7 @@ function seaBlocked(x, z) {
   for (const i of SEA.islands) { const dx = x - i.x, dz = z - i.z; y += i.h * Math.exp(-(dx * dx + dz * dz) / (i.r * i.r)); }
   return y < SEA.waterY + 0.05 && !SEA_BRIDGES.some((b) => onBridge(b, x, z));
 }
-export const SEA_TERRAIN = { height: seaHeight, inHole: () => false, blocked: seaBlocked, size: SEA.size, obstacles: [] };
+export const SEA_TERRAIN = { height: seaHeight, inHole: () => false, blocked: seaBlocked, size: SEA.size, obstacles: [], waterY: SEA.waterY, sailable: seaSailable };
 
 export function buildSea(scene) {
   const S = SEA.size;
@@ -121,6 +136,7 @@ export function buildSea(scene) {
   }
   decor.add(makeInstanced(new THREE.SphereGeometry(0.16, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, shellItems));
   // 도착 섬: 파라솔 + 기차역 + 표지판
+  const postMat0 = new THREE.MeshStandardMaterial({ color: 0x8a5a2b });
   let train, trainBase;
   {
     const isl = SEA.islands[0];
@@ -137,6 +153,15 @@ export function buildSea(scene) {
     const railMat = new THREE.MeshStandardMaterial({ color: 0x555b66 });
     for (const dz of [-0.7, 0.7]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(80, 0.12, 0.14), railMat); rail.position.set(SEA.spawn.x + 34, y0 + 0.1, SEA.spawn.z - 6 + dz); decor.add(rail); }
     const tieMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
+    // 바다 위 구간에는 다리 기둥을 세운다 (배가 그 아래로 지나간다)
+    for (let i = 0; i < 20; i++) {
+      const px = SEA.spawn.x + 6 + i * 3.6;
+      if (seaHeight(px, SEA.spawn.z - 6) > SEA.waterY + 0.5) continue;
+      const pier = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.42, y0 - SEA.base + 0.5, 8), postMat0);
+      pier.position.set(px, (y0 + SEA.base) / 2, SEA.spawn.z - 6);
+      pier.castShadow = true;
+      decor.add(pier);
+    }
     for (let i = 0; i < 52; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(SEA.spawn.x - 4 + i * 1.5, y0 + 0.05, SEA.spawn.z - 6); decor.add(tie); }
     const plat = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 3.5), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
     plat.position.set(SEA.spawn.x + 6, y0 + 0.1, SEA.spawn.z - 2.6);
@@ -158,6 +183,101 @@ export function buildSea(scene) {
     trainBase = train.position.clone();
     obstacles.push({ ax: SEA.spawn.x + 1, az: SEA.spawn.z - 6, bx: SEA.spawn.x + 13, bz: SEA.spawn.z - 6, r: 1.6 });
   }
+  // ---------- 선착장(잔교) + 배 + 뱃사공 ----------
+  // 도착 섬 동쪽에서 바다로 뻗은 나무 잔교. 끝에 배가 묶여 있고 옆에 뱃사공이 서 있다.
+  const D = SEA.dock;
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b });
+  scene.add(buildBridge(D, obstacles, { plankColor: 0xd9a55f, railColor: 0x8a5a2b })); // 잔교(걸어 다닐 수 있다)
+  const dockEnd = { x: D.x2 - 1.2, z: D.z2 };
+  const deckY = bridgeDeckY(D, 1);
+  for (const dz of [-1.5, 1.5]) { // 잔교 끝 계선주
+    const bol = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 1.0, 10), postMat);
+    bol.position.set(D.x2 - 0.5, deckY + 0.5, D.z2 + dz);
+    decor.add(bol);
+  }
+  decor.add(makeSignAt(D.x1 - 2.5, seaHeight(D.x1 - 2.5, D.z1 + 2.8), D.z1 + 2.8, '선착장 · 배를 타고 먼바다로', { bg: '#1f3a93', fg: '#ffffff' }));
+  // 배: 둥근 나무 몸통 + 뱃머리 + 돛 + 깃발. 탈 때는 주인공이 갑판(local y=0.5) 위에 선다
+  const boat = new THREE.Group();
+  {
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0xd9a55f, roughness: 0.85 });
+    const trimMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.85 });
+    const hull = new THREE.Mesh(new THREE.SphereGeometry(1.3, 18, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), woodMat);
+    hull.scale.set(1.75, 0.8, 1.0); hull.position.y = 0.62; hull.castShadow = true;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.13, 8, 28), trimMat);
+    rim.rotation.x = Math.PI / 2; rim.scale.set(1.75, 1.0, 1.0); rim.position.y = 0.62;
+    const deck = new THREE.Mesh(new THREE.CircleGeometry(1.2, 20), new THREE.MeshStandardMaterial({ color: 0xe8c89a }));
+    deck.rotation.x = -Math.PI / 2; deck.scale.set(1.7, 1.0, 1.0); deck.position.y = 0.5;
+    const bow = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.5, 12), woodMat); // 뱃머리: +x 를 향한다
+    bow.rotation.z = -Math.PI / 2; bow.position.set(2.6, 0.5, 0); bow.scale.set(1, 1, 0.8); bow.castShadow = true;
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 3.6, 8), trimMat);
+    mast.position.set(-0.5, 2.4, 0);
+    const sail = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.3), new THREE.MeshStandardMaterial({ color: 0xf4f4f8, side: THREE.DoubleSide }));
+    sail.position.set(0.45, 2.7, 0); sail.rotation.y = Math.PI / 2;
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.55), new THREE.MeshStandardMaterial({ color: 0xe8453c, side: THREE.DoubleSide }));
+    stripe.position.set(0.46, 2.2, 0); stripe.rotation.y = Math.PI / 2;
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshStandardMaterial({ color: 0xffd93d, side: THREE.DoubleSide }));
+    flag.position.set(-0.12, 4.1, 0); flag.rotation.y = Math.PI / 2;
+    boat.add(hull, rim, deck, bow, mast, sail, stripe, flag);
+    boat.position.set(dockEnd.x + 3.2, SEA.waterY, dockEnd.z);
+    boat.rotation.y = 0; // 뱃머리(+x)는 먼바다 쪽
+    scene.add(boat);
+  }
+  const boatBase = boat.position.clone();
+  // 뱃사공 (배를 빌려주는 NPC)
+  const sailor = makeNpc({ outfit: 'captain', name: '노을', skin: 0xf6d2ae });
+  const sailorAt = { x: D.x1 - 2, z: D.z1 + 2.6 };
+  sailor.position.set(sailorAt.x, seaHeight(sailorAt.x, sailorAt.z), sailorAt.z);
+  sailor.rotation.y = -0.6;
+  decor.add(sailor); block(sailorAt.x, sailorAt.z, 0.6);
+
+  // ---------- 먼바다: 부표 · 암초 · 등대 바위 · 떠 있는 나무통 ----------
+  const bobbers = []; // 파도에 위아래로 흔들리는 것들
+  const buoyBody = new THREE.MeshStandardMaterial({ color: 0xe8453c });
+  const buoyTop = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.5 });
+  for (const [bx, bz] of [[42, 52], [64, 30], [70, -14], [40, -58], [-4, 86], [-62, 52], [-86, -8], [-44, -78], [24, -92], [92, 62], [-92, 72], [96, -56]]) {
+    if (!seaSailable(bx, bz)) continue;
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.6, 1.4, 10), buoyBody); b.position.y = 0.5;
+    const t2 = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), buoyTop); t2.position.y = 1.4;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), postMat); pole.position.y = 1.0;
+    g.add(b, pole, t2);
+    g.position.set(bx, SEA.waterY, bz);
+    decor.add(g);
+    bobbers.push({ mesh: g, base: SEA.waterY, t: rand(0, 10), amp: 0.28 });
+  }
+  const reefMat = new THREE.MeshStandardMaterial({ color: 0x7d8a97, roughness: 1 });
+  const reefItems = [];
+  for (let i = 0; i < 70; i++) {
+    const x = rand(-110, 110), z = rand(-110, 110);
+    if (!seaSailable(x, z)) continue;
+    const r = rand(0.5, 1.6);
+    reefItems.push({ x, y: SEA.waterY - r * 0.35, z, s: r, rx: rand(0, 3), ry: rand(0, 3) });
+  }
+  decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), reefMat, reefItems, { shadow: true }));
+  { // 등대 바위: 먼바다 한가운데, 밤에도 빛나는 빨간 등
+    const L = SEA.lighthouse;
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(4.2, 0), reefMat);
+    rock.position.set(L.x, SEA.waterY - 0.6, L.z); rock.scale.y = 0.7; rock.castShadow = true;
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.5, 8, 14), new THREE.MeshStandardMaterial({ color: 0xf4f4f8 }));
+    tower.position.set(L.x, SEA.waterY + 4.2, L.z); tower.castShadow = true;
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.22, 1.6, 14), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
+    band.position.set(L.x, SEA.waterY + 4.4, L.z);
+    const lampG = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 10), new THREE.MeshStandardMaterial({ color: 0xfff1b5, emissive: 0xffd36b, emissiveIntensity: 1.6 }));
+    lampG.position.set(L.x, SEA.waterY + 8.6, L.z);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.3, 1.2, 12), new THREE.MeshStandardMaterial({ color: 0x1f3a93 }));
+    roof.position.set(L.x, SEA.waterY + 9.7, L.z);
+    decor.add(rock, tower, band, lampG, roof);
+    obstacles.push({ x: L.x, z: L.z, r: 4.2 });
+  }
+  for (const [bx, bz] of [[30, 70], [56, -40], [-30, 66], [-70, -50], [78, 6], [8, -96]]) { // 떠 있는 나무통
+    if (!seaSailable(bx, bz)) continue;
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.1, 12), postMat);
+    barrel.rotation.z = Math.PI / 2;
+    barrel.position.set(bx, SEA.waterY + 0.2, bz);
+    decor.add(barrel);
+    bobbers.push({ mesh: barrel, base: SEA.waterY + 0.2, t: rand(0, 10), amp: 0.18 });
+  }
+
   // 선장 (지역 안내 NPC)
   const captain = makeNpc({ outfit: 'captain', name: '리리', model: '리리.glb' });
   captain.position.set(SEA.spawn.x - 5, seaHeight(SEA.spawn.x - 5, SEA.spawn.z - 3), SEA.spawn.z - 3);
@@ -181,6 +301,14 @@ export function buildSea(scene) {
 
   function animate(t) {
     water.position.y = SEA.waterY + Math.sin(t * 1.2) * 0.06;
+    for (const b of bobbers) { // 부표·나무통이 파도에 까딱까딱
+      b.mesh.position.y = b.base + Math.sin(t * 1.5 + b.t) * b.amp;
+      b.mesh.rotation.z = (b.mesh.geometry?.type === 'CylinderGeometry' ? Math.PI / 2 : 0) + Math.sin(t * 1.1 + b.t) * 0.08;
+    }
+    if (!boat.userData.sailing) { // 묶여 있는 동안에도 물결에 흔들린다
+      boat.position.y = SEA.waterY + Math.sin(t * 1.4) * 0.12;
+      boat.rotation.z = Math.sin(t * 1.1) * 0.05;
+    }
     for (const g of gulls) {
       const u = g.userData;
       const a = t * 0.35 + u.t;
@@ -194,15 +322,28 @@ export function buildSea(scene) {
   const I = SEA.islands;
   return {
     sun, animate, terrain: SEA_TERRAIN, decor, spawn: SEA.spawn, dark: false,
-    npcs: [{ x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '리리', warp: true, lines: (c) => [
+    waterY: SEA.waterY,
+    sailable: seaSailable,
+    dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
+    boat: { mesh: boat, base: boatBase, deckY: 0.5 },                  // 빌려 타는 배 (갑판 높이)
+    npcs: [{ x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', lines: (c) => [
+      `어이, ${c.name}! 난 뱃사공 노을이야. 이 배로 먼바다까지 나갈 수 있지.`,
+      '잔교 끝에서 "배 타기"를 누르면 출발이야. 배 위에서는 방향키(조이스틱)로 바다를 마음껏 돌아다닐 수 있어.',
+      '바다에는 헤엄치는 포켓몬이 살아. 잉어킹·셀러·크랩·독파리… 아주 먼바다엔 라프라스도 있다더군!',
+      '섬이나 잔교 가까이 가서 "내리기"를 누르면 다시 땅을 밟을 수 있어. 등대 바위가 보이면 꽤 멀리 온 거야.',
+    ] }, { x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '리리', warp: true, lines: (c) => [
       `물의길에 온 걸 환영해, ${c.name}! 난 선장 리리야. 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
       c.conquered.sea ? '보스 거북왕을 이겼군! 훌륭한 트레이너야.' : `남쪽 끝 섬에 보스 거북왕이 있어. 체력 100! 공격 ${c.zone.targetAtk + 3} 이상, 체력 35쯤 되면 도전해 보게. 전기 포켓몬이면 최고야.`,
       '여기 블록은 하나가 2개 가치야. 기차역의 기차를 타면 푸른숲으로 돌아가네.',
+      '동쪽 선착장에 뱃사공 노을이 있네. 배를 타면 바다 포켓몬을 만날 수 있어!',
     ] }],
     train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],
     bossSpot: { x: I[6].x, z: I[6].z - 3 },
+    // 배를 타야 만나는 헤엄치는 포켓몬 자리 (물 위). 뒤쪽 네 자리는 아주 먼바다 = 라프라스 같은 깊은바다 포켓몬
+    waterSpots: [[26, 46], [44, 40], [56, 12], [50, -8], [30, -46], [-18, 40], [-26, 66], [-56, 30], [-66, -6], [-40, -60], [14, -84], [62, -62], [76, 44], [-78, -44]],
+    deepSpots: [[100, 12], [-102, 96], [104, -92], [-8, 106]],
     pickupSpots: [[I[0].x - 6, I[0].z + 2], [I[0].x + 4, I[0].z - 10], [I[1].x, I[1].z + 6], [I[1].x - 6, I[1].z - 2], [I[2].x, I[2].z + 6], [I[2].x + 6, I[2].z - 2], [I[3].x, I[3].z + 7], [I[3].x - 7, I[3].z - 2], [I[3].x + 7, I[3].z], [I[4].x + 4, I[4].z], [I[5].x - 3, I[5].z + 5], [I[6].x - 6, I[6].z - 6], [I[6].x + 7, I[6].z - 4], [I[6].x, I[6].z + 9], [I[0].x + 12, I[0].z - 4], [I[0].x - 12, I[0].z + 6]],
   };
 }
