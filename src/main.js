@@ -2,9 +2,6 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
 import { buildMegaShrine, shrineName } from './mega.js';
-import { applySky } from './sky.js';
-// 지역별 환경광 세기 (각 지역의 HemisphereLight 는 이 몫만큼 이미 낮춰 두었다)
-const ENV_LOOK = { forest: { intensity: 0.6 }, sea: { intensity: 0.65 }, volcano: { intensity: 0.5 }, cave: { intensity: 0.35 }, space: { intensity: 0.45 }, lab: { intensity: 0.55 } };
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -46,8 +43,6 @@ function fitRenderer() {
 }
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
-// 톤 매핑(ACESFilmic)은 쓰지 않는다: 이 게임은 사실적인 빛이 아니라 진한 만화 색이라서
-// 톤 매핑을 켜면 초록이 바래고 캐릭터가 하얗게 뜬다 (직접 비교해 보고 끈 채로 둔다).
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 fitRenderer();
@@ -253,7 +248,6 @@ function revealShrine(z, silent = false) {
 function getZone(name) {
   if (zones[name]) return zones[name];
   const z = makeZone(name, BUILDERS[name]);
-  applySky(z.scene, renderer, name, ENV_LOOK[name] || ENV_LOOK.forest); // 그라데이션 하늘 + 환경광
   zones[name] = z;
   setActiveTerrain(z.terrain); // Creature 생성 시 지형 높이를 쓰므로 잠시 전환
   const wild = creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && !c.special && !c.mega && c.catchable);

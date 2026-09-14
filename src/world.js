@@ -112,51 +112,6 @@ export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0
   return g;
 }
 
-/**
- * 여러 다리를 한 번에 짓는다. 판자·기둥·난간을 종류마다 InstancedMesh 하나로 묶어
- * 그리기 호출을 다리 개수와 상관없이 3번으로 줄인다 (다리가 많은 물의길·지하동굴에서 크게 빨라진다).
- */
-export function buildBridges(list, obstacles, { plankColor = 0xb07a3c, railColor = 0x7a4d22 } = {}) {
-  const g = new THREE.Group();
-  const plankMat = new THREE.MeshStandardMaterial({ color: plankColor, roughness: 0.9 });
-  const railMat = new THREE.MeshStandardMaterial({ color: railColor, roughness: 0.9 });
-  const planks = [], posts = [], rails = [];
-  const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Object3D();
-  const facing = (x, y, z, tx, ty, tz) => { tmp.position.set(x, y, z); tmp.up.copy(up); tmp.lookAt(tx, ty, tz); return tmp.quaternion.clone(); };
-  for (const b of list) {
-    const len = Math.hypot(b.x2 - b.x1, b.z2 - b.z1);
-    const ang = Math.atan2(b.x2 - b.x1, b.z2 - b.z1);
-    const n = Math.max(6, Math.round(len / 0.9));
-    const nx = Math.cos(ang), nz = -Math.sin(ang);
-    for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n, t2 = t + 0.01;
-      const x = b.x1 + (b.x2 - b.x1) * t, z = b.z1 + (b.z2 - b.z1) * t, y = bridgeDeckY(b, t) - 0.07;
-      planks.push({ x, y, z, sx: b.w * 2 + 0.2, sy: 0.14, sz: len / n - 0.06,
-        q: facing(x, y, z, b.x1 + (b.x2 - b.x1) * t2, bridgeDeckY(b, t2) - 0.07, b.z1 + (b.z2 - b.z1) * t2) });
-    }
-    for (const side of [-1, 1]) {
-      const px = nx * side * b.w, pz = nz * side * b.w;
-      const cnt = Math.max(3, Math.round(len / 2.4));
-      let prev = null;
-      for (let i = 0; i <= cnt; i++) {
-        const t = i / cnt;
-        const x = b.x1 + (b.x2 - b.x1) * t + px, z = b.z1 + (b.z2 - b.z1) * t + pz, y = bridgeDeckY(b, t);
-        posts.push({ x, y: y + 0.5, z });
-        if (prev) {
-          const mx = (x + prev.x) / 2, my = (y + prev.y) / 2 + 0.9, mz = (z + prev.z) / 2;
-          rails.push({ x: mx, y: my, z: mz, sz: Math.hypot(x - prev.x, z - prev.z, y - prev.y), q: facing(mx, my, mz, x, y + 0.9, z) });
-          obstacles.push({ ax: prev.x, az: prev.z, bx: x, bz: z, r: 0.12 });
-        }
-        prev = { x, y, z };
-      }
-    }
-  }
-  g.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), plankMat, planks, { shadow: true }));
-  g.add(makeInstanced(new THREE.BoxGeometry(0.16, 1.0, 0.16), railMat, posts));
-  g.add(makeInstanced(new THREE.BoxGeometry(0.1, 0.1, 1), railMat, rails));
-  return g;
-}
-
 // ---------- 활성 지형 (초원/동굴 등 지역이 바뀌면 main 이 교체) ----------
 // player/creatures/numberblocks 는 terrainHeight/inHole/isBlocked/resolveObstacles 만 쓰므로 지역이 바뀌어도 코드가 같다.
 //  - blocked(x,z): 물처럼 들어갈 수 없는 곳 (다리 위는 예외)
@@ -293,7 +248,7 @@ export function makeInstanced(geometry, material, items, { shadow = false } = {}
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
   let colored = false;
   items.forEach((it, i) => {
-    if (it.q) q.copy(it.q); else { e.set(it.rx || 0, it.ry || 0, it.rz || 0); q.setFromEuler(e); }
+    e.set(it.rx || 0, it.ry || 0, it.rz || 0); q.setFromEuler(e);
     p.set(it.x, it.y, it.z);
     sc.set(it.sx ?? it.s ?? 1, it.sy ?? it.s ?? 1, it.sz ?? it.s ?? 1);
     mesh.setMatrixAt(i, m.compose(p, q, sc));
@@ -309,62 +264,7 @@ export const WHITE_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, rough
 export const WHITE_MAT_DS = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide });
 
 /** 정점 색이 있는 바닥 지형. colorFn(x, z, y) 은 THREE.Color 를 돌려준다. */
-/**
- * 바닥 무늬: 이어 붙여도 티가 안 나는 작은 얼룩 무늬를 캔버스로 그린다.
- * 흑백이라 바닥의 정점 색(풀색·모래색…)에 곱해져서 색은 그대로 두고 결만 살린다.
- * 파일을 받지 않으므로 용량이 늘지 않는다.
- */
-let groundTex = null;
-export function groundDetailTexture() {
-  if (groundTex) return groundTex;
-  const N = 256, c = document.createElement('canvas');
-  c.width = c.height = N;
-  const x = c.getContext('2d');
-  x.fillStyle = '#b4b4b4'; x.fillRect(0, 0, N, N);
-  const blob = (cx, cy, r, a, light) => {           // 가장자리가 부드러운 얼룩
-    const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
-    g.addColorStop(0, `rgba(${light ? 255 : 0},${light ? 255 : 0},${light ? 255 : 0},${a})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
-  };
-  for (let i = 0; i < 900; i++) {                   // 큰 얼룩 + 작은 알갱이
-    const cx = Math.random() * N, cy = Math.random() * N;
-    const r = i < 200 ? 10 + Math.random() * 26 : 1.2 + Math.random() * 3.5;
-    const a = i < 200 ? 0.05 + Math.random() * 0.07 : 0.1 + Math.random() * 0.2;
-    const light = Math.random() < 0.5;
-    for (const dx of [-N, 0, N]) for (const dz of [-N, 0, N]) blob(cx + dx, cy + dz, r, a, light); // 사방으로 한 번 더 찍어 이음매를 없앤다
-  }
-  groundTex = new THREE.CanvasTexture(c);
-  groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
-  groundTex.anisotropy = 4;
-  return groundTex;
-}
-
-/** 물결 무늬: 흘러가는 잔물결. 물 재질에 깔고 offset 을 움직이면 물이 살아 움직인다. */
-let waterTex = null;
-export function waterRippleTexture() {
-  if (waterTex) return waterTex;
-  const N = 256, c = document.createElement('canvas');
-  c.width = c.height = N;
-  const x = c.getContext('2d');
-  x.fillStyle = '#8ea8b8'; x.fillRect(0, 0, N, N);
-  x.lineCap = 'round';
-  for (let i = 0; i < 90; i++) {                       // 구불구불한 밝은 물결선
-    const y0 = Math.random() * N, amp = 3 + Math.random() * 7, w = 1 + Math.random() * 2.5;
-    x.strokeStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.14})`;
-    x.lineWidth = w;
-    for (const dy of [-N, 0, N]) {                     // 위아래로 한 번 더 그려 이음매를 없앤다
-      x.beginPath();
-      for (let px = -4; px <= N + 4; px += 4) x.lineTo(px, y0 + dy + Math.sin(px / 14 + i) * amp);
-      x.stroke();
-    }
-  }
-  waterTex = new THREE.CanvasTexture(c);
-  waterTex.wrapS = waterTex.wrapT = THREE.RepeatWrapping;
-  return waterTex;
-}
-
-export function buildGround(scene, size, seg, heightFn, colorFn, { detail = 9 } = {}) {
+export function buildGround(scene, size, seg, heightFn, colorFn) {
   const geo = new THREE.PlaneGeometry(size, size, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -378,12 +278,7 @@ export function buildGround(scene, size, seg, heightFn, colorFn, { detail = 9 } 
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const tex = groundDetailTexture().clone();        // 지역마다 무늬 크기를 다르게 (원본은 그대로 재사용)
-  tex.needsUpdate = true;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(size / detail, size / detail);
-  geo.setAttribute('uv', new THREE.BufferAttribute(geo.attributes.uv.array, 2)); // PlaneGeometry 의 uv 를 그대로 쓴다
-  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, map: tex }));
+  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
   ground.receiveShadow = true;
   scene.add(ground);
   return ground;
@@ -474,7 +369,7 @@ export function buildWorld(scene) {
   // 하늘/안개/빛
   scene.background = new THREE.Color(0x8fd3ff);
   scene.fog = new THREE.Fog(0x8fd3ff, 90, 240);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 0.6)); // 환경맵이 주변 빛을 내주므로 낮게
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 1.4));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(20, 30, 10);
   sun.castShadow = true;
@@ -510,9 +405,7 @@ export function buildWorld(scene) {
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const gTex = groundDetailTexture().clone();
-  gTex.needsUpdate = true; gTex.wrapS = gTex.wrapT = THREE.RepeatWrapping; gTex.repeat.set(S / 9, S / 9);
-  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, map: gTex }));
+  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
   ground.receiveShadow = true;
   scene.add(ground);
 
@@ -523,11 +416,9 @@ export function buildWorld(scene) {
   scene.add(holeDark);
 
   // ---------- 연못 ----------
-  const pondTex = waterRippleTexture().clone();
-  pondTex.needsUpdate = true; pondTex.wrapS = pondTex.wrapT = THREE.RepeatWrapping; pondTex.repeat.set(3, 3);
   const water = new THREE.Mesh(
     new THREE.CircleGeometry(WORLD.pond.r + 1, 40),
-    new THREE.MeshStandardMaterial({ color: 0x4fc3f7, map: pondTex, transparent: true, opacity: 0.78, roughness: 0.2 })
+    new THREE.MeshStandardMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.75, roughness: 0.2 })
   );
   water.rotation.x = -Math.PI / 2;
   water.position.set(WORLD.pond.x, -0.3, WORLD.pond.z);
@@ -542,7 +433,7 @@ export function buildWorld(scene) {
   }
   // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  scene.add(buildBridges(MEADOW_BRIDGES, obstacles));
+  for (const b of MEADOW_BRIDGES) scene.add(buildBridge(b, obstacles));
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = WORLD.village;
@@ -965,26 +856,13 @@ export function buildWorld(scene) {
   // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (170그루를 따로 그리면 느리다)
   const leafColors = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c];
   const trunkItems = [], crownItems = [], coneItems = [], stemItems = [], capItems = [];
-  const tint = (c, f) => { // 같은 잎 색이라도 그루마다 조금씩 밝기를 달리해 숲이 단조롭지 않게
-    const r = Math.min(255, Math.round(((c >> 16) & 255) * f)), g2 = Math.min(255, Math.round(((c >> 8) & 255) * f)), b2 = Math.min(255, Math.round((c & 255) * f));
-    return (r << 16) | (g2 << 8) | b2;
-  };
   for (const [x, z] of treeSpots) {
     const tall = Math.random() < 0.3;
     const y = meadowHeight(x, z);
-    const leaf = tint(leafColors[Math.floor(Math.random() * leafColors.length)], rand(0.82, 1.15));
-    const big = rand(0.78, 1.3);                                   // 그루마다 크기가 다르다
-    const lean = rand(-0.06, 0.06);                                // 살짝 기운 나무
-    trunkItems.push({ x, y: y + (tall ? 1.3 : 0.8) * big, z, sy: (tall ? 2.6 : 1.6) * big, sx: big, sz: big, rz: lean });
-    if (tall) for (let k = 0; k < 3; k++) coneItems.push({ x: x + lean * (2.4 + k), y: y + (2.4 + k) * big, z, sx: (1.6 - k * 0.4) / 1.6 * big, sy: big, sz: (1.6 - k * 0.4) / 1.6 * big, color: k === 0 ? leaf : tint(leaf, 1 + k * 0.06), rz: lean }); // 침엽수
-    else { // 활엽수: 잎 뭉치 서너 개를 겹쳐 풍성하게
-      const n = 3 + (Math.random() < 0.45 ? 1 : 0);
-      for (let k = 0; k < n; k++) {
-        const a2 = (k / n) * Math.PI * 2 + rand(-0.4, 0.4), rr = k === 0 ? 0 : rand(0.5, 0.95) * big;
-        crownItems.push({ x: x + Math.cos(a2) * rr + lean * 2.2, y: y + (2.15 + (k === 0 ? 0 : rand(0.15, 0.75))) * big, z: z + Math.sin(a2) * rr,
-          s: (k === 0 ? 1.35 : rand(0.7, 1.05)) * big, color: k === 0 ? leaf : tint(leaf, rand(0.9, 1.12)) });
-      }
-    }
+    const leaf = leafColors[Math.floor(Math.random() * leafColors.length)];
+    trunkItems.push({ x, y: y + (tall ? 1.3 : 0.8), z, sy: tall ? 2.6 : 1.6 });
+    if (tall) for (let k = 0; k < 3; k++) coneItems.push({ x, y: y + 2.4 + k, z, sx: (1.6 - k * 0.4) / 1.6, sz: (1.6 - k * 0.4) / 1.6, color: leaf }); // 침엽수
+    else { crownItems.push({ x, y: y + 2.2, z, s: 1.4, color: leaf }); crownItems.push({ x: x + 0.6, y: y + 2.8, z: z + 0.3, s: 1.0, color: leaf }); }
     block(x, z, 0.55);
     if (Math.random() < 0.5) { // 나무 밑 버섯
       const mx = x + rand(-1.5, 1.5), mz = z + rand(1, 2), my = meadowHeight(mx, mz);
@@ -1029,14 +907,6 @@ export function buildWorld(scene) {
     }
   }
   decor.add(makeInstanced(new THREE.SphereGeometry(1, 10, 8), bushMat, bushItems, { shadow: true }));
-  // 들판 전체에 짧은 풀포기를 흩뿌린다. 위의 키 큰 풀숲과 같은 InstancedMesh 라서 그리기 호출은 그대로 1번
-  for (let i = 0; i < 2600; i++) {
-    const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
-    if (meadowInHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || distToPath(x, z) < 2.2) continue;
-    if (Math.hypot(x - WORLD.village.x, z - WORLD.village.z) < 9 || Math.hypot(x - WORLD.arena.x, z - WORLD.arena.z) < WORLD.arena.r) continue;
-    const h = rand(0.22, 0.5);
-    bladeTransforms.push([x, meadowHeight(x, z) + h / 2, z, h, rand(-0.35, 0.35)]);
-  }
   {
     const inst = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 1, 4), grassMat, bladeTransforms.length);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
@@ -1133,7 +1003,6 @@ export function buildWorld(scene) {
   decor.traverse((o) => { if (o.userData.flame) flames.push(o); });
 
   function animate(t) {
-    pondTex.offset.set(t * 0.012, t * 0.02); // 연못 물결이 천천히 흐른다
     ranger.position.y = meadowHeight(4.5, 15) + Math.sin(t * 2) * 0.03;
     for (const b of butterflies) {
       const u = b.userData;

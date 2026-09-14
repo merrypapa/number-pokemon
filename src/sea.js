@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { buildShip } from './boat.js';
 import { rand } from './util.js';
-import { buildGround, makeSignAt, buildBridges, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, waterRippleTexture, WHITE_MAT } from './world.js';
+import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
 // 물의길 (240x240). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
 // 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 걸어서는 바다에 못 들어가고 다리로만 건너지만,
@@ -65,14 +65,13 @@ export function buildSea(scene) {
   const S = SEA.size;
   const decor = new THREE.Group();
   scene.add(decor);
-  const foamRings = []; // 물가 흰 파도선 (밀려왔다 나갔다 한다)
   const obstacles = SEA_TERRAIN.obstacles;
   obstacles.length = 0;
   const block = (x, z, r) => obstacles.push({ x, z, r });
 
   scene.background = new THREE.Color(0x9fe3ff);
   scene.fog = new THREE.Fog(0x9fe3ff, 80, 220);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x4fa3c7, 0.65)); // 환경맵이 주변 빛을 내주므로 낮게
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x4fa3c7, 1.5));
   const sun = new THREE.DirectionalLight(0xffffff, 1.8);
   sun.position.set(20, 30, 10);
   sun.castShadow = true;
@@ -88,26 +87,11 @@ export function buildSea(scene) {
     return Math.random() < 0.5 ? grass : grassB;
   });
   // 바다 (반투명 수면, 파도처럼 살짝 출렁)
-  const seaTex = waterRippleTexture().clone();
-  seaTex.needsUpdate = true; seaTex.wrapS = seaTex.wrapT = THREE.RepeatWrapping; seaTex.repeat.set(26, 26);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(S + 40, S + 40, 1, 1), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, map: seaTex, transparent: true, opacity: 0.78, roughness: 0.15, metalness: 0.1 }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(S + 40, S + 40, 1, 1), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, transparent: true, opacity: 0.72, roughness: 0.15, metalness: 0.1 }));
   water.rotation.x = -Math.PI / 2;
   water.position.y = SEA.waterY;
   scene.add(water);
-  { // 물가 흰 파도선: 섬마다 해안선을 따라 얇은 흰 고리를 둘러 바다와 모래의 경계를 살린다
-    const foamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide });
-    for (const isl of SEA.islands) {
-      const k = (SEA.waterY - SEA.base) / isl.h;   // 섬 높이식이 수면과 만나는 반지름
-      if (k <= 0 || k >= 1) continue;
-      const shore = isl.r * Math.sqrt(-Math.log(k));
-      const ring = new THREE.Mesh(new THREE.RingGeometry(shore - 0.9, shore + 1.1, 56), foamMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(isl.x, SEA.waterY + 0.06, isl.z);
-      decor.add(ring);
-      foamRings.push(ring);
-    }
-  }
-  scene.add(buildBridges(SEA_BRIDGES.filter((b) => b !== SEA.dock), obstacles, { plankColor: 0xc9955a, railColor: 0x8a5a2b }));
+  for (const b of SEA_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0xc9955a, railColor: 0x8a5a2b }));
 
   // 야자수 (장애물, 인스턴스), 바위, 조개, 파라솔
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0xa57c52 });
@@ -142,18 +126,6 @@ export function buildSea(scene) {
     block(x, z, rr * 0.9);
   }
   decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 1 }), rockItems, { shadow: true }));
-  { // 섬 풀밭에 짧은 풀포기 (한 번에 그린다)
-    const tufts = [];
-    for (let i = 0; i < 1400; i++) {
-      const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
-      const a = rand(0, Math.PI * 2), r = rand(2, isl.r - 2);
-      const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
-      if (seaHeight(x, z) < 1.2 || SEA_BRIDGES.some((b) => onBridge(b, x, z))) continue;
-      const h = rand(0.2, 0.45);
-      tufts.push({ x, y: seaHeight(x, z) + h / 2, z, sy: h, rz: rand(-0.35, 0.35) });
-    }
-    decor.add(makeInstanced(new THREE.ConeGeometry(0.11, 1, 4), new THREE.MeshStandardMaterial({ color: 0x5aba4a, side: THREE.DoubleSide }), tufts));
-  }
   const shellColors = [0xffffff, 0xffd1dc, 0xffe4b5, 0xe0ffff];
   const shellItems = [];
   for (let i = 0; i < 100; i++) {
@@ -219,7 +191,7 @@ export function buildSea(scene) {
   // 도착 섬 동쪽에서 바다로 뻗은 나무 잔교. 끝에 배가 묶여 있고 옆에 뱃사공이 서 있다.
   const D = SEA.dock;
   const postMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b });
-  scene.add(buildBridges([D], obstacles, { plankColor: 0xd9a55f, railColor: 0x8a5a2b })); // 잔교(걸어 다닐 수 있다)
+  scene.add(buildBridge(D, obstacles, { plankColor: 0xd9a55f, railColor: 0x8a5a2b })); // 잔교(걸어 다닐 수 있다)
   const dockEnd = { x: D.x2 - 1.2, z: D.z2 };
   const deckY = bridgeDeckY(D, 1);
   for (const dz of [-1.5, 1.5]) { // 잔교 끝 계선주
@@ -314,12 +286,6 @@ export function buildSea(scene) {
 
   function animate(t) {
     water.position.y = SEA.waterY + Math.sin(t * 1.2) * 0.06;
-    seaTex.offset.set(t * 0.006, t * 0.011); // 잔물결이 흘러간다
-    for (let i = 0; i < foamRings.length; i++) {  // 파도가 밀려왔다 나갔다
-      const f = foamRings[i], k = 1 + Math.sin(t * 0.9 + i) * 0.012;
-      f.scale.set(k, k, 1);
-      f.material.opacity = 0.3 + Math.sin(t * 0.9 + i) * 0.1;
-    }
     for (const b of bobbers) { // 부표·나무통이 파도에 까딱까딱
       b.mesh.position.y = b.base + Math.sin(t * 1.5 + b.t) * b.amp;
       b.mesh.rotation.z = (b.mesh.geometry?.type === 'CylinderGeometry' ? Math.PI / 2 : 0) + Math.sin(t * 1.1 + b.t) * 0.08;
