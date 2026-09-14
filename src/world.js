@@ -965,13 +965,26 @@ export function buildWorld(scene) {
   // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (170그루를 따로 그리면 느리다)
   const leafColors = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c];
   const trunkItems = [], crownItems = [], coneItems = [], stemItems = [], capItems = [];
+  const tint = (c, f) => { // 같은 잎 색이라도 그루마다 조금씩 밝기를 달리해 숲이 단조롭지 않게
+    const r = Math.min(255, Math.round(((c >> 16) & 255) * f)), g2 = Math.min(255, Math.round(((c >> 8) & 255) * f)), b2 = Math.min(255, Math.round((c & 255) * f));
+    return (r << 16) | (g2 << 8) | b2;
+  };
   for (const [x, z] of treeSpots) {
     const tall = Math.random() < 0.3;
     const y = meadowHeight(x, z);
-    const leaf = leafColors[Math.floor(Math.random() * leafColors.length)];
-    trunkItems.push({ x, y: y + (tall ? 1.3 : 0.8), z, sy: tall ? 2.6 : 1.6 });
-    if (tall) for (let k = 0; k < 3; k++) coneItems.push({ x, y: y + 2.4 + k, z, sx: (1.6 - k * 0.4) / 1.6, sz: (1.6 - k * 0.4) / 1.6, color: leaf }); // 침엽수
-    else { crownItems.push({ x, y: y + 2.2, z, s: 1.4, color: leaf }); crownItems.push({ x: x + 0.6, y: y + 2.8, z: z + 0.3, s: 1.0, color: leaf }); }
+    const leaf = tint(leafColors[Math.floor(Math.random() * leafColors.length)], rand(0.82, 1.15));
+    const big = rand(0.78, 1.3);                                   // 그루마다 크기가 다르다
+    const lean = rand(-0.06, 0.06);                                // 살짝 기운 나무
+    trunkItems.push({ x, y: y + (tall ? 1.3 : 0.8) * big, z, sy: (tall ? 2.6 : 1.6) * big, sx: big, sz: big, rz: lean });
+    if (tall) for (let k = 0; k < 3; k++) coneItems.push({ x: x + lean * (2.4 + k), y: y + (2.4 + k) * big, z, sx: (1.6 - k * 0.4) / 1.6 * big, sy: big, sz: (1.6 - k * 0.4) / 1.6 * big, color: k === 0 ? leaf : tint(leaf, 1 + k * 0.06), rz: lean }); // 침엽수
+    else { // 활엽수: 잎 뭉치 서너 개를 겹쳐 풍성하게
+      const n = 3 + (Math.random() < 0.45 ? 1 : 0);
+      for (let k = 0; k < n; k++) {
+        const a2 = (k / n) * Math.PI * 2 + rand(-0.4, 0.4), rr = k === 0 ? 0 : rand(0.5, 0.95) * big;
+        crownItems.push({ x: x + Math.cos(a2) * rr + lean * 2.2, y: y + (2.15 + (k === 0 ? 0 : rand(0.15, 0.75))) * big, z: z + Math.sin(a2) * rr,
+          s: (k === 0 ? 1.35 : rand(0.7, 1.05)) * big, color: k === 0 ? leaf : tint(leaf, rand(0.9, 1.12)) });
+      }
+    }
     block(x, z, 0.55);
     if (Math.random() < 0.5) { // 나무 밑 버섯
       const mx = x + rand(-1.5, 1.5), mz = z + rand(1, 2), my = meadowHeight(mx, mz);

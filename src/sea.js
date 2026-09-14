@@ -65,6 +65,7 @@ export function buildSea(scene) {
   const S = SEA.size;
   const decor = new THREE.Group();
   scene.add(decor);
+  const foamRings = []; // 물가 흰 파도선 (밀려왔다 나갔다 한다)
   const obstacles = SEA_TERRAIN.obstacles;
   obstacles.length = 0;
   const block = (x, z, r) => obstacles.push({ x, z, r });
@@ -93,6 +94,19 @@ export function buildSea(scene) {
   water.rotation.x = -Math.PI / 2;
   water.position.y = SEA.waterY;
   scene.add(water);
+  { // 물가 흰 파도선: 섬마다 해안선을 따라 얇은 흰 고리를 둘러 바다와 모래의 경계를 살린다
+    const foamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.38, depthWrite: false, side: THREE.DoubleSide });
+    for (const isl of SEA.islands) {
+      const k = (SEA.waterY - SEA.base) / isl.h;   // 섬 높이식이 수면과 만나는 반지름
+      if (k <= 0 || k >= 1) continue;
+      const shore = isl.r * Math.sqrt(-Math.log(k));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(shore - 0.9, shore + 1.1, 56), foamMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(isl.x, SEA.waterY + 0.06, isl.z);
+      decor.add(ring);
+      foamRings.push(ring);
+    }
+  }
   scene.add(buildBridges(SEA_BRIDGES.filter((b) => b !== SEA.dock), obstacles, { plankColor: 0xc9955a, railColor: 0x8a5a2b }));
 
   // 야자수 (장애물, 인스턴스), 바위, 조개, 파라솔
@@ -301,6 +315,11 @@ export function buildSea(scene) {
   function animate(t) {
     water.position.y = SEA.waterY + Math.sin(t * 1.2) * 0.06;
     seaTex.offset.set(t * 0.006, t * 0.011); // 잔물결이 흘러간다
+    for (let i = 0; i < foamRings.length; i++) {  // 파도가 밀려왔다 나갔다
+      const f = foamRings[i], k = 1 + Math.sin(t * 0.9 + i) * 0.012;
+      f.scale.set(k, k, 1);
+      f.material.opacity = 0.3 + Math.sin(t * 0.9 + i) * 0.1;
+    }
     for (const b of bobbers) { // 부표·나무통이 파도에 까딱까딱
       b.mesh.position.y = b.base + Math.sin(t * 1.5 + b.t) * b.amp;
       b.mesh.rotation.z = (b.mesh.geometry?.type === 'CylinderGeometry' ? Math.PI / 2 : 0) + Math.sin(t * 1.1 + b.t) * 0.08;
