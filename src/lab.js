@@ -38,10 +38,10 @@ export function buildLab(scene) {
     for (let i = 0; i < pos.count; i++) { const c = (Math.floor(pos.getX(i) / 2) + Math.floor(pos.getY(i) / 2)) % 2 === 0 ? a : b; cols.push(c.r, c.g, c.b); }
     floor.geometry.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
   }
-  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.userData.noHide = true; // 카메라 가림 처리에서 제외
   decor.add(floor);
   const rug = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
-  rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.02, 5.5);
+  rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.02, 5.5); rug.userData.noHide = true;
   decor.add(rug);
 
   // 벽: 흰 벽 + 파란 띠, 남쪽 벽 가운데는 문

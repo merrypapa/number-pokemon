@@ -424,6 +424,7 @@ function resolveCamera(target) {
   const tmp = new THREE.Vector3();
   for (const o of zone.world.decor?.children || []) {
     if (o.isInstancedMesh || !o.position) continue;
+    if (o.userData.noHide || (o.geometry && (o.geometry.type === 'PlaneGeometry' || o.geometry.type === 'CircleGeometry') && Math.abs(Math.abs(o.rotation.x) - Math.PI / 2) < 0.05)) continue; // 바닥·러그처럼 납작하게 깔린 것은 절대 숨기지 않는다 (연구실 바닥이 깜빡이던 원인)
     const r = o.userData.solid ? o.userData.radius : (o.userData.radius || 2.4);
     tmp.subVectors(o.position, head);
     const t = tmp.dot(dir); // 시선 위의 가장 가까운 점
