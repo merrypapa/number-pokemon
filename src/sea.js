@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
+import { buildShip } from './boat.js';
 import { rand } from './util.js';
 import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
@@ -196,32 +197,12 @@ export function buildSea(scene) {
     decor.add(bol);
   }
   decor.add(makeSignAt(D.x1 - 2.5, seaHeight(D.x1 - 2.5, D.z1 + 2.8), D.z1 + 2.8, '선착장 · 배를 타고 먼바다로', { bg: '#1f3a93', fg: '#ffffff' }));
-  // 배: 둥근 나무 몸통 + 뱃머리 + 돛 + 깃발. 탈 때는 주인공이 갑판(local y=0.5) 위에 선다
-  const boat = new THREE.Group();
-  {
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0xd9a55f, roughness: 0.85 });
-    const trimMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.85 });
-    const hull = new THREE.Mesh(new THREE.SphereGeometry(1.3, 18, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), woodMat);
-    hull.scale.set(1.75, 0.8, 1.0); hull.position.y = 0.62; hull.castShadow = true;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.13, 8, 28), trimMat);
-    rim.rotation.x = Math.PI / 2; rim.scale.set(1.75, 1.0, 1.0); rim.position.y = 0.62;
-    const deck = new THREE.Mesh(new THREE.CircleGeometry(1.2, 20), new THREE.MeshStandardMaterial({ color: 0xe8c89a }));
-    deck.rotation.x = -Math.PI / 2; deck.scale.set(1.7, 1.0, 1.0); deck.position.y = 0.5;
-    const bow = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.5, 12), woodMat); // 뱃머리: +x 를 향한다
-    bow.rotation.z = -Math.PI / 2; bow.position.set(2.6, 0.5, 0); bow.scale.set(1, 1, 0.8); bow.castShadow = true;
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 3.6, 8), trimMat);
-    mast.position.set(-0.5, 2.4, 0);
-    const sail = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.3), new THREE.MeshStandardMaterial({ color: 0xf4f4f8, side: THREE.DoubleSide }));
-    sail.position.set(0.45, 2.7, 0); sail.rotation.y = Math.PI / 2;
-    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.55), new THREE.MeshStandardMaterial({ color: 0xe8453c, side: THREE.DoubleSide }));
-    stripe.position.set(0.46, 2.2, 0); stripe.rotation.y = Math.PI / 2;
-    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshStandardMaterial({ color: 0xffd93d, side: THREE.DoubleSide }));
-    flag.position.set(-0.12, 4.1, 0); flag.rotation.y = Math.PI / 2;
-    boat.add(hull, rim, deck, bow, mast, sail, stripe, flag);
-    boat.position.set(dockEnd.x + 3.2, SEA.waterY, dockEnd.z);
-    boat.rotation.y = 0; // 뱃머리(+x)는 먼바다 쪽
-    scene.add(boat);
-  }
+  // 배: 돛 두 개와 양 머리 장식이 달린 모험선 (src/boat.js). 탈 때는 주인공이 갑판 위에 선다
+  const ship = buildShip();
+  const boat = ship.group;
+  boat.position.set(dockEnd.x + 4.2, SEA.waterY, dockEnd.z);
+  boat.rotation.y = 0; // 뱃머리(+x)는 먼바다 쪽
+  scene.add(boat);
   const boatBase = boat.position.clone();
   // 뱃사공 (배를 빌려주는 NPC)
   const sailor = makeNpc({ outfit: 'captain', name: '노을', skin: 0xf6d2ae });
@@ -305,6 +286,7 @@ export function buildSea(scene) {
       b.mesh.position.y = b.base + Math.sin(t * 1.5 + b.t) * b.amp;
       b.mesh.rotation.z = (b.mesh.geometry?.type === 'CylinderGeometry' ? Math.PI / 2 : 0) + Math.sin(t * 1.1 + b.t) * 0.08;
     }
+    ship.animate(t, !!boat.userData.sailing); // 돛·깃발이 바람에 물결친다
     if (!boat.userData.sailing) { // 묶여 있는 동안에도 물결에 흔들린다
       boat.position.y = SEA.waterY + Math.sin(t * 1.4) * 0.12;
       boat.rotation.z = Math.sin(t * 1.1) * 0.05;
@@ -325,7 +307,7 @@ export function buildSea(scene) {
     waterY: SEA.waterY,
     sailable: seaSailable,
     dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
-    boat: { mesh: boat, base: boatBase, deckY: 0.5 },                  // 빌려 타는 배 (갑판 높이)
+    boat: { mesh: boat, base: boatBase, deckY: ship.deckY },           // 빌려 타는 배 (갑판 높이)
     npcs: [{ x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', lines: (c) => [
       `어이, ${c.name}! 난 뱃사공 노을이야. 이 배로 먼바다까지 나갈 수 있지.`,
       '잔교 끝에서 "배 타기"를 누르면 출발이야. 배 위에서는 방향키(조이스틱)로 바다를 마음껏 돌아다닐 수 있어.',
