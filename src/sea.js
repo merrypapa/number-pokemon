@@ -166,9 +166,11 @@ export function buildSea(scene) {
     for (let i = 0; i < 52; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(SEA.spawn.x - 4 + i * 1.5, y0 + 0.05, SEA.spawn.z - 6); decor.add(tie); }
     const plat = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 3.5), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
     plat.position.set(SEA.spawn.x + 6, y0 + 0.1, SEA.spawn.z - 2.6);
+    plat.userData.noHide = true; // 바닥은 숨기지 않는다
     decor.add(plat);
     const roof = new THREE.Mesh(new THREE.BoxGeometry(14, 0.25, 3.9), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
     roof.position.set(SEA.spawn.x + 6, y0 + 3.4, SEA.spawn.z - 2.6);
+    roof.userData.radius = 8;   // 넓은 지붕이라 끝에 서도 시야를 가리면 잠시 숨는다
     decor.add(roof);
     for (const dx of [-6, 0, 6]) for (const dz of [-4.2, -1.0]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8), tieMat); post.position.set(SEA.spawn.x + 6 + dx, y0 + 1.7, SEA.spawn.z + dz); decor.add(post); block(SEA.spawn.x + 6 + dx, SEA.spawn.z + dz, 0.2); }
     train = new THREE.Group();
@@ -206,7 +208,7 @@ export function buildSea(scene) {
   scene.add(boat);
   const boatBase = boat.position.clone();
   // 뱃사공 (배를 빌려주는 NPC)
-  const sailor = makeNpc({ outfit: 'captain', name: '노을', skin: 0xf6d2ae });
+  const sailor = makeNpc({ outfit: 'captain', name: '루피', skin: 0xf6d2ae, model: '루피.glb' });
   const sailorAt = { x: D.x2 - 2.6, z: D.z2 + 1.15 }; // 잔교 끝, 배 바로 옆
   sailor.position.set(sailorAt.x, deckY, sailorAt.z);
   sailor.rotation.y = -0.6;
@@ -309,19 +311,21 @@ export function buildSea(scene) {
     waterY: SEA.waterY,
     sailable: seaSailable,
     dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
-    sailorHome: { x: sailorAt.x, y: deckY, z: sailorAt.z },            // 배에서 내리면 노을이 돌아가 서는 자리
+    sailorHome: { x: sailorAt.x, y: deckY, z: sailorAt.z },            // 배에서 내리면 루피가 돌아가 서는 자리
     boat: { mesh: boat, base: boatBase, deckY: ship.deckY },           // 빌려 타는 배 (갑판 높이)
-    npcs: [{ x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', sails: true, lines: (c) => [
-      `어이, ${c.name}! 난 뱃사공 노을이야. 나한테 말을 걸고 "배 타기"를 누르면 같이 바다로 나가지!`,
-      '배 위에서는 방향키(조이스틱)로 돌아다니고, "가속"을 누르면 훨씬 빨리 달려. 나도 함께 타고 간다네.',
-      '바다에는 헤엄치는 포켓몬이 살아. 잉어킹·셀러·크랩·독파리… 아주 먼바다엔 라프라스도 있다더군!',
-      '돌아갈 때는 배 위에서 나한테 다시 말을 걸게. "선착장으로 돌아가기"를 누르면 내가 몰아서 데려다주지!',
+    npcs: [{ x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '루피', sails: true, lines: (c) => [
+      `안녕, ${c.name}! 난 뱃사공 루피야. 나한테 말을 걸고 "배 타기"를 눌러! 같이 바다로 나가자!`,
+      '배 위에서는 방향키(조이스틱)로 몰고, "가속"을 누르면 훨씬 빨리 달려. 나도 같이 타고 갈게!',
+      '바다에는 헤엄치는 포켓몬이 살아. 잉어킹·셀러·크랩·독파리… 아주 먼바다엔 라프라스도 있대!',
+      '잉어킹은 좀 멍~ 해서 튀어오르기밖에 못 하지만, 끈기 있게 키우면 무시무시한 갸라도스가 된다구!',
+      '돌아갈 때는 배 위에서 나한테 다시 말을 걸어. "선착장으로 돌아가기"를 누르면 내가 데려다줄게!',
     ] }, { x: captainAt.x, z: captainAt.z, mesh: captain, name: '리리', boards: 'train', lines: (c) => [
       `물의길에 온 걸 환영해, ${c.name}! 난 선장 리리야. 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
       c.conquered.sea ? '보스 거북왕을 이겼군! 훌륭한 트레이너야.' : `남쪽 끝 섬에 보스 거북왕이 있어. 체력 100! 공격 ${c.zone.targetAtk + 3} 이상, 체력 35쯤 되면 도전해 보게. 전기 포켓몬이면 최고야.`,
       '여기 블록은 하나가 2개 가치야. 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르게.',
-      '북동쪽 선착장에 뱃사공 노을이 있네. 노을과 배를 타면 먼바다의 포켓몬을 만날 수 있어!',
+      '북동쪽 선착장에 뱃사공 루피가 있네. 루피와 배를 타면 먼바다의 포켓몬을 만날 수 있어!',
+      '거북왕을 이겨서 산호 신전이 열리면 메가거북왕이 나타나. 아주 강하니 메가볼을 준비하게!',
     ] }],
     train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],

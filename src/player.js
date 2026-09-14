@@ -75,7 +75,7 @@ export class Player {
     this.vz += (wz * top - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
     const moving = speed > 0.4;
-    this.running = moving && speed > SPEED * 1.15;
+    this.running = !this.boat && moving && speed > SPEED * 1.15; // 배 위에서는 뛰지 않는다 (배가 달리는 것이지 내가 뛰는 게 아니다)
     // 물(연못·호수)은 못 들어간다. 배를 타면 반대로 물 위만 갈 수 있다.
     // 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
     const blocked = this.boat ? (x, z) => !this.boat.canGo(x, z) : isBlocked;
@@ -92,8 +92,8 @@ export class Player {
       this.walkT += dt * 2 * speed;
     }
     this.group.rotation.y = this.facing;
-    this.body.rotation.z = moving ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0;
-    tickModel(this.group, dt, moving ? (this.running ? 'run' : 'walk') : 'idle'); // run 클립이 없으면 walk/첫 클립
+    this.body.rotation.z = moving && !this.boat ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0; // 배 위에서는 몸이 좌우로 흔들리지 않는다
+    tickModel(this.group, dt, this.boat ? 'idle' : (moving ? (this.running ? 'run' : 'walk') : 'idle')); // run 클립이 없으면 walk/첫 클립
 
     // 경계
     const lim = worldSize() / 2 - 2;

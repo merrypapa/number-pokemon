@@ -85,7 +85,9 @@ export class Party {
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
   evolve(m) {
     const e = this.species(m).evolution;
-    const next = this.speciesById[e.to];
+    // altTo 가 있으면 altChance 확률로 그쪽으로 진화한다 (리자몽 → 메가리자몽Y 또는 메가리자몽X)
+    const alt = e.altTo && this.speciesById[e.altTo] && Math.random() < (e.altChance ?? 0.5) ? e.altTo : e.to;
+    const next = this.speciesById[alt];
     if (e.mega) this.onUseMega(e.mega); // 메가블럭을 쓴다
     m.speciesId = next.id;
     const bonus = e.mega ? MEGA_BONUS : EVOLVE_BONUS; // 메가 진화는 더 크게 오른다

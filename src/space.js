@@ -18,7 +18,7 @@ export const SPACE = {
     { x: -25, z: -55, r: 16, h: 2.8 }, { x: 70, z: 0, r: 14, h: 2.4 }, { x: -80, z: 5, r: 15, h: 2.6 }, { x: 25, z: 85, r: 12, h: 1.8 }, { x: 85, z: -85, r: 14, h: 2.6 },
     { x: -85, z: -80, r: 13, h: 2.4 }, { x: 0, z: 40, r: 10, h: 1.4 }, { x: 95, z: 50, r: 12, h: 2.0 },
   ],
-  altar: { x: 0, z: -40, r: 9 }, // 메가리자몽이 지키는 꿈의 제단
+  altar: { x: 0, z: -40, r: 9 }, // 보스 팬텀이 지키는 꿈의 제단
   gravity: 0.45, // 지구의 절반도 안 되는 중력: 점프가 높고 오래 뜬다
 };
 
@@ -189,7 +189,7 @@ export function buildSpace(scene) {
     scene.add(satellite);
   }
 
-  // ---------- 꿈의 제단: 우주 보스 메가리자몽이 지키는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
+  // ---------- 꿈의 제단: 우주 보스 팬텀이 지키는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
   {
     const a = SPACE.altar;
     const y = spaceHeight(a.x, a.z);
@@ -263,7 +263,7 @@ export function buildSpace(scene) {
     npcs: [{ x: pilotAt.x, z: pilotAt.z, mesh: astronaut, name: '코리', boards: 'rocket', lines: (c) => [
       `꿈의우주에 온 걸 환영해, ${c.name}! 난 우주비행사 코리야. 중력이 약해서 점프가 높고 오래 떠. 화면을 위로 밀면 태양과 행성이 보여.`,
       `여기 포켓몬은 페어리·에스퍼·고스트·전기 속성이야. 공격 ${c.zone.atkRange}쯤 되어야 편하게 이겨. 피카츄와 라이츄도 여기 살아.`,
-      c.conquered.space ? '보스 메가리자몽을 이겼다니! 넌 최고의 트레이너야.' : `북쪽 제단에 보스 메가리자몽이 있어. 체력 210, 공격 15! 공격 ${c.zone.targetAtk + 3} 이상, 체력 60쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
+      c.conquered.space ? '보스 팬텀을 이겼구나! 이제 별의 문이 열렸어. 그곳의 메가팬텀까지 잡으면… 굉장한 일이 일어난대!' : `북쪽 제단에 보스 팬텀이 있어. 체력 240, 공격 26! 공격 ${c.zone.targetAtk + 3} 이상, 체력 70쯤 되면 도전해 봐. 고스트는 고스트에 세니 조심!`,
       '여기 블록은 하나가 3개 가치야. 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르면 돼!',
     ] }],
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rx - 2.6, z: rz + 2.6 }, to: 'forest' },
