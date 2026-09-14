@@ -337,7 +337,8 @@ export class Dex {
             <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ +1 <small>🧱${costHp}</small></button>
             <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ +1 <small>🧱${costAtk}</small></button>
             ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
-            ${evo ? `<button data-act="evolve" class="btn-evolve" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">✨ 진화!</button>` : ''}
+            ${evo ? `<button data-act="evolve" class="btn-evolve${evo.mega ? ' mega' : ''}" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.mega ? `메가블럭 ${evo.mega}개 필요` : evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">${evo.mega ? '💠 메가 진화!' : '✨ 진화!'}</button>` : ''}
+            ${evo?.mega ? `<span class="mega-need${(need?.megaNow || 0) >= evo.mega ? ' ok' : ''}">💠 메가블럭 ${need?.megaNow || 0}/${evo.mega}</span>` : ''}
             ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가면 진화!</span>` : ''}
           </div>`;
         row.querySelectorAll('button[data-act]').forEach((b) => {
@@ -364,8 +365,8 @@ export class Dex {
   render(caughtById) {
     const ctx = this.partyCtx;
     if (ctx) {
-      const blocks = ctx.getBlocks();
-      this.blocksEl.textContent = `${blocks}`;
+      const blocks = ctx.getBlocks(), megaB = ctx.getMegaBlocks?.() || 0;
+      this.blocksEl.textContent = megaB > 0 ? `${blocks} · 💠${megaB}` : `${blocks}`;
       this.blocksEl.style.background = blocks > 0 ? colorForCount(blocks) : '#bbb';
       const L = ctx.party.leader;
       if (!this.selectedId || !this.byId[this.selectedId]) this.selectedId = L ? L.speciesId : (this.species.find((s) => caughtById[s.id])?.id || null);

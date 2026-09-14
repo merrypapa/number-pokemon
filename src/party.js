@@ -7,6 +7,7 @@
 import { evolveZoneOf } from './types.js';
 
 export const EVOLVE_BONUS = { atk: 3, hp: 5 };
+export const MEGA_BONUS = { atk: 10, hp: 20 }; // 메가 진화 보너스
 
 export class Party {
   constructor(speciesById) {
@@ -16,6 +17,8 @@ export class Party {
     this.nextUid = 1;
     this.conqueredCount = () => 0; // main 이 정복한 지역 수를 넣어 준다 (2단계 진화 조건)
     this.zoneOf = () => 'forest';      // main 이 지금 있는 지역 이름을 넣어 준다 (진화는 속성의 고향에서만)
+    this.megaBlocks = () => 0;         // main 이 가진 메가블럭 수를 넣어 준다 (메가 진화 조건)
+    this.onUseMega = () => {};         // 메가 진화할 때 메가블럭을 쓴다
   }
 
   species(m) { return this.speciesById[m.speciesId]; }
@@ -63,7 +66,7 @@ export class Party {
   evolveNeed(m) {
     const e = this.species(m).evolution;
     if (!e || !this.speciesById[e.to]) return null;
-    return { ...e, winsNow: m.wins || 0, bossNow: this.conqueredCount(), zone: evolveZoneOf(this.type(m)), here: this.zoneOf() };
+    return { ...e, winsNow: m.wins || 0, bossNow: this.conqueredCount(), megaNow: this.megaBlocks(), zone: evolveZoneOf(this.type(m)), here: this.zoneOf() };
   }
   /** 지역만 빼고 조건을 다 채웠나 (도감 안내용) */
   readyExceptZone(m) {
@@ -72,6 +75,7 @@ export class Party {
     if (m.atk < e.atk || m.maxHp < e.hp) return false;
     if (e.wins && (m.wins || 0) < e.wins) return false;
     if (e.boss && this.conqueredCount() < e.boss) return false;
+    if (e.mega && this.megaBlocks() < e.mega) return false; // 메가 진화는 메가블럭이 있어야 한다
     return true;
   }
   canEvolve(m) {
@@ -82,9 +86,11 @@ export class Party {
   evolve(m) {
     const e = this.species(m).evolution;
     const next = this.speciesById[e.to];
+    if (e.mega) this.onUseMega(e.mega); // 메가블럭을 쓴다
     m.speciesId = next.id;
-    m.atk += EVOLVE_BONUS.atk;
-    m.maxHp += EVOLVE_BONUS.hp;
+    const bonus = e.mega ? MEGA_BONUS : EVOLVE_BONUS; // 메가 진화는 더 크게 오른다
+    m.atk += bonus.atk;
+    m.maxHp += bonus.hp;
     m.hp = m.maxHp;
     m.wins = 0;
     m.evolveTold = false;

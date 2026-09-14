@@ -780,6 +780,13 @@ export function buildWorld(scene) {
   }
   const trainObstacle = { ax: st.x - 13, az: st.z, bx: st.x + 5, bz: st.z, r: 1.6 };
   obstacles.push(trainObstacle);
+  // 차장 미르: 이 사람과 이야기해야 기차를 탈 수 있다
+  const conductorAt = { x: st.x - 1, z: st.z + 4.2 };
+  const conductor = makeNpc({ outfit: 'captain', name: '차장 미르', skin: 0xf0c9a0 });
+  conductor.position.set(conductorAt.x, terrainHeight(conductorAt.x, conductorAt.z), conductorAt.z);
+  conductor.rotation.y = Math.PI;
+  decor.add(conductor);
+  obstacles.push({ x: conductorAt.x, z: conductorAt.z, r: 0.6 });
 
   // ---------- 로켓 발사장: 콘크리트 판 + 발사탑 + 로켓 (가까이 가서 로켓 타기 버튼을 누르면 main 이 로켓을 쏘아 꿈의우주로 보낸다) ----------
   const rp = WORLD.rocketPad;
@@ -1018,6 +1025,11 @@ export function buildWorld(scene) {
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구! 북쪽 산의 동굴 입구가 열렸어. 지하동굴에 가 보자.' : `서북쪽 돌기둥 아레나에 보스 이상해꽃이 있어. 공격 ${c.zone.targetAtk + 2} 이상, 체력 15쯤 되면 도전해 봐. 불 포켓몬이면 더 좋아!`,
       '북서쪽 구석 버섯 고리에는 잠만보가 자고 있어. 체력이 60이나 되니까 충분히 강해진 다음에 가 보렴.',
       '동북쪽 붉은 바위 협곡은 불의산, 서쪽 기차역은 물의길, 남동쪽 로켓은 꿈의우주로 가는 길이야. 마을 남쪽 큰 건물은 오박사 연구소!',
+    ] }, { x: conductorAt.x, z: conductorAt.z, mesh: conductor, name: '차장 미르', boards: 'train', lines: (c) => [
+      `어서 오게, ${c.name}! 난 차장 미르야. 이 기차는 바다 마을 물의길로 간다네.`,
+      '표는 필요 없어. 나한테 말을 걸고 아래 빨간 "출발" 버튼만 누르면 태워 주지!',
+      '물의길에도 내가 있어. 돌아올 때는 그쪽 플랫폼에서 나를 찾아 말을 걸면 된단다.',
+      '물의길은 물 포켓몬의 고장이야. 선착장에서 배를 타면 먼바다까지 나갈 수 있지!',
     ] }],
     train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },

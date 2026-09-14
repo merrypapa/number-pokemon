@@ -44,6 +44,10 @@
   "evolution": {
    "name": "진화형",
    "desc": "진화해야 만날 수 있는 모습"
+  },
+  "mega": {
+   "name": "메가 성역",
+   "desc": "지역을 정복해야 열리는 숨은 장소"
   }
  },
  "creatures": [
@@ -2003,7 +2007,12 @@
      "kind": "leaf"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x01",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 1,
    "evolvedFrom": "m01e",
    "personality": "의젓함",
@@ -2110,7 +2119,12 @@
      "kind": "fire"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x03",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 2,
    "evolvedFrom": "m02e",
    "personality": "용감함",
@@ -2266,7 +2280,12 @@
      "kind": "water"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x04",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 5,
    "personality": "듬직함",
    "evolvedFrom": "m05e",
@@ -2362,6 +2381,217 @@
    "personality": "다정",
    "story": "등에 사람을 태우고 바다를 건네주는 상냥한 포켓몬. 먼바다에서만 아주 가끔 만날 수 있어. 아름다운 노래를 부른다.",
    "grade": 4
+  },
+  {
+   "id": "x01",
+   "name": "메가이상해꽃",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "mega": true,
+   "model": "이상해꽃.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#2f9e44",
+    "bubbles": 6
+   },
+   "baseHp": 130,
+   "baseAtk": 26,
+   "skills": [
+    {
+     "name": "덩굴채찍",
+     "atk": 1,
+     "power": 1,
+     "kind": "whip"
+    },
+    {
+     "name": "꽃잎댄스",
+     "atk": 18,
+     "power": 1.4,
+     "kind": "leaf"
+    },
+    {
+     "name": "솔라빔",
+     "atk": 30,
+     "power": 1.7,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "위풍당당",
+   "story": "푸른숲 깊은 곳 빛의 제단에서 깨어난 거대한 꽃 포켓몬. 등의 큰 꽃에서 눈부신 빛줄기를 쏜다.",
+   "grade": 7
+  },
+  {
+   "id": "x02",
+   "name": "메가롱스톤",
+   "type": "바위",
+   "zone": "cave",
+   "catchable": true,
+   "mega": true,
+   "model": null,
+   "scale": 2.4,
+   "draftShape": {
+    "body": "drop",
+    "color": "#8d97a3",
+    "bubbles": 6
+   },
+   "baseHp": 140,
+   "baseAtk": 28,
+   "skills": [
+    {
+     "name": "바위던지기",
+     "atk": 1,
+     "power": 1,
+     "kind": "rock"
+    },
+    {
+     "name": "지진",
+     "atk": 18,
+     "power": 1.45,
+     "kind": "rock"
+    },
+    {
+     "name": "바위떨구기",
+     "atk": 30,
+     "power": 1.7,
+     "kind": "rock"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "위풍당당",
+   "story": "지하동굴 수정 광장에서 깨어난 강철빛 바위뱀. 몸이 번쩍이는 광석으로 덮여 있다.",
+   "grade": 7
+  },
+  {
+   "id": "x03",
+   "name": "메가리자몽Y",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "mega": true,
+   "model": "메가리자몽.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "drop",
+    "color": "#ff6b1a",
+    "bubbles": 6
+   },
+   "baseHp": 135,
+   "baseAtk": 30,
+   "skills": [
+    {
+     "name": "불꽃",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "불대문자",
+     "atk": 18,
+     "power": 1.45,
+     "kind": "fire"
+    },
+    {
+     "name": "블러스트번",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "위풍당당",
+   "story": "불의산 하늘 신전에 나타나는 푸른 불꽃의 리자몽. 날개를 펴면 화산도 작아 보인다.",
+   "grade": 7
+  },
+  {
+   "id": "x04",
+   "name": "메가거북왕",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "mega": true,
+   "model": "거북왕.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#1c7ed6",
+    "bubbles": 6
+   },
+   "baseHp": 145,
+   "baseAtk": 26,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "파도타기",
+     "atk": 18,
+     "power": 1.4,
+     "kind": "water"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 30,
+     "power": 1.7,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "위풍당당",
+   "story": "물의길 바다에서 솟아오른 산호 신전의 주인. 등의 거대한 대포로 바다를 가른다.",
+   "grade": 7,
+   "swim": true
+  },
+  {
+   "id": "x05",
+   "name": "메가뮤츠",
+   "type": "에스퍼",
+   "zone": "space",
+   "catchable": true,
+   "mega": true,
+   "model": null,
+   "scale": 2.0,
+   "draftShape": {
+    "body": "drop",
+    "color": "#b026ff",
+    "bubbles": 6
+   },
+   "baseHp": 150,
+   "baseAtk": 32,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 18,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "순간이동",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "위풍당당",
+   "story": "꿈의우주 별의 문에서 내려온 신비한 포켓몬. 생각만으로 별을 움직인다고 한다.",
+   "grade": 7
   }
  ]
 }
