@@ -67,15 +67,20 @@ const msgEl = document.getElementById('msg');
 const msgText = document.getElementById('msg-text');
 const msgFace = document.getElementById('msg-face');
 let msgTimer = 0;
+// 말풍선 기본 얼굴: 넘버볼 (SVG 그림 하나를 계속 재사용한다. iOS 사파리가 매번 새로 만든 CSS 그림을 안 그리는 일이 있어서)
+const BALL_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><clipPath id="c"><circle cx="20" cy="20" r="18.5"/></clipPath></defs><circle cx="20" cy="20" r="18.5" fill="#f4f4f8"/><path d="M1.5 20a18.5 18.5 0 0 1 37 0z" fill="#e8453c"/><rect x="0" y="17.5" width="40" height="5" fill="#20232e" clip-path="url(#c)"/><circle cx="20" cy="20" r="18.5" fill="none" stroke="#20232e" stroke-width="3"/><circle cx="20" cy="20" r="5" fill="#fff" stroke="#20232e" stroke-width="3"/></svg>');
+const ballFaceEl = Object.assign(new Image(), { src: BALL_SVG, className: 'ball-face', alt: '' });
+const photoFaceEl = Object.assign(new Image(), { alt: '' });
 // face: 숫자블록 얼굴('1'~'10') 또는 faceImg: 얼굴 그림(데이터 URL, NPC 대화)
 function say(text, { face = null, faceImg = null, sec = 4 } = {}) {
   msgText.textContent = text;
   msgFace.classList.toggle('photo', !!faceImg);
   if (faceImg) {
-    msgFace.innerHTML = `<img src="${faceImg}" alt="">`;
+    photoFaceEl.src = faceImg;
+    msgFace.replaceChildren(photoFaceEl);
     msgFace.style.background = '#fff';
   } else if (!face) { // 기본 얼굴은 넘버볼
-    msgFace.innerHTML = '<span class="ball-face"></span>';
+    msgFace.replaceChildren(ballFaceEl);
     msgFace.style.background = '#fff';
   } else {
     msgFace.textContent = face;
@@ -88,8 +93,9 @@ function say(text, { face = null, faceImg = null, sec = 4 } = {}) {
 }
 /** NPC 얼굴 그림 (모델이 도착하면 새로 그린다) */
 function npcFace(npc) { return portrait(npc.mesh, `npc:${npc.name}:${npc.mesh.userData.model ? 'm' : 'd'}`); }
-// 메시지 창을 누르면(터치/클릭) 바로 사라진다
-msgEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); msgEl.classList.add('hidden'); msgTimer = 0; });
+// 메시지 창을 누르면(터치/클릭) 바로 사라진다. 손가락을 뗀 뒤(click)에 숨겨야 iOS 가 다음 그림을 제대로 그린다.
+msgEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+msgEl.addEventListener('click', () => { msgEl.classList.add('hidden'); msgTimer = 0; });
 // 지역 이름 배너 (지역에 들어갈 때 크게)
 const zoneBannerEl = document.getElementById('zone-banner');
 let zoneBannerTimer = 0;
@@ -879,7 +885,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, state, zones, getZone, setBlocks, input, renderer, switchZone, startRide, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, zones, getZone, setBlocks, input, renderer, switchZone, startRide, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------

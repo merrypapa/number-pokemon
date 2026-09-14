@@ -25,8 +25,7 @@ body.battle #msg { display: none; } /* 대결 중엔 말풍선을 숨긴다 (같
 #msg-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
 #msg-face.photo { border: 0; background: #fff; border-radius: 12px; } /* NPC 얼굴: 테두리 없이 */
 /* 말풍선 기본 얼굴: 넘버볼 */
-.ball-face { display: block; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #20232e; background: linear-gradient(#e8453c 0 44%, #20232e 44% 56%, #f4f4f8 56%); position: relative; }
-.ball-face::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #fff; border: 3px solid #20232e; box-sizing: border-box; }
+#msg-face img.ball-face { width: 40px; height: 40px; border-radius: 0; object-fit: contain; }
 #msg-face { width: 54px; height: 54px; overflow: hidden; border-radius: 8px; background: #e8453c; border: 3px solid #20232e; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: #333; flex-shrink: 0; }
 #msg-text { font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; color: #333; line-height: 1.4; word-break: keep-all; }
 
