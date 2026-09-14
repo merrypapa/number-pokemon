@@ -1182,12 +1182,11 @@ function frame() {
       const fast = input.isHeld('run');
       if (Math.random() < (fast ? 0.6 : 0.25)) particles.stars(zone.scene, b.mesh.position.clone().add(new THREE.Vector3(rand(-1.8, 1.8), 0.2, rand(-1.8, 1.8))), 1, 0xf4f4f8, fast ? 0.4 : 0.25); // 물보라
     }
-    if (!moved) for (const v of vehiclesHere()) {
-      if (v.kind === 'train') continue; // 기차는 차장(NPC)과 이야기해야 탈 수 있다
-      if (!near(v.boardPoint, 3.2)) continue;
-      const dest = ZONE_INFO[v.to]?.name || v.to;
-      offer('🚀 로켓 타기', () => startRide(v), '🚀\n타기');
-      if (state.prompt <= 0) { state.prompt = 8; say(`로켓이야! 로켓 타기 버튼을 누르면 ${dest}(으)로 가!`, { sec: 4 }); }
+    // 기차·로켓은 안내원(리리·코리)과 이야기해야 탈 수 있다. 가까이 가면 알려만 준다.
+    if (!moved && state.prompt <= 0) for (const v of vehiclesHere()) {
+      if (!near(v.boardPoint, 3.6)) continue;
+      state.prompt = 8;
+      say(v.kind === 'train' ? '기차역이야! 옆에 선 리리에게 말을 걸면 탈 수 있어.' : '로켓 발사장이야! 옆에 선 코리에게 말을 걸면 탈 수 있어.', { sec: 4 });
       break;
     }
 

@@ -780,9 +780,9 @@ export function buildWorld(scene) {
   }
   const trainObstacle = { ax: st.x - 13, az: st.z, bx: st.x + 5, bz: st.z, r: 1.6 };
   obstacles.push(trainObstacle);
-  // 차장 미르: 이 사람과 이야기해야 기차를 탈 수 있다
+  // 선장 리리: 이 사람과 이야기해야 기차를 탈 수 있다 (물의길 플랫폼에도 서 있다)
   const conductorAt = { x: st.x - 1, z: st.z + 4.2 };
-  const conductor = makeNpc({ outfit: 'captain', name: '차장 미르', skin: 0xf0c9a0 });
+  const conductor = makeNpc({ outfit: 'captain', name: '리리', model: '리리.glb' });
   conductor.position.set(conductorAt.x, terrainHeight(conductorAt.x, conductorAt.z), conductorAt.z);
   conductor.rotation.y = Math.PI;
   decor.add(conductor);
@@ -827,6 +827,13 @@ export function buildWorld(scene) {
     rocket.position.set(rp.x, y0 + 0.3, rp.z);
     scene.add(rocket);
   }
+  // 우주비행사 코리: 이 사람과 이야기해야 로켓을 탈 수 있다 (꿈의우주 착륙장에도 서 있다)
+  const pilotAt = { x: rp.x - 4.6, z: rp.z + 4.6 };
+  const pilot = makeNpc({ outfit: 'astronaut', name: '코리', model: '코리.glb' });
+  pilot.position.set(pilotAt.x, terrainHeight(pilotAt.x, pilotAt.z), pilotAt.z);
+  pilot.rotation.y = -2.3;
+  decor.add(pilot);
+  obstacles.push({ x: pilotAt.x, z: pilotAt.z, r: 0.6 });
   const rocketObstacle = { x: rp.x, z: rp.z, r: 1.6 };
   obstacles.push(rocketObstacle);
 
@@ -1025,11 +1032,16 @@ export function buildWorld(scene) {
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구! 북쪽 산의 동굴 입구가 열렸어. 지하동굴에 가 보자.' : `서북쪽 돌기둥 아레나에 보스 이상해꽃이 있어. 공격 ${c.zone.targetAtk + 2} 이상, 체력 15쯤 되면 도전해 봐. 불 포켓몬이면 더 좋아!`,
       '북서쪽 구석 버섯 고리에는 잠만보가 자고 있어. 체력이 60이나 되니까 충분히 강해진 다음에 가 보렴.',
       '동북쪽 붉은 바위 협곡은 불의산, 서쪽 기차역은 물의길, 남동쪽 로켓은 꿈의우주로 가는 길이야. 마을 남쪽 큰 건물은 오박사 연구소!',
-    ] }, { x: conductorAt.x, z: conductorAt.z, mesh: conductor, name: '차장 미르', boards: 'train', lines: (c) => [
-      `어서 오게, ${c.name}! 난 차장 미르야. 이 기차는 바다 마을 물의길로 간다네.`,
+    ] }, { x: conductorAt.x, z: conductorAt.z, mesh: conductor, name: '리리', boards: 'train', lines: (c) => [
+      `어서 오게, ${c.name}! 난 선장 리리야. 이 기차는 바다 마을 물의길로 간다네.`,
       '표는 필요 없어. 나한테 말을 걸고 아래 빨간 "출발" 버튼만 누르면 태워 주지!',
       '물의길에도 내가 있어. 돌아올 때는 그쪽 플랫폼에서 나를 찾아 말을 걸면 된단다.',
-      '물의길은 물 포켓몬의 고장이야. 선착장에서 배를 타면 먼바다까지 나갈 수 있지!',
+      '물의길은 물 포켓몬의 고장이야. 선착장에서 뱃사공 노을과 배를 타면 먼바다까지 나갈 수 있지!',
+    ] }, { x: pilotAt.x, z: pilotAt.z, mesh: pilot, name: '코리', boards: 'rocket', lines: (c) => [
+      `반가워, ${c.name}! 난 우주비행사 코리야. 이 로켓은 꿈의우주로 간다!`,
+      '나한테 말을 걸고 빨간 "출발" 버튼을 누르면 카운트다운이야. 3, 2, 1!',
+      '꿈의우주에도 내가 있어. 돌아올 때는 착륙장에서 나를 찾아 말을 걸면 돼.',
+      '꿈의우주는 중력이 약해서 아주 높이 뛸 수 있어. 화면을 위로 밀면 태양과 행성들도 보인단다!',
     ] }],
     train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },

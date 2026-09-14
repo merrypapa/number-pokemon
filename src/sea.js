@@ -184,12 +184,7 @@ export function buildSea(scene) {
     trainBase = train.position.clone();
     obstacles.push({ ax: SEA.spawn.x + 1, az: SEA.spawn.z - 6, bx: SEA.spawn.x + 13, bz: SEA.spawn.z - 6, r: 1.6 });
   }
-  // 차장 미르: 물의길 플랫폼에도 서 있다. 이 사람과 이야기해야 푸른숲행 기차를 탄다
-  const condAt = { x: SEA.spawn.x + 6, z: SEA.spawn.z - 1 };
-  const conductor = makeNpc({ outfit: 'captain', name: '차장 미르', skin: 0xf0c9a0 });
-  conductor.position.set(condAt.x, seaHeight(condAt.x, condAt.z), condAt.z);
-  conductor.rotation.y = Math.PI;
-  decor.add(conductor); block(condAt.x, condAt.z, 0.6);
+
   // ---------- 선착장(잔교) + 배 + 뱃사공 ----------
   // 도착 섬 동쪽에서 바다로 뻗은 나무 잔교. 끝에 배가 묶여 있고 옆에 뱃사공이 서 있다.
   const D = SEA.dock;
@@ -266,10 +261,11 @@ export function buildSea(scene) {
   }
 
   // 선장 (지역 안내 NPC)
+  const captainAt = { x: SEA.spawn.x + 6, z: SEA.spawn.z - 1 }; // 기차 플랫폼 옆
   const captain = makeNpc({ outfit: 'captain', name: '리리', model: '리리.glb' });
-  captain.position.set(SEA.spawn.x - 5, seaHeight(SEA.spawn.x - 5, SEA.spawn.z - 3), SEA.spawn.z - 3);
-  captain.rotation.y = 0.7;
-  decor.add(captain); block(SEA.spawn.x - 5, SEA.spawn.z - 3, 0.6);
+  captain.position.set(captainAt.x, seaHeight(captainAt.x, captainAt.z), captainAt.z);
+  captain.rotation.y = Math.PI;
+  decor.add(captain); block(captainAt.x, captainAt.z, 0.6);
 
   // 갈매기 (하늘을 도는 흰 새)
   const gulls = [];
@@ -315,21 +311,17 @@ export function buildSea(scene) {
     dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
     sailorHome: { x: sailorAt.x, y: deckY, z: sailorAt.z },            // 배에서 내리면 노을이 돌아가 서는 자리
     boat: { mesh: boat, base: boatBase, deckY: ship.deckY },           // 빌려 타는 배 (갑판 높이)
-    npcs: [{ x: condAt.x, z: condAt.z, mesh: conductor, name: '차장 미르', boards: 'train', lines: (c) => [
-      `또 만났군, ${c.name}! 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르게.`,
-      '기차는 언제든 기다리고 있어. 급할 것 없으니 바다를 실컷 구경하고 오게!',
-      '동쪽 선착장의 뱃사공 노을을 찾아가 보게. 배를 타고 먼바다까지 나갈 수 있다네.',
-    ] }, { x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', sails: true, lines: (c) => [
+    npcs: [{ x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', sails: true, lines: (c) => [
       `어이, ${c.name}! 난 뱃사공 노을이야. 나한테 말을 걸고 "배 타기"를 누르면 같이 바다로 나가지!`,
       '배 위에서는 방향키(조이스틱)로 돌아다니고, "가속"을 누르면 훨씬 빨리 달려. 나도 함께 타고 간다네.',
       '바다에는 헤엄치는 포켓몬이 살아. 잉어킹·셀러·크랩·독파리… 아주 먼바다엔 라프라스도 있다더군!',
       '돌아갈 때는 배 위에서 나한테 다시 말을 걸게. "선착장으로 돌아가기"를 누르면 내가 몰아서 데려다주지!',
-    ] }, { x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '리리', warp: true, lines: (c) => [
+    ] }, { x: captainAt.x, z: captainAt.z, mesh: captain, name: '리리', boards: 'train', lines: (c) => [
       `물의길에 온 걸 환영해, ${c.name}! 난 선장 리리야. 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
       c.conquered.sea ? '보스 거북왕을 이겼군! 훌륭한 트레이너야.' : `남쪽 끝 섬에 보스 거북왕이 있어. 체력 100! 공격 ${c.zone.targetAtk + 3} 이상, 체력 35쯤 되면 도전해 보게. 전기 포켓몬이면 최고야.`,
-      '여기 블록은 하나가 2개 가치야. 기차역의 기차를 타면 푸른숲으로 돌아가네.',
-      '동쪽 선착장에 뱃사공 노을이 있네. 배를 타면 바다 포켓몬을 만날 수 있어!',
+      '여기 블록은 하나가 2개 가치야. 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르게.',
+      '북동쪽 선착장에 뱃사공 노을이 있네. 노을과 배를 타면 먼바다의 포켓몬을 만날 수 있어!',
     ] }],
     train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],

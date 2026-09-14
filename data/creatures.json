@@ -2553,44 +2553,44 @@
   },
   {
    "id": "x05",
-   "name": "메가뮤츠",
-   "type": "에스퍼",
+   "name": "메가팬텀",
+   "type": "고스트",
    "zone": "space",
    "catchable": true,
    "mega": true,
-   "model": null,
-   "scale": 2.0,
+   "model": "고우스트.glb",
+   "scale": 2.3,
    "draftShape": {
     "body": "drop",
-    "color": "#b026ff",
+    "color": "#7d5cff",
     "bubbles": 6
    },
    "baseHp": 150,
    "baseAtk": 32,
    "skills": [
     {
-     "name": "염동력",
+     "name": "핥기",
      "atk": 1,
      "power": 1,
-     "kind": "psychic"
+     "kind": "ghost"
     },
     {
-     "name": "사이코키네시스",
+     "name": "섀도볼",
      "atk": 18,
      "power": 1.5,
-     "kind": "psychic"
+     "kind": "ghost"
     },
     {
-     "name": "순간이동",
+     "name": "나이트헤드",
      "atk": 30,
      "power": 1.75,
-     "kind": "psychic"
+     "kind": "ghost"
     }
    ],
    "evolution": null,
    "favoriteNumber": 9,
-   "personality": "위풍당당",
-   "story": "꿈의우주 별의 문에서 내려온 신비한 포켓몬. 생각만으로 별을 움직인다고 한다.",
+   "personality": "장난꾸러기",
+   "story": "꿈의우주 별의 문에서 나타나는 거대한 그림자 포켓몬. 별빛 사이를 미끄러지듯 오가며 장난을 친다. 그림자 속에 숨으면 아무도 못 찾는다.",
    "grade": 7
   }
  ]

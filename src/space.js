@@ -228,10 +228,11 @@ export function buildSpace(scene) {
   scene.add(rocket);
   const rocketObstacle = { x: rx, z: rz, r: 1.6 };
   obstacles.push(rocketObstacle);
+  const pilotAt = { x: rx - 4.6, z: rz + 4.6 }; // 착륙장 로켓 옆
   const astronaut = makeNpc({ outfit: 'astronaut', name: '코리', model: '코리.glb' });
-  astronaut.position.set(SPACE.spawn.x - 5, spaceHeight(SPACE.spawn.x - 5, SPACE.spawn.z - 3), SPACE.spawn.z - 3);
-  astronaut.rotation.y = 0.7;
-  decor.add(astronaut); block(SPACE.spawn.x - 5, SPACE.spawn.z - 3, 0.6);
+  astronaut.position.set(pilotAt.x, spaceHeight(pilotAt.x, pilotAt.z), pilotAt.z);
+  astronaut.rotation.y = -2.3;
+  decor.add(astronaut); block(pilotAt.x, pilotAt.z, 0.6);
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color: 0xc9b8ff, transparent: true, opacity: 0.25 }));
   drop.rotation.x = -Math.PI / 2;
   drop.position.set(SPACE.spawn.x, spaceHeight(SPACE.spawn.x, SPACE.spawn.z) + 0.03, SPACE.spawn.z);
@@ -259,11 +260,11 @@ export function buildSpace(scene) {
 
   return {
     sun, animate, terrain: SPACE_TERRAIN, decor, spawn: SPACE.spawn, dark: true, gravity: SPACE.gravity,
-    npcs: [{ x: SPACE.spawn.x - 5, z: SPACE.spawn.z - 3, mesh: astronaut, name: '코리', warp: true, lines: (c) => [
+    npcs: [{ x: pilotAt.x, z: pilotAt.z, mesh: astronaut, name: '코리', boards: 'rocket', lines: (c) => [
       `꿈의우주에 온 걸 환영해, ${c.name}! 난 우주비행사 코리야. 중력이 약해서 점프가 높고 오래 떠. 화면을 위로 밀면 태양과 행성이 보여.`,
       `여기 포켓몬은 페어리·에스퍼·고스트·전기 속성이야. 공격 ${c.zone.atkRange}쯤 되어야 편하게 이겨. 피카츄와 라이츄도 여기 살아.`,
       c.conquered.space ? '보스 메가리자몽을 이겼다니! 넌 최고의 트레이너야.' : `북쪽 제단에 보스 메가리자몽이 있어. 체력 210, 공격 15! 공격 ${c.zone.targetAtk + 3} 이상, 체력 60쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
-      '여기 블록은 하나가 3개 가치야. 착륙장의 로켓을 타면 푸른숲으로 돌아가.',
+      '여기 블록은 하나가 3개 가치야. 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르면 돼!',
     ] }],
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rx - 2.6, z: rz + 2.6 }, to: 'forest' },
     wildSpots: [[-40, 50], [40, 55], [-55, 5], [60, 10], [-20, -30], [30, -25], [-75, -30], [75, -55], [-40, -80], [40, -80], [-85, 55], [85, 60], [0, 25], [-95, -80], [95, -20], [-15, 100], [70, -95], [-70, 95]],
