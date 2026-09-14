@@ -3,15 +3,8 @@ import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
 import { buildMegaShrine, shrineName } from './mega.js';
 import { applySky } from './sky.js';
-// 지역별 환경광 세기와, 원래 있던 하늘빛을 얼마나 줄일지 (환경광이 그 몫을 대신한다)
-const ENV_LOOK = {
-  forest:  { intensity: 0.55, ambientScale: 0.45 },
-  sea:     { intensity: 0.6,  ambientScale: 0.45 },
-  volcano: { intensity: 0.45, ambientScale: 0.6 },
-  cave:    { intensity: 0.3,  ambientScale: 0.75 },
-  space:   { intensity: 0.4,  ambientScale: 0.7 },
-  lab:     { intensity: 0.5,  ambientScale: 0.6 },
-};
+// 지역별 환경광 세기 (각 지역의 HemisphereLight 는 이 몫만큼 이미 낮춰 두었다)
+const ENV_LOOK = { forest: { intensity: 0.6 }, sea: { intensity: 0.65 }, volcano: { intensity: 0.5 }, cave: { intensity: 0.35 }, space: { intensity: 0.45 }, lab: { intensity: 0.55 } };
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -53,9 +46,8 @@ function fitRenderer() {
 }
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
-// 색 마무리: 밝은 곳이 하얗게 날아가지 않고 색이 진해진다 (픽셀당 계산이 거의 안 늘어 휴대폰에서도 공짜에 가깝다)
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;
+// 톤 매핑(ACESFilmic)은 쓰지 않는다: 이 게임은 사실적인 빛이 아니라 진한 만화 색이라서
+// 톤 매핑을 켜면 초록이 바래고 캐릭터가 하얗게 뜬다 (직접 비교해 보고 끈 채로 둔다).
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 fitRenderer();

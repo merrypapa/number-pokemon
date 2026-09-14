@@ -66,7 +66,7 @@ export function buildCave(scene) {
   scene.background = new THREE.Color(0x05070c);
   // 어둡지만 캐릭터가 보일 만큼은 밝게: 달빛 같은 반구광 + 약한 방향광. (전투 중엔 battle.js 가 무대 조명을 더 켠다)
   scene.fog = new THREE.Fog(0x05070c, 24, 80);
-  scene.add(new THREE.HemisphereLight(0x8fa3e0, 0x222a3a, 1.7));
+  scene.add(new THREE.HemisphereLight(0x8fa3e0, 0x222a3a, 1.25)); // 환경맵이 주변 빛을 내주므로 낮게
   const sun = new THREE.DirectionalLight(0x9aa8d8, 0.5);
   sun.position.set(10, 30, 10);
   sun.castShadow = true;

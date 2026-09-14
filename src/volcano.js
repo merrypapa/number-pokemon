@@ -60,7 +60,7 @@ export function buildVolcano(scene) {
 
   scene.background = new THREE.Color(0x2b1410);
   scene.fog = new THREE.Fog(0x2b1410, 70, 210);
-  scene.add(new THREE.HemisphereLight(0xffb08a, 0x3a1a10, 1.1));
+  scene.add(new THREE.HemisphereLight(0xffb08a, 0x3a1a10, 0.65)); // 환경맵이 주변 빛을 내주므로 낮게
   const sun = new THREE.DirectionalLight(0xffc9a0, 1.1);
   sun.position.set(20, 30, 10);
   sun.castShadow = true;

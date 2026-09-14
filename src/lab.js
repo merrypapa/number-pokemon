@@ -21,7 +21,7 @@ export function buildLab(scene) {
   const block = (x, z, r) => obstacles.push({ x, z, r });
 
   scene.background = new THREE.Color(0x1b2230);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa4b8, 1.5));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa4b8, 0.8)); // 환경맵이 주변 빛을 내주므로 낮게
   const sun = new THREE.DirectionalLight(0xffffff, 1.1);
   sun.position.set(8, 20, 6);
   sun.castShadow = true;
