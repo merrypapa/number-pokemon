@@ -131,12 +131,13 @@ const nbByNumber = Object.fromEntries(nbData.numberblocks.map((n) => [n.number, 
 function makeZone(name, builder) {
   const scene = new THREE.Scene();
   const world = builder(scene);
-  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescue: null, nbTimer: rand(10, 25), respawnTimer: 6 };
+  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(5, 12), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace, lab: buildLab };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 14, space: 18 }; // 지역별 야생 몬스터 자리 수 (각 지역 wildSpots 길이)
-const PICKUP_CAP = { forest: 12, cave: 8, volcano: 8, sea: 10, space: 8 }; // 줍는 블록 자리 수 (적게: 블록은 대결·구출 퀴즈로 얻는다)
+const PICKUP_CAP = { forest: 6, cave: 4, volcano: 4, sea: 5, space: 4 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
+const MAX_RESCUES = 3; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
 let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
@@ -602,22 +603,25 @@ function spawnRescue(z) {
   const data = nbByNumber[number];
   const half = z.terrain.size / 2 - 8;
   for (let tries = 0; tries < 40; tries++) {
-    const x = player.position.x + rand(-45, 45), zz = player.position.z + rand(-45, 45);
+    const x = player.position.x + rand(-35, 35), zz = player.position.z + rand(-35, 35);
     const d = Math.hypot(x - player.position.x, zz - player.position.z);
-    if (Math.abs(x) > half || Math.abs(zz) > half || d < 12 || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 1.4)) continue;
+    if (Math.abs(x) > half || Math.abs(zz) > half || d < 10 || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 1.4)) continue;
+    if (z.rescues.some((o) => o.position.distanceTo(new THREE.Vector3(x, 0, zz)) < 8)) continue; // 친구들끼리 너무 붙지 않게
     const nb = new Numberblock(z.scene, data, { x, z: zz });
-    nb.life = 120;
+    nb.life = 150;
     nb.help = makeNumberSprite('!', '#e8453c');
     nb.help.position.y = new THREE.Box3().setFromObject(nb.mesh).max.y - nb.mesh.position.y + 0.7; // 머리 위
     nb.help.scale.set(0.8, 0.8, 1);
     nb.mesh.add(nb.help);
-    z.rescue = nb;
+    for (const o of z.rescues) removeRescueArrow(z, o); // 화살표는 가장 새 친구 쪽만
+    z.rescues.push(nb);
     nb.arrow = makeRescueArrow(); nb.arrowT = 18; // 처음 18초 동안 머리 위 화살표가 친구 쪽을 가리킨다
     z.scene.add(nb.arrow);
     say(`${data.name}이(가) 도와달래! 머리 위 빨간 화살표를 따라가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
+    z.nbTimer = rand(12, 25); // 다음 친구는 잠시 뒤에
     return;
   }
-  z.nbTimer = 10; // 자리를 못 찾으면 잠시 뒤 다시
+  z.nbTimer = 6; // 자리를 못 찾으면 잠시 뒤 다시
 }
 /** 구출 친구가 어디 있는지 가리키는 빨간 화살표 (주인공 머리 위에 떠서 친구 쪽을 향한다) */
 function makeRescueArrow() {
@@ -629,13 +633,12 @@ function makeRescueArrow() {
   return g;
 }
 function removeRescueArrow(z, nb) { if (nb.arrow) { z.scene.remove(nb.arrow); nb.arrow = null; } }
-function removeRescue(z, escaped) {
-  const nb = z.rescue;
-  if (!nb) return;
+function removeRescue(z, nb, escaped) {
+  if (!nb || !z.rescues.includes(nb)) return;
   removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
-  z.rescue = null;
-  z.nbTimer = rand(20, 40);
+  z.rescues = z.rescues.filter((o) => o !== nb);
+  z.nbTimer = Math.min(z.nbTimer, rand(8, 16));
   if (escaped) say(`${nb.data.name}이(가) 다른 곳으로 가 버렸어… 다음에 또 나타날 거야.`, { face: String(nb.data.number), sec: 4 });
 }
 function rescueSolved(z, nb) {
@@ -644,8 +647,8 @@ function rescueSolved(z, nb) {
   particles.stars(z.scene, nb.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 24, new THREE.Color(colorForCount(n)).getHex(), 0.5);
   removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
-  z.rescue = null;
-  z.nbTimer = rand(20, 40);
+  z.rescues = z.rescues.filter((o) => o !== nb);
+  z.nbTimer = Math.min(z.nbTimer, rand(8, 16)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
   const bonus = quiz.problem?.bonus || 1; // 나누기처럼 어려운 문제는 블록을 더 준다
   const before = state.blocks, gain = n * blockValue() * bonus;
@@ -1005,8 +1008,8 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 4 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·구출 퀴즈가 주 수입)
-      zone.respawnTimer = 60;
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 2 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·구출 퀴즈가 주 수입)
+      zone.respawnTimer = 90;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
         const x = pp.x + rand(-36, 36), zz = pp.z + rand(-36, 36);
@@ -1093,9 +1096,9 @@ function frame() {
 
     // ----- 숫자블록 구출: 랜덤 출몰, 가까이 가서 구출하기 버튼 → 문제 -----
     zone.nbTimer -= dt;
-    if (!zone.rescue && zone.nbTimer <= 0 && !zone.world.indoor) spawnRescue(zone);
-    const nb = zone.rescue;
-    if (nb) {
+    if (zone.rescues.length < MAX_RESCUES && zone.nbTimer <= 0 && !zone.world.indoor) spawnRescue(zone);
+    let nearNb = null; // 가장 가까운 구출 친구 (구출하기 버튼은 하나만)
+    for (const nb of [...zone.rescues]) {
       nb.t += dt;
       nb.life -= dt;
       nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 3)) * 0.12;
@@ -1111,11 +1114,15 @@ function frame() {
           nb.arrow.scale.setScalar(nb.arrowT < 1.5 ? Math.max(0.01, nb.arrowT / 1.5) : 1);
         }
       }
-      if (nb.life <= 0) removeRescue(zone, true);
-      else if (nb.position.distanceTo(pp) < 2.4) offer(`🧩 ${nb.data.name} 구출하기`, () => {
+      if (nb.life <= 0) removeRescue(zone, nb, true);
+      else if (nb.position.distanceTo(pp) < 2.4 && (!nearNb || nb.position.distanceTo(pp) < nearNb.position.distanceTo(pp))) nearNb = nb;
+    }
+    if (nearNb) {
+      const nb = nearNb;
+      offer(`🧩 ${nb.data.name} 구출하기`, () => {
         input.endFrame();
         quiz.ask(nb.data.number, nb.data.name, zone.name).then((ok) => {
-          if (zone.rescue !== nb) return;
+          if (!zone.rescues.includes(nb)) return;
           if (ok) rescueSolved(zone, nb);
           else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
         });
