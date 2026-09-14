@@ -70,7 +70,7 @@ export class Player {
     const wx = axis.x * cy + axis.y * sy;
     const wz = axis.y * cy - axis.x * sy;
     const k = Math.min(1, ACCEL * dt);
-    const top = (this.boat ? this.boat.speed : SPEED) * (input.isHeld('run') ? RUN : 1);
+    const top = this.boat ? this.boat.speed * (input.isHeld('run') ? this.boat.boost : 1) : SPEED * (input.isHeld('run') ? RUN : 1);
     this.vx += (wx * top - this.vx) * k;
     this.vz += (wz * top - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);

@@ -542,7 +542,7 @@ function switchZone(name, spawn, message) {
   if (switching || !BUILDERS[name]) return;
   if (sailing) { // 다른 지역으로 가면 배는 선착장에 두고 내린다
     const b = boatHere();
-    sailing = false; player.boat = null;
+    sailing = false; returning = null; player.boat = null; input.enabled = true;
     if (b) { b.mesh.userData.sailing = false; b.mesh.position.copy(b.base); b.mesh.rotation.set(0, 0, 0); }
     for (const f of chain.followers) f.mesh.visible = true;
   }
@@ -582,8 +582,20 @@ function vehiclesHere() { return [zone.world.train, zone.world.rocket].filter(Bo
 
 // ---------- 배 타기 (물의길): 선착장에서 배를 타고 바다를 돌아다닌다 ----------
 // 배를 타면 주인공이 배 위에 서고, 물 위만 갈 수 있게 된다(뭍에서 막힘). 따라오던 친구들은 잠시 배웅.
-let sailing = false;
+let sailing = false, returning = null; // returning: 노을이 배를 몰아 선착장으로 돌아가는 중
 function boatHere() { return zone.world.boat || null; }
+function sailorNpc() { return (zone.world.npcs || []).find((n) => n.sails) || null; }
+/** 배 위에서 노을이 서는 자리 (뱃머리 반대쪽 갑판, 조타륜 옆) */
+function placeSailorOnBoat() {
+  const b = boatHere(), npc = sailorNpc();
+  if (!b || !npc) return;
+  const yaw = b.mesh.rotation.y, ox = -1.3, oz = 0.8;   // 선실 앞 조타륜 옆
+  const c = Math.cos(yaw), sn = Math.sin(yaw);
+  const x = b.mesh.position.x + c * ox + sn * oz, z = b.mesh.position.z - sn * ox + c * oz;
+  npc.mesh.position.set(x, b.mesh.position.y + (b.deckY ?? 0.5), z);
+  npc.mesh.rotation.y = yaw - Math.PI / 2;
+  npc.x = x; npc.z = z;                            // 배 위에서도 말을 걸 수 있게 위치를 따라 옮긴다
+}
 function boardBoat() {
   const b = boatHere();
   if (!b || sailing || battle.active || ride || switching) return;
@@ -591,44 +603,54 @@ function boardBoat() {
   sailing = true;
   b.mesh.userData.sailing = true;
   b.mesh.rotation.z = 0;
-  player.boat = { canGo: canSail, floorY: surface + (b.deckY ?? 0.5), speed: 8.5 }; // 갑판 높이에 서고, 걷기보다 조금 빠르다
-  player.position.set(b.mesh.position.x, surface + 0.95, b.mesh.position.z);
+  player.boat = { canGo: canSail, floorY: surface + (b.deckY ?? 0.5), speed: 8.5, boost: 2.1 }; // 갑판 높이에 서고, 가속하면 두 배 넘게 빨라진다
+  player.position.set(b.mesh.position.x, surface + (b.deckY ?? 0.5), b.mesh.position.z);
   player.vx = player.vz = player.vy = 0;
   for (const f of chain.followers) f.mesh.visible = false; // 물 위를 걸을 수는 없으니 잠시 쉰다
+  placeSailorOnBoat();
   sound.portal();
-  say('배를 탔어! 방향키(조이스틱)로 바다를 돌아다녀 봐. 헤엄치는 포켓몬을 만나면 대결이야!', { sec: 7 });
+  say('노을과 함께 배를 탔어! 조이스틱으로 몰고 "가속"을 누르면 빨라져. 돌아갈 땐 노을에게 말을 걸어!', { sec: 8 });
+}
+/** 노을이 배를 몰아 선착장으로 돌아간다 (자동) */
+function startReturn() {
+  if (!sailing || returning) return;
+  const d = zone.world.dock;
+  returning = { to: { x: d.x + 3.4, z: d.z }, t: 0 };
+  input.enabled = false;
+  sound.portal();
+  say('노을: 좋아, 선착장으로 돌아가자! 꽉 잡아!', { sec: 5, faceImg: npcFace(sailorNpc()) });
+}
+function updateReturn(dt) {
+  const p = player.position, to = returning.to;
+  returning.t += dt;
+  const dx = to.x - p.x, dz = to.z - p.z, dist = Math.hypot(dx, dz);
+  if (dist < 2.4 || returning.t > 25) { leaveBoat(); return; }
+  const step = Math.min(dist, 20 * dt);            // 돌아갈 땐 빠르게
+  p.x += (dx / dist) * step; p.z += (dz / dist) * step;
+  player.facing = Math.atan2(dx, dz);
+  player.group.rotation.y = player.facing;
 }
 function leaveBoat() {
   const b = boatHere();
   if (!b || !sailing) return;
-  const spot = landingSpot() || dockLanding(); // 뭍이 없으면 선착장으로 돌아간다
-  sailing = false;
+  const spot = dockLanding();
+  sailing = false; returning = null;
+  input.enabled = true;
   b.mesh.userData.sailing = false;
   b.mesh.position.copy(b.base);
   b.mesh.rotation.set(0, 0, 0);
   player.boat = null;
   player.teleport(spot.x, spot.z);
+  const npc = sailorNpc(), home = zone.world.sailorHome;
+  if (npc && home) { npc.mesh.position.set(home.x, home.y, home.z); npc.mesh.rotation.y = Math.PI; npc.x = home.x; npc.z = home.z; }
   for (const f of chain.followers) { f.mesh.visible = true; f.mesh.position.set(spot.x + rand(-1.2, 1.2), terrainHeight(spot.x, spot.z), spot.z + rand(1, 2)); }
   sound.portal();
-  say('땅에 내렸어! 배는 선착장에 돌아가 있어.', { sec: 4 });
+  say('선착장에 돌아왔어! 또 타고 싶으면 노을에게 말을 걸어.', { sec: 5 });
 }
 /** 선착장 앞 (배에서 내리는 기본 자리) */
 function dockLanding() {
   const d = zone.world.dock;
   return d ? { x: +(d.x - 1.5).toFixed(1), z: +d.z.toFixed(1) } : { x: +zone.world.spawn.x.toFixed(1), z: +zone.world.spawn.z.toFixed(1) };
-}
-/** 배에서 내릴 수 있는 가장 가까운 뭍. 없으면 null */
-function landingSpot() {
-  const p = player.position;
-  const d = zone.world.dock;
-  if (d && Math.hypot(p.x - d.x, p.z - d.z) < 7) return { x: d.x - 1.5, z: d.z };
-  for (let r = 3; r <= 9; r += 1.5) { // 둘레를 돌며 걸어 다닐 수 있는 모래밭을 찾는다
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
-      const x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
-      if (!isBlocked(x, z) && !insideObstacle(x, z, 0.6) && terrainHeight(x, z) > 0.5) return { x, z };
-    }
-  }
-  return null;
 }
 function startRide(v) {
   if (ride || switching) return;
@@ -687,10 +709,13 @@ function dirWord(dx, dz) {
 const boardBtn = document.getElementById('btn-board');
 let boardNpc = null;
 boardBtn.onclick = () => {
-  const v = boardNpc && zone.world[boardNpc.boards];
+  const npc = boardNpc;
   boardBtn.classList.add('hidden');
-  if (boardNpc) boardNpc.talking = false;
+  if (npc) npc.talking = false;
   boardNpc = null;
+  if (!npc) return;
+  if (npc.sails) { sailing ? startReturn() : boardBoat(); return; } // 노을: 배 타기 / 선착장 복귀
+  const v = zone.world[npc.boards];
   if (v) startRide(v);
 };
 const warpBtn = document.getElementById('btn-warp');
@@ -706,6 +731,7 @@ const ctxBtn = document.getElementById('ctx-action');
 let ctxAction = null, ctxClicked = false;
 ctxBtn.onclick = () => { ctxClicked = true; };
 const jumpBtn = document.querySelector('#touch-actions button[data-key="jump"]');
+const runBtn = document.querySelector('#touch-actions button[data-key="run"]');
 function offer(label, run, short = label) { if (!ctxAction) ctxAction = { label, run, short }; }
 function updateCtxButton() {
   const show = ctxAction && !battle.active && !dex.open && !quiz.open && !ride && !switching && !evo;
@@ -713,6 +739,9 @@ function updateCtxButton() {
     ctxBtn.classList.add('hidden');
     const label = show ? ctxAction.short : '점프';
     if (jumpBtn.textContent !== label) { jumpBtn.textContent = label; jumpBtn.classList.toggle('ctx', !!show); jumpBtn.dataset.key = show ? 'action' : 'jump'; }
+    jumpBtn.hidden = sailing && !show;             // 배 위에서는 점프 버튼을 숨긴다 (할 일이 있을 때만 보인다)
+    const runLabel = sailing ? '⚡ 가속' : '달리기'; // 배 위에서는 달리기 대신 가속
+    if (runBtn.textContent !== runLabel) { runBtn.textContent = runLabel; runBtn.classList.toggle('boost', sailing); }
     return;
   }
   if (!show) { ctxBtn.classList.add('hidden'); return; }
@@ -739,6 +768,11 @@ function talkTo(npc) {
     boardNpc = npc;
     const dest = ZONE_INFO[zone.world[npc.boards].to]?.name || '';
     boardBtn.textContent = `${npc.boards === 'train' ? '🚂' : '🚀'} ${dest}(으)로 출발!`;
+    boardBtn.classList.remove('hidden');
+  }
+  if (npc.sails && boatHere() && !returning) { // 뱃사공과 이야기하는 동안 "배 타기"·"선착장으로 돌아가기" 버튼이 켜진다
+    boardNpc = npc;
+    boardBtn.textContent = sailing ? '⚓ 선착장으로 돌아가기' : '⛵ 배 타기';
     boardBtn.classList.remove('hidden');
   }
 }
@@ -1136,21 +1170,17 @@ function frame() {
         switchZone(r.zone, r.spawn, { text: `${ZONE_INFO[r.zone]?.name || r.zone}(으)로 돌아왔어!`, sec: 4 });
       } else if (state.prompt <= 0) { state.prompt = 8; say('워프 패드야. 다른 지역의 안내원이 데려다줬을 때 그 지역으로 돌아갈 수 있어.', { sec: 4 }); }
     }
-    // ----- 배 타기 / 내리기 (물의길 선착장) -----
-    if (!moved && boatHere()) {
-      const b = boatHere(), d = zone.world.dock;
-      if (sailing) {
-        // 배가 주인공을 따라다닌다 (주인공은 갑판 위에 서 있다)
-        const surface = waterLevel() ?? 0;
-        b.mesh.position.set(pp.x, surface + Math.sin(t * 1.6) * 0.1, pp.z);
-        b.mesh.rotation.y = player.facing - Math.PI / 2; // 뱃머리(+x)가 가는 방향을 본다
-        b.mesh.rotation.z = Math.sin(t * 1.3) * 0.05;
-        if (Math.random() < 0.25) particles.stars(zone.scene, b.mesh.position.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.2, rand(-1.5, 1.5))), 1, 0xf4f4f8, 0.25); // 물보라
-        if (landingSpot()) offer('⚓ 내리기', () => leaveBoat(), '⚓\n내리기');
-      } else if (d && Math.hypot(pp.x - d.x, pp.z - d.z) < 4.5) {
-        offer('⛵ 배 타기', () => boardBoat(), '⛵\n배 타기');
-        if (state.prompt <= 0) { state.prompt = 8; say('선착장이야! 배 타기 버튼을 누르면 먼바다로 나갈 수 있어.', { sec: 4 }); }
-      }
+    if (returning) updateReturn(dt); // 노을이 배를 몰아 선착장으로 (조작 잠금)
+    for (const c of zone.creatures) if (returning) c.cooldown = Math.max(c.cooldown, 0.6); // 돌아가는 중엔 대결이 열리지 않는다
+    // ----- 배: 노을과 함께 타고 다닌다 (타고 내리는 건 노을에게 말을 걸어서) -----
+    if (sailing && boatHere()) {
+      const b = boatHere(), surface = waterLevel() ?? 0;
+      b.mesh.position.set(pp.x, surface + Math.sin(t * 1.6) * 0.1, pp.z);   // 배가 주인공을 따라다닌다
+      b.mesh.rotation.y = player.facing - Math.PI / 2;                       // 뱃머리(+x)가 가는 방향을 본다
+      b.mesh.rotation.z = Math.sin(t * 1.3) * 0.05;
+      placeSailorOnBoat();                                                   // 노을도 갑판에서 함께 간다
+      const fast = input.isHeld('run');
+      if (Math.random() < (fast ? 0.6 : 0.25)) particles.stars(zone.scene, b.mesh.position.clone().add(new THREE.Vector3(rand(-1.8, 1.8), 0.2, rand(-1.8, 1.8))), 1, 0xf4f4f8, fast ? 0.4 : 0.25); // 물보라
     }
     if (!moved) for (const v of vehiclesHere()) {
       if (v.kind === 'train') continue; // 기차는 차장(NPC)과 이야기해야 탈 수 있다

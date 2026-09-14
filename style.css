@@ -137,6 +137,7 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 #touch-actions button { width: 72px; height: 72px; }
 #touch-actions button.run { background: rgba(255,217,61,.85); }
+#touch-actions button.boost { background: rgba(63,184,232,.92); color: #fff; } /* 배 위: 가속 */
 /* 점프 버튼이 '대화'·'타기'·'구출' 버튼으로 바뀌었을 때: 파란색 + 살짝 커짐 */
 #touch-actions button.ctx { background: #3fb8e8; color: #fff; white-space: pre-line; line-height: 1.15; font-size: 15px; box-shadow: 0 0 0 4px rgba(63,184,232,.35), 0 3px 8px rgba(0,0,0,.25); animation: ctxPop .25s ease-out; }
 /* 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차·로켓·구출)이 있을 때만 나타난다 */

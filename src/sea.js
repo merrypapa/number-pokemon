@@ -21,7 +21,7 @@ export const SEA = {
     { x: 4, z: -66, r: 18, h: 4.6 },    // 보스 섬 (거북왕)
   ],
   spawn: { x: 0, z: 62 },
-  dock: { x1: 16, z1: 60, x2: 33, z2: 60, w: 1.7, rise: 0 }, // 선착장: 도착 섬 동쪽에서 바다로 뻗은 나무 잔교 (걸어 다닐 수 있는 다리)
+  dock: { x1: 12, z1: 70, x2: 29, z2: 70, w: 1.7, rise: 0 }, // 선착장: 기차역에서 조금 걸어가는 섬 북동쪽 물가에서 바다로 뻗은 잔교
   lighthouse: { x: 86, z: 26 },      // 먼바다 등대 바위
 };
 /** 배를 탄 채 갈 수 있는 곳: 물 위이고 맵 안. (섬·다리 위는 배가 못 간다) */
@@ -31,7 +31,7 @@ export function seaSailable(x, z) {
   let y = SEA.base;
   for (const i of SEA.islands) { const dx = x - i.x, dz = z - i.z; y += i.h * Math.exp(-(dx * dx + dz * dz) / (i.r * i.r)); }
   const d = SEA.dock; // 선착장 위로는 배가 지나가지 않는다 (다른 다리 아래로는 지나갈 수 있다)
-  if (Math.abs(z - d.z1) < d.w + 0.8 && x > d.x1 - 1 && x < d.x2 + 1) return false;
+  if (Math.abs(z - d.z1) < d.w + 1.2 && x > d.x1 - 1 && x < d.x2 + 1) return false;
   const L = SEA.lighthouse; // 등대 바위는 피해서 돈다
   if (Math.hypot(x - L.x, z - L.z) < 7) return false;
   return y < SEA.waterY - 0.35; // 물가 얕은 곳은 배가 못 들어간다 (걸어서 내릴 수 있게)
@@ -212,10 +212,10 @@ export function buildSea(scene) {
   const boatBase = boat.position.clone();
   // 뱃사공 (배를 빌려주는 NPC)
   const sailor = makeNpc({ outfit: 'captain', name: '노을', skin: 0xf6d2ae });
-  const sailorAt = { x: D.x1 - 2, z: D.z1 + 2.6 };
-  sailor.position.set(sailorAt.x, seaHeight(sailorAt.x, sailorAt.z), sailorAt.z);
+  const sailorAt = { x: D.x2 - 2.6, z: D.z2 + 1.15 }; // 잔교 끝, 배 바로 옆
+  sailor.position.set(sailorAt.x, deckY, sailorAt.z);
   sailor.rotation.y = -0.6;
-  decor.add(sailor); block(sailorAt.x, sailorAt.z, 0.6);
+  decor.add(sailor);
 
   // ---------- 먼바다: 부표 · 암초 · 등대 바위 · 떠 있는 나무통 ----------
   const bobbers = []; // 파도에 위아래로 흔들리는 것들
@@ -313,16 +313,17 @@ export function buildSea(scene) {
     waterY: SEA.waterY,
     sailable: seaSailable,
     dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
+    sailorHome: { x: sailorAt.x, y: deckY, z: sailorAt.z },            // 배에서 내리면 노을이 돌아가 서는 자리
     boat: { mesh: boat, base: boatBase, deckY: ship.deckY },           // 빌려 타는 배 (갑판 높이)
     npcs: [{ x: condAt.x, z: condAt.z, mesh: conductor, name: '차장 미르', boards: 'train', lines: (c) => [
       `또 만났군, ${c.name}! 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르게.`,
       '기차는 언제든 기다리고 있어. 급할 것 없으니 바다를 실컷 구경하고 오게!',
       '동쪽 선착장의 뱃사공 노을을 찾아가 보게. 배를 타고 먼바다까지 나갈 수 있다네.',
-    ] }, { x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', lines: (c) => [
-      `어이, ${c.name}! 난 뱃사공 노을이야. 이 배로 먼바다까지 나갈 수 있지.`,
-      '잔교 끝에서 "배 타기"를 누르면 출발이야. 배 위에서는 방향키(조이스틱)로 바다를 마음껏 돌아다닐 수 있어.',
+    ] }, { x: sailorAt.x, z: sailorAt.z, mesh: sailor, name: '노을', sails: true, lines: (c) => [
+      `어이, ${c.name}! 난 뱃사공 노을이야. 나한테 말을 걸고 "배 타기"를 누르면 같이 바다로 나가지!`,
+      '배 위에서는 방향키(조이스틱)로 돌아다니고, "가속"을 누르면 훨씬 빨리 달려. 나도 함께 타고 간다네.',
       '바다에는 헤엄치는 포켓몬이 살아. 잉어킹·셀러·크랩·독파리… 아주 먼바다엔 라프라스도 있다더군!',
-      '섬이나 잔교 가까이 가서 "내리기"를 누르면 다시 땅을 밟을 수 있어. 등대 바위가 보이면 꽤 멀리 온 거야.',
+      '돌아갈 때는 배 위에서 나한테 다시 말을 걸게. "선착장으로 돌아가기"를 누르면 내가 몰아서 데려다주지!',
     ] }, { x: SEA.spawn.x - 5, z: SEA.spawn.z - 3, mesh: captain, name: '리리', warp: true, lines: (c) => [
       `물의길에 온 걸 환영해, ${c.name}! 난 선장 리리야. 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
