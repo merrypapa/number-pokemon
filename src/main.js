@@ -116,7 +116,7 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb'];
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb'];
 const modelFiles = [PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS];
 const loadingEl = document.getElementById('title-loading');
 preloadModels(modelFiles, (done, total) => {
@@ -202,12 +202,37 @@ function buildShrine(z) {
   if (state.conquered[z.name]) revealShrine(z, true);
 }
 /** 성역을 드러내고 메가 포켓몬을 불러낸다 */
+/** 조건 포켓몬(메가리자몽X)을 잡을 수 있게 됐나: unlockedBy 종을 이미 잡았으면 열린다 */
+function megaUnlocked(sp) { return (state.dex[sp.unlockedBy] || 0) > 0; }
+/** 그 포켓몬을 지역의 빈 자리에 세운다 (성역이 아니라 일반 맵) */
+function spawnUnlocked(z, sp) {
+  if (z.creatures.some((c) => c.data.id === sp.id)) return null;
+  if ((state.dex[sp.id] || 0) > 0) return null; // 이미 잡았으면 다시 나오지 않는다
+  const spots = (z.world.wildSpots || []).filter(([x, zz]) => !z.creatures.some((c) => Math.hypot(c.home.x - x, c.home.z - zz) < 6));
+  const all = spots.length ? spots : (z.world.wildSpots || []);
+  const spot = all[Math.floor(Math.random() * all.length)] || [z.world.spawn.x + 10, z.world.spawn.z + 10];
+  const prev = zone?.terrain;
+  setActiveTerrain(z.terrain);
+  const c = spawnCreature(z, sp.id, spot[0], spot[1]);
+  if (c) c.isMega = true;
+  if (prev) setActiveTerrain(prev);
+  return c;
+}
+/** 방금 잡은 종 때문에 열린 특별 포켓몬을 그 지역에 세운다 (이미 만든 지역이면 바로, 아니면 들어갈 때 생긴다) */
+function checkUnlocked(caughtId) {
+  for (const sp of creatureData.creatures.filter((c) => c.unlockedBy === caughtId)) {
+    const z = zones[sp.zone];
+    if (!z || !megaUnlocked(sp)) continue;
+    if (!spawnUnlocked(z, sp)) continue;
+    setTimeout(() => say(`✨ ${sp.name}이(가) ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
+  }
+}
 function revealShrine(z, silent = false) {
   if (!z.shrine || z.shrine.shown) return;
   z.shrine.shown = true;
   z.shrine.reveal();
   if (z.shrineObstacle) z.shrineObstacle.r = 15.5;
-  const mega = creatureData.creatures.find((c) => c.zone === z.name && c.mega);
+  const mega = creatureData.creatures.find((c) => c.zone === z.name && c.shrine);
   if (mega && !(state.caughtCreatures[z.name] || []).includes(z.creatures.length)) {
     setActiveTerrain(z.terrain); // Creature 는 지형 높이를 쓰므로 잠시 전환
     const c = spawnCreature(z, mega.id, z.shrine.megaSpot.x, z.shrine.megaSpot.z);
@@ -240,6 +265,9 @@ function getZone(name) {
   }
   for (const [x, zz] of z.world.pickupSpots.slice(0, PICKUP_CAP[name] ?? 16)) spawnPickup(z, x, zz);
   buildShrine(z); // 메가 성역 (정복 전에는 숨어 있다)
+  for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) { // 조건을 채우면 일반 맵에 나타나는 포켓몬 (맨 뒤에 세워야 저장된 번호가 안 밀린다)
+    if (megaUnlocked(sp)) spawnUnlocked(z, sp);
+  }
   applyPendingCaught(z);
   if (name === 'forest' && state.conquered.forest) removeBoulder();
   if (name === 'cave' && state.glow) z.scene.fog.far = 110;
@@ -540,7 +568,7 @@ function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   boardBtn.classList.add('hidden'); boardNpc = null;
   if (switching || !BUILDERS[name]) return;
-  if (sailing || parked || goingHome) { // 다른 지역으로 가면 배와 노을은 선착장 제자리로
+  if (sailing || parked || goingHome) { // 다른 지역으로 가면 배와 루피는 선착장 제자리로
     const b = boatHere(), npc = sailorNpc(), home = zone.world.sailorHome;
     sailing = false; returning = null; parked = null; goingHome = null; player.boat = null; input.enabled = true;
     if (b) { b.mesh.userData.sailing = false; b.mesh.position.copy(b.base); b.mesh.rotation.set(0, 0, 0); }
@@ -583,12 +611,12 @@ function vehiclesHere() { return [zone.world.train, zone.world.rocket].filter(Bo
 
 // ---------- 배 타기 (물의길): 선착장에서 배를 타고 바다를 돌아다닌다 ----------
 // 배를 타면 주인공이 배 위에 서고, 물 위만 갈 수 있게 된다(뭍에서 막힘). 따라오던 친구들은 잠시 배웅.
-let sailing = false, returning = null;   // returning: 노을이 배를 몰아 선착장으로 돌아가는 중
+let sailing = false, returning = null;   // returning: 루피가 배를 몰아 선착장으로 돌아가는 중
 let parked = null, goingHome = null;     // parked: 배가 뭍에 대어 기다리는 중, goingHome: 빈 배가 선착장으로 스스로 돌아가는 중
 const PARK_WAIT = 100;                   // 뭍에 댄 배가 기다려 주는 시간(초)
 function boatHere() { return zone.world.boat || null; }
 function sailorNpc() { return (zone.world.npcs || []).find((n) => n.sails) || null; }
-/** 배 위에서 노을이 서는 자리 (뱃머리 반대쪽 갑판, 조타륜 옆) */
+/** 배 위에서 루피가 서는 자리 (뱃머리 반대쪽 갑판, 조타륜 옆) */
 function placeSailorOnBoat() {
   const b = boatHere(), npc = sailorNpc();
   if (!b || !npc) return;
@@ -613,16 +641,16 @@ function boardBoat() {
   for (const f of chain.followers) f.mesh.visible = false; // 물 위를 걸을 수는 없으니 잠시 쉰다
   placeSailorOnBoat();
   sound.portal();
-  say('노을과 함께 배를 탔어! 조이스틱으로 몰고 "가속"을 누르면 빨라져. 돌아갈 땐 노을에게 말을 걸어!', { sec: 8 });
+  say('루피와 함께 배를 탔어! 조이스틱으로 몰고 "가속"을 누르면 빨라져. 돌아갈 땐 루피에게 말을 걸어!', { sec: 8 });
 }
-/** 노을이 배를 몰아 선착장으로 돌아간다 (자동) */
+/** 루피가 배를 몰아 선착장으로 돌아간다 (자동) */
 function startReturn() {
   if (!sailing || returning) return;
   const d = zone.world.dock;
   returning = { to: { x: d.x + 3.4, z: d.z }, t: 0 };
   input.enabled = false;
   sound.portal();
-  say('노을: 좋아, 선착장으로 돌아가자! 꽉 잡아!', { sec: 5, faceImg: npcFace(sailorNpc()) });
+  say('루피: 좋아, 선착장으로 돌아가자! 꽉 잡아!', { sec: 5, faceImg: npcFace(sailorNpc()) });
 }
 function updateReturn(dt) {
   const p = player.position, to = returning.to;
@@ -634,7 +662,7 @@ function updateReturn(dt) {
   player.facing = Math.atan2(dx, dz);
   player.group.rotation.y = player.facing;
 }
-/** 배에서 내린다. keepBoat 이면 배는 그 자리에서 기다린다(노을도 함께 내린다) */
+/** 배에서 내린다. keepBoat 이면 배는 그 자리에서 기다린다(루피도 함께 내린다) */
 function leaveBoat(keepBoat = false) {
   const b = boatHere();
   if (!b || !sailing) return;
@@ -645,7 +673,7 @@ function leaveBoat(keepBoat = false) {
   player.boat = null;
   player.teleport(spot.x, spot.z);
   const npc = sailorNpc();
-  if (keepBoat) {                                   // 배는 여기서 기다리고, 노을도 함께 내린다
+  if (keepBoat) {                                   // 배는 여기서 기다리고, 루피도 함께 내린다
     b.mesh.rotation.z = 0;
     parked = { timer: PARK_WAIT, told: false };
     if (npc) {
@@ -654,27 +682,27 @@ function leaveBoat(keepBoat = false) {
       npc.mesh.rotation.y = Math.atan2(spot.x - sx, spot.z - sz);
       npc.x = sx; npc.z = sz;
     }
-    say('뭍에 내렸어! 배는 여기서 기다려 줘. 다시 타려면 노을에게 말을 걸어.', { sec: 7 });
-  } else {                                          // 선착장 복귀: 배도 노을도 제자리로
+    say('뭍에 내렸어! 배는 여기서 기다려 줘. 다시 타려면 루피에게 말을 걸어.', { sec: 7 });
+  } else {                                          // 선착장 복귀: 배도 루피도 제자리로
     parked = null;
     b.mesh.position.copy(b.base);
     b.mesh.rotation.set(0, 0, 0);
     const home = zone.world.sailorHome;
     if (npc && home) { npc.mesh.position.set(home.x, home.y, home.z); npc.mesh.rotation.y = Math.PI; npc.x = home.x; npc.z = home.z; }
-    say('선착장에 돌아왔어! 또 타고 싶으면 노을에게 말을 걸어.', { sec: 5 });
+    say('선착장에 돌아왔어! 또 타고 싶으면 루피에게 말을 걸어.', { sec: 5 });
   }
   for (const f of chain.followers) { f.mesh.visible = true; f.mesh.position.set(spot.x + rand(-1.2, 1.2), terrainHeight(spot.x, spot.z), spot.z + rand(1, 2)); }
   sound.portal();
 }
-/** 기다리던 빈 배가 노을을 태우고 스스로 선착장으로 돌아간다 */
+/** 기다리던 빈 배가 루피를 태우고 스스로 선착장으로 돌아간다 */
 function sendBoatHome() {
   const b = boatHere();
   parked = null;
   if (!b) return;
   goingHome = { t: 0 };
   const npc = sailorNpc();
-  if (npc) { npc.x = b.mesh.position.x; npc.z = b.mesh.position.z; } // 노을은 배를 타고 간다
-  say('노을: 배를 선착장에 갖다 놓을게! 또 타고 싶으면 선착장으로 오렴.', { sec: 6, faceImg: npc ? npcFace(npc) : null });
+  if (npc) { npc.x = b.mesh.position.x; npc.z = b.mesh.position.z; } // 루피는 배를 타고 간다
+  say('루피: 배를 선착장에 갖다 놓을게! 또 타고 싶으면 선착장으로 오렴.', { sec: 6, faceImg: npc ? npcFace(npc) : null });
 }
 function updateGoingHome(dt) {
   const b = boatHere();
@@ -682,7 +710,7 @@ function updateGoingHome(dt) {
   const m = b.mesh, to = b.base;
   const dx = to.x - m.position.x, dz = to.z - m.position.z, dist = Math.hypot(dx, dz);
   goingHome.t += dt;
-  if (dist < 1.2 || goingHome.t > 30) {            // 도착: 배와 노을을 제자리로
+  if (dist < 1.2 || goingHome.t > 30) {            // 도착: 배와 루피를 제자리로
     m.position.copy(to); m.rotation.set(0, 0, 0);
     const npc = sailorNpc(), home = zone.world.sailorHome;
     if (npc && home) { npc.mesh.position.set(home.x, home.y, home.z); npc.mesh.rotation.y = Math.PI; npc.x = home.x; npc.z = home.z; }
@@ -776,7 +804,7 @@ boardBtn.onclick = () => {
   if (npc) npc.talking = false;
   boardNpc = null;
   if (!npc) return;
-  if (npc.sails) { sailing ? startReturn() : boardBoat(); return; } // 노을: 배 타기 / 선착장 복귀
+  if (npc.sails) { sailing ? startReturn() : boardBoat(); return; } // 루피: 배 타기 / 선착장 복귀
   const v = zone.world[npc.boards];
   if (v) startRide(v);
 };
@@ -1215,7 +1243,7 @@ function frame() {
       const back = zones.forest.world.arrivals[zone.name] || zones.forest.world.spawn;
       switchZone('forest', back, { text: '푸른숲으로 돌아왔어!', sec: 4 });
     }
-    // 배 위에서 뭍이 가까우면 "내리기"를 먼저 준다 (노을 대화는 트인 바다에서)
+    // 배 위에서 뭍이 가까우면 "내리기"를 먼저 준다 (루피 대화는 트인 바다에서)
     const landNear = sailing && !returning ? landingSpot(t) : null;
     if (landNear) offer('⚓ 여기 내리기', () => leaveBoat(true), '⚓\n내리기');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
@@ -1235,21 +1263,21 @@ function frame() {
         switchZone(r.zone, r.spawn, { text: `${ZONE_INFO[r.zone]?.name || r.zone}(으)로 돌아왔어!`, sec: 4 });
       } else if (state.prompt <= 0) { state.prompt = 8; say('워프 패드야. 다른 지역의 안내원이 데려다줬을 때 그 지역으로 돌아갈 수 있어.', { sec: 4 }); }
     }
-    if (returning) updateReturn(dt); // 노을이 배를 몰아 선착장으로 (조작 잠금)
+    if (returning) updateReturn(dt); // 루피가 배를 몰아 선착장으로 (조작 잠금)
     if (goingHome) updateGoingHome(dt); // 빈 배가 스스로 선착장으로
     if (parked) {                       // 뭍에 댄 배가 기다려 준다
       parked.timer -= dt;
-      if (!parked.told && parked.timer < 20) { parked.told = true; say('노을: 슬슬 배를 선착장에 갖다 놔야겠어. 탈 거면 지금 말을 걸어!', { sec: 6, faceImg: npcFace(sailorNpc()) }); }
+      if (!parked.told && parked.timer < 20) { parked.told = true; say('루피: 슬슬 배를 선착장에 갖다 놔야겠어. 탈 거면 지금 말을 걸어!', { sec: 6, faceImg: npcFace(sailorNpc()) }); }
       if (parked.timer <= 0) sendBoatHome();
     }
     for (const c of zone.creatures) if (returning) c.cooldown = Math.max(c.cooldown, 0.6); // 돌아가는 중엔 대결이 열리지 않는다
-    // ----- 배: 노을과 함께 타고 다닌다 (타고 내리는 건 노을에게 말을 걸어서) -----
+    // ----- 배: 루피와 함께 타고 다닌다 (타고 내리는 건 루피에게 말을 걸어서) -----
     if (sailing && boatHere()) {
       const b = boatHere(), surface = waterLevel() ?? 0;
       b.mesh.position.set(pp.x, surface + Math.sin(t * 1.6) * 0.1, pp.z);   // 배가 주인공을 따라다닌다
       b.mesh.rotation.y = player.facing - Math.PI / 2;                       // 뱃머리(+x)가 가는 방향을 본다
       b.mesh.rotation.z = Math.sin(t * 1.3) * 0.05;
-      placeSailorOnBoat();                                                   // 노을도 갑판에서 함께 간다
+      placeSailorOnBoat();                                                   // 루피도 갑판에서 함께 간다
       const fast = input.isHeld('run');
       if (Math.random() < (fast ? 0.6 : 0.25)) particles.stars(zone.scene, b.mesh.position.clone().add(new THREE.Vector3(rand(-1.8, 1.8), 0.2, rand(-1.8, 1.8))), 1, 0xf4f4f8, fast ? 0.4 : 0.25); // 물보라
     }
@@ -1320,6 +1348,7 @@ function frame() {
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             const cnt = state.dex[c.data.id];
+            checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
             if (c.data.mega) { // 메가 포켓몬을 잡으면 메가블럭을 준다 (메가 진화에 쓴다)
               state.caught++;
               state.megaBlocks += MEGA_REWARD;

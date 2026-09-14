@@ -604,7 +604,12 @@
      "kind": "leaf"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x01",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 10,
    "boss": true,
    "personality": "숲의 수호자",
@@ -658,7 +663,7 @@
    "type": "독",
    "zone": "cave",
    "catchable": true,
-   "model": "주뱃.glb",
+   "model": null,
    "scale": 0.7,
    "draftShape": {
     "body": "sphere",
@@ -942,7 +947,7 @@
    "type": "바위",
    "zone": "cave",
    "catchable": true,
-   "model": "롱스톤.glb",
+   "model": null,
    "scale": 2.6,
    "draftShape": {
     "body": "capsule",
@@ -977,7 +982,12 @@
      "kind": "rock"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x02",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 10,
    "boss": true,
    "personality": "동굴의 지킴이",
@@ -1080,7 +1090,7 @@
    "type": "불",
    "zone": "volcano",
    "catchable": true,
-   "model": "마그마.glb",
+   "model": null,
    "scale": 0.8,
    "draftShape": {
     "body": "drop",
@@ -1121,7 +1131,7 @@
    "type": "불",
    "zone": "volcano",
    "catchable": true,
-   "model": "가디.glb",
+   "model": null,
    "scale": 1.0,
    "draftShape": {
     "body": "capsule",
@@ -1197,7 +1207,14 @@
      "kind": "fire"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x03",
+    "altTo": "x06",
+    "altChance": 0.35,
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 10,
    "boss": true,
    "personality": "화산의 왕",
@@ -1307,8 +1324,8 @@
     "color": "#E85B3C",
     "bubbles": 3
    },
-   "baseHp": 37,
-   "baseAtk": 8,
+   "baseHp": 30,
+   "baseAtk": 6,
    "skills": [
     {
      "name": "튀어오르기",
@@ -1317,15 +1334,15 @@
      "kind": "tackle"
     },
     {
-     "name": "물놀이",
+     "name": "몸부림",
      "atk": 10,
-     "power": 1.25,
-     "kind": "water"
+     "power": 1.15,
+     "kind": "tackle"
     },
     {
-     "name": "물대포",
+     "name": "물보라",
      "atk": 20,
-     "power": 1.5,
+     "power": 1.4,
      "kind": "water"
     }
    ],
@@ -1336,8 +1353,8 @@
     "wins": 6
    },
    "favoriteNumber": 4,
-   "personality": "펄떡펄떡",
-   "story": "튀어 오르기만 하는 물고기 포켓몬. 약해 보여도 아주 끈질겨. 열심히 튀어 오르면 무시무시한 갸라도스가 돼!",
+   "personality": "멍~",
+   "story": "하루 종일 펄떡펄떡 튀어오르기만 하는 포켓몬. 힘도 약하고 생각도 깊지 않아서 물살에 그냥 떠내려가기도 해. 하지만 끈기 하나는 최고라서, 열심히 키우면 무시무시한 갸라도스가 된대!",
    "grade": 3,
    "swim": true
   },
@@ -1347,15 +1364,15 @@
    "type": "물",
    "zone": "evolution",
    "catchable": false,
-   "model": null,
-   "scale": 1.7,
+   "model": "갸라도스.glb",
+   "scale": 2.0,
    "draftShape": {
     "body": "drop",
     "color": "#3557c9",
     "bubbles": 6
    },
-   "baseHp": 90,
-   "baseAtk": 20,
+   "baseHp": 100,
+   "baseAtk": 24,
    "skills": [
     {
      "name": "물대포",
@@ -1379,7 +1396,7 @@
    "evolution": null,
    "favoriteNumber": 9,
    "personality": "사나움",
-   "story": "잉어킹이 힘을 길러 진화한 거대한 바다 포켓몬. 바다를 가르며 헤엄치고 큰 물기둥을 뿜어. 화나면 아무도 못 말려!",
+   "story": "멍하던 잉어킹이 끈기 끝에 진화한 거대한 바다의 포켓몬. 화가 나면 바다가 뒤집힐 만큼 사납지만, 자기를 키워 준 트레이너만은 끝까지 지켜 준대.",
    "grade": 5
   },
   {
@@ -1632,7 +1649,12 @@
      "kind": "water"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x04",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 10,
    "boss": true,
    "personality": "바다의 왕",
@@ -1686,7 +1708,7 @@
    "type": "페어리",
    "zone": "space",
    "catchable": true,
-   "model": "삐삐.glb",
+   "model": null,
    "scale": 0.8,
    "draftShape": {
     "body": "sphere",
@@ -1852,57 +1874,62 @@
   },
   {
    "id": "b05",
-   "name": "메가리자몽",
-   "type": "불",
+   "name": "팬텀",
+   "type": "고스트",
    "zone": "space",
    "catchable": true,
-   "model": "메가리자몽.glb",
-   "scale": 2.8,
+   "model": "메가팬텀.glb",
+   "scale": 2.1,
    "draftShape": {
-    "body": "capsule",
-    "color": "#2E4A8C",
-    "flames": 10,
-    "glow": true
+    "body": "sphere",
+    "color": "#7d3cc9",
+    "glow": true,
+    "translucent": true
    },
-   "baseHp": 210,
-   "baseAtk": 15,
+   "baseHp": 240,
+   "baseAtk": 26,
    "skills": [
     {
-     "name": "푸른불꽃",
+     "name": "핥기",
      "atk": 1,
      "power": 1,
-     "kind": "fire"
+     "kind": "ghost"
     },
     {
-     "name": "화염방사",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "fire"
+     "name": "그림자펀치",
+     "atk": 12,
+     "power": 1.3,
+     "kind": "ghost"
     },
     {
-     "name": "불대문자",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "fire"
+     "name": "나이트헤드",
+     "atk": 22,
+     "power": 1.55,
+     "kind": "ghost"
     },
     {
-     "name": "드래곤클로",
-     "atk": 30,
-     "power": 1.75,
-     "kind": "fire"
+     "name": "섀도볼",
+     "atk": 32,
+     "power": 1.8,
+     "kind": "ghost"
     },
     {
-     "name": "블러스트번",
-     "atk": 40,
-     "power": 2,
-     "kind": "fire"
+     "name": "저주",
+     "atk": 42,
+     "power": 2.1,
+     "kind": "ghost"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x05",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
    "favoriteNumber": 10,
    "boss": true,
-   "personality": "우주의 수호자",
-   "story": "리자몽이 우주의 힘으로 더 강해진 모습. 파란 불꽃을 뿜고 몸이 별처럼 빛나. 꿈의우주 제단을 지키는 가장 센 포켓몬이야.",
+   "personality": "장난꾸러기",
+   "story": "꿈의우주를 다스리는 그림자 포켓몬. 별빛도 삼켜 버리는 어둠 속에서 낄낄 웃으며 나타나. 장난이 심하지만 친구가 되면 그림자 속에 숨어 늘 따라다닌대.",
    "grade": 6
   },
   {
@@ -2121,6 +2148,8 @@
    ],
    "evolution": {
     "to": "x03",
+    "altTo": "x06",
+    "altChance": 0.35,
     "atk": 30,
     "hp": 45,
     "mega": 1
@@ -2186,7 +2215,7 @@
    "type": "물",
    "zone": "evolution",
    "catchable": false,
-   "model": null,
+   "model": "어니부기.glb",
    "scale": 1.25,
    "draftShape": {
     "body": "drop",
@@ -2340,12 +2369,12 @@
    "grade": 4
   },
   {
-   "id": "m41",
+   "id": "m42",
    "name": "라프라스",
    "type": "물",
    "zone": "sea",
    "catchable": true,
-   "model": null,
+   "model": "라프라스.glb",
    "scale": 1.4,
    "swim": true,
    "deepSea": true,
@@ -2389,26 +2418,26 @@
    "zone": "forest",
    "catchable": true,
    "mega": true,
-   "model": "이상해꽃.glb",
-   "scale": 2.0,
+   "model": "메가이상해꽃.glb",
+   "scale": 2.2,
    "draftShape": {
     "body": "drop",
     "color": "#2f9e44",
     "bubbles": 6
    },
-   "baseHp": 130,
-   "baseAtk": 26,
+   "baseHp": 170,
+   "baseAtk": 30,
    "skills": [
     {
      "name": "덩굴채찍",
      "atk": 1,
-     "power": 1,
+     "power": 1.0,
      "kind": "whip"
     },
     {
      "name": "꽃잎댄스",
      "atk": 18,
-     "power": 1.4,
+     "power": 1.35,
      "kind": "leaf"
     },
     {
@@ -2422,7 +2451,8 @@
    "favoriteNumber": 9,
    "personality": "위풍당당",
    "story": "푸른숲 깊은 곳 빛의 제단에서 깨어난 거대한 꽃 포켓몬. 등의 큰 꽃에서 눈부신 빛줄기를 쏜다.",
-   "grade": 7
+   "grade": 7,
+   "shrine": true
   },
   {
    "id": "x02",
@@ -2431,26 +2461,26 @@
    "zone": "cave",
    "catchable": true,
    "mega": true,
-   "model": null,
-   "scale": 2.4,
+   "model": "메가롱스톤.glb",
+   "scale": 2.6,
    "draftShape": {
     "body": "drop",
     "color": "#8d97a3",
     "bubbles": 6
    },
-   "baseHp": 140,
-   "baseAtk": 28,
+   "baseHp": 185,
+   "baseAtk": 33,
    "skills": [
     {
      "name": "바위던지기",
      "atk": 1,
-     "power": 1,
+     "power": 1.0,
      "kind": "rock"
     },
     {
      "name": "지진",
      "atk": 18,
-     "power": 1.45,
+     "power": 1.35,
      "kind": "rock"
     },
     {
@@ -2464,7 +2494,8 @@
    "favoriteNumber": 9,
    "personality": "위풍당당",
    "story": "지하동굴 수정 광장에서 깨어난 강철빛 바위뱀. 몸이 번쩍이는 광석으로 덮여 있다.",
-   "grade": 7
+   "grade": 7,
+   "shrine": true
   },
   {
    "id": "x03",
@@ -2473,32 +2504,32 @@
    "zone": "volcano",
    "catchable": true,
    "mega": true,
-   "model": "메가리자몽.glb",
-   "scale": 2.2,
+   "model": "메가리자몽Y.glb",
+   "scale": 2.4,
    "draftShape": {
     "body": "drop",
     "color": "#ff6b1a",
     "bubbles": 6
    },
-   "baseHp": 135,
-   "baseAtk": 30,
+   "baseHp": 180,
+   "baseAtk": 38,
    "skills": [
     {
      "name": "불꽃",
      "atk": 1,
-     "power": 1,
+     "power": 1.0,
      "kind": "fire"
     },
     {
      "name": "불대문자",
      "atk": 18,
-     "power": 1.45,
+     "power": 1.35,
      "kind": "fire"
     },
     {
      "name": "블러스트번",
      "atk": 30,
-     "power": 1.75,
+     "power": 1.7,
      "kind": "fire"
     }
    ],
@@ -2506,7 +2537,8 @@
    "favoriteNumber": 9,
    "personality": "위풍당당",
    "story": "불의산 하늘 신전에 나타나는 푸른 불꽃의 리자몽. 날개를 펴면 화산도 작아 보인다.",
-   "grade": 7
+   "grade": 7,
+   "shrine": true
   },
   {
    "id": "x04",
@@ -2515,26 +2547,26 @@
    "zone": "sea",
    "catchable": true,
    "mega": true,
-   "model": "거북왕.glb",
-   "scale": 2.0,
+   "model": "메가거북왕.glb",
+   "scale": 2.2,
    "draftShape": {
     "body": "drop",
     "color": "#1c7ed6",
     "bubbles": 6
    },
-   "baseHp": 145,
-   "baseAtk": 26,
+   "baseHp": 190,
+   "baseAtk": 34,
    "skills": [
     {
      "name": "물대포",
      "atk": 1,
-     "power": 1,
+     "power": 1.0,
      "kind": "water"
     },
     {
      "name": "파도타기",
      "atk": 18,
-     "power": 1.4,
+     "power": 1.35,
      "kind": "water"
     },
     {
@@ -2549,7 +2581,8 @@
    "personality": "위풍당당",
    "story": "물의길 바다에서 솟아오른 산호 신전의 주인. 등의 거대한 대포로 바다를 가른다.",
    "grade": 7,
-   "swim": true
+   "swim": true,
+   "shrine": true
   },
   {
    "id": "x05",
@@ -2558,32 +2591,32 @@
    "zone": "space",
    "catchable": true,
    "mega": true,
-   "model": "고우스트.glb",
-   "scale": 2.3,
+   "model": "메가팬텀.glb",
+   "scale": 2.4,
    "draftShape": {
     "body": "drop",
     "color": "#7d5cff",
     "bubbles": 6
    },
-   "baseHp": 150,
-   "baseAtk": 32,
+   "baseHp": 200,
+   "baseAtk": 42,
    "skills": [
     {
      "name": "핥기",
      "atk": 1,
-     "power": 1,
+     "power": 1.0,
      "kind": "ghost"
     },
     {
      "name": "섀도볼",
      "atk": 18,
-     "power": 1.5,
+     "power": 1.35,
      "kind": "ghost"
     },
     {
      "name": "나이트헤드",
      "atk": 30,
-     "power": 1.75,
+     "power": 1.7,
      "kind": "ghost"
     }
    ],
@@ -2591,7 +2624,52 @@
    "favoriteNumber": 9,
    "personality": "장난꾸러기",
    "story": "꿈의우주 별의 문에서 나타나는 거대한 그림자 포켓몬. 별빛 사이를 미끄러지듯 오가며 장난을 친다. 그림자 속에 숨으면 아무도 못 찾는다.",
-   "grade": 7
+   "grade": 7,
+   "shrine": true
+  },
+  {
+   "id": "x06",
+   "name": "메가리자몽X",
+   "type": "불",
+   "zone": "space",
+   "catchable": true,
+   "mega": true,
+   "unlockedBy": "x05",
+   "model": "메가리자몽.glb",
+   "scale": 2.8,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#2E4A8C",
+    "flames": 10,
+    "glow": true
+   },
+   "baseHp": 230,
+   "baseAtk": 48,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "푸른불꽃",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "드래곤클로",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "블러스트번",
+     "atk": 35,
+     "power": 1.9,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 10,
+   "personality": "푸른 불꽃",
+   "story": "메가팬텀의 어둠을 이겨 낸 트레이너 앞에만 나타나는 푸른 불꽃의 리자몽. 별 사이를 날아다니며 우주에서 가장 뜨거운 불을 뿜어. 넘버랜드에서 가장 강한 포켓몬이야."
   }
  ]
 }
