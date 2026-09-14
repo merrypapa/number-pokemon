@@ -112,6 +112,51 @@ export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0
   return g;
 }
 
+/**
+ * 여러 다리를 한 번에 짓는다. 판자·기둥·난간을 종류마다 InstancedMesh 하나로 묶어
+ * 그리기 호출을 다리 개수와 상관없이 3번으로 줄인다 (다리가 많은 물의길·지하동굴에서 크게 빨라진다).
+ */
+export function buildBridges(list, obstacles, { plankColor = 0xb07a3c, railColor = 0x7a4d22 } = {}) {
+  const g = new THREE.Group();
+  const plankMat = new THREE.MeshStandardMaterial({ color: plankColor, roughness: 0.9 });
+  const railMat = new THREE.MeshStandardMaterial({ color: railColor, roughness: 0.9 });
+  const planks = [], posts = [], rails = [];
+  const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Object3D();
+  const facing = (x, y, z, tx, ty, tz) => { tmp.position.set(x, y, z); tmp.up.copy(up); tmp.lookAt(tx, ty, tz); return tmp.quaternion.clone(); };
+  for (const b of list) {
+    const len = Math.hypot(b.x2 - b.x1, b.z2 - b.z1);
+    const ang = Math.atan2(b.x2 - b.x1, b.z2 - b.z1);
+    const n = Math.max(6, Math.round(len / 0.9));
+    const nx = Math.cos(ang), nz = -Math.sin(ang);
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n, t2 = t + 0.01;
+      const x = b.x1 + (b.x2 - b.x1) * t, z = b.z1 + (b.z2 - b.z1) * t, y = bridgeDeckY(b, t) - 0.07;
+      planks.push({ x, y, z, sx: b.w * 2 + 0.2, sy: 0.14, sz: len / n - 0.06,
+        q: facing(x, y, z, b.x1 + (b.x2 - b.x1) * t2, bridgeDeckY(b, t2) - 0.07, b.z1 + (b.z2 - b.z1) * t2) });
+    }
+    for (const side of [-1, 1]) {
+      const px = nx * side * b.w, pz = nz * side * b.w;
+      const cnt = Math.max(3, Math.round(len / 2.4));
+      let prev = null;
+      for (let i = 0; i <= cnt; i++) {
+        const t = i / cnt;
+        const x = b.x1 + (b.x2 - b.x1) * t + px, z = b.z1 + (b.z2 - b.z1) * t + pz, y = bridgeDeckY(b, t);
+        posts.push({ x, y: y + 0.5, z });
+        if (prev) {
+          const mx = (x + prev.x) / 2, my = (y + prev.y) / 2 + 0.9, mz = (z + prev.z) / 2;
+          rails.push({ x: mx, y: my, z: mz, sz: Math.hypot(x - prev.x, z - prev.z, y - prev.y), q: facing(mx, my, mz, x, y + 0.9, z) });
+          obstacles.push({ ax: prev.x, az: prev.z, bx: x, bz: z, r: 0.12 });
+        }
+        prev = { x, y, z };
+      }
+    }
+  }
+  g.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), plankMat, planks, { shadow: true }));
+  g.add(makeInstanced(new THREE.BoxGeometry(0.16, 1.0, 0.16), railMat, posts));
+  g.add(makeInstanced(new THREE.BoxGeometry(0.1, 0.1, 1), railMat, rails));
+  return g;
+}
+
 // ---------- 활성 지형 (초원/동굴 등 지역이 바뀌면 main 이 교체) ----------
 // player/creatures/numberblocks 는 terrainHeight/inHole/isBlocked/resolveObstacles 만 쓰므로 지역이 바뀌어도 코드가 같다.
 //  - blocked(x,z): 물처럼 들어갈 수 없는 곳 (다리 위는 예외)
@@ -248,7 +293,7 @@ export function makeInstanced(geometry, material, items, { shadow = false } = {}
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
   let colored = false;
   items.forEach((it, i) => {
-    e.set(it.rx || 0, it.ry || 0, it.rz || 0); q.setFromEuler(e);
+    if (it.q) q.copy(it.q); else { e.set(it.rx || 0, it.ry || 0, it.rz || 0); q.setFromEuler(e); }
     p.set(it.x, it.y, it.z);
     sc.set(it.sx ?? it.s ?? 1, it.sy ?? it.s ?? 1, it.sz ?? it.s ?? 1);
     mesh.setMatrixAt(i, m.compose(p, q, sc));
@@ -433,7 +478,7 @@ export function buildWorld(scene) {
   }
   // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  for (const b of MEADOW_BRIDGES) scene.add(buildBridge(b, obstacles));
+  scene.add(buildBridges(MEADOW_BRIDGES, obstacles));
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = WORLD.village;

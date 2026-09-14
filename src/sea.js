@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { buildShip } from './boat.js';
 import { rand } from './util.js';
-import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
+import { buildGround, makeSignAt, buildBridges, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
 // 물의길 (240x240). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
 // 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 걸어서는 바다에 못 들어가고 다리로만 건너지만,
@@ -91,7 +91,7 @@ export function buildSea(scene) {
   water.rotation.x = -Math.PI / 2;
   water.position.y = SEA.waterY;
   scene.add(water);
-  for (const b of SEA_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0xc9955a, railColor: 0x8a5a2b }));
+  scene.add(buildBridges(SEA_BRIDGES.filter((b) => b !== SEA.dock), obstacles, { plankColor: 0xc9955a, railColor: 0x8a5a2b }));
 
   // 야자수 (장애물, 인스턴스), 바위, 조개, 파라솔
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0xa57c52 });
@@ -189,7 +189,7 @@ export function buildSea(scene) {
   // 도착 섬 동쪽에서 바다로 뻗은 나무 잔교. 끝에 배가 묶여 있고 옆에 뱃사공이 서 있다.
   const D = SEA.dock;
   const postMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2b });
-  scene.add(buildBridge(D, obstacles, { plankColor: 0xd9a55f, railColor: 0x8a5a2b })); // 잔교(걸어 다닐 수 있다)
+  scene.add(buildBridges([D], obstacles, { plankColor: 0xd9a55f, railColor: 0x8a5a2b })); // 잔교(걸어 다닐 수 있다)
   const dockEnd = { x: D.x2 - 1.2, z: D.z2 };
   const deckY = bridgeDeckY(D, 1);
   for (const dz of [-1.5, 1.5]) { // 잔교 끝 계선주

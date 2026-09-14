@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
-import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced } from './world.js';
+import { buildBridges, onBridge, bridgeParam, bridgeDeckY, makeInstanced } from './world.js';
 
 // 괴물 동굴 (80x80). 초원의 큰 구멍에 빠지거나 동굴 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
@@ -111,7 +111,7 @@ export function buildCave(scene) {
     scene.add(pool);
     if (poolLights.length < 2) { const l = new THREE.PointLight(0x5fffc8, 2.5, 12); l.position.set(P.x, 1, P.z); scene.add(l); poolLights.push(l); }
   }
-  for (const b of CAVE_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0x6e5a45, railColor: 0x4a3b2c }));
+  scene.add(buildBridges(CAVE_BRIDGES, obstacles, { plankColor: 0x6e5a45, railColor: 0x4a3b2c }));
 
   // 바깥 벽(큰 바위 원뿔 링)과 안쪽 바위 기둥: 인스턴스로 한 번에 그린다
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5261, roughness: 1 });
