@@ -6,7 +6,7 @@ import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
-import { strongAgainst, weakTo } from './types.js';
+import { strongAgainst, weakTo, skillIcon } from './types.js';
 import { portrait } from './portrait.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { evolveZoneOf } from './types.js';
@@ -709,7 +709,7 @@ function renderStarter() {
       ${t ? `<img src="${t.color}" alt="">` : ''}
       <div class="starter-name">${sp.name}</div>
       <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${sp.starterHp ?? sp.baseHp} · ⚔ 공격 ${sp.starterAtk ?? sp.baseAtk}</div>
-      <div class="starter-skill">기술: ${first ? first.name : '-'}${sp.skills?.[1] ? ` → ${sp.skills[1].name}` : ''}</div>`;
+      <div class="starter-skill">기술: ${first ? `${skillIcon(first)} ${first.name}` : '-'}${sp.skills?.[1] ? ` → ${skillIcon(sp.skills[1])} ${sp.skills[1].name}` : ''}</div>`;
     item.onclick = () => chooseStarter(sp.id);
     starterGrid.appendChild(item);
   }

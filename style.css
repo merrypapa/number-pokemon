@@ -77,16 +77,20 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #battle-hp.lots .hp-cube { width: 11px; height: 11px; border-radius: 2px; border-width: 1px; }
 #battle-mine-hp .hp-cube { width: 16px; height: 16px; border-radius: 4px; }
 #battle-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-#battle-skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; flex: 1; }
-#battle-skills .skill { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; padding: 9px 14px; border-radius: 14px; border: 3px solid transparent; background: #ffd93d; box-shadow: 0 3px 0 #c99400; cursor: pointer; font-weight: 900; color: #20232e; }
+#battle-controls > button { flex: 0 0 auto; }
+/* 기술 버튼: 한 줄을 통째로 쓰고, 칸이 좁으면 저절로 1열이 된다. 이름은 두 줄까지 접히고 글자 하나씩 세로로 쪼개지지 않는다 */
+#battle-skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; flex: 1 1 100%; width: 100%; }
+#battle-skills .skill { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 3px; min-width: 0; padding: 8px 10px; border-radius: 14px; border: 3px solid transparent; background: #ffd93d; box-shadow: 0 3px 0 #c99400; cursor: pointer; font-weight: 900; color: #20232e; text-align: center; font-family: inherit; }
 #battle-skills .skill.sel { border-color: #20232e; }
 #battle-skills .skill:active { transform: translateY(2px); box-shadow: none; }
 #battle-skills .skill:disabled { opacity: .5; cursor: default; }
 #battle-skills .skill.locked { background: #e9e9e9; box-shadow: 0 3px 0 #bbb; opacity: .75; color: #888; }
 #battle-skills .skill.locked .skill-dmg { background: #bbb; }
-#battle-skills .skill-name { font-size: 15px; }
-#battle-skills .skill-dmg { font-size: 13px; color: #fff; background: #e8453c; border-radius: 999px; padding: 1px 8px; white-space: nowrap; flex-shrink: 0; }
-#battle-skills .skill-name { min-width: 0; text-align: left; }
+#battle-skills .skill-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 5px; min-width: 0; max-width: 100%; }
+#battle-skills .skill-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+#battle-skills .skill-name { font-size: 15px; line-height: 1.2; word-break: keep-all; } /* keep-all: 이름이 좁으면 통째로 아랫줄로 내려가고 글자 하나씩 쪼개지지 않는다 */
+#battle-skills .skill-dmg { font-size: 13px; color: #fff; background: #e8453c; border-radius: 999px; padding: 1px 9px; white-space: nowrap; flex-shrink: 0; }
+#battle-skills .skill-name { min-width: 0; text-align: center; }
 #battle-skills .skill.locked .skill-dmg { color: #777; }
 #battle-controls > button { font-size: 18px; font-weight: 900; padding: 12px 16px; border-radius: 14px; border: 0; cursor: pointer; box-shadow: 0 3px 0 #ccc; background: #fff; color: #333; }
 #battle-controls > button:active { transform: translateY(2px); box-shadow: none; }
@@ -99,6 +103,18 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
   #battle { left: 8px; right: 8px; width: auto; bottom: 8px; }
   #battle-mine { left: 8px; bottom: calc(var(--battle-h, 170px) + 16px); width: min(62vw, 260px); }
   #battle-tag { width: 180px; } #battle-tag .tag-bar { width: 160px; }
+  #battle-skills { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 6px; }
+  #battle-skills .skill { padding: 7px 8px; }
+  #battle-skills .skill-name { font-size: 14px; }
+  #battle-skills .skill-icon { font-size: 18px; }
+  #battle-controls > button { font-size: 16px; padding: 10px 14px; }
+}
+@media (max-width: 400px) { /* 아주 좁은 휴대폰: 가장 긴 기술 이름(7글자)도 한 줄에 들어가게 */
+  #battle-skills { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+  #battle-skills .skill-top { gap: 4px; }
+  #battle-skills .skill-icon { font-size: 16px; }
+  #battle-skills .skill-name { font-size: 13px; }
+  #battle-skills .skill-dmg { font-size: 12px; }
 }
 @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.07); } }
 
@@ -496,6 +512,7 @@ body.battle #btn-code, body.intro #btn-code { display: none !important; }
 .view-star:not(.on):active { transform: scale(.9); }
 .skill-chip { display: inline-block; background: #fff; border: 2px solid #ffd93d; border-radius: 999px; padding: 2px 10px; margin: 2px 4px 2px 0; font-size: 13px; font-weight: 900; color: #333; }
 .skill-chip small { color: #c0392b; font-weight: 800; }
+.skill-chip { white-space: nowrap; }
 .skill-chip.locked { background: #eee; border-color: #ddd; color: #999; }
 .skill-chip.locked small { color: #aaa; }
 .detail-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }

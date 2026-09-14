@@ -3,6 +3,7 @@ import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls
 import { buildDraftMesh } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
+import { skillIcon } from './types.js';
 
 // 몬스터 도감 + 내 포켓몬.
 //  - 위: "내 포켓몬" 칩(잡은 포켓몬 한 줄) + 선택한 포켓몬 한 마리의 상세 카드 (스탯·기술·진화, 내 포켓몬이면 키우기/대표/진화 버튼).
@@ -287,7 +288,7 @@ export class Dex {
     const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
     const skills = (sp.skills || []).map((s) => {
       const locked = rep0 ? rep0.atk < s.atk : false;
-      return locked ? `<span class="skill-chip locked">🔒 ${s.name} <small>공격 ${s.atk}</small></span>` : `<span class="skill-chip">${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
+      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name} <small>🔒 공격 ${s.atk}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
     }).join('');
     const evoZone = evo ? (this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || '') : '';
     const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;

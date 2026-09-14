@@ -26,3 +26,12 @@ export function effectWord(mult) { return mult > 1 ? '효과가 굉장했다!' :
 // 진화는 그 속성의 고향 지역에서만 할 수 있다 (파이리는 불의산, 꼬부기는 물의길 …)
 export const EVOLVE_ZONE = { '풀': 'forest', '노말': 'forest', '벌레': 'forest', '격투': 'forest', '땅': 'cave', '바위': 'cave', '독': 'cave', '물': 'sea', '불': 'volcano', '전기': 'space', '에스퍼': 'space', '고스트': 'space', '페어리': 'space' };
 export function evolveZoneOf(type) { return EVOLVE_ZONE[type] || 'forest'; }
+
+// 기술 종류(kind)별 그림 이모지. 대결 버튼과 도감 기술 칩에 붙어서 아이가 기술을 그림으로 기억한다.
+export const SKILL_ICON = {
+  whip: '🌿', leaf: '🍃', bolt: '⚡', bug: '🐛', peck: '🐦', tackle: '💥', scratch: '🐾',
+  punch: '👊', rock: '🪨', wind: '🌀', poison: '🧪', fire: '🔥', bone: '🦴', water: '💧',
+  sing: '🎵', psychic: '🔮', ghost: '👻',
+};
+/** 기술에 어울리는 이모지 (모르는 종류는 별) */
+export function skillIcon(skill) { return SKILL_ICON[skill?.kind] || '✨'; }

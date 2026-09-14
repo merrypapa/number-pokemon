@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
-import { effectiveness, effectWord } from './types.js';
+import { effectiveness, effectWord, skillIcon } from './types.js';
 import { tickModel } from './models.js';
 import { strongAgainst, weakTo } from './types.js';
 import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
@@ -285,7 +285,7 @@ export class Battle {
     unlocked.forEach((s, i) => {
       const b = document.createElement('button');
       b.className = 'skill' + (i === this.sel ? ' sel' : '');
-      b.innerHTML = `<span class="skill-name">${s.name}</span><span class="skill-dmg">${this.party.damage(m, s)}</span>`;
+      b.innerHTML = `<span class="skill-top"><span class="skill-icon">${skillIcon(s)}</span><span class="skill-name">${s.name}</span></span><span class="skill-dmg">⚔ ${this.party.damage(m, s)}</span>`;
       b.disabled = !choosing;
       b.onclick = () => { this.sel = i; this.useSkill(i); };
       this.skillsEl.appendChild(b);
@@ -293,7 +293,7 @@ export class Battle {
     for (const s of (this.party.species(m).skills || []).filter((s) => m.atk < s.atk)) { // 아직 못 쓰는 기술은 회색으로
       const b = document.createElement('button');
       b.className = 'skill locked';
-      b.innerHTML = `<span class="skill-name">🔒 ${s.name}</span><span class="skill-dmg">공격 ${s.atk}</span>`;
+      b.innerHTML = `<span class="skill-top"><span class="skill-icon">${skillIcon(s)}</span><span class="skill-name">${s.name}</span></span><span class="skill-dmg">🔒 공격 ${s.atk}</span>`;
       b.disabled = true;
       this.skillsEl.appendChild(b);
     }
@@ -337,7 +337,7 @@ export class Battle {
     const myType = sp.type || '노말', enemyType = c.type || '노말';
     const atkMult = effectiveness(myType, enemyType), defMult = effectiveness(enemyType, myType);
     const word = (m) => (m > 1 ? '<b class="good">굉장해! ×1.5</b>' : m < 1 ? '<b class="bad">별로… ×0.5</b>' : '보통');
-    const skills = this.party.skills(x).map((s) => `${s.name} <small>-${this.party.damage(x, s)}</small>`).join(' · ');
+    const skills = this.party.skills(x).map((s) => `${skillIcon(s)} ${s.name} <small>-${this.party.damage(x, s)}</small>`).join(' · ');
     this.switchInfoEl.innerHTML = `
       <div class="sw-name">${sp.name} <span class="party-type">${myType}</span></div>
       <div class="sw-stat"><span class="hp">❤ ${x.hp}/${x.maxHp}</span> <span class="atk">⚔ ${x.atk}</span></div>
@@ -571,7 +571,7 @@ export class Battle {
   showInfo() {
     const d = this.creature.data;
     const strong = strongAgainst(d.type || '노말'), weak = weakTo(d.type || '노말');
-    const skills = (d.skills || []).map((s) => `<span>${s.name} <small>(공격 ${s.atk}↑ ×${s.power})</small></span>`).join('');
+    const skills = (d.skills || []).map((s) => `<span>${skillIcon(s)} ${s.name} <small>(공격 ${s.atk}↑ ×${s.power})</small></span>`).join('');
     const evo = d.evolution ? `<div class="row">✨ 진화: 공격 ${d.evolution.atk} · 체력 ${d.evolution.hp} · ${d.evolution.wins ? `대표로 ${d.evolution.wins}번 이기면` : `지역 보스 ${d.evolution.boss}명 이기면`} → <b>${this.speciesName?.(d.evolution.to) || '?'}</b></div>` : '';
     const img = this.thumb ? this.thumb(d) : null;
     this.infoBodyEl.innerHTML = `
