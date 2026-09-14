@@ -745,10 +745,12 @@ export function buildWorld(scene) {
     for (let i = 0; i < 46; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(st.x - 42 + i * 1.5, y0 + 0.05, st.z); decor.add(tie); }
     const plat = new THREE.Mesh(new THREE.BoxGeometry(16, 0.2, 4), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
     plat.position.set(st.x, y0 + 0.1, st.z + 3.6);
+    plat.userData.noHide = true; // 바닥은 숨기지 않는다
     decor.add(plat);
     const roof = new THREE.Mesh(new THREE.BoxGeometry(16, 0.25, 4.4), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 }));
     roof.position.set(st.x, y0 + 3.4, st.z + 3.6);
     roof.castShadow = true;
+    roof.userData.radius = 9;   // 넓은 지붕이라 끝에 서도 시야를 가리면 잠시 숨는다
     decor.add(roof);
     const sign = makePillSprite('🚂 기차역', { bg: '#1f3a93', fg: '#ffffff', border: '#9fe8ff' }, 2.4); // 불의산 입구처럼 멀리서 보이는 둥근 표지판
     sign.position.set(st.x, y0 + 5.4, st.z + 3.6);

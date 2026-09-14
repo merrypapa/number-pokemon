@@ -616,7 +616,7 @@ let parked = null, goingHome = null;     // parked: 배가 뭍에 대어 기다�
 const PARK_WAIT = 100;                   // 뭍에 댄 배가 기다려 주는 시간(초)
 function boatHere() { return zone.world.boat || null; }
 function sailorNpc() { return (zone.world.npcs || []).find((n) => n.sails) || null; }
-/** 배 위에서 루피가 서는 자리 (뱃머리 반대쪽 갑판, 조타륜 옆) */
+/** 배 위에서 루피가 서는 자리 (조타륜 옆). 뱃머리(가는 방향)를 바라본다 */
 function placeSailorOnBoat() {
   const b = boatHere(), npc = sailorNpc();
   if (!b || !npc) return;
@@ -624,7 +624,7 @@ function placeSailorOnBoat() {
   const c = Math.cos(yaw), sn = Math.sin(yaw);
   const x = b.mesh.position.x + c * ox + sn * oz, z = b.mesh.position.z - sn * ox + c * oz;
   npc.mesh.position.set(x, b.mesh.position.y + (b.deckY ?? 0.5), z);
-  npc.mesh.rotation.y = yaw - Math.PI / 2;
+  npc.mesh.rotation.y = yaw + Math.PI / 2; // 뱃머리는 배의 +x 쪽
   npc.x = x; npc.z = z;                            // 배 위에서도 말을 걸 수 있게 위치를 따라 옮긴다
 }
 function boardBoat() {
@@ -742,9 +742,12 @@ function dockLanding() {
   const d = zone.world.dock;
   return d ? { x: +(d.x - 1.5).toFixed(1), z: +d.z.toFixed(1) } : { x: +zone.world.spawn.x.toFixed(1), z: +zone.world.spawn.z.toFixed(1) };
 }
+/** 이 탈것을 태워 주는 안내원 (기차는 리리, 로켓은 코리) */
+function rideNpc(v) { return (zone.world.npcs || []).find((n) => n.boards === v.kind) || null; }
 function startRide(v) {
   if (ride || switching) return;
-  ride = { v, t: 0, from: zone.name, switched: false, puff: 0 };
+  const npc = rideNpc(v);
+  ride = { v, t: 0, from: zone.name, switched: false, puff: 0, npc, npcHome: npc ? { x: npc.x, z: npc.z, y: npc.mesh.position.y, rot: npc.mesh.rotation.y } : null };
   for (const m of partyMeshes()) m.visible = false;
   if (v.flame) v.flame.visible = true;
   sound.portal();
@@ -765,6 +768,12 @@ function updateRide(dt) {
     r.puff -= dt;
     if (r.puff <= 0 && here) { r.puff = 0.06; particles.stars(zone.scene, v.base.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.5, rand(-1.5, 1.5))), 3, 0xffb347, 0.7); }
   }
+  if (here && r.npc) { // 안내원도 함께 타고 간다 (기차 옆자리 / 로켓 안)
+    const n = r.npc;
+    n.mesh.position.set(m.position.x + (v.kind === 'train' ? -1.6 : 0), m.position.y + (v.kind === 'train' ? 1.1 : 1.6), m.position.z + (v.kind === 'train' ? 0.9 : 0));
+    n.mesh.rotation.y = v.kind === 'train' ? (v.dir || -1) > 0 ? Math.PI / 2 : -Math.PI / 2 : 0;
+    n.x = n.mesh.position.x; n.z = n.mesh.position.z;
+  }
   if (here) {
     const target = m.position.clone().add(camOffset());
     camera.position.lerp(target, 0.15);
@@ -779,6 +788,11 @@ function updateRide(dt) {
   if (r.t > 3.3) {
     m.position.copy(v.base);
     m.rotation.z = 0;
+    if (r.npc && r.npcHome) { // 안내원은 제 자리(플랫폼)로 돌아와 다음 손님을 기다린다
+      const h = r.npcHome;
+      r.npc.mesh.position.set(h.x, h.y, h.z); r.npc.mesh.rotation.y = h.rot;
+      r.npc.x = h.x; r.npc.z = h.z;
+    }
     if (v.flame) v.flame.visible = false;
     for (const o of partyMeshes()) o.visible = true;
     ride = null;
@@ -1338,7 +1352,7 @@ function frame() {
           onCaught: () => {
             const L = battle.member; // 대결 중 교체했을 수 있다
             c.becomeFriend();
-            const already = party.members.find((m) => m.speciesId === c.data.id); // 같은 종은 파티에 한 마리만. 또 잡으면 누적 수만 오른다 (진화 조건)
+            const already = party.members.find((m) => m.speciesId === c.data.id || party.name(m) === c.data.name); // 같은 포켓몬은 파티에 한 마리만 (보스로 만난 이상해꽃 = 진화한 이상해꽃). 또 잡으면 보상과 누적 수만 오른다
             const member = already || party.add(c.data.id, c.mesh);
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지
@@ -1366,7 +1380,7 @@ function frame() {
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
               const winNote = party.canEvolve(L) ? ` ${party.name(L)}이(가) 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
-              if (already) say(`${sp.name}을(를) 또 잡았어! 누적 ${cnt}마리. 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+              if (already) say(`${sp.name}은(는) 이미 내 친구야! 이긴 보상으로 블록 ${reward}개 획득! (누적 ${cnt}마리)${winNote}`, { sec: 6 });
               else say(`${c.data.name}이(가) 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
             }
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
