@@ -17,13 +17,15 @@ const MAP_REGIONS = [
   { id: 'volcano', x: 83, y: 15, rx: 14, ry: 8.5, icon: '🌋', fill: '#c0533a', desc: '용암이 끓는 화산. 불 포켓몬이 산다. 큰 화산 꼭대기에 보스가 있어.', how: '푸른숲 동북쪽 붉은 바위 아치로 들어간다. 포탈로 돌아온다.' },
   { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어. 동쪽 선착장에서 배를 타면 먼바다로 나가 헤엄치는 포켓몬(잉어킹·셀러·크랩·독파리, 아주 먼바다엔 라프라스)을 만난다.', how: '푸른숲 서쪽 기차역에서 기차 타기 버튼을 누른다. 돌아올 때도 그곳 기차역에서 탄다. 바다는 도착 섬 동쪽 선착장에서 배 타기.' },
   { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓 타기 버튼을 누른다. 돌아올 때도 착륙장의 로켓을 탄다.' },
+  { id: 'deepsea', x: 16, y: 64, rx: 13, ry: 7.5, icon: '🫧', fill: '#0b3a5c', desc: '물의길 먼바다의 소용돌이 아래에 있는 깊은 바다. 다시마 숲과 산호, 가라앉은 배가 있고 저 위로 수면이 보인다. 물속이라 몸이 가벼워 아주 높이 뛴다. 남쪽 해구에 보스 갸라도스가 산다.', how: '물의길을 정복한 뒤, 루피의 배를 타고 서쪽 먼바다의 소용돌이로 들어간다. 북쪽 상승 해류를 타면 선착장으로 돌아온다.' },
 ];
 
 export class Dex {
-  constructor(species, zoneNames = {}) {
+  constructor(species, zoneNames = {}, zoneRoster = {}) {
     this.species = species;
     this.byId = Object.fromEntries(species.map((s) => [s.id, s]));
     this.zoneName = { ...DEFAULT_ZONE_NAME, ...zoneNames };
+    this.zoneRoster = zoneRoster; // { 지역: [종 id] } — 다른 지역의 종을 데려다 쓰는 지역 (심해)
     this.el = document.getElementById('dex');
     this.grid = document.getElementById('dex-grid');
     this.partyEl = document.getElementById('dex-party');
@@ -150,21 +152,24 @@ export class Dex {
     const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
     const curve = (a, b, cls, lift = 6) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - lift} ${B.x},${B.y}"/>`; };
     // 배경: 양피지 + 바다 + 잔물결
-    let svg = `<svg viewBox="-5 -5 110 72" preserveAspectRatio="xMidYMid meet">
+    let svg = `<svg viewBox="-5 -5 110 86" preserveAspectRatio="xMidYMid meet">
       <defs>
         <radialGradient id="gSea" cx="30%" cy="55%" r="70%"><stop offset="0" stop-color="#7fd4f5"/><stop offset="1" stop-color="#3a9fd6"/></radialGradient>
+        <radialGradient id="gDeep" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#14567f"/><stop offset="1" stop-color="#062a40"/></radialGradient>
         <linearGradient id="gLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b7e07f"/><stop offset="1" stop-color="#7ccf5a"/></linearGradient>
         <linearGradient id="gRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3b3"/><stop offset="1" stop-color="#4b5261"/></linearGradient>
         <linearGradient id="gLava" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e06b3a"/><stop offset="1" stop-color="#8a2f1a"/></linearGradient>
         <radialGradient id="gSpace" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#6a4ca8"/><stop offset="1" stop-color="#1b1236"/></radialGradient>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.8" flood-color="#20232e" flood-opacity=".35"/></filter>
       </defs>
-      <rect x="-5" y="-5" width="110" height="72" fill="url(#gSea)"/>
-      ${[8, 20, 32, 44, 56].map((y) => `<path class="wave" d="M-5,${y} q4,-1.5 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0"/>`).join('')}
+      <rect x="-5" y="-5" width="110" height="86" fill="url(#gSea)"/>
+      ${[8, 20, 32, 44, 56, 68, 78].map((y) => `<path class="wave" d="M-5,${y} q4,-1.5 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0"/>`).join('')}
       <!-- 큰 섬(육지): 푸른숲 + 동굴 산 + 화산 + 우주 착륙지 -->
       <path class="land" d="M28,58 C18,50 20,34 34,26 C36,14 46,6 58,8 C66,2 80,2 92,8 C104,12 104,26 98,34 C104,44 100,58 88,62 C76,66 60,66 48,63 C40,64 32,64 28,58 Z" fill="url(#gLand)"/>
       <!-- 흙길 / 철길 / 항로 -->
       ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}
+      <!-- 물의길 → 심해: 소용돌이로 내려가는 길 (지역 그림·이름표에 가리지 않게 왼쪽으로 비껴 그린다) -->
+      <path class="dive" d="M${R.sea.x - R.sea.rx + 1},${R.sea.y + R.sea.ry - 2} Q${R.sea.x - R.sea.rx - 4},${(R.sea.y + R.deepsea.y) / 2} ${R.deepsea.x - R.deepsea.rx + 1},${R.deepsea.y - R.deepsea.ry + 2}"/>
       <!-- 기차 -->
       <g transform="translate(31,40)"><rect x="-3" y="-1.6" width="6" height="3.2" rx=".6" fill="#e8453c"/><rect x="-3" y="-2.6" width="2.4" height="1.2" fill="#e8453c"/><circle cx="-1.6" cy="1.9" r=".7" fill="#20232e"/><circle cx="1.6" cy="1.9" r=".7" fill="#20232e"/></g>`;
     // 지역 그림
@@ -187,6 +192,10 @@ export class Dex {
         ${[[-9, -3], [-4, 4], [2, -5], [8, 2], [10, -3], [5, 5], [-7, 3]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".5" fill="#fff"/>`).join('')}
         <circle cx="-6" cy="1" r="2.2" fill="#c9b8ff"/><ellipse cx="-6" cy="1" rx="3.6" ry=".8" fill="none" stroke="#e6dcff" stroke-width=".4" transform="rotate(-20 -6 1)"/>
         <g transform="translate(3,0) rotate(-30)"><rect x="-1.1" y="-3" width="2.2" height="5" rx="1" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><path d="M-1.1,-2 L0,-4.2 L1.1,-2 Z" fill="#e8453c"/><circle cx="0" cy="-1" r=".55" fill="#66e0ff"/><path d="M-.8,2 L0,4 L.8,2 Z" fill="#ffb347"/></g>`,
+      deepsea: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="url(#gDeep)"/>
+        ${[[-10, 3], [-5, 4], [4, 4], [9, 2], [-7, -1], [7, -2]].map(([x, y]) => `<path d="M${x},${y} q-1.6,-2.6 0,-4.6 q1.6,2 0,4.6" fill="#2f7d4a"/>`).join('')}
+        ${[[-8, -4, .7], [-2, -5.2, .55], [5, -4.4, .6], [10, -2, .45], [-11, -1, .45]].map(([x, y, rr]) => `<circle cx="${x}" cy="${y}" r="${rr}" fill="#cdf3ff" opacity=".85"/>`).join('')}
+        <g transform="translate(1,-1.4)"><path d="M-2,0 a2,1.8 0 0 1 4,0 z" fill="#8bd8ff"/><path d="M-1.2,.2 v2.2 M0,.2 v2.8 M1.2,.2 v2.2" stroke="#8bd8ff" stroke-width=".3"/></g>`,
     };
     for (const r of MAP_REGIONS) {
       const done = !!conquered[r.id];
@@ -199,7 +208,7 @@ export class Dex {
         ${here === r.id ? `<g class="pin" transform="translate(0,${-r.ry - 2})"><path d="M0,0 L-2.4,-4 A2.6,2.6 0 1 1 2.4,-4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-4.6" r="1" fill="#fff"/></g>` : ''}
       </g>`;
     }
-    svg += `<g class="legend" transform="translate(-3,63)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
+    svg += `<g class="legend" transform="translate(40,77)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
       <circle cx="3.2" cy="-.3" r="1.8" fill="#ffd93d" stroke="#20232e" stroke-width=".25"/><text x="6" y=".9">정복한 곳</text>
       <circle cx="24" cy="-.3" r="1.8" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><text x="26.8" y=".9">아직 정복 전</text></g>`;
     svg += '</svg>';
@@ -208,7 +217,9 @@ export class Dex {
     // 지역 상세 (◀ ▶ 로 넘겨 본다)
     const r = R[this.mapSel];
     document.getElementById('map-pos').textContent = `${MAP_REGIONS.findIndex((m) => m.id === r.id) + 1} / ${MAP_REGIONS.length} · ${this.zoneName[r.id]}`;
-    const list = this.species.filter((sp) => sp.zone === r.id);
+    // 그 지역에 사는 종 + (심해처럼) 다른 지역에서 종을 데려다 쓰는 지역이면 그 목록도 함께
+    const roster = this.zoneRoster[r.id] || [];
+    const list = [...this.species.filter((sp) => sp.zone === r.id), ...roster.map((id) => this.byId[id]).filter((sp) => sp && sp.zone !== r.id)];
     const known = list.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
     const done = !!conquered[r.id];
     let html = `<div class="map-title">${r.icon} ${this.zoneName[r.id]} <span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>${here === r.id ? '<span class="badge">지금 여기</span>' : ''}</div>

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { buildShip } from './boat.js';
 import { rand } from './util.js';
-import { buildGround, makeSignAt, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
+import { buildGround, makeSignAt, makePillSprite, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
 // 물의길 (240x240). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
 // 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 걸어서는 바다에 못 들어가고 다리로만 건너지만,
@@ -23,6 +23,7 @@ export const SEA = {
   spawn: { x: 0, z: 62 },
   dock: { x1: 12, z1: 70, x2: 29, z2: 70, w: 1.7, rise: 0 }, // 선착장: 기차역에서 조금 걸어가는 섬 북동쪽 물가에서 바다로 뻗은 잔교
   lighthouse: { x: 86, z: 26 },      // 먼바다 등대 바위
+  whirl: { x: -66, z: 10, r: 6 },    // 서쪽 먼바다의 소용돌이: 배를 타고 들어가면 심해로 내려간다 (거북왕을 이긴 뒤부터)
 };
 /** 배를 탄 채 갈 수 있는 곳: 물 위이고 맵 안. (섬·다리 위는 배가 못 간다) */
 export function seaSailable(x, z) {
@@ -199,7 +200,7 @@ export function buildSea(scene) {
     bol.position.set(D.x2 - 0.5, deckY + 0.5, D.z2 + dz);
     decor.add(bol);
   }
-  decor.add(makeSignAt(D.x1 - 2.5, seaHeight(D.x1 - 2.5, D.z1 + 2.8), D.z1 + 2.8, '선착장 · 배를 타고 먼바다로', { bg: '#1f3a93', fg: '#ffffff' }));
+  decor.add(makeSignAt('선착장 · 배를 타고 먼바다로', D.x1 - 2.5, seaHeight(D.x1 - 2.5, D.z1 + 2.8), D.z1 + 2.8, 0, { bg: '#1f3a93', fg: '#ffffff' }));
   // 배: 돛 두 개와 양 머리 장식이 달린 모험선 (src/boat.js). 탈 때는 주인공이 갑판 위에 선다
   const ship = buildShip();
   const boat = ship.group;
@@ -233,7 +234,7 @@ export function buildSea(scene) {
   const reefItems = [];
   for (let i = 0; i < 70; i++) {
     const x = rand(-110, 110), z = rand(-110, 110);
-    if (!seaSailable(x, z)) continue;
+    if (!seaSailable(x, z) || Math.hypot(x - SEA.whirl.x, z - SEA.whirl.z) < SEA.whirl.r + 4) continue; // 소용돌이 둘레는 비워 둔다
     const r = rand(0.5, 1.6);
     reefItems.push({ x, y: SEA.waterY - r * 0.35, z, s: r, rx: rand(0, 3), ry: rand(0, 3) });
   }
@@ -253,6 +254,54 @@ export function buildSea(scene) {
     decor.add(rock, tower, band, lampG, roof);
     obstacles.push({ x: L.x, z: L.z, r: 4.2 });
   }
+  // ---------- 소용돌이: 배를 타고 들어가면 심해로 빨려 내려간다 ----------
+  // 물의길을 정복(보스 거북왕)해야 열린다. 그 전에는 돌기만 하고 빨아들이지 않는다 (main.js 가 판단).
+  const W = SEA.whirl;
+  const whirl = new THREE.Group();
+  whirl.position.set(W.x, SEA.waterY, W.z);
+  scene.add(whirl);
+  const funnel = new THREE.Mesh( // 물이 꺼져 들어간 깔때기 (안쪽이 보이게 양면)
+    new THREE.CylinderGeometry(W.r * 0.85, 1.1, 1.0, 28, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x14618c, transparent: true, opacity: 0.9, side: THREE.DoubleSide, roughness: 0.2 }),
+  );
+  funnel.position.y = -0.48;
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(1.15, 24), new THREE.MeshBasicMaterial({ color: 0x062a40 }));
+  hole.rotation.x = -Math.PI / 2;
+  hole.position.y = -0.96;
+  whirl.add(funnel, hole);
+  const whirlRings = [];
+  for (let i = 0; i < 3; i++) { // 흰 물거품 고리가 서로 다른 속도로 돈다
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(W.r - i * 1.6, 0.3 - i * 0.07, 8, 40),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, roughness: 0.4 }),
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.06 - i * 0.28;
+    whirl.add(ring);
+    whirlRings.push({ ring, speed: 1.1 + i * 0.8 });
+  }
+  const foam = []; // 빨려 들어가며 도는 하얀 물보라
+  for (let i = 0; i < 14; i++) {
+    const f = new THREE.Mesh(new THREE.SphereGeometry(rand(0.16, 0.34), 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+    whirl.add(f);
+    foam.push({ mesh: f, a: (i / 14) * Math.PI * 2, r: rand(1.6, W.r), speed: rand(0.9, 1.7) });
+  }
+  const whirlTag = makePillSprite('🌀 소용돌이', { bg: '#062a40', fg: '#ffffff', border: '#7fe3ff' }, 1.2);
+  whirlTag.position.y = 4.2;
+  whirl.add(whirlTag);
+  for (let i = 0; i < 4; i++) { // 멀리서도 보이도록 둘레에 부표 넷
+    const a = (i / 4) * Math.PI * 2 + 0.4;
+    const bx = W.x + Math.cos(a) * (W.r + 4), bz = W.z + Math.sin(a) * (W.r + 4);
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.6, 1.4, 10), buoyBody); b.position.y = 0.5;
+    const t2 = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), buoyTop); t2.position.y = 1.4;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), postMat); pole.position.y = 1.0;
+    g.add(b, pole, t2);
+    g.position.set(bx, SEA.waterY, bz);
+    decor.add(g);
+    bobbers.push({ mesh: g, base: SEA.waterY, t: rand(0, 10), amp: 0.3 });
+  }
+
   for (const [bx, bz] of [[30, 70], [56, -40], [-30, 66], [-70, -50], [78, 6], [8, -96]]) { // 떠 있는 나무통
     if (!seaSailable(bx, bz)) continue;
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.1, 12), postMat);
@@ -290,6 +339,17 @@ export function buildSea(scene) {
       b.mesh.position.y = b.base + Math.sin(t * 1.5 + b.t) * b.amp;
       b.mesh.rotation.z = (b.mesh.geometry?.type === 'CylinderGeometry' ? Math.PI / 2 : 0) + Math.sin(t * 1.1 + b.t) * 0.08;
     }
+    // 소용돌이: 고리와 물보라가 빙글빙글 돌며 가운데로 빨려 들어간다
+    whirl.position.y = SEA.waterY + Math.sin(t * 1.2) * 0.06;
+    for (const r of whirlRings) r.ring.rotation.z = t * r.speed;
+    for (const f of foam) {
+      const a = f.a - t * f.speed;
+      const u = (t * 0.35 + f.a) % 1;              // 바깥에서 가운데로 빨려 들어갔다 다시 바깥에서
+      const rr = 1.2 + (f.r - 1.2) * (1 - u);
+      f.mesh.position.set(Math.cos(a) * rr, -0.1 - (1 - u) * 0.1 - u * 0.7, Math.sin(a) * rr);
+      f.mesh.material.opacity = 0.85 * (1 - u * 0.8);
+    }
+    whirlTag.position.y = 4.2 + Math.sin(t * 1.4) * 0.25;
     ship.animate(t, !!boat.userData.sailing); // 돛·깃발이 바람에 물결친다
     if (!boat.userData.sailing) { // 묶여 있는 동안에도 물결에 흔들린다
       boat.position.y = SEA.waterY + Math.sin(t * 1.4) * 0.12;
@@ -310,6 +370,8 @@ export function buildSea(scene) {
     sun, animate, terrain: SEA_TERRAIN, decor, spawn: SEA.spawn, dark: false,
     waterY: SEA.waterY,
     sailable: seaSailable,
+    dive: { x: SEA.whirl.x, z: SEA.whirl.z, r: SEA.whirl.r - 1.5 },    // 배로 여기 들어가면 심해로 내려간다
+    arrivals: { deepsea: { x: 24, z: SEA.dock.z2 } },                  // 심해에서 해류를 타고 올라오면 잔교 위에 선다
     dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
     sailorHome: { x: sailorAt.x, y: deckY, z: sailorAt.z },            // 배에서 내리면 루피가 돌아가 서는 자리
     boat: { mesh: boat, base: boatBase, deckY: ship.deckY },           // 빌려 타는 배 (갑판 높이)
@@ -319,6 +381,9 @@ export function buildSea(scene) {
       '바다에는 헤엄치는 포켓몬이 살아. 잉어킹·셀러·크랩·독파리… 아주 먼바다엔 라프라스도 있대!',
       '잉어킹은 좀 멍~ 해서 튀어오르기밖에 못 하지만, 끈기 있게 키우면 무시무시한 갸라도스가 된다구!',
       '돌아갈 때는 배 위에서 나한테 다시 말을 걸어. "선착장으로 돌아가기"를 누르면 내가 데려다줄게!',
+      c.conquered.sea
+        ? '서쪽 먼바다에 커다란 소용돌이가 생겼어! 배로 그 안에 들어가면 심해로 내려간대. 무섭지만… 가 볼래?'
+        : '서쪽 먼바다에 커다란 소용돌이가 돌고 있어. 아직은 아무 일도 없지만, 거북왕을 이기면 뭔가 열린다는 소문이 있어!',
     ] }, { x: captainAt.x, z: captainAt.z, mesh: captain, name: '리리', boards: 'train', lines: (c) => [
       `물의길에 온 걸 환영해, ${c.name}! 난 선장 리리야. 섬은 다리로만 건널 수 있어. 물에는 못 들어가.`,
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기(피카츄!)나 풀 포켓몬이 물에 세지. 불 포켓몬은 물에 약해.`,
@@ -326,6 +391,9 @@ export function buildSea(scene) {
       '여기 블록은 하나가 2개 가치야. 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르게.',
       '북동쪽 선착장에 뱃사공 루피가 있네. 루피와 배를 타면 먼바다의 포켓몬을 만날 수 있어!',
       '거북왕을 이겨서 산호 신전이 열리면 메가거북왕이 나타나. 아주 강하니 메가볼을 준비하게!',
+      c.conquered.sea
+        ? '바다를 정복했으니 서쪽 먼바다의 소용돌이가 열렸네! 루피의 배를 타고 들어가면 심해로 내려간다네. 보스 갸라도스가 기다리고 있어!'
+        : '서쪽 먼바다에는 아무도 못 들어가는 소용돌이가 있어. 거북왕을 이겨서 바다가 자네를 인정해야 열린다는군.',
     ] }],
     train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],

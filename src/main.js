@@ -5,6 +5,7 @@ import { buildMegaShrine, shrineName } from './mega.js';
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
+import { buildDeepSea } from './deepsea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
 import { strongAgainst, weakTo, skillIcon } from './types.js';
@@ -135,9 +136,9 @@ function makeZone(name, builder) {
   return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(5, 12), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, space: buildSpace, lab: buildLab };
-const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
-const PICKUP_CAP = { forest: 6, cave: 4, volcano: 4, sea: 5, space: 4 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab };
+const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
+const PICKUP_CAP = { forest: 6, cave: 4, volcano: 4, sea: 5, deepsea: 4, space: 4 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
 const MAX_RESCUES = 3; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
@@ -190,6 +191,7 @@ function findShrineSpot(z) {
   return null;
 }
 function buildShrine(z) {
+  if (z.world.noShrine) return; // 그 지역 전용 메가 포켓몬이 없으면 성역도 세우지 않는다 (심해)
   const spot = findShrineSpot(z);
   if (!spot) return;
   const baseY = z.world.waterY != null ? z.world.waterY - 1.2 : terrainHeight(spot.x, spot.z);
@@ -250,12 +252,19 @@ function getZone(name) {
   const z = makeZone(name, BUILDERS[name]);
   zones[name] = z;
   setActiveTerrain(z.terrain); // Creature 생성 시 지형 높이를 쓰므로 잠시 전환
-  const wild = creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && !c.special && !c.mega && c.catchable);
+  // 야생 포켓몬: 보통은 그 지역에 사는 종(zone). 다만 zones[].wild 에 종 목록이 있으면 그걸 쓴다
+  // (심해는 물의길의 물 포켓몬이 내려와 사는 곳이라 같은 종을 데려다 쓴다. wildOverride 로 그 지역에 맞게 고친다:
+  //  심해에는 수면이 없으므로 swim 을 꺼서 해저 바닥을 걸어 다니게 한다).
+  const zi = ZONE_INFO[name] || {};
+  const wildExtra = zi.wildOverride || {};
+  const wild = zi.wild
+    ? zi.wild.map((id) => speciesById[id]).filter(Boolean).map((c) => ({ ...c, ...wildExtra }))
+    : creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && !c.special && !c.mega && c.catchable);
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
-  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) spawnCreature(z, land[i % land.length].id, x, zz); });
+  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) spawnCreature(z, land[i % land.length].id, x, zz, wildExtra); });
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
-  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) spawnCreature(z, swimmers[i % swimmers.length].id, x, zz); });
-  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) spawnCreature(z, deep[i % deep.length].id, x, zz); });
+  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) spawnCreature(z, swimmers[i % swimmers.length].id, x, zz, wildExtra); });
+  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) spawnCreature(z, deep[i % deep.length].id, x, zz, wildExtra); });
   const boss = creatureData.creatures.find((c) => c.zone === z.name && c.boss);
   if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z); c.mesh.userData.bossZone = z.name; }
   // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
@@ -297,7 +306,11 @@ party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
-const dex = new Dex(creatureData.creatures, Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])));
+const dex = new Dex(
+  creatureData.creatures,
+  Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])),
+  Object.fromEntries(Object.entries(ZONE_INFO).filter(([, v]) => v.wild).map(([k, v]) => [k, v.wild])),
+);
 dex.lastCaught = state.dex;
 const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && !c.boss && !c.evolvedFrom), sound });
 for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
@@ -949,7 +962,7 @@ function rescueSolved(z, nb) {
 }
 
 /** 대결에서 이기면 받는 블록: 상대 공격력 × 지역 블록 가치 (보스는 2배). 단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값보다 항상 조금 더 많다 (볼을 만들어도 남게) */
-const ZONE_GRADE = { forest: 1, cave: 2, sea: 3, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
+const ZONE_GRADE = { forest: 1, cave: 2, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
 function winReward(c) {
   const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
   const ball = BALLS.find((b) => catchChance(grade, b.tier) >= 75) || BALLS[BALLS.length - 1];
@@ -1252,10 +1265,21 @@ function frame() {
         moved = true;
         switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 대화 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
       }
+    } else if (zone.name === 'sea' && zone.world.dive && sailing && !returning && near(zone.world.dive, zone.world.dive.r)) {
+      // 먼바다의 소용돌이: 보스 거북왕을 이긴 뒤부터 심해로 내려갈 수 있다 (푸른숲 큰 구멍 → 지하동굴과 같은 방식)
+      if (state.conquered.sea) {
+        moved = true;
+        switchZone('deepsea', getZone('deepsea').world.spawn, { text: '소용돌이에 빨려 들어갔어… 여긴 심해야! 물속이라 몸이 가벼워서 높이 뛸 수 있어. 북쪽 해류를 타면 돌아갈 수 있어!', sec: 9 });
+      } else if (state.prompt <= 0) {
+        state.prompt = 8;
+        say('무시무시한 소용돌이야! 아직은 빨려 들어가지 않아… 보스 거북왕을 이겨서 바다를 정복하면 열린대!', { sec: 6 });
+      }
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
       moved = true;
-      const back = zones.forest.world.arrivals[zone.name] || zones.forest.world.spawn;
-      switchZone('forest', back, { text: '푸른숲으로 돌아왔어!', sec: 4 });
+      const toName = zone.world.portalTo || 'forest'; // 보통은 푸른숲으로, 심해의 해류는 물의길로
+      const dest = getZone(toName);
+      const back = dest.world.arrivals?.[zone.name] || dest.world.spawn;
+      switchZone(toName, back, { text: `${dest.label}(으)로 돌아왔어!`, sec: 4 });
     }
     // 배 위에서 뭍이 가까우면 "내리기"를 먼저 준다 (루피 대화는 트인 바다에서)
     const landNear = sailing && !returning ? landingSpot(t) : null;

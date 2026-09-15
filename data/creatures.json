@@ -1,5 +1,5 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing).",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing).",
  "zones": {
   "forest": {
    "name": "푸른숲",
@@ -28,6 +28,27 @@
    "targetAtk": 12,
    "atkRange": "10~15",
    "blockValue": 2
+  },
+  "deepsea": {
+   "name": "심해",
+   "desc": "물의길 먼바다의 소용돌이 아래. 빛이 겨우 닿는 깊은 바다로, 물의길의 물 포켓몬이 내려와 산다",
+   "targetAtk": 14,
+   "atkRange": "12~16",
+   "blockValue": 2,
+   "wild": [
+    "m42",
+    "m40",
+    "m37",
+    "m38",
+    "m21",
+    "m20",
+    "m22",
+    "m39"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
   },
   "space": {
    "name": "꿈의우주",
@@ -1362,17 +1383,17 @@
    "id": "m21e",
    "name": "갸라도스",
    "type": "물",
-   "zone": "evolution",
-   "catchable": false,
+   "zone": "deepsea",
+   "catchable": true,
    "model": "갸라도스.glb",
-   "scale": 2.0,
+   "scale": 2.8,
    "draftShape": {
     "body": "drop",
     "color": "#3557c9",
     "bubbles": 6
    },
-   "baseHp": 100,
-   "baseAtk": 24,
+   "baseHp": 150,
+   "baseAtk": 12,
    "skills": [
     {
      "name": "물대포",
@@ -1396,8 +1417,9 @@
    "evolution": null,
    "favoriteNumber": 9,
    "personality": "사나움",
-   "story": "멍하던 잉어킹이 끈기 끝에 진화한 거대한 바다의 포켓몬. 화가 나면 바다가 뒤집힐 만큼 사납지만, 자기를 키워 준 트레이너만은 끝까지 지켜 준대.",
-   "grade": 5
+   "story": "멍하던 잉어킹이 끈기 끝에 진화한 거대한 바다의 포켓몬. 심해 남쪽 해구에도 사나운 녀석이 한 마리 살고 있어서, 잉어킹을 키워 만나거나 심해로 내려가 도전해 볼 수 있어. 화가 나면 바다가 뒤집힐 만큼 사납지만, 자기를 키워 준 트레이너만은 끝까지 지켜 준대.",
+   "grade": 6,
+   "boss": true
   },
   {
    "id": "m22",
