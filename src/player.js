@@ -45,6 +45,8 @@ export class Player {
     this.respawnFlash = 0;
     this.gravityScale = 1; // 꿈의우주에서는 낮다 (높이 뛴다)
     this.boat = null;      // 배를 타고 있을 때: { canGo(x,z), floorY, speed } — 물 위를 달리고 뭍에서 막힌다
+    this.swim = null;      // 물속 지역(심해)에서: { ceiling, up, rise, sink, clear } — 점프 버튼으로 헤엄쳐 올라간다
+    this.swimming = false; // 지금 물에 떠 있나 (바닥을 딛고 있지 않나)
     // 주인공이 드는 등불 (동굴에서 주변을 밝힌다)
     this.lamp = new THREE.PointLight(0xffd9a0, 0, 24);
     this.lamp.position.set(0, 1.6, 0.4);
@@ -84,8 +86,10 @@ export class Player {
     if (blocked(p.x, oz)) { p.x = ox; this.vx = 0; }
     p.z += this.vz * dt;
     if (blocked(p.x, p.z)) { p.z = oz; this.vz = 0; }
-    // 나무·집·바위 같은 구조물 밖으로 밀어낸다 (배는 지형(canGo)으로만 막히므로 건너뛴다)
-    if (!this.boat && resolveObstacles(p, 0.45) && blocked(p.x, p.z)) { p.x = ox; p.z = oz; }
+    // 나무·집·바위 같은 구조물 밖으로 밀어낸다 (배는 지형(canGo)으로만 막히므로 건너뛴다).
+    // 물속에서 바위·다시마·가라앉은 배보다 높이 떠오르면 그 위로 헤엄쳐 지나갈 수 있다.
+    const overObstacles = !!this.swim && p.y > terrainHeight(p.x, p.z) + this.swim.clear;
+    if (!this.boat && !overObstacles && resolveObstacles(p, 0.45) && blocked(p.x, p.z)) { p.x = ox; p.z = oz; }
     if (moving) {
       this.facing = lerpAngle(this.facing, Math.atan2(this.vx, this.vz), 0.3);
       this.moved = true;
@@ -108,13 +112,22 @@ export class Player {
       if (this.respawnFlash > 0) { this.respawnFlash -= dt; } else { this.group.scale.set(1, 1, 1); }
       return;
     }
-    // 점프/중력
-    if (input.wasPressed('jump') && this.onGround) {
-      this.vy = JUMP;
-      this.onGround = false;
-      this.jumped = true;
+    // 점프/중력. 물속 지역(심해)에서는 헤엄치기가 된다:
+    // 점프 버튼을 누르고 있는 동안 물을 차고 올라가고, 놓으면 천천히 가라앉는다. 수면 위로는 못 나간다.
+    const sw = this.swim;
+    if (sw) {
+      if (input.isHeld('jump')) this.vy += sw.up * dt;
+      else if (this.vy > 0) this.vy *= Math.pow(0.05, dt); // 버튼을 놓으면 곧 떠오름을 멈춘다 (계속 솟구치지 않게)
+      this.vy += GRAVITY * this.gravityScale * dt;
+      this.vy = Math.max(-sw.sink, Math.min(sw.rise, this.vy)); // 너무 빨리 뜨거나 가라앉지 않게
+    } else {
+      if (input.wasPressed('jump') && this.onGround) {
+        this.vy = JUMP;
+        this.onGround = false;
+        this.jumped = true;
+      }
+      this.vy += GRAVITY * this.gravityScale * dt;
     }
-    this.vy += GRAVITY * this.gravityScale * dt;
     p.y += this.vy * dt;
 
     const floor = inHole(p.x, p.z) ? -20 : terrainHeight(p.x, p.z);
@@ -125,6 +138,9 @@ export class Player {
     } else {
       this.onGround = false;
     }
+    if (sw && p.y >= sw.ceiling) { p.y = sw.ceiling; this.vy = Math.min(this.vy, 0); } // 수면 바로 아래까지
+    this.swimming = !!sw && !this.onGround;
+    if (this.body) this.body.rotation.x = this.swimming ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다
 
     // 구멍에 떨어지면 main 이 지역을 바꾼다 (초원 → 동굴)
     if (p.y < -4) {

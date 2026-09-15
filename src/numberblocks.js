@@ -245,6 +245,7 @@ export class FollowChain {
   constructor(leader) {
     this.leader = leader;
     this.followers = []; // { mesh, t, ...extra }
+    this.swim = false;   // 물속 지역(심해)에서는 앞사람 높이를 따라 함께 떠오른다
   }
   add(mesh, extra = {}) { this.followers.push({ mesh, t: Math.random() * 10, ...extra }); }
   addFirst(mesh, extra = {}) { this.followers.unshift({ mesh, t: Math.random() * 10, ...extra }); }
@@ -272,11 +273,12 @@ export class FollowChain {
         p.x += (dx / dist) * step;
         p.z += (dz / dist) * step;
         f.mesh.rotation.y = Math.atan2(dx, dz);
-        p.y = terrainHeight(p.x, p.z) + Math.abs(Math.sin(f.t * 10)) * 0.12;
         moving = true;
-      } else {
-        p.y = terrainHeight(p.x, p.z) + Math.abs(Math.sin(f.t * 3)) * 0.03;
       }
+      const bob = Math.abs(Math.sin(f.t * (moving ? 10 : 3))) * (moving ? 0.12 : 0.03);
+      const ground = terrainHeight(p.x, p.z);
+      if (this.swim) p.y += (Math.max(ground, prev.y) + bob - p.y) * Math.min(1, dt * 3); // 물속: 앞사람을 따라 스르르 떠오른다
+      else p.y = ground + bob;
       animateNumberblock(f.mesh, dt, moving);
       tickModel(f.mesh, dt, moving ? 'walk' : 'idle'); // 포켓몬 모델이면 걷기/서기 애니메이션
       prev = p;

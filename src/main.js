@@ -583,6 +583,8 @@ function partyMeshes() { return [player.group, ...chain.followers.map((f) => f.m
 function applyZoneEnv() {
   player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
   player.gravityScale = zone.world.gravity || 1;
+  player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
+  chain.swim = !!zone.world.swim;         // 따라오는 친구들도 함께 떠오른다
 }
 function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
@@ -861,7 +863,7 @@ function updateCtxButton() {
   const show = ctxAction && !battle.active && !dex.open && !quiz.open && !ride && !switching && !evo;
   if (document.body.classList.contains('touch')) { // 터치 화면: 점프 버튼이 그 일을 하는 버튼으로 바뀐다 (색도 바뀜)
     ctxBtn.classList.add('hidden');
-    const label = show ? ctxAction.short : '점프';
+    const label = show ? ctxAction.short : (player.swim ? '🫧\n헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼
     if (jumpBtn.textContent !== label) { jumpBtn.textContent = label; jumpBtn.classList.toggle('ctx', !!show); jumpBtn.dataset.key = show ? 'action' : 'jump'; }
     jumpBtn.hidden = sailing && !show;             // 배 위에서는 점프 버튼을 숨긴다 (할 일이 있을 때만 보인다)
     const runLabel = sailing ? '⚡ 가속' : '달리기'; // 배 위에서는 달리기 대신 가속
@@ -1278,7 +1280,7 @@ function frame() {
       // 먼바다의 소용돌이: 보스 거북왕을 이긴 뒤부터 심해로 내려갈 수 있다 (푸른숲 큰 구멍 → 지하동굴과 같은 방식)
       if (state.conquered.sea) {
         moved = true;
-        switchZone('deepsea', getZone('deepsea').world.spawn, { text: '소용돌이에 빨려 들어갔어… 여긴 심해야! 물속이라 몸이 가벼워서 높이 뛸 수 있어. 북쪽 해류를 타면 돌아갈 수 있어!', sec: 9 });
+        switchZone('deepsea', getZone('deepsea').world.spawn, { text: '소용돌이에 빨려 들어갔어… 여긴 심해야! 점프 버튼(스페이스)을 꾹 누르면 헤엄쳐 올라갈 수 있어. 북쪽 해류를 타면 돌아갈 수 있어!', sec: 9 });
       } else if (state.prompt <= 0) {
         state.prompt = 8;
         say('무시무시한 소용돌이야! 아직은 빨려 들어가지 않아… 보스 거북왕을 이겨서 바다를 정복하면 열린대!', { sec: 6 });
@@ -1488,6 +1490,10 @@ function frame() {
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
     if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();
 
+    // 헤엄쳐 올라가는 동안 발밑에서 물방울이 보글보글 올라온다
+    if (player.swimming && input.isHeld('jump') && Math.random() < 0.5) {
+      particles.stars(zone.scene, pp.clone().add(new THREE.Vector3(rand(-0.4, 0.4), 0.2, rand(-0.4, 0.4))), 1, 0xdff6ff, 0.3);
+    }
     if (!sailing) chain.update(dt);
     else for (const f of chain.followers) f.mesh.visible = false; // 대결이 끝나 돌아와도 물 위를 걷지 않게
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게

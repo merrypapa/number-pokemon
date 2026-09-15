@@ -5,7 +5,8 @@ import { rand } from './util.js';
 import { buildGround, makeInstanced, makePortal, makeSignAt } from './world.js';
 
 // 심해 (200x200). 물의길 먼바다의 소용돌이로 뛰어들면 내려온다 (푸른숲 큰 구멍 → 지하동굴과 같은 방식).
-// 해저 바닥을 걸어 다니지만 물속이라 몸이 둥실 떠서 아주 높이, 천천히 뛴다 (gravity 0.22 — 꿈의우주보다 더 가볍다).
+// 해저 바닥을 걷다가 점프 버튼을 꾹 누르면 헤엄쳐 올라가고, 놓으면 천천히 가라앉는다 (아래 swim,
+// gravity 0.22 — 꿈의우주보다 더 가볍다). 충분히 떠오르면 바위·다시마·가라앉은 배 위로 지나갈 수 있다.
 // 고개를 들면 저 위로 수면이 일렁이고 빛줄기가 내려온다. 남쪽 해구에 보스 갸라도스,
 // 서쪽에는 오래전에 가라앉은 배가 있다. 북쪽 상승 해류(포탈)를 타면 물의길 선착장으로 돌아간다.
 export const DEEP = {
@@ -246,7 +247,7 @@ export function buildDeepSea(scene) {
   diver.position.set(diverAt.x, deepHeight(diverAt.x, diverAt.z), diverAt.z);
   diver.rotation.y = -0.6;
   decor.add(diver); block(diverAt.x, diverAt.z, 0.6);
-  decor.add(makeSignAt('심해 · 점프하면 둥실 떠오른다', DEEP.spawn.x - 5, deepHeight(DEEP.spawn.x - 5, DEEP.spawn.z - 1), DEEP.spawn.z - 1, 0.4, { bg: '#0d3a52', fg: '#cdf3ff', board: 0x2a5a72, post: 0x1d3f52 }));
+  decor.add(makeSignAt('심해 · 점프 버튼을 꾹 누르면 헤엄', DEEP.spawn.x - 5, deepHeight(DEEP.spawn.x - 5, DEEP.spawn.z - 1), DEEP.spawn.z - 1, 0.4, { bg: '#0d3a52', fg: '#cdf3ff', board: 0x2a5a72, post: 0x1d3f52 }));
 
   function animate(t) {
     surface.position.y = DEEP.surfaceY + Math.sin(t * 0.8) * 0.5;      // 저 위에서 수면이 일렁인다
@@ -289,10 +290,14 @@ export function buildDeepSea(scene) {
     portalTo: 'sea',        // 이 지역의 포탈은 푸른숲이 아니라 물의길로 간다
     dark: true,             // 주인공의 등불이 켜진다
     gravity: DEEP.gravity,  // 물속: 둥실 떠서 높이 뛴다
+    // 헤엄치기: 점프 버튼을 누르고 있으면 물을 차고 올라가고, 놓으면 천천히 가라앉는다.
+    // clear 만큼 바닥에서 떠오르면 바위·다시마·가라앉은 배 위로 헤엄쳐 지나갈 수 있다.
+    swim: { ceiling: DEEP.surfaceY - 1.2, up: 26, rise: 6.5, sink: 4.5, clear: 3.0 },
     noShrine: true,         // 심해에는 메가 성역이 없다 (심해 전용 메가 포켓몬이 아직 없다)
     npcs: [{ x: diverAt.x, z: diverAt.z, mesh: diver, name: '도리', warp: true, lines: (c) => [
       `여긴 심해야, ${c.name}! 난 잠수부 도리. 소용돌이를 타고 내려왔구나!`,
-      '물속이라 몸이 가벼워. 점프 버튼을 누르면 둥실 떠올라서 천천히 내려와. 높은 바위도 넘을 수 있어!',
+      '여기선 헤엄을 칠 수 있어! 점프 버튼(스페이스)을 꾹 누르고 있으면 쑥쑥 올라가고, 놓으면 천천히 가라앉아.',
+      '위로 올라가면 바위와 다시마 숲을 넘어서 지나갈 수 있어. 저 위 수면까지 올라가 빛줄기도 구경해 봐!',
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기나 풀 포켓몬이 물에 세!`,
       c.conquered.deepsea ? '보스 갸라도스를 이겼구나! 심해의 챔피언이야!' : `남쪽 해구에 보스 갸라도스가 있어. 체력 150, 공격 12! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 전기 포켓몬이 있으면 제일 좋아!`,
       '서쪽에 오래전에 가라앉은 배가 있어. 구경하고 가렴.',
