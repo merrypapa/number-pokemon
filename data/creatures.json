@@ -2419,7 +2419,7 @@
    "catchable": true,
    "mega": true,
    "model": "메가이상해꽃.glb",
-   "scale": 2.2,
+   "scale": 3.0,
    "draftShape": {
     "body": "drop",
     "color": "#2f9e44",
@@ -2462,7 +2462,7 @@
    "catchable": true,
    "mega": true,
    "model": "메가롱스톤.glb",
-   "scale": 2.6,
+   "scale": 3.2,
    "draftShape": {
     "body": "drop",
     "color": "#8d97a3",
@@ -2505,7 +2505,7 @@
    "catchable": true,
    "mega": true,
    "model": "메가리자몽Y.glb",
-   "scale": 2.4,
+   "scale": 3.2,
    "draftShape": {
     "body": "drop",
     "color": "#ff6b1a",
@@ -2548,7 +2548,7 @@
    "catchable": true,
    "mega": true,
    "model": "메가거북왕.glb",
-   "scale": 2.2,
+   "scale": 3.0,
    "draftShape": {
     "body": "drop",
     "color": "#1c7ed6",
@@ -2592,7 +2592,7 @@
    "catchable": true,
    "mega": true,
    "model": "메가팬텀.glb",
-   "scale": 2.4,
+   "scale": 3.0,
    "draftShape": {
     "body": "drop",
     "color": "#7d5cff",
@@ -2636,7 +2636,7 @@
    "mega": true,
    "unlockedBy": "x05",
    "model": "메가리자몽.glb",
-   "scale": 2.8,
+   "scale": 3.6,
    "draftShape": {
     "body": "capsule",
     "color": "#2E4A8C",
