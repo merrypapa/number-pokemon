@@ -36,17 +36,27 @@ const darkMat = new THREE.MeshStandardMaterial({ color: OUTLINE, roughness: 0.6 
 const cubeGeo = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK);
 const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
 
+// 블록이 이만큼 모이면 금빛 블록 한 칸으로 뭉친다. 더미가 한없이 커지지 않고 다시 작아진다
+// (50 = 금빛 한 칸, 100 = 금빛 두 칸). 자리값(10이 열 개면 100)을 눈으로 익히는 장치이기도 하다.
+export const GOLD_BLOCK = 50;
+const GOLD_COLOR = '#ffcf33';
+
 // 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채우고,
 // 31 이상은 너무 넓어지지 않게 10칸 기둥(=열이 하나) 으로 쌓는다. 45 = 10짜리 기둥 4개 + 5.
+// 50 이상은 맨 왼쪽 기둥에 금빛 블록을 쌓고, 남은 수만 그 옆에 보통 블록으로 세운다.
 function shapeFor(number) {
   if (SHAPES[number]) return SHAPES[number];
-  const per = number > 30 ? 10 : 5;
   const cells = [];
-  for (let i = 0; i < number; i++) cells.push({ col: Math.floor(i / per), row: i % per });
+  const golds = Math.floor(number / GOLD_BLOCK);
+  for (let i = 0; i < golds; i++) cells.push({ col: 0, row: i, gold: true });
+  const rest = number - golds * GOLD_BLOCK;
+  const per = golds || rest > 30 ? 10 : 5;
+  for (let i = 0; i < rest; i++) cells.push({ col: (golds ? 1 : 0) + Math.floor(i / per), row: i % per });
   return cells;
 }
 
 function cellColor(number, cell, index, theme) {
+  if (cell.gold) return GOLD_COLOR; // 금빛 블록은 지역 테마 색을 따르지 않는다
   if (theme) return theme.colors[(cell.row + cell.col) % theme.colors.length];
   if (number === 7) return RAINBOW[cell.row % RAINBOW.length];
   if (number === 10) return cell.col === 0 ? NUMBER_COLORS[10].base : NUMBER_COLORS[10].alt; // 1(빨강) + 0(하양)
@@ -104,7 +114,12 @@ export function buildNumberblockMesh(nb, { glow = false, theme = null } = {}) {
   for (const [index, cell] of cells.entries()) {
     const cube = makeCube(cellColor(number, cell, index, th));
     cube.position.set(x0 + cell.col * BLOCK, cy(cell.row), 0);
-    if (emissive > 0) { cube.material.emissive = cube.material.color.clone(); cube.material.emissiveIntensity = emissive; glowMats.push(cube.material); }
+    if (cell.gold) { // 금빛 블록: 반짝이는 금속 느낌 (지역 형광과 섞이지 않게 따로)
+      cube.material.emissive = new THREE.Color(0xffb300);
+      cube.material.emissiveIntensity = 0.55;
+      cube.material.metalness = 0.55;
+      cube.material.roughness = 0.25;
+    } else if (emissive > 0) { cube.material.emissive = cube.material.color.clone(); cube.material.emissiveIntensity = emissive; glowMats.push(cube.material); }
     g.add(cube);
   }
   if (emissive > 0) {
@@ -136,18 +151,31 @@ export function buildNumberblockMesh(nb, { glow = false, theme = null } = {}) {
   smile.position.set(fx, fy - BLOCK * 0.12, fz);
   g.add(smile);
 
-  // 숫자 배지: 맨 아래 가운데 블록 정면 (얼굴 블록과 다를 때만)
+  // 숫자 배지: 맨 아래 가운데 블록 정면 (얼굴 블록과 다를 때만). 금빛 블록은 "50" 배지를 달 자리라 비워 둔다
   const bottomCells = cells.filter((c) => c.row === 0);
-  const badgeCell = bottomCells.reduce((a, b) => (Math.abs(b.col - centerCol) < Math.abs(a.col - centerCol) ? b : a));
+  const plainBottom = bottomCells.filter((c) => !c.gold);
+  const badgeCell = (plainBottom.length ? plainBottom : bottomCells).reduce((a, b) => (Math.abs(b.col - centerCol) < Math.abs(a.col - centerCol) ? b : a));
   if (badgeCell !== faceCell) {
     const badge = makeBadge(number);
     badge.position.set(x0 + badgeCell.col * BLOCK, cy(badgeCell.row), fz);
     g.add(badge);
   }
+  // 금빛 블록마다 "50" 배지 (얼굴이나 전체 숫자가 그려진 칸은 빼고)
+  for (const cell of cells) {
+    if (!cell.gold || cell === faceCell || cell === badgeCell) continue;
+    const gb = makeBadge(GOLD_BLOCK);
+    gb.position.set(x0 + cell.col * BLOCK, cy(cell.row), fz);
+    g.add(gb);
+  }
 
   // 팔: 몸통 양옆, 높이의 55% 지점. 손은 하얀 공.
-  const armY = LEG + (maxRow + 1) * BLOCK * 0.55;
-  const left = x0 - BLOCK / 2, right = x0 + (cols - 1) * BLOCK + BLOCK / 2;
+  // 기둥 높이가 들쭉날쭉할 때(11 이상, 금빛 블록이 섞일 때) 팔이 허공에 뜨지 않도록,
+  // 팔이 달리는 줄에 실제로 블록이 있는 칸 중 가장 왼쪽·오른쪽에 붙인다.
+  const armRow = Math.min(maxRow, Math.round(maxRow * 0.55));
+  const armCells = cells.filter((c) => c.row === armRow);
+  const armY = cy(armRow);
+  const left = x0 + Math.min(...armCells.map((c) => c.col)) * BLOCK - BLOCK / 2;
+  const right = x0 + Math.max(...armCells.map((c) => c.col)) * BLOCK + BLOCK / 2;
   const armR = BLOCK * 0.05;
   const arms = [];
   for (const side of [-1, 1]) {

@@ -16,7 +16,7 @@ import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
 import { buildIntro } from './intro.js';
-import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock } from './numberblocks.js';
+import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
@@ -133,13 +133,13 @@ const nbByNumber = Object.fromEntries(nbData.numberblocks.map((n) => [n.number, 
 function makeZone(name, builder) {
   const scene = new THREE.Scene();
   const world = builder(scene);
-  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(5, 12), respawnTimer: 6 };
+  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(3, 7), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
-const PICKUP_CAP = { forest: 6, cave: 4, volcano: 4, sea: 5, deepsea: 4, space: 4 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
-const MAX_RESCUES = 3; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
+const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
+const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
 let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
@@ -318,10 +318,12 @@ for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderSt
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
 const STACK_SCALE = 0.72; // 따라오는 블록 더미는 조금 작게 (주인공을 가리지 않게)
-function setBlocks(n, { glow = false } = {}) {
+function setBlocks(n, { glow = false, quiet = false } = {}) {
   n = Math.max(0, Math.min(MAX_BLOCKS, n));
   if (n > state.blocks && glow) state.glowBlocks += n - state.blocks; // 형광 블록 획득
+  const goldBefore = Math.floor(state.blocks / GOLD_BLOCK);
   state.blocks = n;
+  const goldNow = Math.floor(n / GOLD_BLOCK); // 50개가 모이면 금빛 블록 한 칸으로 뭉쳐서 더미가 다시 작아진다
   state.glowBlocks = Math.min(state.glowBlocks, n);                 // 써서 줄면 형광 블록도 줄어든다
   const old = myStack.mesh;
   if (n === 0) {
@@ -340,6 +342,11 @@ function setBlocks(n, { glow = false } = {}) {
     myStack.pop = 1;
   }
   refreshHud();
+  if (!quiet && goldNow > goldBefore) { // 뭉치는 순간을 크게 알려 준다 (블록 50개 = 금빛 한 칸)
+    sound.fanfare();
+    confetti.burst(160);
+    say(`✨ 블록이 ${GOLD_BLOCK}개! ${GOLD_BLOCK}개가 금빛 블록 한 칸으로 뭉쳤어. 숫자블록이 다시 작아졌지? 금빛 한 칸은 ${GOLD_BLOCK}개야!`, { sec: 8 });
+  }
 }
 
 const hudBlocks = document.getElementById('hud-blocks');
@@ -600,7 +607,7 @@ function switchZone(name, spawn, message) {
     player.teleport(spawn.x, spawn.z);
     if (spawn.yaw !== undefined) cam.yaw = spawn.yaw; // 도착 방향이 정해진 곳(연구소 문 앞 등)
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
-    if (state.blocks > 0) setBlocks(state.blocks); // 블록 더미를 새 지역 색(불·물·풀·형광)으로 다시 만든다
+    if (state.blocks > 0) setBlocks(state.blocks, { quiet: true }); // 블록 더미를 새 지역 색(불·물·풀·형광)으로 다시 만든다
     applyZoneEnv();
     camera.position.copy(player.position).add(camOffset());
     snapCam = true;
@@ -918,8 +925,10 @@ function spawnRescue(z) {
     z.rescues.push(nb);
     nb.arrow = makeRescueArrow(); nb.arrowT = 18; // 처음 18초 동안 머리 위 화살표가 친구 쪽을 가리킨다
     z.scene.add(nb.arrow);
-    say(`${data.name}이(가) 도와달래! 머리 위 빨간 화살표를 따라가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
-    z.nbTimer = rand(12, 25); // 다음 친구는 잠시 뒤에
+    // 여럿이 동시에 나와도 시끄럽지 않게, 첫 친구만 길게 알려 준다
+    if (z.rescues.length <= 1) say(`${data.name}이(가) 도와달래! 머리 위 빨간 화살표를 따라가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
+    else say(`${data.name}도 도와달래! 화살표를 따라가 봐.`, { face: String(number), sec: 3 });
+    z.nbTimer = rand(6, 13); // 다음 친구는 잠시 뒤에
     return;
   }
   z.nbTimer = 6; // 자리를 못 찾으면 잠시 뒤 다시
@@ -939,7 +948,7 @@ function removeRescue(z, nb, escaped) {
   removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescues = z.rescues.filter((o) => o !== nb);
-  z.nbTimer = Math.min(z.nbTimer, rand(8, 16));
+  z.nbTimer = Math.min(z.nbTimer, rand(4, 9));
   if (escaped) say(`${nb.data.name}이(가) 다른 곳으로 가 버렸어… 다음에 또 나타날 거야.`, { face: String(nb.data.number), sec: 4 });
 }
 function rescueSolved(z, nb) {
@@ -949,7 +958,7 @@ function rescueSolved(z, nb) {
   removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescues = z.rescues.filter((o) => o !== nb);
-  z.nbTimer = Math.min(z.nbTimer, rand(8, 16)); // 풀고 나면 곧 다음 친구가 온다
+  z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
   const bonus = quiz.problem?.bonus || 1; // 나누기처럼 어려운 문제는 블록을 더 준다
   const before = state.blocks, gain = n * blockValue() * bonus;
@@ -1184,7 +1193,7 @@ function applySave(d) {
   }
   const leader = party.healthy().includes(party.members[d.leader]) ? party.members[d.leader] : (party.healthy()[0] || party.members[0]);
   if (leader) attachLeader(leader);
-  setBlocks(d.blocks || 0);
+  setBlocks(d.blocks || 0, { quiet: true }); // 불러오기: 금빛 블록 축하는 새로 모았을 때만
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
   sound.fanfare();
   say(`다시 만나서 반가워, ${state.name}! ${leader ? party.name(leader) + '와 ' : ''}모험을 이어서 하자!`, { sec: 6 });
@@ -1345,8 +1354,8 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 2 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·구출 퀴즈가 주 수입)
-      zone.respawnTimer = 90;
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 1 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·구출 퀴즈가 주 수입)
+      zone.respawnTimer = 120;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
         const x = pp.x + rand(-36, 36), zz = pp.z + rand(-36, 36);
@@ -1465,10 +1474,14 @@ function frame() {
       const nb = nearNb;
       offer(`🧩 ${nb.data.name} 구출하기`, () => {
         input.endFrame();
-        quiz.ask(nb.data.number, nb.data.name, zone.name).then((ok) => {
+        quiz.ask(nb.data.number, nb.data.name, zone.name).then((res) => {
           if (!zone.rescues.includes(nb)) return;
-          if (ok) rescueSolved(zone, nb);
-          else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
+          if (res === 'ok') rescueSolved(zone, nb);
+          else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다
+            removeRescue(zone, nb);
+            sound.bounce();
+            say(`아쉬워… ${nb.data.name}이(가) 다른 곳으로 가 버렸어. 곧 다른 친구가 도와달랠 거야!`, { face: String(nb.data.number), sec: 5 });
+          } else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
         });
       }, '🧩\n구출');
     }

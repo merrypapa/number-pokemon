@@ -68,16 +68,19 @@ export class Quiz {
     this.choicesEl = document.getElementById('quiz-choices');
     this.hintEl = document.getElementById('quiz-hint');
     this.skipBtn = document.getElementById('btn-quiz-skip');
-    this.skipBtn.onclick = () => this.finish(false);
+    this.skipBtn.onclick = () => this.finish('skip');
     this.open = false;
   }
 
-  /** 숫자블록(number, name)을 구출하는 문제를 낸다. 맞히면 true, "나중에"면 false 로 끝나는 Promise. */
+  /**
+   * 숫자블록(number, name)을 구출하는 문제를 낸다. 기회는 한 번뿐이다.
+   * Promise 는 'ok'(맞힘) · 'wrong'(틀림 — 그 친구는 가 버린다) · 'skip'("나중에") 중 하나로 끝난다.
+   */
   ask(number, name, zone = 'forest') {
     return new Promise((resolve) => {
       this.resolve = resolve;
       this.number = number;
-      this.wrong = 0;
+      this.done = false; // 답을 고른 뒤에는 더 못 고른다 (정답을 보여 주는 동안)
       this.problem = makeProblem(number, this.species, zone);
       this.render(name);
       this.el.classList.remove('hidden');
@@ -89,7 +92,8 @@ export class Quiz {
     const p = this.problem;
     this.titleEl.textContent = `${name} 구출 문제 · ${TIER_NAME[p.tier]}`;
     this.textEl.textContent = p.text;
-    this.hintEl.textContent = '';
+    this.hintEl.textContent = '기회는 한 번이야. 잘 세어 보고 골라!';
+    this.skipBtn.disabled = false;
     this.iconsEl.innerHTML = '';
     for (const g of p.groups) {
       const row = document.createElement('div');
@@ -119,24 +123,31 @@ export class Quiz {
   }
 
   answer(c, btn) {
-    if (!this.open) return;
-    if (c === this.problem.answer) {
+    if (!this.open || this.done) return;
+    const p = this.problem;
+    this.done = true;
+    this.skipBtn.disabled = true;
+    for (const b of this.choicesEl.children) b.disabled = true;
+    if (c === p.answer) {
       btn.classList.add('right');
       this.sound?.fanfare();
-      setTimeout(() => this.finish(true), 500);
-    } else {
-      this.wrong++;
-      btn.classList.add('wrong');
-      btn.disabled = true;
-      this.sound?.bounce();
-      this.hintEl.textContent = this.wrong >= 2 ? `힌트: ${this.problem.hint}` : '음… 다시 한 번 세어 볼까?';
+      setTimeout(() => this.finish('ok'), 500);
+      return;
     }
+    // 기회는 한 번. 틀리면 정답을 보여 주고 문제가 끝난다 (숫자블록은 가 버린다)
+    btn.classList.add('wrong');
+    this.sound?.bounce();
+    for (const b of this.choicesEl.children) if (Number(b.textContent) === p.answer) b.classList.add('right');
+    this.hintEl.textContent = `정답은 ${p.answer}! ${p.hint}`;
+    setTimeout(() => this.finish('wrong'), 2600); // 정답을 볼 시간을 준다
   }
 
-  finish(ok) {
+  /** result: 'ok' | 'wrong' | 'skip' */
+  finish(result) {
+    if (!this.open) return;
     this.el.classList.add('hidden');
     this.open = false;
     const r = this.resolve; this.resolve = null;
-    r?.(ok);
+    r?.(result);
   }
 }
