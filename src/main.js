@@ -298,7 +298,7 @@ const totalCreatures = Object.values(WILD_TOTAL).reduce((a, b) => a + b, 0);
 const ZONE_COUNT = Object.keys(BUILDERS).filter((n) => creatureData.creatures.some((c) => c.zone === n && c.boss)).length; // 보스가 있는 지역만 정복 대상 (연구소 제외)
 
 // ---------- 게임 상태 ----------
-const MAX_BLOCKS = 100; // 블록 더미 최대 (31개부터는 10칸 기둥으로 쌓인다)
+const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
 const state = { name: PLAYER_NAME, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
@@ -342,10 +342,12 @@ function setBlocks(n, { glow = false, quiet = false } = {}) {
     myStack.pop = 1;
   }
   refreshHud();
-  if (!quiet && goldNow > goldBefore) { // 뭉치는 순간을 크게 알려 준다 (블록 50개 = 금빛 한 칸)
+  if (!quiet && goldNow > goldBefore) { // 뭉치는 순간을 크게 알려 준다 (블록 50개마다 금빛 한 칸)
     sound.fanfare();
     confetti.burst(160);
-    say(`✨ 블록이 ${GOLD_BLOCK}개! ${GOLD_BLOCK}개가 금빛 블록 한 칸으로 뭉쳤어. 숫자블록이 다시 작아졌지? 금빛 한 칸은 ${GOLD_BLOCK}개야!`, { sec: 8 });
+    say(goldNow === 1
+      ? `✨ 블록이 ${GOLD_BLOCK}개! ${GOLD_BLOCK}개가 금빛 블록 한 칸으로 뭉쳤어. 숫자블록이 다시 작아졌지? 금빛 한 칸은 ${GOLD_BLOCK}개야!`
+      : `✨ 금빛 블록이 ${goldNow}칸이 됐어! 금빛 ${goldNow}칸은 ${GOLD_BLOCK}씩 ${goldNow}번, 블록 ${goldNow * GOLD_BLOCK}개야!`, { sec: 8 });
   }
 }
 
@@ -962,12 +964,14 @@ function rescueSolved(z, nb) {
   z.rescues = z.rescues.filter((o) => o !== nb);
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
-  const bonus = quiz.problem?.bonus || 1; // 나누기처럼 어려운 문제는 블록을 더 준다
-  const before = state.blocks, gain = n * blockValue() * bonus;
+  // 구출 보상은 "그 친구의 숫자만큼" (나누기처럼 어려운 문제만 2배). 지역 블록 가치는 곱하지 않는다 —
+  // 줍기·대결과 달리 구출은 자주 나오니, 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
+  const bonus = quiz.problem?.bonus || 1;
+  const before = state.blocks, gain = n * bonus;
   setBlocks(state.blocks + gain);
   sound.fanfare();
   confetti.burst(100);
-  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${bonus > 1 ? ` (나누기 문제라 ${bonus}배!)` : gain > n ? ` (이 지역 블록은 ${blockValue()}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
+  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${bonus > 1 ? ` (나누기 문제라 ${n}의 ${bonus}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
   refreshHud();
   autosave();
 }

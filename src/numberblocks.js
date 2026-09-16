@@ -39,19 +39,22 @@ const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
 // 블록이 이만큼 모이면 금빛 블록 한 칸으로 뭉친다. 더미가 한없이 커지지 않고 다시 작아진다
 // (50 = 금빛 한 칸, 100 = 금빛 두 칸). 자리값(10이 열 개면 100)을 눈으로 익히는 장치이기도 하다.
 export const GOLD_BLOCK = 50;
+const GOLD_PER_COL = 10; // 금빛 블록도 열 칸씩 기둥으로 쌓는다 (1000개를 모아도 키가 하늘까지 자라지 않게)
 const GOLD_COLOR = '#ffcf33';
 
 // 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채우고,
 // 31 이상은 너무 넓어지지 않게 10칸 기둥(=열이 하나) 으로 쌓는다. 45 = 10짜리 기둥 4개 + 5.
-// 50 이상은 맨 왼쪽 기둥에 금빛 블록을 쌓고, 남은 수만 그 옆에 보통 블록으로 세운다.
+// 50 이상은 왼쪽부터 금빛 블록 기둥을 세우고(열 칸이 차면 옆 기둥으로), 남은 수만 그 옆에 보통 블록으로 세운다.
+// 1000 = 금빛 스무 칸 = 열 칸짜리 금빛 기둥 두 개.
 function shapeFor(number) {
   if (SHAPES[number]) return SHAPES[number];
   const cells = [];
   const golds = Math.floor(number / GOLD_BLOCK);
-  for (let i = 0; i < golds; i++) cells.push({ col: 0, row: i, gold: true });
+  for (let i = 0; i < golds; i++) cells.push({ col: Math.floor(i / GOLD_PER_COL), row: i % GOLD_PER_COL, gold: true });
+  const goldCols = Math.ceil(golds / GOLD_PER_COL);
   const rest = number - golds * GOLD_BLOCK;
   const per = golds || rest > 30 ? 10 : 5;
-  for (let i = 0; i < rest; i++) cells.push({ col: (golds ? 1 : 0) + Math.floor(i / per), row: i % per });
+  for (let i = 0; i < rest; i++) cells.push({ col: goldCols + Math.floor(i / per), row: i % per });
   return cells;
 }
 
@@ -74,7 +77,15 @@ function makeCube(colorHex) {
   return m;
 }
 
+// 자주 쓰는 배지(금빛 블록의 "50", 숫자블록 친구들의 1~10)는 그림을 한 번만 그려서 다시 쓴다.
+// 금빛이 스무 칸이면 "50" 배지만 스무 장이라, 블록을 얻을 때마다 캔버스를 스무 장 새로 그리게 된다.
+// 더미 전체 숫자(1~1000)는 매번 달라지므로 캐시에 쌓지 않는다.
+const badgeTextures = new Map();
+const badgeGeo = new THREE.PlaneGeometry(BLOCK * 0.8, BLOCK * 0.8);
+const badgeMesh = (tex) => new THREE.Mesh(badgeGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
 function makeBadge(number) {
+  const cached = badgeTextures.get(number);
+  if (cached) return badgeMesh(cached);
   const c = document.createElement('canvas');
   c.width = 128; c.height = 128;
   const ctx = c.getContext('2d');
@@ -84,8 +95,8 @@ function makeBadge(number) {
   ctx.fillStyle = '#ffffff'; ctx.fillText(String(number), 64, 70);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(BLOCK * 0.8, BLOCK * 0.8), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-  return plane;
+  if (number === GOLD_BLOCK || number <= 10) badgeTextures.set(number, tex);
+  return badgeMesh(tex);
 }
 
 function limb(from, to, radius, mat) {
