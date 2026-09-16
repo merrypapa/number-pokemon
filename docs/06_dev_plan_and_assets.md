@@ -46,8 +46,10 @@
 | 크기 | 높이 약 1m (주인공 키 = 1m 기준). 코드에서 `scale` 값으로 보정 가능 |
 | 원점 | 발바닥 중앙 (0, 0, 0) |
 | 앞 방향 | +Z (게임의 드래프트 캐릭터·현재 모델들과 동일. 뒤를 보고 나오면 180° 돌려 내보내기) |
-| 애니메이션(선택) | `idle`, `walk` 이름의 클립이 있으면 자동 재생(`happy`는 아직 미사용). 이름이 다르면 첫 클립을 계속 재생, 없으면 통통 튀는 기본 동작만 |
+| 애니메이션(선택) | `idle`, `walk`, `run`, `swim`(헤엄쳐 나아가기), `swimidle`(제자리에서 물 젓기) 클립을 찾아 자동 재생. Mixamo 식 이름(`Running`, `Walking`, `Swim_Forward`, `Swim_Idle`, `restpose`)도 알아서 찾아 준다. 하나도 못 찾으면 첫 클립을 계속 재생 |
+| 애니메이션 주의 | ① 클립을 **한 .glb 파일 안에** 다 담는다 ② Mixamo 에서 하나씩 받으면 이름이 전부 `mixamo.com` 이 되므로 블렌더에서 액션 이름을 바꾼다 ③ 앞으로 나아가는 이동(루트 모션)은 코드가 자동으로 지운다(`stripRootMotion`) — 그래도 Mixamo 의 **In Place** 옵션을 켜는 쪽이 깔끔하다 |
 | 폴리곤 | 1만 이하 권장(태블릿용) |
+| 용량 | 올린 뒤 `python3 tools/shrink_glb.py assets/models/파일.glb` 로 텍스처를 줄인다 (뼈대·애니메이션은 그대로). 압축은 텍스처 축소·WebP·`KHR_mesh_quantization` 까지만 — **Draco/Meshopt/KTX2 는 디코더를 안 붙여 놔서 불러오기가 실패한다** |
 
 숫자블록 친구도 같은 방식으로 `data/numberblocks.json`의 `"model"`을 바꾸면 교체된다.
 
