@@ -4,6 +4,7 @@ import { buildDraftMesh } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
+import { PLANETS } from './planets.js';
 
 // 몬스터 도감 + 내 포켓몬.
 //  - 위: "내 포켓몬" 칩(잡은 포켓몬 한 줄) + 선택한 포켓몬 한 마리의 상세 카드 (스탯·기술·진화, 내 포켓몬이면 키우기/대표/진화 버튼).
@@ -19,6 +20,13 @@ const MAP_REGIONS = [
   { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓 타기 버튼을 누른다. 돌아올 때도 착륙장의 로켓을 탄다.' },
   { id: 'deepsea', x: 16, y: 64, rx: 13, ry: 7.5, icon: '🫧', fill: '#0b3a5c', desc: '물의길 먼바다의 소용돌이 아래에 있는 깊은 바다. 다시마 숲과 산호, 가라앉은 배가 있고 저 위로 수면이 보인다. 물속이라 몸이 가벼워 아주 높이 뛴다. 남쪽 해구에 보스 갸라도스가 산다.', how: '물의길을 정복한 뒤, 루피의 배를 타고 서쪽 먼바다의 소용돌이로 들어간다. 북쪽 상승 해류를 타면 선착장으로 돌아온다.' },
 ];
+// 지도 아래 띠: 태양계 (꿈의우주 UFO 정거장에서 별이의 비행접시로 가는 태양·행성 10곳). x 는 가로 자리, r 은 그림 크기
+const PLANET_LAYOUT = { sun: [4, 6], mercury: [15, 2.2], venus: [24, 3], earth: [34, 3.3], mars: [44, 2.7], jupiter: [57, 5.6], saturn: [72, 4.8], uranus: [85, 3.6], neptune: [94, 3.3], pluto: [101, 1.9] };
+const PLANET_Y = 98.5;
+for (const p of PLANETS) {
+  const [x, r] = PLANET_LAYOUT[p.id];
+  MAP_REGIONS.push({ id: p.zone, planet: p, x, y: PLANET_Y, rx: r, ry: r, icon: p.emoji, fill: p.tint, desc: `${p.title}. ${p.desc} 💡 ${p.fact}`, how: `꿈의우주 서쪽 UFO 정거장의 별이에게 말을 걸고 "다른 행성으로 가기" 팝업에서 ${p.name}을 골라 출발! 행성의 UFO 정거장에서 꿈의우주나 다른 행성으로 갈 수 있다. 중력: ${p.gravityText}.` });
+}
 
 export class Dex {
   constructor(species, zoneNames = {}, zoneRoster = {}) {
@@ -135,7 +143,7 @@ export class Dex {
     this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
   }
 
-  /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주) */
+  /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주 → 심해 → 태양 → … → 명왕성) */
   stepMap(d) {
     const ids = MAP_REGIONS.map((r) => r.id);
     const i = Math.max(0, ids.indexOf(this.mapSel));
@@ -152,7 +160,7 @@ export class Dex {
     const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
     const curve = (a, b, cls, lift = 6) => { const A = R[a], B = R[b]; return `<path class="${cls}" d="M${A.x},${A.y} Q${(A.x + B.x) / 2},${(A.y + B.y) / 2 - lift} ${B.x},${B.y}"/>`; };
     // 배경: 양피지 + 바다 + 잔물결
-    let svg = `<svg viewBox="-5 -5 110 86" preserveAspectRatio="xMidYMid meet">
+    let svg = `<svg viewBox="-5 -5 110 115" preserveAspectRatio="xMidYMid meet">
       <defs>
         <radialGradient id="gSea" cx="30%" cy="55%" r="70%"><stop offset="0" stop-color="#7fd4f5"/><stop offset="1" stop-color="#3a9fd6"/></radialGradient>
         <radialGradient id="gDeep" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#14567f"/><stop offset="1" stop-color="#062a40"/></radialGradient>
@@ -160,6 +168,10 @@ export class Dex {
         <linearGradient id="gRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3b3"/><stop offset="1" stop-color="#4b5261"/></linearGradient>
         <linearGradient id="gLava" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e06b3a"/><stop offset="1" stop-color="#8a2f1a"/></linearGradient>
         <radialGradient id="gSpace" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#6a4ca8"/><stop offset="1" stop-color="#1b1236"/></radialGradient>
+        <linearGradient id="gBand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0a24"/><stop offset="1" stop-color="#1b1a48"/></linearGradient>
+        <radialGradient id="gSunM" cx="40%" cy="40%"><stop offset="0" stop-color="#fff4b0"/><stop offset=".6" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff8a1f"/></radialGradient>
+        <radialGradient id="gEarthM" cx="40%" cy="38%"><stop offset="0" stop-color="#7fc4ff"/><stop offset="1" stop-color="#1f5fb8"/></radialGradient>
+        <radialGradient id="gNepM" cx="40%" cy="38%"><stop offset="0" stop-color="#6a86ff"/><stop offset="1" stop-color="#22318f"/></radialGradient>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation="0.8" flood-color="#20232e" flood-opacity=".35"/></filter>
       </defs>
       <rect x="-5" y="-5" width="110" height="86" fill="url(#gSea)"/>
@@ -170,6 +182,13 @@ export class Dex {
       ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}
       <!-- 물의길 → 심해: 소용돌이로 내려가는 길 (지역 그림·이름표에 가리지 않게 왼쪽으로 비껴 그린다) -->
       <path class="dive" d="M${R.sea.x - R.sea.rx + 1},${R.sea.y + R.sea.ry - 2} Q${R.sea.x - R.sea.rx - 4},${(R.sea.y + R.deepsea.y) / 2} ${R.deepsea.x - R.deepsea.rx + 1},${R.deepsea.y - R.deepsea.ry + 2}"/>
+      <!-- 태양계 띠 (지도 아래): 별 + 궤도선 + 제목. 꿈의우주에서 UFO 항로가 내려온다 -->
+      <rect x="-5" y="83" width="110" height="27" fill="url(#gBand)"/>
+      ${Array.from({ length: 46 }, (_, i) => `<circle cx="${((i * 37) % 110) - 5}" cy="${84 + ((i * 53) % 22)}" r="${0.25 + (i % 3) * 0.15}" fill="#fff" opacity="${0.35 + (i % 4) * 0.15}"/>`).join('')}
+      <path class="orbit" d="M-5,${PLANET_Y} H105"/>
+      <text class="band" x="50" y="85.4" text-anchor="middle">☀️ 태양계 · 꿈의우주 UFO 정거장에서 별이의 비행접시로 간다 🛸</text>
+      <path class="ufo-route" d="M${R.space.x},${R.space.y + R.space.ry} Q${R.space.x + 8},${(R.space.y + 90) / 2} 70,88"/>
+      <g class="ufo" transform="translate(${R.space.x + 6},${R.space.y + R.space.ry + 12})"><ellipse rx="3.2" ry="1" fill="#d7dde8" stroke="#20232e" stroke-width=".25"/><path d="M-1.4,-.6 A1.4,1.4 0 0 1 1.4,-.6 Z" fill="#9fe8ff" stroke="#20232e" stroke-width=".2"/><circle cx="-1.8" cy=".3" r=".3" fill="#ff5c8a"/><circle cx="0" cy=".5" r=".3" fill="#ffd93d"/><circle cx="1.8" cy=".3" r=".3" fill="#6cff8a"/></g>
       <!-- 기차 -->
       <g transform="translate(31,40)"><rect x="-3" y="-1.6" width="6" height="3.2" rx=".6" fill="#e8453c"/><rect x="-3" y="-2.6" width="2.4" height="1.2" fill="#e8453c"/><circle cx="-1.6" cy="1.9" r=".7" fill="#20232e"/><circle cx="1.6" cy="1.9" r=".7" fill="#20232e"/></g>`;
     // 지역 그림
@@ -197,8 +216,31 @@ export class Dex {
         ${[[-8, -4, .7], [-2, -5.2, .55], [5, -4.4, .6], [10, -2, .45], [-11, -1, .45]].map(([x, y, rr]) => `<circle cx="${x}" cy="${y}" r="${rr}" fill="#cdf3ff" opacity=".85"/>`).join('')}
         <g transform="translate(1,-1.4)"><path d="M-2,0 a2,1.8 0 0 1 4,0 z" fill="#8bd8ff"/><path d="M-1.2,.2 v2.2 M0,.2 v2.8 M1.2,.2 v2.2" stroke="#8bd8ff" stroke-width=".3"/></g>`,
     };
+    // 태양계 띠의 행성 그림 (작은 원 + 특징 하나씩)
+    const drawPlanet = {
+      sun: (r) => `${Array.from({ length: 10 }, (_, i) => { const a = (i / 10) * Math.PI * 2; return `<path d="M${Math.cos(a) * r * 0.9},${Math.sin(a) * r * 0.9} L${Math.cos(a + 0.15) * r * 1.35},${Math.sin(a + 0.15) * r * 1.35} L${Math.cos(a + 0.3) * r * 0.9},${Math.sin(a + 0.3) * r * 0.9}Z" fill="#ffd23f" opacity=".9"/>`; }).join('')}<circle r="${r}" class="blob" fill="url(#gSunM)"/><circle cx="${-r * 0.3}" cy="${-r * 0.2}" r="${r * 0.12}" fill="#c94a10" opacity=".7"/>`,
+      mercury: (r) => `<circle r="${r}" class="blob" fill="#a8a8b0"/><circle cx="${-r * 0.35}" cy="${-r * 0.2}" r="${r * 0.3}" fill="#6f6f78"/><circle cx="${r * 0.35}" cy="${r * 0.35}" r="${r * 0.22}" fill="#6f6f78"/>`,
+      venus: (r) => `<circle r="${r}" class="blob" fill="#e8c77a"/><path d="M${-r * 0.7},${-r * 0.2} q${r * 0.7},${-r * 0.5} ${r * 1.4},0" fill="none" stroke="#fff3c4" stroke-width="${r * 0.18}" stroke-linecap="round" opacity=".8"/>`,
+      earth: (r) => `<circle r="${r}" class="blob" fill="url(#gEarthM)"/><path d="M${-r * 0.6},${-r * 0.4} q${r * 0.5},${-r * 0.4} ${r * 0.9},0 q${r * 0.2},${r * 0.5} ${-r * 0.4},${r * 0.6} q${-r * 0.6},0 ${-r * 0.5},${-r * 0.6}z" fill="#3fa34d"/><ellipse cx="${r * 0.3}" cy="${r * 0.5}" rx="${r * 0.45}" ry="${r * 0.14}" fill="#fff" opacity=".85"/>`,
+      mars: (r) => `<circle r="${r}" class="blob" fill="#d9603b"/><ellipse cy="${-r * 0.8}" rx="${r * 0.5}" ry="${r * 0.16}" fill="#fff" opacity=".9"/><ellipse cx="${-r * 0.2}" cy="${r * 0.2}" rx="${r * 0.4}" ry="${r * 0.2}" fill="#a8452a" opacity=".7"/>`,
+      jupiter: (r) => `<clipPath id="cJm"><circle r="${r}"/></clipPath><circle r="${r}" class="blob" fill="#e8c9a0"/><g clip-path="url(#cJm)">${[[-0.7, 0.16, '#b8834a'], [-0.35, 0.14, '#d8a56a'], [0.05, 0.18, '#8a5a3a'], [0.45, 0.14, '#b8834a']].map(([y, h, c]) => `<rect x="${-r}" y="${y * r}" width="${r * 2}" height="${h * r}" fill="${c}"/>`).join('')}<ellipse cx="${r * 0.4}" cy="${r * 0.32}" rx="${r * 0.3}" ry="${r * 0.16}" fill="#c0442a"/></g>`,
+      saturn: (r) => `<ellipse rx="${r * 1.9}" ry="${r * 0.45}" fill="none" stroke="#e8d9a0" stroke-width="${r * 0.22}" transform="rotate(-18)" opacity=".9"/><circle r="${r}" class="blob" fill="#e6cf8f"/><path d="M${-r * 1.9},0 A${r * 1.9},${r * 0.45} 0 0 0 ${r * 1.9},0" fill="none" stroke="#f1e3b8" stroke-width="${r * 0.22}" transform="rotate(-18)"/>`,
+      uranus: (r) => `<circle r="${r}" class="blob" fill="#8fd8e8"/><ellipse rx="${r * 0.35}" ry="${r * 1.6}" fill="none" stroke="#dff6ff" stroke-width="${r * 0.12}" opacity=".85" transform="rotate(8)"/>`,
+      neptune: (r) => `<circle r="${r}" class="blob" fill="url(#gNepM)"/><ellipse cx="${-r * 0.3}" cy="${-r * 0.25}" rx="${r * 0.3}" ry="${r * 0.16}" fill="#1a2a70" opacity=".85"/><ellipse cx="${r * 0.25}" cy="${r * 0.35}" rx="${r * 0.4}" ry="${r * 0.08}" fill="#fff" opacity=".8"/>`,
+      pluto: (r) => `<circle r="${r}" class="blob" fill="#c9b8a8"/><path d="M0,${r * 0.75} C${-r * 0.55},${r * 0.35} ${-r * 0.65},${r * 0.05} ${-r * 0.4},${-r * 0.15} C${-r * 0.2},${-r * 0.3} 0,${-r * 0.15} 0,${r * 0.05} C0,${-r * 0.15} ${r * 0.2},${-r * 0.3} ${r * 0.4},${-r * 0.15} C${r * 0.65},${r * 0.05} ${r * 0.55},${r * 0.35} 0,${r * 0.75}z" fill="#f4f0f0"/>`,
+    };
     for (const r of MAP_REGIONS) {
       const done = !!conquered[r.id];
+      if (r.planet) { // 행성: 보스·정복이 없으니 ★/? 표시 없이 작은 그림과 이름표만. 이름표는 아래·위로 번갈아 놓아 겹치지 않게. 지금 있는 곳엔 핀
+        const above = PLANETS.indexOf(r.planet) % 2 === 1;
+        const ly = above ? -r.rx - 3.4 : r.rx + 3.4;
+        svg += `<g class="region planet${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})">
+          ${drawPlanet[r.planet.id](r.rx)}
+          <g transform="translate(0,${ly})"><rect x="-6.2" y="-2" width="12.4" height="4" rx="2" class="label-bg"/><text class="name small" y="1.05" text-anchor="middle">${this.zoneName[r.id]}</text></g>
+          ${here === r.id ? `<g class="pin" transform="translate(0,${above ? -r.rx - 6 : -r.rx - 1.6})"><path d="M0,0 L-2,-3.4 A2.2,2.2 0 1 1 2,-3.4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-3.9" r=".8" fill="#fff"/></g>` : ''}
+        </g>`;
+        continue;
+      }
       svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})" filter="url(#shadow)">
         ${draw[r.id](r)}
         <g transform="translate(0,${r.ry + 1.5})"><rect x="-10" y="-2.6" width="20" height="5.2" rx="2.6" class="label-bg"/><text class="name" y="1.3" text-anchor="middle">${this.zoneName[r.id]}</text></g>
@@ -222,10 +264,11 @@ export class Dex {
     const list = [...this.species.filter((sp) => sp.zone === r.id), ...roster.map((id) => this.byId[id]).filter((sp) => sp && sp.zone !== r.id)];
     const known = list.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
     const done = !!conquered[r.id];
-    let html = `<div class="map-title">${r.icon} ${this.zoneName[r.id]} <span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>${here === r.id ? '<span class="badge">지금 여기</span>' : ''}</div>
+    const badge = r.planet ? '<span class="badge planet">🛸 UFO 로 가는 행성</span>' : `<span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>`;
+    let html = `<div class="map-title">${r.icon} ${this.zoneName[r.id]} ${badge}${here === r.id ? '<span class="badge">지금 여기</span>' : ''}</div>
       <div class="map-desc">${r.desc}</div>
       <div class="map-how">가는 길: ${r.how}</div>
-      <div class="map-count">이 지역의 포켓몬 ${list.length}종 중 ${known}종을 잡았어${done ? '' : ' · 보스를 잡으면 정복!'}</div>
+      <div class="map-count">${r.planet ? `이 행성의 포켓몬 ${list.length}종 중 ${known}종을 잡았어 · 보스는 없어` : `이 지역의 포켓몬 ${list.length}종 중 ${known}종을 잡았어${done ? '' : ' · 보스를 잡으면 정복!'}`}</div>
       <div class="map-pokes">`;
     for (const sp of list.sort((a, b) => (b.boss ? 1 : 0) - (a.boss ? 1 : 0))) {
       const n = caughtById[sp.id] || 0;

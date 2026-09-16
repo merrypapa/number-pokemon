@@ -330,7 +330,7 @@ body.intro #btn-save { display: none !important; }
 #dex-tabs button { white-space: nowrap; font-size: 14px; font-weight: 900; padding: 6px 14px; border-radius: 999px; border: 0; background: transparent; color: #666; cursor: pointer; }
 #dex-tabs button.on { background: #fff; color: #e8453c; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 #dex-mapview { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-#dex-map { position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: 110 / 86; max-height: 52vh; background: #3a9fd6; border-radius: 18px; overflow: hidden; border: 3px solid #f0e6c0; }
+#dex-map { position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: 110 / 115; max-height: 58vh; background: #3a9fd6; border-radius: 18px; overflow: hidden; border: 3px solid #f0e6c0; }
 #dex-map svg { width: 100%; height: 100%; display: block; }
 #dex-map .region { cursor: pointer; }
 #dex-map .region .blob { stroke: rgba(32,35,46,.35); stroke-width: .5; transition: transform .15s; }
@@ -357,6 +357,19 @@ body.intro #btn-save { display: none !important; }
 #dex-map .flight { fill: none; stroke: #fff; stroke-width: .7; stroke-dasharray: 1 1.5; opacity: .9; }
 #dex-map .dive { fill: none; stroke: #cdf3ff; stroke-width: .9; stroke-dasharray: .5 1.4; stroke-linecap: round; opacity: .95; }
 #dex-map .here { font-size: 3.6px; font-weight: 900; fill: #e8453c; }
+#dex-map .band { font-size: 2.4px; font-weight: 900; fill: #dfe6ff; }
+#dex-map .orbit { fill: none; stroke: rgba(255,255,255,.18); stroke-width: .4; stroke-dasharray: 1 1; }
+#dex-map .ufo-route { fill: none; stroke: #9fe8ff; stroke-width: .7; stroke-dasharray: 1 1.4; stroke-linecap: round; opacity: .95; }
+#dex-map .ufo { animation: ufoHover 1.6s ease-in-out infinite alternate; }
+@keyframes ufoHover { from { transform: translate(88px, 69px); } to { transform: translate(88px, 66.5px); } }
+#dex-map .region.planet .blob { filter: none; stroke: rgba(255,255,255,.35); stroke-width: .3; stroke-dasharray: none; }
+#dex-map .region.planet > * { opacity: 1 !important; }
+#dex-map .region.planet.sel .blob { stroke: #ffd93d; stroke-width: .8; }
+#dex-map .region.planet .label-bg { fill: rgba(20,24,60,.9); stroke: #9fe8ff; stroke-width: .25; }
+#dex-map .region.planet .name.small { font-size: 2.6px; fill: #fff; }
+#dex-map .region.planet.sel .label-bg { fill: #ffd93d; stroke: #20232e; }
+#dex-map .region.planet.sel .name.small { fill: #20232e; }
+#dex-map-detail .badge.planet { background: #8e6cff; color: #fff; }
 #dex-map-detail { flex: 0 0 auto; background: #fff; border-radius: 16px; padding: 12px; border: 3px solid #ddd; }
 .map-title { font-size: 20px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .map-title .badge { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #eee; color: #666; }
@@ -399,7 +412,7 @@ body.intro #btn-save { display: none !important; }
   .ball-row button { font-size: 12px; padding: 7px 8px; }
   #dex-tabs button { font-size: 13px; padding: 5px 10px; }
   #btn-dex-close { width: 46px; height: 46px; font-size: 24px; background: #ffd93d; box-shadow: 0 3px 0 #c99400; }
-  #dex-map { max-height: 34vh; height: calc(100vw * 72 / 110 - 16px); }
+  #dex-map { max-height: 40vh; height: calc(100vw * 101 / 110 - 16px); }
   .detail-top img { width: 96px; height: 96px; }
   #touch-actions { right: 12px; bottom: 80px; gap: 8px; }
   #touch-actions button { width: 64px; height: 64px; font-size: 16px; }
