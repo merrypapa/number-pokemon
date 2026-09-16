@@ -976,12 +976,15 @@ function rescueSolved(z, nb) {
   autosave();
 }
 
-/** 대결에서 이기면 받는 블록: 상대 공격력 × 지역 블록 가치 (보스는 2배). 단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값보다 항상 조금 더 많다 (볼을 만들어도 남게) */
+/** 대결에서 이기면 받는 블록: 상대 공격력 × 지역 블록 가치 (보스는 2배).
+ *  단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값의 절반보다는 많다 — 두 번쯤 이기면 그 볼 하나를 만들 수 있게.
+ *  (볼 값을 두 배로 올리면서 이 바닥값도 "볼 값 + 1" 에서 절반으로 낮췄다. 그러지 않으면 볼이 비싸질수록
+ *   대결 보상이 따라 올라가서, 비싸진 값이 하나도 어렵지 않게 된다.) */
 const ZONE_GRADE = { forest: 1, cave: 2, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
 function winReward(c) {
   const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
   const ball = BALLS.find((b) => catchChance(grade, b.tier) >= 75) || BALLS[BALLS.length - 1];
-  return Math.max(c.data.baseAtk * blockValue() * (c.isBoss ? 2 : 1), ball.cost + 1);
+  return Math.max(c.data.baseAtk * blockValue() * (c.isBoss ? 2 : 1), Math.ceil(ball.cost / 2));
 }
 
 // ---------- 튜토리얼/진행 ----------

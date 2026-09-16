@@ -1,9 +1,10 @@
 // 넘버볼: 숫자블록으로 교환하는 포획 도구. 등급이 높을수록 센 포켓몬도 잘 잡힌다.
+// 값은 키우기 비용과 함께 두 배로 올렸다 — 볼 하나를 만들지, 포켓몬을 키울지 고민하게.
 export const BALLS = [
-  { id: 'bronze',  name: '브론즈볼',  tier: 1, cost: 2,  color: 0xcd7f32, css: '#cd7f32' },
-  { id: 'silver',  name: '실버볼',   tier: 2, cost: 6,  color: 0xc0c0c0, css: '#b8bcc4' },
-  { id: 'gold',    name: '골드볼',   tier: 3, cost: 15, color: 0xffc300, css: '#f2b705' },
-  { id: 'diamond', name: '메가볼', tier: 4, cost: 40, color: 0x7fe3ff, css: '#5fd3f5' }, // id 는 예전 저장과 맞추려고 그대로 둔다
+  { id: 'bronze',  name: '브론즈볼',  tier: 1, cost: 4,  color: 0xcd7f32, css: '#cd7f32' },
+  { id: 'silver',  name: '실버볼',   tier: 2, cost: 12, color: 0xc0c0c0, css: '#b8bcc4' },
+  { id: 'gold',    name: '골드볼',   tier: 3, cost: 30, color: 0xffc300, css: '#f2b705' },
+  { id: 'diamond', name: '메가볼', tier: 4, cost: 80, color: 0x7fe3ff, css: '#5fd3f5' }, // id 는 예전 저장과 맞추려고 그대로 둔다
 ];
 export const BALL_BY_ID = Object.fromEntries(BALLS.map((b) => [b.id, b]));
 
