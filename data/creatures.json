@@ -57,6 +57,202 @@
    "atkRange": "20~25",
    "blockValue": 3
   },
+  "p_sun": {
+   "name": "태양",
+   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다",
+   "targetAtk": 16,
+   "atkRange": "14~20",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m02",
+    "m10",
+    "m19",
+    "m25",
+    "m07"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_mercury": {
+   "name": "수성",
+   "desc": "태양에 가장 가까운 크레이터투성이 작은 행성. 땅·바위·격투 포켓몬이 산다",
+   "targetAtk": 8,
+   "atkRange": "6~10",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m18",
+    "m04",
+    "m33",
+    "m35",
+    "m32"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_venus": {
+   "name": "금성",
+   "desc": "노란 구름과 산성 호수로 덮인 뜨거운 행성. 독·벌레·불 포켓몬이 산다",
+   "targetAtk": 10,
+   "atkRange": "8~14",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m34",
+    "m17",
+    "m36",
+    "m19",
+    "m40"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_earth": {
+   "name": "지구",
+   "desc": "초록 들판과 파란 호수가 있는 우리 행성. 온갖 포켓몬이 어울려 산다",
+   "targetAtk": 8,
+   "atkRange": "4~15",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m03",
+    "m11",
+    "m05",
+    "m01",
+    "m02",
+    "m09",
+    "m08",
+    "m28"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_mars": {
+   "name": "화성",
+   "desc": "붉은 사막과 골짜기, 하얀 얼음 모자가 있는 행성. 땅·바위·불 포켓몬이 산다",
+   "targetAtk": 8,
+   "atkRange": "6~10",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m04",
+    "m33",
+    "m18",
+    "m07",
+    "m29",
+    "m32"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_jupiter": {
+   "name": "목성",
+   "desc": "줄무늬 구름 위 번개가 치는 가장 큰 행성. 전기 포켓몬과 나는 포켓몬이 산다",
+   "targetAtk": 18,
+   "atkRange": "14~20",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m03",
+    "m03e",
+    "m41",
+    "m09",
+    "m17"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_saturn": {
+   "name": "토성",
+   "desc": "거대한 고리가 하늘에 걸린 행성. 얼음 조각 사이에 페어리·에스퍼·노말 포켓몬이 산다",
+   "targetAtk": 18,
+   "atkRange": "12~20",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m15",
+    "m23",
+    "m24",
+    "m39",
+    "m11",
+    "m10"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_uranus": {
+   "name": "천왕성",
+   "desc": "옆으로 누워 도는 청록색 얼음 행성. 물·에스퍼 포켓몬이 산다",
+   "targetAtk": 14,
+   "atkRange": "10~16",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m42",
+    "m39",
+    "m20",
+    "m24",
+    "m37"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_neptune": {
+   "name": "해왕성",
+   "desc": "거센 바람이 부는 짙푸른 행성. 물 포켓몬이 산다",
+   "targetAtk": 12,
+   "atkRange": "8~14",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m22",
+    "m21",
+    "m38",
+    "m20",
+    "m40",
+    "m05"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
+  "p_pluto": {
+   "name": "명왕성",
+   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬이 산다",
+   "targetAtk": 20,
+   "atkRange": "16~22",
+   "blockValue": 3,
+   "planet": true,
+   "wild": [
+    "m26",
+    "m24",
+    "m15",
+    "m23",
+    "m41"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
   "lab": {
    "name": "오박사 연구소",
    "desc": "푸른숲 마을 남쪽의 연구소. 오박사가 힌트를 주고 포켓몬을 치료해 준다",

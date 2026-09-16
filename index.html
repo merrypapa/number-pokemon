@@ -141,6 +141,31 @@
   <button id="ctx-action" class="hidden"></button>
   <button id="btn-warp" class="hidden">🏥 연구소 가기</button>
   <button id="btn-board" class="hidden">🚂 기차 타기</button>
+  <button id="btn-ufo" class="hidden">🪐 다른 행성으로 가기</button>
+
+  <div id="planet-modal" class="hidden">
+    <div class="pop-card planet">
+      <button class="pop-close" id="btn-planet-close">✕</button>
+      <div class="pop-title">🛸 어느 행성으로 갈까?</div>
+      <div class="planet-stage">
+        <button id="planet-prev" aria-label="이전 행성">◀</button>
+        <div id="planet-art"></div>
+        <button id="planet-next" aria-label="다음 행성">▶</button>
+      </div>
+      <div class="planet-info">
+        <div id="planet-name"></div>
+        <div id="planet-sub"></div>
+        <div id="planet-pos"></div>
+        <div id="planet-desc" class="planet-desc"></div>
+        <div id="planet-pokes"></div>
+      </div>
+      <div class="planet-side">
+        <button id="btn-planet-go" class="pop-go">🛸 출발!</button>
+        <div class="planet-side-hint">◀ ▶ 로 행성을 넘겨 봐</div>
+      </div>
+    </div>
+  </div>
+  <div id="warp"><canvas id="warp-canvas"></canvas><div id="warp-text"></div></div>
 
   <div id="quiz" class="hidden">
     <div id="quiz-card">

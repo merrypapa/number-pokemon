@@ -552,3 +552,51 @@ body.touch #btn-board { bottom: var(--ctx-bottom); }
 #admin-panel { position: fixed; top: 56px; right: 12px; z-index: 6; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; max-width: min(46vw, 420px); padding: 6px 8px; border-radius: 12px; background: rgba(20,30,50,.55); color: #fff; font-size: 12px; font-weight: 800; }
 #admin-panel button { font: inherit; padding: 4px 8px; border: 0; border-radius: 8px; background: #ffd93d; color: #333; cursor: pointer; }
 #admin-panel button:hover { background: #ffe873; }
+
+/* ---------- UFO: 행성 고르기 팝업 · 하이퍼스페이스 연출 · 다른 행성으로 가기 버튼 ---------- */
+#btn-ufo { position: fixed; right: 16px; bottom: calc(var(--ctx-bottom) + 128px); z-index: 8; font-size: 17px; font-weight: 900; padding: 12px 20px; border-radius: 999px; border: 0; background: #8e6cff; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #5a3fc0, 0 6px 14px rgba(0,0,0,.25); white-space: nowrap; animation: ctxPop .25s ease-out; }
+#btn-ufo:active { transform: translateY(3px); box-shadow: 0 1px 0 #5a3fc0; }
+body.touch #btn-ufo { bottom: calc(var(--ctx-bottom) + 64px); }
+@media (max-width: 640px) {
+  #btn-ufo { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 108px); }
+  body.touch #btn-ufo { bottom: calc(var(--ctx-bottom) + 54px); }
+}
+#planet-modal { position: fixed; inset: 0; z-index: 30; background: rgba(2,4,20,.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.pop-card.planet { width: min(94vw, 600px); padding: 12px 16px; background: linear-gradient(180deg, #0f1233, #1b1f4d); color: #fff; border-color: #66e0ff; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title title" "stage go" "info go"; gap: 8px 14px; align-items: start; text-align: left; animation: ctxPop .3s ease-out; }
+.pop-card.planet .pop-title { grid-area: title; color: #fff; text-align: center; width: 100%; }
+.pop-card.planet .pop-close { background: #66e0ff; color: #10203a; }
+.planet-stage { grid-area: stage; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+.planet-stage button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #ffd93d; font-size: 18px; font-weight: 900; cursor: pointer; box-shadow: 0 3px 0 #c99400; flex: none; }
+.planet-stage button:active { transform: translateY(2px); box-shadow: none; }
+#planet-art { width: 140px; height: 140px; flex: none; }
+#planet-art svg { width: 100%; height: 100%; display: block; border-radius: 20px; box-shadow: 0 0 28px rgba(102,224,255,.35); animation: planetIn .35s ease-out; }
+@keyframes planetIn { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.planet-info { grid-area: info; display: flex; flex-direction: column; gap: 6px; font-size: 13px; width: 100%; min-width: 0; }
+#planet-name { font-size: 24px; font-weight: 900; }
+#planet-sub { color: #9fe8ff; font-weight: 800; }
+#planet-pos { color: #aab; font-weight: 800; font-size: 12px; }
+.planet-desc p { margin: 0 0 4px; line-height: 1.45; }
+.planet-fact { background: rgba(255,217,61,.15); border-left: 4px solid #ffd93d; padding: 4px 8px; border-radius: 8px; }
+.planet-stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.planet-stats span { background: rgba(255,255,255,.12); border-radius: 999px; padding: 2px 9px; font-weight: 700; font-size: 12px; }
+.planet-poke-note { color: #ffe9a0; font-weight: 700; margin-bottom: 4px; }
+.planet-poke-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.planet-poke { display: flex; flex-direction: column; align-items: center; width: 58px; background: rgba(255,255,255,.12); border-radius: 12px; padding: 4px 2px; font-size: 11px; font-weight: 800; text-align: center; }
+.planet-poke img { width: 38px; height: 38px; object-fit: contain; }
+.planet-poke small { color: #aab; font-weight: 700; }
+.planet-poke-dot { width: 34px; height: 34px; border-radius: 50%; margin: 5px; }
+.planet-side { grid-area: go; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; align-self: center; }
+.planet-side-hint { color: #aab; font-size: 11px; font-weight: 700; white-space: nowrap; }
+#btn-planet-go { font-size: 20px; padding: 18px 20px; background: #e8453c; box-shadow: 0 4px 0 #a52a24; white-space: nowrap; }
+#btn-planet-go:active { box-shadow: 0 1px 0 #a52a24; }
+#btn-planet-go:disabled { background: #556; box-shadow: none; opacity: .85; cursor: default; transform: none; }
+@media (max-width: 560px) {
+  .pop-card.planet { grid-template-columns: 1fr; grid-template-areas: "title" "stage" "info" "go"; }
+  .planet-side { flex-direction: row; width: 100%; justify-content: center; }
+  #planet-art { width: 128px; height: 128px; }
+}
+#warp { position: fixed; inset: 0; z-index: 16; opacity: 0; pointer-events: none; transition: opacity .45s; background: #040214; }
+#warp.on { opacity: 1; }
+#warp canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#warp-text { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); color: #fff; font-size: clamp(22px, 5vw, 40px); font-weight: 900; -webkit-text-stroke: 1.5px #20232e; text-shadow: 0 4px 0 var(--warp, #3fb8e8), 0 8px 20px rgba(0,0,0,.5); white-space: nowrap; animation: warpPulse .9s ease-in-out infinite alternate; }
+@keyframes warpPulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.06); } }

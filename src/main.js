@@ -8,6 +8,8 @@ import { buildSea } from './sea.js';
 import { buildDeepSea } from './deepsea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
+import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
+import { WarpFx } from './ufo.js';
 import { strongAgainst, weakTo, skillIcon } from './types.js';
 import { portrait } from './portrait.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
@@ -139,6 +141,10 @@ function makeZone(name, builder) {
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
+for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 별이에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
+  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name });
+  WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
+}
 const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
@@ -593,6 +599,7 @@ function applyZoneEnv() {
 function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   boardBtn.classList.add('hidden'); boardNpc = null;
+  ufoBtn.classList.add('hidden'); ufoNpc = null;
   if (switching || !BUILDERS[name]) return;
   if (sailing || parked || goingHome) { // 다른 지역으로 가면 배와 루피는 선착장 제자리로
     const b = boatHere(), npc = sailorNpc(), home = zone.world.sailorHome;
@@ -633,7 +640,7 @@ const RIDE_MSG = {
   forest: '푸른숲으로 돌아왔어!',
 };
 let ride = null;
-function vehiclesHere() { return [zone.world.train, zone.world.rocket].filter(Boolean); }
+function vehiclesHere() { return [zone.world.train, zone.world.rocket, zone.world.ufo].filter(Boolean); }
 
 // ---------- 배 타기 (물의길): 선착장에서 배를 타고 바다를 돌아다닌다 ----------
 // 배를 타면 주인공이 배 위에 서고, 물 위만 갈 수 있게 된다(뭍에서 막힘). 따라오던 친구들은 잠시 배웅.
@@ -781,6 +788,7 @@ function startRide(v) {
   say(v.kind === 'train' ? `칙칙폭폭! ${dest}(으)로 출발!` : `3, 2, 1, 발사! ${dest}(으)로!`, { sec: 4 });
 }
 function updateRide(dt) {
+  if (ride.kind === 'ufo') return updateUfoRide(dt);
   const r = ride, v = r.v, m = v.mesh;
   r.t += dt;
   const here = zone.name === r.from;
@@ -846,7 +854,9 @@ boardBtn.onclick = () => {
   if (!npc) return;
   if (npc.sails) { sailing ? startReturn() : boardBoat(); return; } // 루피: 배 타기 / 선착장 복귀
   const v = zone.world[npc.boards];
-  if (v) startRide(v);
+  if (!v) return;
+  if (v.kind === 'ufo') { if (v.to) startUfoRide(v.to); else openPlanetPopup(); return; } // 별이: 행성에서는 꿈의우주로 돌아가고, 우주에서는 행성 고르기 팝업
+  startRide(v);
 };
 const warpBtn = document.getElementById('btn-warp');
 let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
@@ -856,6 +866,158 @@ warpBtn.onclick = () => {
   state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
   goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
 };
+// ----- UFO (별이): 행성 고르기 팝업과 비행접시 타기 -----
+// 꿈의우주 UFO 정거장의 별이에게 말을 걸면 "다른 행성으로 가기" 버튼이 켜지고, 누르면 화면 가운데 팝업에서
+// 태양·수성·금성·지구·화성·목성·토성·천왕성·해왕성·명왕성을 ◀ ▶ 로 넘겨 보며 그림·설명·사는 포켓몬을 읽고 오른쪽 "출발!" 로 간다.
+// 행성의 별이는 빨간 "꿈의우주로 돌아가기"와 보라 "다른 행성으로 가기" 버튼을 켜 준다.
+const ufoBtn = document.getElementById('btn-ufo');
+let ufoNpc = null;
+/** 행성 이름 뒤에 붙는 '로/으로' (받침이 없거나 ㄹ 받침이면 '로': 지구로, 태양으로, 수성으로) */
+function ro(word) { const code = word.charCodeAt(word.length - 1) - 0xac00; if (code < 0 || code > 11171) return `${word}(으)로`; const jong = code % 28; return word + (jong === 0 || jong === 8 ? '로' : '으로'); }
+ufoBtn.onclick = () => { ufoBtn.classList.add('hidden'); boardBtn.classList.add('hidden'); if (ufoNpc) ufoNpc.talking = false; ufoNpc = null; boardNpc = null; openPlanetPopup(); };
+const planetEl = document.getElementById('planet-modal');
+const planetArt = document.getElementById('planet-art'), planetName = document.getElementById('planet-name'), planetSub = document.getElementById('planet-sub'), planetPos = document.getElementById('planet-pos'), planetDesc = document.getElementById('planet-desc'), planetPokes = document.getElementById('planet-pokes'), planetGo = document.getElementById('btn-planet-go');
+let planetOpen = false, planetIdx = 0;
+function openPlanetPopup() {
+  if (!zone || ride || switching || battle.active) return;
+  planetOpen = true;
+  const here = PLANETS.findIndex((p) => p.zone === zone.name);
+  planetIdx = here >= 0 ? here : 0; // 행성에 있으면 그 행성부터, 우주에서는 태양부터
+  renderPlanet();
+  planetEl.classList.remove('hidden');
+  sound.click();
+}
+function closePlanetPopup() { planetOpen = false; planetEl.classList.add('hidden'); }
+function renderPlanet() {
+  const p = PLANETS[planetIdx], info = ZONE_INFO[p.zone] || {};
+  planetArt.innerHTML = planetSvg(p);
+  planetName.textContent = `${p.emoji} ${p.name}`;
+  planetSub.textContent = p.title;
+  planetPos.textContent = `${planetIdx + 1} / ${PLANETS.length} · ${planetIdx === 0 ? '태양계의 중심' : `태양에서 ${planetIdx}번째`}`;
+  planetDesc.innerHTML = `<p>${p.desc}</p><p class="planet-fact">💡 ${p.fact}</p><div class="planet-stats"><span>📏 ${p.size}</span><span>📍 ${p.dist}</span><span>🪂 중력: ${p.gravityText}</span></div>`;
+  const wild = (info.wild || []).map((id) => speciesById[id]).filter(Boolean);
+  planetPokes.innerHTML = `<div class="planet-poke-note">🐾 ${p.pokeNote}</div><div class="planet-poke-list">${wild.map((sp) => {
+    const t = dex.thumbs(sp)?.color;
+    return `<div class="planet-poke">${t ? `<img src="${t}" alt="">` : `<span class="planet-poke-dot" style="background:${sp.draftShape?.color || '#ccc'}"></span>`}<span>${sp.name}</span><small>${sp.type}</small></div>`;
+  }).join('')}</div>`;
+  const here = zone.name === p.zone;
+  planetGo.disabled = here;
+  planetGo.textContent = here ? '📍 지금 여기 있어' : `🛸 ${ro(p.name)} 출발!`;
+}
+document.getElementById('planet-prev').onclick = () => { planetIdx = (planetIdx + PLANETS.length - 1) % PLANETS.length; renderPlanet(); sound.click(); };
+document.getElementById('planet-next').onclick = () => { planetIdx = (planetIdx + 1) % PLANETS.length; renderPlanet(); sound.click(); };
+document.getElementById('btn-planet-close').onclick = () => { closePlanetPopup(); sound.click(); };
+planetEl.addEventListener('click', (e) => { if (e.target === planetEl) closePlanetPopup(); });
+planetGo.onclick = () => { const p = PLANETS[planetIdx]; if (zone.name === p.zone) return; startUfoRide(p.zone); };
+
+// 비행접시 타기 연출: 빔에 빨려 올라간다(1초) → 돌면서 솟아 길게 늘어나 사라진다(2.9초, 도중에 하이퍼스페이스가 화면을 덮는다)
+// → 지역 교체 → 도착지 정거장 위 높은 곳에서 내려앉는다(2.3초) → 빔으로 주인공과 친구들이 내려온다(0.8초)
+const warp = new WarpFx(document.getElementById('warp'), document.getElementById('warp-canvas'), document.getElementById('warp-text'));
+const UFO_T = { beam: 1.0, lift: 2.9, land: 2.3, drop: 0.8 };
+function startUfoRide(to) {
+  const v = zone?.world.ufo;
+  if (!v || ride || switching || battle.active || !BUILDERS[to]) return;
+  closePlanetPopup();
+  boardBtn.classList.add('hidden'); ufoBtn.classList.add('hidden'); boardNpc = null; ufoNpc = null;
+  const meshes = partyMeshes();
+  ride = { kind: 'ufo', v, t: 0, from: zone.name, to, switched: false, beamed: false, destInit: false, landT: 0, meshes, scales: meshes.map((m) => m.scale.clone()), ys: meshes.map((m) => m.position.y), targets: null, land: null };
+  v.mesh.userData.riding = true;
+  v.mesh.position.set(v.base.x, v.base.y + 1.0, v.base.z);
+  v.mesh.rotation.set(0, 0, 0);
+  if (v.beam) v.beam.visible = true;
+  sound.portal();
+  const dest = PLANET_BY_ZONE[to];
+  say(dest ? `🛸 ${ro(dest.name)} 출발! 꽉 잡아!` : '🛸 꿈의우주로 돌아가자! 꽉 잡아!', { sec: 3 });
+}
+const UFO_COLORS = [0xff5c8a, 0xffd93d, 0x6cff8a, 0x66e0ff];
+function updateUfoRide(dt) {
+  const r = ride, v = r.v, m = v.mesh;
+  r.t += dt;
+  const T = r.t;
+  if (!r.switched) { // ---- 출발지 ----
+    if (T < UFO_T.beam) { // 빔으로 빨려 올라간다: 작아지며 돌면서 비행접시 배 쪽으로
+      const k = T / UFO_T.beam;
+      r.meshes.forEach((o, i) => {
+        o.position.x += (m.position.x - o.position.x) * Math.min(1, dt * 4);
+        o.position.z += (m.position.z - o.position.z) * Math.min(1, dt * 4);
+        o.position.y = r.ys[i] + k * k * (m.position.y - r.ys[i]);
+        o.scale.copy(r.scales[i]).multiplyScalar(Math.max(0.02, 1 - k));
+        o.rotation.y += dt * 6;
+      });
+      if (Math.random() < 0.7) particles.stars(zone.scene, new THREE.Vector3(m.position.x + rand(-1.2, 1.2), m.position.y - rand(0.5, 3.5), m.position.z + rand(-1.2, 1.2)), 1, 0x9fe8ff, 0.3);
+    } else { // 이륙: 돌면서 점점 빨리 솟고, 끝에는 길게 늘어나며 사라진다
+      if (!r.beamed) { r.beamed = true; for (const o of r.meshes) o.visible = false; if (v.beam) v.beam.visible = false; sound.portal(); }
+      const u = T - UFO_T.beam;
+      m.position.y = v.base.y + 1.0 + u * u * 7;
+      m.rotation.y += dt * (2 + u * 5);
+      m.rotation.z = Math.sin(T * 6) * 0.05 * Math.min(1, u);
+      const st = Math.max(0, u - 1.3);
+      m.scale.set(Math.max(0.2, 1 - st * 0.8), 1 + st * 2.2, Math.max(0.2, 1 - st * 0.8));
+      m.userData.glow.intensity = 2.5 + u * 4;
+      if (Math.random() < 0.8) particles.stars(zone.scene, m.position.clone().add(new THREE.Vector3(rand(-1.5, 1.5), -0.5, rand(-1.5, 1.5))), 2, UFO_COLORS[Math.floor(Math.random() * 4)], 0.45);
+      if (u > 1.2 && !warp.on) { const d = PLANET_BY_ZONE[r.to]; warp.start(`🛸 ${ro(d ? d.name : (ZONE_INFO[r.to]?.name || '꿈의우주'))} 이동 중…`, d?.tint || '#c38bff'); }
+    }
+    camera.position.lerp(m.position.clone().add(camOffset()), 0.12);
+    camera.lookAt(m.position.x, m.position.y + 1, m.position.z);
+    if (T > UFO_T.beam + UFO_T.lift - 0.4 && !switching) { // 하이퍼스페이스가 화면을 덮은 뒤 지역을 바꾼다. 출발지 비행접시는 제자리로
+      r.switched = true;
+      r.meshes.forEach((o, i) => o.scale.copy(r.scales[i]));
+      m.position.copy(v.base); m.position.y = v.base.y + 1.0; m.rotation.set(0, 0, 0); m.scale.setScalar(1); m.userData.riding = false; m.userData.glow.intensity = 2.5;
+      const dest = getZone(r.to);
+      switchZone(r.to, dest.world.ufoArrival || dest.world.arrivals?.[r.from] || dest.world.spawn, null);
+    }
+    return;
+  }
+  if (zone.name !== r.to) return; // 페이드 중 (아직 지역이 안 바뀌었다)
+  const dv = zone.world.ufo;
+  if (!dv) { finishUfoRide(); return; }
+  const dm = dv.mesh;
+  if (!r.destInit) { // 도착지: 비행접시를 정거장 위 높은 곳에 두고, 주인공과 친구들은 숨긴 채 비행접시 안에
+    r.destInit = true; r.landT = T;
+    r.land = { x: player.position.x, z: player.position.z };
+    r.meshes = partyMeshes(); r.scales = r.meshes.map((o) => o.scale.clone());
+    r.targets = r.meshes.map((o, i) => ({ x: r.land.x + (i ? rand(-1.5, 1.5) : 0), z: r.land.z + (i ? 1.2 + rand(0, 1.5) : 0) }));
+    for (const o of r.meshes) { o.visible = false; o.position.x = dv.base.x; o.position.z = dv.base.z; }
+    dm.userData.riding = true; dm.rotation.set(0, 0, 0); dm.scale.set(0.3, 2.5, 0.3);
+    dm.position.set(dv.base.x, dv.base.y + 48, dv.base.z);
+  }
+  const u = T - r.landT;
+  if (u < UFO_T.land) { // ---- 내려앉기 ----
+    const k = u / UFO_T.land, e = 1 - (1 - k) * (1 - k);
+    dm.position.y = dv.base.y + 1.0 + 48 * (1 - e);
+    dm.rotation.y += dt * (6 - 5 * k);
+    const s = Math.min(1, u / 0.5);
+    dm.scale.set(0.3 + 0.7 * s, 2.5 - 1.5 * s, 0.3 + 0.7 * s);
+    if (u > 0.4 && warp.on) warp.stop();
+    if (Math.random() < 0.6) particles.stars(zone.scene, dm.position.clone().add(new THREE.Vector3(rand(-1.5, 1.5), 0.5, rand(-1.5, 1.5))), 1, 0x9fe8ff, 0.4);
+    camera.position.lerp(dm.position.clone().add(camOffset().multiplyScalar(1.6)), 0.1);
+    camera.lookAt(dm.position.x, dm.position.y, dm.position.z);
+  } else if (u < UFO_T.land + UFO_T.drop) { // ---- 빔으로 내려오기 ----
+    if (!dv.beam.visible) { dv.beam.visible = true; sound.portal(); particles.stars(zone.scene, dm.position.clone(), 24, 0x9fe8ff, 0.5); }
+    const k = (u - UFO_T.land) / UFO_T.drop;
+    r.meshes.forEach((o, i) => {
+      o.visible = true;
+      const tg = r.targets[i], gy = terrainHeight(tg.x, tg.z), top = dv.base.y + 1.0;
+      o.position.set(dv.base.x + (tg.x - dv.base.x) * k, top + (gy - top) * k * k, dv.base.z + (tg.z - dv.base.z) * k);
+      o.scale.copy(r.scales[i]).multiplyScalar(Math.max(0.02, k));
+      o.rotation.y += dt * 8 * (1 - k);
+    });
+    camera.position.lerp(player.position.clone().add(camOffset()), 0.12);
+    camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+  } else finishUfoRide();
+}
+function finishUfoRide() {
+  const r = ride, dv = zone.world.ufo;
+  if (dv) { dv.mesh.userData.riding = false; dv.mesh.scale.setScalar(1); dv.mesh.rotation.set(0, 0, 0); if (dv.beam) dv.beam.visible = false; }
+  r.meshes.forEach((o, i) => { o.visible = true; o.scale.copy(r.scales[i]); o.rotation.set(0, 0, 0); const tg = r.targets?.[i]; if (tg) o.position.set(tg.x, terrainHeight(tg.x, tg.z), tg.z); });
+  player.vy = 0;
+  warp.stop();
+  ride = null; snapCam = true;
+  const p = PLANET_BY_ZONE[zone.name];
+  say(p ? p.arrive : (RIDE_MSG[zone.name] || `${zone.label}에 도착!`), { sec: 9 });
+  sound.fanfare(); confetti.burst(60);
+  autosave();
+}
 // ----- 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차 타기·로켓 타기·구출)이 화면에 버튼으로 나타난다. E키/엔터도 같은 일을 한다 -----
 const ctxBtn = document.getElementById('ctx-action');
 let ctxAction = null, ctxClicked = false;
@@ -864,7 +1026,7 @@ const jumpBtn = document.querySelector('#touch-actions button[data-key="jump"]')
 const runBtn = document.querySelector('#touch-actions button[data-key="run"]');
 function offer(label, run, short = label) { if (!ctxAction) ctxAction = { label, run, short }; }
 function updateCtxButton() {
-  const show = ctxAction && !battle.active && !dex.open && !quiz.open && !ride && !switching && !evo;
+  const show = ctxAction && !battle.active && !dex.open && !quiz.open && !planetOpen && !ride && !switching && !evo;
   if (document.body.classList.contains('touch')) { // 터치 화면: 점프 버튼이 그 일을 하는 버튼으로 바뀐다 (색도 바뀜)
     ctxBtn.classList.add('hidden');
     const label = show ? ctxAction.short : (player.swim ? '🫧\n헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼
@@ -894,7 +1056,13 @@ function talkTo(npc) {
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
-  if (npc.boards && zone.world[npc.boards]) { // 차장과 이야기하는 동안 "기차 타기" 버튼이 켜진다
+  if (npc.ufo && zone.world.ufo) { // 별이: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
+    const v = zone.world.ufo;
+    boardNpc = npc;
+    boardBtn.textContent = v.to ? '🛸 꿈의우주로 돌아가기' : '🛸 다른 행성으로 가기';
+    boardBtn.classList.remove('hidden');
+    if (v.to) { ufoNpc = npc; ufoBtn.classList.remove('hidden'); }
+  } else if (npc.boards && zone.world[npc.boards]) { // 차장과 이야기하는 동안 "기차 타기" 버튼이 켜진다
     boardNpc = npc;
     const dest = ZONE_INFO[zone.world[npc.boards].to]?.name || '';
     boardBtn.textContent = `${npc.boards === 'train' ? '🚂' : '🚀'} ${dest}(으)로 출발!`;
@@ -967,6 +1135,7 @@ function rescueSolved(z, nb) {
  *  (볼 값을 두 배로 올리면서 이 바닥값도 "볼 값 + 1" 에서 절반으로 낮췄다. 그러지 않으면 볼이 비싸질수록
  *   대결 보상이 따라 올라가서, 비싸진 값이 하나도 어렵지 않게 된다.) */
 const ZONE_GRADE = { forest: 1, cave: 2, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
+for (const p of PLANETS) ZONE_GRADE[p.zone] = 5; // 행성은 우주 등급
 function winReward(c) {
   const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
   const ball = BALLS.find((b) => catchChance(grade, b.tier) >= 75) || BALLS[BALLS.length - 1];
@@ -980,7 +1149,7 @@ function tutorial() {
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)를 열면 블록으로 포켓몬의 공격력이나 체력을 올릴 수 있어.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 체력이 0이 되면 지니까 도감에서 체력도 올려 두자.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 도와달라고 나타나면 문제를 풀어 구출해 줘!', { sec: 7 }); }
-  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
+  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 꿈의우주의 UFO 정거장에서는 태양과 행성들까지 갈 수 있어. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
 function conquer(zoneName) {
   state.conquered[zoneName] = true;
@@ -1094,7 +1263,7 @@ function showAdminPanel() {
   document.body.appendChild(box);
 }
 // 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
-const BUILD = 'v2026-09-16b';
+const BUILD = 'v2026-09-16c';
 document.getElementById('title-help').insertAdjacentText('beforeend', ` · ${BUILD}`);
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');
@@ -1246,7 +1415,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
@@ -1285,6 +1454,8 @@ function frame() {
     if (input.wasPressed('cancel')) dex.hide();
   } else if (quiz.open) {
     if (input.wasPressed('cancel')) quiz.finish(false);
+  } else if (planetOpen) { // 행성 고르기 팝업이 떠 있는 동안은 멈춘다
+    if (input.wasPressed('cancel')) closePlanetPopup();
   } else if (battle.active) {
     battle.update(dt);
   } else if (ride) {
@@ -1345,7 +1516,7 @@ function frame() {
       if (d < 2.8) {
         offer('💬 대화', () => talkTo(npc), '💬\n대화');
         if (!npc.talking && !npc.prompted) { npc.prompted = true; say(`${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
-      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } } // 멀어지면 버튼도 사라진다
+      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
     if (!moved && zone.world.warpPad && near(zone.world.warpPad, 1.5)) {
@@ -1377,7 +1548,7 @@ function frame() {
     if (!moved && state.prompt <= 0) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.6)) continue;
       state.prompt = 8;
-      say(v.kind === 'train' ? '기차역이야! 옆에 선 리리에게 말을 걸면 탈 수 있어.' : '로켓 발사장이야! 옆에 선 코리에게 말을 걸면 탈 수 있어.', { sec: 4 });
+      say(v.kind === 'train' ? '기차역이야! 옆에 선 리리에게 말을 걸면 탈 수 있어.' : v.kind === 'ufo' ? 'UFO 정거장이야! 옆에 선 별이에게 말을 걸면 비행접시를 탈 수 있어.' : '로켓 발사장이야! 옆에 선 코리에게 말을 걸면 탈 수 있어.', { sec: 4 });
       break;
     }
 
@@ -1509,7 +1680,7 @@ function frame() {
       const nb = nearNb;
       offer(`🧩 ${nb.data.name} 구출하기`, () => {
         input.endFrame();
-        quiz.ask(nb.data.number, nb.data.name, zone.name).then((res) => {
+        quiz.ask(nb.data.number, nb.data.name, zone.world.quizZone || zone.name).then((res) => { // 행성은 저마다 정해진 문제 종류를 쓴다
           if (!zone.rescues.includes(nb)) return;
           if (res === 'ok') rescueSolved(zone, nb);
           else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다
@@ -1583,6 +1754,7 @@ function frame() {
   if (sun) { sun.position.set(player.position.x + 20, 30, player.position.z + 10); sun.target.position.copy(player.position); }
   particles.update(dt);
   confetti.update(dt);
+  warp.update(dt, ride ? 1.6 : 1); // UFO 하이퍼스페이스 (켜져 있을 때만 그린다)
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
   if (zoneBannerTimer > 0) { zoneBannerTimer -= dt; if (zoneBannerTimer <= 0) zoneBannerEl.classList.add('hidden'); }
 

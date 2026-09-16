@@ -19,6 +19,7 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
     captain:   { coat: 0x1f3a93, pants: 0xf4f4f8, hat: 0x1f3a93, hatKind: 'capcap' },
     astronaut: { coat: 0xf4f4f8, pants: 0xf4f4f8, hat: 0xdddddd, hatKind: 'bubble' },
     professor: { coat: 0xffffff, pants: 0x556070, hat: 0xbfc5cc, hatKind: 'hair' },
+    pilot:     { coat: 0x7c6cff, pants: 0x2b2450, hat: 0xe8e8ff, hatKind: 'antenna' }, // UFO 조종사 별이
   }[outfit];
   const mat = (c) => new THREE.MeshStandardMaterial({ color: c });
   const coat = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.7, 6, 12), mat(C.coat)); coat.position.y = 0.75;
@@ -31,6 +32,15 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
   if (C.hatKind === 'capcap') { const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.42, 0.28, 16), mat(C.hat)); cap.position.y = 1.85; const brim = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.35), mat(0x20232e)); brim.position.set(0, 1.72, 0.4); const badge = new THREE.Mesh(new THREE.CircleGeometry(0.09, 10), mat(0xffd93d)); badge.position.set(0, 1.86, 0.41); draft.add(cap, brim, badge); const beard = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), mat(0xf4f4f8)); beard.position.set(0, 1.32, 0.22); beard.scale.y = 0.7; draft.add(beard); }
   if (C.hatKind === 'helmet') { const h = new THREE.Mesh(new THREE.SphereGeometry(0.41, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(C.hat)); h.position.y = 1.6; const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshStandardMaterial({ color: 0xfff1b5, emissive: 0xffd36b, emissiveIntensity: 1 })); lamp.position.set(0, 1.78, 0.38); draft.add(h, lamp); }
   if (C.hatKind === 'bubble') { const b = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.35 })); b.position.y = 1.55; const pack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.25), mat(0xdddddd)); pack.position.set(0, 0.9, -0.42); draft.add(b, pack); }
+  if (C.hatKind === 'antenna') { // 은빛 헬멧 + 반짝이는 안테나 + 별 배지 + 하늘색 고글
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.1), new THREE.MeshStandardMaterial({ color: C.hat, metalness: 0.5, roughness: 0.3 })); helmet.position.y = 1.6;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 6), mat(0x888899)); rod.position.set(0.12, 2.15, 0);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({ color: 0x66e0ff, emissive: 0x33c0ff, emissiveIntensity: 1.2 })); bulb.position.set(0.12, 2.4, 0);
+    const goggles = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.1), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.7 })); goggles.position.set(0, 1.72, 0.3);
+    const badge = new THREE.Mesh(new THREE.CircleGeometry(0.09, 5), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.6 })); badge.position.set(-0.18, 1.05, 0.39);
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 8, 16), mat(0xffd93d)); scarf.rotation.x = Math.PI / 2; scarf.position.y = 1.22;
+    draft.add(helmet, rod, bulb, goggles, badge, scarf);
+  }
   if (C.hatKind === 'hair') { const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), mat(C.hat)); hair.position.y = 1.62; const gm = mat(0x333333); for (const gx of [-0.12, 0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14), gm); ring.position.set(gx, 1.58, 0.34); draft.add(ring); } const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.05), mat(0xe8453c)); tie.position.set(0, 0.95, 0.38); draft.add(hair, tie); }
   const border = '#' + C.coat.toString(16).padStart(6, '0'); // 옷 색 테두리의 둥근 이름표
   const tag = makePillSprite(name, { border: C.coat === 0xffffff || C.coat === 0xf4f4f8 ? '#3fb8e8' : border }, 0.85);

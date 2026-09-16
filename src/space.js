@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildGround, makeSignAt, makeLabelTexture, makeInstanced } from './world.js';
+import { buildUfoStation } from './ufo.js';
 
 // 꿈의우주 (220x220). 푸른숲 로켓 발사장에서 로켓을 타고 온다. 신비한 포켓몬(페어리·에스퍼·고스트)이 산다.
 // 보랏빛 달 표면(분화구·빛나는 수정·떠다니는 별빛·유성)과 하늘의 태양과 여덟 행성(+명왕성). 중력이 약해 높이 뛴다.
@@ -19,6 +20,7 @@ export const SPACE = {
     { x: -85, z: -80, r: 13, h: 2.4 }, { x: 0, z: 40, r: 10, h: 1.4 }, { x: 95, z: 50, r: 12, h: 2.0 },
   ],
   altar: { x: 0, z: -40, r: 9 }, // 보스 팬텀이 지키는 꿈의 제단
+  ufoPad: { x: -18, z: 66 },    // UFO 정거장 (별이에게 말을 걸면 태양·행성으로 간다)
   gravity: 0.45, // 지구의 절반도 안 되는 중력: 점프가 높고 오래 뜬다
 };
 
@@ -142,7 +144,7 @@ export function buildSpace(scene) {
   const crystals = [];
   for (let i = 0; i < 80; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
-    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 10 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 3) continue;
+    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 10 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 3 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 10) continue;
     const ci = i % crystalColors.length;
     const y = spaceHeight(x, z);
     for (let k = 0; k < 3; k++) {
@@ -156,7 +158,7 @@ export function buildSpace(scene) {
   const rockItems = [];
   for (let i = 0; i < 90; i++) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
-    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 8 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 2) continue;
+    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 8 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 2 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 9) continue;
     const r = rand(0.4, 1.6);
     rockItems.push({ x, y: spaceHeight(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) });
     block(x, z, r * 0.9);
@@ -238,7 +240,16 @@ export function buildSpace(scene) {
   drop.position.set(SPACE.spawn.x, spaceHeight(SPACE.spawn.x, SPACE.spawn.z) + 0.03, SPACE.spawn.z);
   scene.add(drop);
 
+  // ---------- UFO 정거장: 조종사 별이에게 말을 걸면 태양과 아홉 행성으로 갈 수 있다 (도착지는 팝업에서 고른다) ----------
+  const station = buildUfoStation(scene, decor, block, { x: SPACE.ufoPad.x, z: SPACE.ufoPad.z, heightFn: spaceHeight, to: null, color: 0xc38bff, lines: (c) => [
+    `안녕, ${c.name}! 난 UFO 조종사 별이야. 이 비행접시로 태양이랑 수성·금성·지구·화성·목성·토성·천왕성·해왕성·명왕성까지 갈 수 있어!`,
+    '행성마다 사는 포켓몬이 달라. 뜨거운 태양엔 불 포켓몬, 파란 해왕성엔 물 포켓몬, 어두운 명왕성엔 고스트 포켓몬이 살아.',
+    '중력도 행성마다 달라서 명왕성에서는 둥둥 뜨고 목성에서는 점프가 낮아. 하늘을 올려다보면 태양과 행성들이 한 줄로 보여.',
+    '가고 싶으면 나한테 말을 걸고 "다른 행성으로 가기" 버튼을 눌러! 행성마다 UFO 정거장이 있어서 언제든 돌아올 수 있어.',
+  ] });
+
   function animate(t) {
+    station.animate(t);
     for (const l of crystals) l.intensity = 1.8 + Math.sin(t * 2 + l.userData.phase) * 0.6;
     for (const o of orbs) {
       const u = o.userData;
@@ -265,7 +276,10 @@ export function buildSpace(scene) {
       `여기 포켓몬은 페어리·에스퍼·고스트·전기 속성이야. 공격 ${c.zone.atkRange}쯤 되어야 편하게 이겨. 피카츄와 라이츄도 여기 살아.`,
       c.conquered.space ? '보스 팬텀을 이겼구나! 이제 별의 문이 열렸어. 그곳의 메가팬텀까지 잡으면… 굉장한 일이 일어난대!' : `북쪽 제단에 보스 팬텀이 있어. 체력 240, 공격 26! 공격 ${c.zone.targetAtk + 3} 이상, 체력 70쯤 되면 도전해 봐. 고스트는 고스트에 세니 조심!`,
       '여기 블록은 하나가 3개 가치야. 푸른숲으로 돌아가려면 나한테 말을 걸고 빨간 "출발" 버튼을 누르면 돼!',
-    ] }],
+      '서쪽 UFO 정거장의 별이는 비행접시로 태양이랑 행성들까지 데려다줘. 행성마다 사는 포켓몬이 다르대!',
+    ] }, station.npc],
+    ufo: station.vehicle,
+    ufoArrival: station.arrival,
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rx - 2.6, z: rz + 2.6 }, to: 'forest' },
     wildSpots: [[-40, 50], [40, 55], [-55, 5], [60, 10], [-20, -30], [30, -25], [-75, -30], [75, -55], [-40, -80], [40, -80], [-85, 55], [85, 60], [0, 25], [-95, -80], [95, -20], [-15, 100], [70, -95], [-70, 95]],
     bossSpot: { x: SPACE.altar.x, z: SPACE.altar.z },
