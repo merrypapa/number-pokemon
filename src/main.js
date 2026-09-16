@@ -295,12 +295,13 @@ function removeBoulder() {
   if (bi >= 0) obs.splice(bi, 1); // 바위가 치워지면 지나갈 수 있다
 }
 const totalCreatures = Object.values(WILD_TOTAL).reduce((a, b) => a + b, 0);
-const ZONE_COUNT = Object.keys(BUILDERS).filter((n) => creatureData.creatures.some((c) => c.zone === n && c.boss)).length; // 보스가 있는 지역만 정복 대상 (연구소 제외)
+const CONQUERABLE = Object.keys(BUILDERS).filter((n) => creatureData.creatures.some((c) => c.zone === n && c.boss)); // 보스가 있는 지역만 정복 대상 (연구소 제외)
+const ZONE_COUNT = CONQUERABLE.length;
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -926,31 +927,17 @@ function spawnRescue(z) {
     nb.help.position.y = new THREE.Box3().setFromObject(nb.mesh).max.y - nb.mesh.position.y + 0.7; // 머리 위
     nb.help.scale.set(0.8, 0.8, 1);
     nb.mesh.add(nb.help);
-    for (const o of z.rescues) removeRescueArrow(z, o); // 화살표는 가장 새 친구 쪽만
     z.rescues.push(nb);
-    nb.arrow = makeRescueArrow(); nb.arrowT = 18; // 처음 18초 동안 머리 위 화살표가 친구 쪽을 가리킨다
-    z.scene.add(nb.arrow);
     // 여럿이 동시에 나와도 시끄럽지 않게, 첫 친구만 길게 알려 준다
-    if (z.rescues.length <= 1) say(`${data.name}이(가) 도와달래! 머리 위 빨간 화살표를 따라가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
-    else say(`${data.name}도 도와달래! 화살표를 따라가 봐.`, { face: String(number), sec: 3 });
+    if (z.rescues.length <= 1) say(`${data.name}이(가) 도와달래! 머리 위에 빨간 ! 가 떠 있는 친구를 찾아가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
+    else say(`${data.name}도 도와달래! 찾아가 보자.`, { face: String(number), sec: 3 });
     z.nbTimer = rand(6, 13); // 다음 친구는 잠시 뒤에
     return;
   }
   z.nbTimer = 6; // 자리를 못 찾으면 잠시 뒤 다시
 }
-/** 구출 친구가 어디 있는지 가리키는 빨간 화살표 (주인공 머리 위에 떠서 친구 쪽을 향한다) */
-function makeRescueArrow() {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: 0xe8453c, emissive: 0xe8453c, emissiveIntensity: 0.55 });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.6, 10), mat); shaft.rotation.x = Math.PI / 2; shaft.position.z = 0.8;
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 12), mat); tip.rotation.x = Math.PI / 2; tip.position.z = 2.05;
-  g.add(shaft, tip);
-  return g;
-}
-function removeRescueArrow(z, nb) { if (nb.arrow) { z.scene.remove(nb.arrow); nb.arrow = null; } }
 function removeRescue(z, nb, escaped) {
   if (!nb || !z.rescues.includes(nb)) return;
-  removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescues = z.rescues.filter((o) => o !== nb);
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9));
@@ -960,7 +947,6 @@ function rescueSolved(z, nb) {
   nb.rescued = true;
   const n = nb.data.number;
   particles.stars(z.scene, nb.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 24, new THREE.Color(colorForCount(n)).getHex(), 0.5);
-  removeRescueArrow(z, nb);
   z.scene.remove(nb.mesh);
   z.rescues = z.rescues.filter((o) => o !== nb);
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
@@ -1056,13 +1042,60 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
 }
 function chooseStarter(id) {
   starterEl.classList.add('hidden');
+  if (state.admin) applyAdmin(); // 지역을 만들기 전에 열어 둬야 큰 바위 같은 것도 미리 치워진다
   startGame();
   const member = addStarter(id);
   confetti.burst(120);
   sound.fanfare();
-  say(`안녕, ${state.name}! 난 원이야. ${party.name(member)}와 함께 가자! 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 6 });
+  if (state.admin) startAdmin();
+  else say(`안녕, ${state.name}! 난 원이야. ${party.name(member)}와 함께 가자! 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 6 });
   autosave();
 }
+
+// ---------- 관리자 모드 (기능 테스트용) ----------
+// 새로하기에서 이름을 "Admin" 으로 하면 보스를 잡지 않아도 모든 지역이 열린다.
+// 화면 오른쪽 위 버튼으로 어느 지역이든 바로 갈 수 있어, 심해 헤엄 같은 걸 처음부터 확인할 수 있다.
+const isAdminName = (name) => name.trim().toLowerCase() === 'admin';
+function applyAdmin() {
+  for (const n of CONQUERABLE) state.conquered[n] = true; // 정복 처리 → 동굴 입구·심해 소용돌이가 열린다
+  state.megaBlocks = 30;
+  state.glowBlocks = 50;
+  state.glow = true;                                      // 어두운 동굴도 처음부터 밝게
+  state.balls = { bronze: 30, silver: 30, gold: 30, diamond: 30 };
+  state.tutorial = 5; state.upgradeTold = true; state.mapTold = true; // 처음 안내는 건너뛴다
+}
+function startAdmin() {
+  setBlocks(30, { quiet: true }); // 너무 많으면 뒤에 쌓인 블록 더미가 주인공을 가린다 (모자라면 +블록 100 버튼)
+  showAdminPanel();
+  say(`관리자 모드야, ${state.name}! 모든 지역이 열렸어. 오른쪽 위 버튼으로 어디든 바로 갈 수 있어.`, { sec: 7 });
+}
+/** 지역을 바로 옮기는 관리자 버튼 줄 (관리자 모드에서만 보인다) */
+function showAdminPanel() {
+  if (document.getElementById('admin-panel')) return;
+  const box = document.createElement('div');
+  box.id = 'admin-panel';
+  const title = document.createElement('b');
+  title.textContent = '관리자';
+  box.appendChild(title);
+  for (const n of Object.keys(BUILDERS)) {
+    const btn = document.createElement('button');
+    btn.textContent = ZONE_INFO[n]?.name || n;
+    btn.onclick = () => {
+      if (!zone || zone.name === n || switching || battle.active) return;
+      const dest = getZone(n);
+      switchZone(n, dest.world.spawn, { text: `${dest.label || ZONE_INFO[n]?.name || n}(으)로 왔어!`, sec: 3 });
+    };
+    box.appendChild(btn);
+  }
+  const more = document.createElement('button');
+  more.textContent = '+블록 100';
+  more.onclick = () => setBlocks(state.blocks + 100);
+  box.appendChild(more);
+  document.body.appendChild(box);
+}
+// 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
+const BUILD = 'v2026-09-16b';
+document.getElementById('title-help').insertAdjacentText('beforeend', ` · ${BUILD}`);
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');
 const continueEl = document.getElementById('continue');
@@ -1078,6 +1111,7 @@ function confirmName() {
   const name = (nameInput.value || '').trim().slice(0, 8) || PLAYER_NAME;
   if (loadSave(name) && !confirm(`"${name}" 이름으로 저장된 모험이 있어요. 새로 시작하면 지워집니다. 새로 시작할까요?`)) return;
   state.name = name;
+  state.admin = isAdminName(name); // 이름이 Admin 이면 관리자 모드로 시작한다
   newgameEl.classList.add('hidden');
   starterEl.classList.remove('hidden');
   renderStarter();
@@ -1115,7 +1149,7 @@ document.getElementById('btn-continue').disabled = listSaves().length === 0;
 // ---------- 저장 / 불러오기 ----------
 function buildSaveData() {
   return {
-    v: 1, name: state.name, savedAt: Date.now(),
+    v: 1, name: state.name, admin: !!state.admin, savedAt: Date.now(),
     zone: zone.name, pos: sailing ? { ...dockLanding() } : { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1) }, // 배 위에서 저장하면 선착장에서 다시 시작
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex },
@@ -1185,6 +1219,7 @@ document.getElementById('btn-code-load').onclick = () => {
 };
 function applySave(d) {
   state.name = d.name;
+  state.admin = !!d.admin || isAdminName(d.name || '');
   Object.assign(state, { blocks: 0, megaBlocks: d.megaBlocks || 0, glowBlocks: d.glowBlocks || 0, caught: d.caught || 0, rescued: d.rescued || 0, conquered: { ...(d.conquered || {}) }, caughtCreatures: d.caughtCreatures || {}, tutorial: d.tutorial ?? 5, upgradeTold: !!d.upgradeTold, mapTold: !!d.mapTold, glow: !!d.glow });
   for (const k of Object.keys(state.dex)) delete state.dex[k];
   Object.assign(state.dex, d.dex || {});
@@ -1204,6 +1239,7 @@ function applySave(d) {
   if (leader) attachLeader(leader);
   setBlocks(d.blocks || 0, { quiet: true }); // 불러오기: 금빛 블록 축하는 새로 모았을 때만
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
+  if (state.admin) showAdminPanel();
   sound.fanfare();
   say(`다시 만나서 반가워, ${state.name}! ${leader ? party.name(leader) + '와 ' : ''}모험을 이어서 하자!`, { sec: 6 });
   refreshHud();
@@ -1466,16 +1502,6 @@ function frame() {
       nb.mesh.position.y = terrainHeight(nb.position.x, nb.position.z) + Math.abs(Math.sin(nb.t * 3)) * 0.12;
       nb.mesh.rotation.y = Math.atan2(pp.x - nb.position.x, pp.z - nb.position.z); // 주인공을 본다
       animateNumberblock(nb.mesh, dt, true);
-      if (nb.arrow) { // 화살표: 주인공 머리 위에서 친구 쪽을 가리키다가 시간이 지나거나 가까워지면 사라진다
-        nb.arrowT -= dt;
-        const far = nb.position.distanceTo(pp);
-        if (nb.arrowT <= 0 || far < 7) removeRescueArrow(zone, nb);
-        else {
-          nb.arrow.position.set(pp.x, pp.y + 3.4 + Math.sin(nb.t * 4) * 0.2, pp.z);
-          nb.arrow.rotation.y = Math.atan2(nb.position.x - pp.x, nb.position.z - pp.z);
-          nb.arrow.scale.setScalar(nb.arrowT < 1.5 ? Math.max(0.01, nb.arrowT / 1.5) : 1);
-        }
-      }
       if (nb.life <= 0) removeRescue(zone, nb, true);
       else if (nb.position.distanceTo(pp) < 2.4 && (!nearNb || nb.position.distanceTo(pp) < nearNb.position.distanceTo(pp))) nearNb = nb;
     }
