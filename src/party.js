@@ -49,8 +49,9 @@ export class Party {
   nextSkill(m) { return (this.species(m).skills || []).find((s) => m.atk < s.atk) || null; }
   damage(m, skill, mult = 1) { return Math.max(1, Math.round(m.atk * (skill?.power || 1) * mult)); }
 
-  /** 스탯을 1 올리는 데 드는 블록 수: 0~9 → 1, 10~19 → 2, 20~29 → 3 … */
-  upgradeCost(m, stat) { return 1 + Math.floor((stat === 'atk' ? m.atk : m.maxHp) / 10); }
+  /** 스탯을 1 올리는 데 드는 블록 수: 5칸 오를 때마다 한 개씩 비싸진다 (0~4 → 2, 5~9 → 3, 10~14 → 4 …).
+   *  키우기가 헐값이면 블록을 모을 까닭이 없다: 공격 3 → 20 에 64개, 체력 10 → 30 에 110개쯤 든다. */
+  upgradeCost(m, stat) { return 2 + Math.floor((stat === 'atk' ? m.atk : m.maxHp) / 5); }
   /** 블록으로 공격력/체력 +1. 체력을 올리면 지금 체력도 같이 오른다(기절 중이면 그대로). 드는 블록 수를 돌려준다. */
   upgrade(m, stat) {
     const cost = this.upgradeCost(m, stat);

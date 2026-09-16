@@ -16,7 +16,7 @@ import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
 import { buildIntro } from './intro.js';
-import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK } from './numberblocks.js';
+import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK, SILVER_BLOCK } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
@@ -321,9 +321,9 @@ const STACK_SCALE = 0.72; // 따라오는 블록 더미는 조금 작게 (주인
 function setBlocks(n, { glow = false, quiet = false } = {}) {
   n = Math.max(0, Math.min(MAX_BLOCKS, n));
   if (n > state.blocks && glow) state.glowBlocks += n - state.blocks; // 형광 블록 획득
-  const goldBefore = Math.floor(state.blocks / GOLD_BLOCK);
+  const chunkBefore = Math.floor(state.blocks / SILVER_BLOCK);
   state.blocks = n;
-  const goldNow = Math.floor(n / GOLD_BLOCK); // 50개가 모이면 금빛 블록 한 칸으로 뭉쳐서 더미가 다시 작아진다
+  const chunkNow = Math.floor(n / SILVER_BLOCK); // 25개마다 은빛 한 칸, 은빛 두 칸은 금빛 한 칸으로 뭉쳐서 더미가 다시 작아진다
   state.glowBlocks = Math.min(state.glowBlocks, n);                 // 써서 줄면 형광 블록도 줄어든다
   const old = myStack.mesh;
   if (n === 0) {
@@ -342,12 +342,13 @@ function setBlocks(n, { glow = false, quiet = false } = {}) {
     myStack.pop = 1;
   }
   refreshHud();
-  if (!quiet && goldNow > goldBefore) { // 뭉치는 순간을 크게 알려 준다 (블록 50개마다 금빛 한 칸)
+  if (!quiet && chunkNow > chunkBefore) { // 뭉치는 순간을 크게 알려 준다 (25개마다 은빛 한 칸, 은빛 두 칸이면 금빛 한 칸)
+    const golds = Math.floor(n / GOLD_BLOCK);
     sound.fanfare();
     confetti.burst(160);
-    say(goldNow === 1
-      ? `✨ 블록이 ${GOLD_BLOCK}개! ${GOLD_BLOCK}개가 금빛 블록 한 칸으로 뭉쳤어. 숫자블록이 다시 작아졌지? 금빛 한 칸은 ${GOLD_BLOCK}개야!`
-      : `✨ 금빛 블록이 ${goldNow}칸이 됐어! 금빛 ${goldNow}칸은 ${GOLD_BLOCK}씩 ${goldNow}번, 블록 ${goldNow * GOLD_BLOCK}개야!`, { sec: 8 });
+    say(chunkNow % 2 // 홀수 번째 묶음 = 은빛 한 칸이 새로 생긴 순간
+      ? `✨ 블록 ${SILVER_BLOCK}개가 은빛 블록 한 칸으로 뭉쳤어! 은빛 한 칸은 ${SILVER_BLOCK}개, 두 칸이 되면 금빛 한 칸(${GOLD_BLOCK})이 돼. 지금 블록은 모두 ${n}개!`
+      : `✨ 은빛 두 칸이 금빛 블록 한 칸으로 뭉쳤어! 금빛 한 칸은 ${GOLD_BLOCK}개${golds > 1 ? `, 금빛 ${golds}칸이면 ${GOLD_BLOCK}씩 ${golds}번이라 ${golds * GOLD_BLOCK}개` : ''}야. 지금 블록은 모두 ${n}개!`, { sec: 8 });
   }
 }
 
@@ -964,14 +965,13 @@ function rescueSolved(z, nb) {
   z.rescues = z.rescues.filter((o) => o !== nb);
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
-  // 구출 보상은 "그 친구의 숫자만큼" (나누기처럼 어려운 문제만 2배). 지역 블록 가치는 곱하지 않는다 —
+  // 구출 보상은 문제 종류·지역과 상관없이 딱 "그 친구의 숫자만큼" —
   // 줍기·대결과 달리 구출은 자주 나오니, 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
-  const bonus = quiz.problem?.bonus || 1;
-  const before = state.blocks, gain = n * bonus;
+  const before = state.blocks, gain = n;
   setBlocks(state.blocks + gain);
   sound.fanfare();
   confetti.burst(100);
-  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개!${bonus > 1 ? ` (나누기 문제라 ${n}의 ${bonus}배!)` : ''} 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
+  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개! 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
   refreshHud();
   autosave();
 }

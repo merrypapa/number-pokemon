@@ -36,30 +36,36 @@ const darkMat = new THREE.MeshStandardMaterial({ color: OUTLINE, roughness: 0.6 
 const cubeGeo = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK);
 const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
 
-// 블록이 이만큼 모이면 금빛 블록 한 칸으로 뭉친다. 더미가 한없이 커지지 않고 다시 작아진다
-// (50 = 금빛 한 칸, 100 = 금빛 두 칸). 자리값(10이 열 개면 100)을 눈으로 익히는 장치이기도 하다.
+// 블록이 이만큼 모이면 은빛·금빛 블록 한 칸으로 뭉친다. 더미가 한없이 커지지 않고 다시 작아진다.
+// 25 = 은빛 한 칸, 50 = 금빛 한 칸(= 은빛 두 칸), 75 = 금빛 한 칸 + 은빛 한 칸, 100 = 금빛 두 칸.
+// 25씩 묶어 세기·자리값(은빛 둘이면 금빛 하나)을 눈으로 익히는 장치이기도 하다.
+export const SILVER_BLOCK = 25;
 export const GOLD_BLOCK = 50;
 const GOLD_PER_COL = 10; // 금빛 블록도 열 칸씩 기둥으로 쌓는다 (1000개를 모아도 키가 하늘까지 자라지 않게)
 const GOLD_COLOR = '#ffcf33';
+const SILVER_COLOR = '#dfe6ee';
 
-// 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채우고,
-// 31 이상은 너무 넓어지지 않게 10칸 기둥(=열이 하나) 으로 쌓는다. 45 = 10짜리 기둥 4개 + 5.
-// 50 이상은 왼쪽부터 금빛 블록 기둥을 세우고(열 칸이 차면 옆 기둥으로), 남은 수만 그 옆에 보통 블록으로 세운다.
-// 1000 = 금빛 스무 칸 = 열 칸짜리 금빛 기둥 두 개.
+// 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채운다(24까지).
+// 25 이상은 왼쪽부터 금빛 기둥(열 칸이 차면 옆 기둥으로) → 은빛 한 칸 → 남은 수(0~24) 차례로 세운다.
+// 남은 수는 10칸 기둥으로 쌓아 금빛 기둥과 키를 맞춘다. 99 = 금빛 한 칸 + 은빛 한 칸 + 10짜리 기둥 둘 + 4.
+// 은빛은 늘 한 칸뿐이다: 두 칸이 되는 순간 금빛 한 칸으로 바뀐다. 1000 = 금빛 스무 칸(열 칸짜리 기둥 두 개).
 function shapeFor(number) {
   if (SHAPES[number]) return SHAPES[number];
   const cells = [];
   const golds = Math.floor(number / GOLD_BLOCK);
   for (let i = 0; i < golds; i++) cells.push({ col: Math.floor(i / GOLD_PER_COL), row: i % GOLD_PER_COL, gold: true });
-  const goldCols = Math.ceil(golds / GOLD_PER_COL);
-  const rest = number - golds * GOLD_BLOCK;
-  const per = golds || rest > 30 ? 10 : 5;
-  for (let i = 0; i < rest; i++) cells.push({ col: goldCols + Math.floor(i / per), row: i % per });
+  let col = Math.ceil(golds / GOLD_PER_COL);
+  const silver = Math.floor((number - golds * GOLD_BLOCK) / SILVER_BLOCK); // 0 또는 1
+  if (silver) cells.push({ col: col++, row: 0, silver: true });
+  const rest = number - golds * GOLD_BLOCK - silver * SILVER_BLOCK;
+  const per = golds || silver ? 10 : 5;
+  for (let i = 0; i < rest; i++) cells.push({ col: col + Math.floor(i / per), row: i % per });
   return cells;
 }
 
 function cellColor(number, cell, index, theme) {
-  if (cell.gold) return GOLD_COLOR; // 금빛 블록은 지역 테마 색을 따르지 않는다
+  if (cell.gold) return GOLD_COLOR; // 금빛·은빛 블록은 지역 테마 색을 따르지 않는다
+  if (cell.silver) return SILVER_COLOR;
   if (theme) return theme.colors[(cell.row + cell.col) % theme.colors.length];
   if (number === 7) return RAINBOW[cell.row % RAINBOW.length];
   if (number === 10) return cell.col === 0 ? NUMBER_COLORS[10].base : NUMBER_COLORS[10].alt; // 1(빨강) + 0(하양)
@@ -77,7 +83,7 @@ function makeCube(colorHex) {
   return m;
 }
 
-// 자주 쓰는 배지(금빛 블록의 "50", 숫자블록 친구들의 1~10)는 그림을 한 번만 그려서 다시 쓴다.
+// 자주 쓰는 배지(금빛의 "50", 은빛의 "25", 숫자블록 친구들의 1~10)는 그림을 한 번만 그려서 다시 쓴다.
 // 금빛이 스무 칸이면 "50" 배지만 스무 장이라, 블록을 얻을 때마다 캔버스를 스무 장 새로 그리게 된다.
 // 더미 전체 숫자(1~1000)는 매번 달라지므로 캐시에 쌓지 않는다.
 const badgeTextures = new Map();
@@ -95,7 +101,7 @@ function makeBadge(number) {
   ctx.fillStyle = '#ffffff'; ctx.fillText(String(number), 64, 70);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  if (number === GOLD_BLOCK || number <= 10) badgeTextures.set(number, tex);
+  if (number === GOLD_BLOCK || number === SILVER_BLOCK || number <= 10) badgeTextures.set(number, tex);
   return badgeMesh(tex);
 }
 
@@ -125,9 +131,9 @@ export function buildNumberblockMesh(nb, { glow = false, theme = null } = {}) {
   for (const [index, cell] of cells.entries()) {
     const cube = makeCube(cellColor(number, cell, index, th));
     cube.position.set(x0 + cell.col * BLOCK, cy(cell.row), 0);
-    if (cell.gold) { // 금빛 블록: 반짝이는 금속 느낌 (지역 형광과 섞이지 않게 따로)
-      cube.material.emissive = new THREE.Color(0xffb300);
-      cube.material.emissiveIntensity = 0.55;
+    if (cell.gold || cell.silver) { // 금빛·은빛 블록: 반짝이는 금속 느낌 (지역 형광과 섞이지 않게 따로)
+      cube.material.emissive = new THREE.Color(cell.gold ? 0xffb300 : 0xaebecd);
+      cube.material.emissiveIntensity = cell.gold ? 0.55 : 0.3;
       cube.material.metalness = 0.55;
       cube.material.roughness = 0.25;
     } else if (emissive > 0) { cube.material.emissive = cube.material.color.clone(); cube.material.emissiveIntensity = emissive; glowMats.push(cube.material); }
@@ -144,7 +150,8 @@ export function buildNumberblockMesh(nb, { glow = false, theme = null } = {}) {
   // 얼굴: 맨 윗줄 중 가운데에 가까운 블록
   const centerCol = (cols - 1) / 2;
   const topCells = cells.filter((c) => c.row === maxRow);
-  const faceCell = topCells.reduce((a, b) => (Math.abs(b.col - centerCol) < Math.abs(a.col - centerCol) ? b : a));
+  const topPlain = topCells.filter((c) => !c.gold && !c.silver); // 얼굴은 되도록 보통 블록에 (금빛·은빛의 50·25 배지를 가리지 않게)
+  const faceCell = (topPlain.length ? topPlain : topCells).reduce((a, b) => (Math.abs(b.col - centerCol) < Math.abs(a.col - centerCol) ? b : a));
   const fx = x0 + faceCell.col * BLOCK, fy = cy(faceCell.row), fz = BLOCK / 2 + 0.01;
   const eyeCount = number === 1 ? 1 : 2; // 원이는 눈이 하나
   const eyeR = BLOCK * 0.13;
@@ -162,19 +169,19 @@ export function buildNumberblockMesh(nb, { glow = false, theme = null } = {}) {
   smile.position.set(fx, fy - BLOCK * 0.12, fz);
   g.add(smile);
 
-  // 숫자 배지: 맨 아래 가운데 블록 정면 (얼굴 블록과 다를 때만). 금빛 블록은 "50" 배지를 달 자리라 비워 둔다
+  // 숫자 배지: 맨 아래 가운데 블록 정면 (얼굴 블록과 다를 때만). 금빛·은빛 블록은 "50"·"25" 배지를 달 자리라 비워 둔다
   const bottomCells = cells.filter((c) => c.row === 0);
-  const plainBottom = bottomCells.filter((c) => !c.gold);
+  const plainBottom = bottomCells.filter((c) => !c.gold && !c.silver);
   const badgeCell = (plainBottom.length ? plainBottom : bottomCells).reduce((a, b) => (Math.abs(b.col - centerCol) < Math.abs(a.col - centerCol) ? b : a));
   if (badgeCell !== faceCell) {
     const badge = makeBadge(number);
     badge.position.set(x0 + badgeCell.col * BLOCK, cy(badgeCell.row), fz);
     g.add(badge);
   }
-  // 금빛 블록마다 "50" 배지 (얼굴이나 전체 숫자가 그려진 칸은 빼고)
+  // 금빛 블록마다 "50", 은빛 블록에 "25" 배지 (얼굴이나 전체 숫자가 그려진 칸은 빼고)
   for (const cell of cells) {
-    if (!cell.gold || cell === faceCell || cell === badgeCell) continue;
-    const gb = makeBadge(GOLD_BLOCK);
+    if ((!cell.gold && !cell.silver) || cell === faceCell || cell === badgeCell) continue;
+    const gb = makeBadge(cell.gold ? GOLD_BLOCK : SILVER_BLOCK);
     gb.position.set(x0 + cell.col * BLOCK, cy(cell.row), fz);
     g.add(gb);
   }
