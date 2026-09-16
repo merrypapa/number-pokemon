@@ -1677,7 +1677,7 @@ function frame() {
       const nb = nearNb;
       offer(`🧩 ${nb.data.name} 구출하기`, () => {
         input.endFrame();
-        quiz.ask(nb.data.number, nb.data.name, zone.world.quizZone || zone.name).then((res) => { // 행성은 저마다 정해진 문제 종류를 쓴다
+        quiz.ask(nb.data.number, nb.data.name, zone.name).then((res) => { // 행성에서는 그 행성 상식 퀴즈가 나온다
           if (!zone.rescues.includes(nb)) return;
           if (res === 'ok') rescueSolved(zone, nb);
           else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다

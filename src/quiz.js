@@ -5,11 +5,15 @@
 //  - 물의길: 빼기 또는 나누기  "이상해씨 7마리 중 3마리가 숨었어. 남은 건?" / "12마리를 3무리로 똑같이 나누면 한 무리에?"
 //  - 불의산: 곱하기        "파이리가 3마리씩 4무리. 모두 몇 마리? (3×4)"
 //  - 꿈의우주: 세제곱      "케이시가 3마리씩 3줄, 그런 층이 3층. 모두 몇 마리? (3×3×3)"
+//  - 행성(p_*): 숫자 문제 대신 그 행성 상식 퀴즈 (src/planetquiz.js, 어린이 눈높이 세 보기)
+import { makePlanetProblem } from './planetquiz.js';
+import { PLANET_BY_ZONE, planetSvg } from './planets.js';
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const TIER_NAME = { 1: '세기', 2: '더하기', 3: '빼기', 4: '10 만들기', 5: '세 무리 더하기', 6: '곱하기', 7: '세제곱', 8: '나누기' };
 const ZONE_KIND = { forest: 'add', cave: 'ten', sea: 'sub', volcano: 'mul', space: 'cube' };
 
 export function makeProblem(number, species, zone = 'forest') {
+  if (PLANET_BY_ZONE[zone]) return makePlanetProblem(zone); // 행성에서는 행성 상식 퀴즈
   const pool = [...species];
   const pick = () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
   const A = pick(), B = pick(), C = pick();
@@ -82,6 +86,7 @@ export class Quiz {
       this.number = number;
       this.done = false; // 답을 고른 뒤에는 더 못 고른다 (정답을 보여 주는 동안)
       this.problem = makeProblem(number, this.species, zone);
+      this.planet = PLANET_BY_ZONE[zone] || null;
       this.render(name);
       this.el.classList.remove('hidden');
       this.open = true;
@@ -90,11 +95,27 @@ export class Quiz {
 
   render(name) {
     const p = this.problem;
-    this.titleEl.textContent = `${name} 구출 문제 · ${TIER_NAME[p.tier]}`;
+    this.titleEl.textContent = `${name} 구출 문제 · ${p.trivia ? `${this.planet.emoji} ${this.planet.name} 상식 퀴즈` : TIER_NAME[p.tier]}`;
     this.textEl.textContent = p.text;
-    this.hintEl.textContent = '기회는 한 번이야. 잘 세어 보고 골라!';
+    this.hintEl.textContent = p.trivia ? '기회는 한 번이야. 잘 생각해서 골라!' : '기회는 한 번이야. 잘 세어 보고 골라!';
     this.skipBtn.disabled = false;
     this.iconsEl.innerHTML = '';
+    if (p.trivia) { // 행성 상식: 그림 대신 행성 그림 + 글자 보기 셋
+      const art = document.createElement('div');
+      art.className = 'quiz-planet';
+      art.innerHTML = planetSvg(this.planet);
+      this.iconsEl.appendChild(art);
+      this.choicesEl.innerHTML = '';
+      for (const c of p.choices) {
+        const b = document.createElement('button');
+        b.className = 'text';
+        b.textContent = c;
+        b.dataset.value = c;
+        b.onclick = () => this.answer(c, b);
+        this.choicesEl.appendChild(b);
+      }
+      return;
+    }
     for (const g of p.groups) {
       const row = document.createElement('div');
       row.className = 'quiz-row';
@@ -117,6 +138,7 @@ export class Quiz {
     for (const c of choicesFor(p.answer, p.choices || [])) {
       const b = document.createElement('button');
       b.textContent = String(c);
+      b.dataset.value = String(c);
       b.onclick = () => this.answer(c, b);
       this.choicesEl.appendChild(b);
     }
@@ -137,9 +159,9 @@ export class Quiz {
     // 기회는 한 번. 틀리면 정답을 보여 주고 문제가 끝난다 (숫자블록은 가 버린다)
     btn.classList.add('wrong');
     this.sound?.bounce();
-    for (const b of this.choicesEl.children) if (Number(b.textContent) === p.answer) b.classList.add('right');
+    for (const b of this.choicesEl.children) if (b.dataset.value === String(p.answer)) b.classList.add('right');
     this.hintEl.textContent = `정답은 ${p.answer}! ${p.hint}`;
-    setTimeout(() => this.finish('wrong'), 2600); // 정답을 볼 시간을 준다
+    setTimeout(() => this.finish('wrong'), p.trivia ? 4200 : 2600); // 정답을 볼 시간을 준다 (상식 퀴즈는 설명이 길다)
   }
 
   /** result: 'ok' | 'wrong' | 'skip' */
