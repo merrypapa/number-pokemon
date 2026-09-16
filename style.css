@@ -547,3 +547,8 @@ body.touch #btn-board { bottom: var(--ctx-bottom); }
   .detail-facts { font-size: 14px; gap: 5px; }
   .chip { font-size: 13px; padding: 2px 9px; }
 }
+
+/* 관리자 모드 패널: 이름을 Admin 으로 새로 시작했을 때만 나온다 (도감·저장 버튼 아래) */
+#admin-panel { position: fixed; top: 56px; right: 12px; z-index: 6; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; max-width: min(46vw, 420px); padding: 6px 8px; border-radius: 12px; background: rgba(20,30,50,.55); color: #fff; font-size: 12px; font-weight: 800; }
+#admin-panel button { font: inherit; padding: 4px 8px; border: 0; border-radius: 8px; background: #ffd93d; color: #333; cursor: pointer; }
+#admin-panel button:hover { background: #ffe873; }
