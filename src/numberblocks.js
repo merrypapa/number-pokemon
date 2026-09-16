@@ -46,20 +46,25 @@ const GOLD_COLOR = '#ffcf33';
 const SILVER_COLOR = '#dfe6ee';
 
 // 11 이상은 "10 블록(빨강+하양) + 나머지" 로 보이게 한다. 세로 5칸씩 왼쪽부터 채운다(24까지).
-// 25 이상은 왼쪽부터 금빛 기둥(열 칸이 차면 옆 기둥으로) → 은빛 한 칸 → 남은 수(0~24) 차례로 세운다.
-// 남은 수는 10칸 기둥으로 쌓아 금빛 기둥과 키를 맞춘다. 99 = 금빛 한 칸 + 은빛 한 칸 + 10짜리 기둥 둘 + 4.
+// 25 이상은 금빛(50)·은빛(25)·보통 블록을 한 줄로 고르게 섞어 열 칸짜리 기둥에 아래부터 차례로 쌓는다.
+// 종류별로 기둥을 나누지 않고 한 더미에 섞여 있어서, 블록이 늘 때마다 금빛·은빛이 더미 곳곳에 끼어 든다.
 // 은빛은 늘 한 칸뿐이다: 두 칸이 되는 순간 금빛 한 칸으로 바뀐다. 1000 = 금빛 스무 칸(열 칸짜리 기둥 두 개).
 function shapeFor(number) {
   if (SHAPES[number]) return SHAPES[number];
-  const cells = [];
   const golds = Math.floor(number / GOLD_BLOCK);
-  for (let i = 0; i < golds; i++) cells.push({ col: Math.floor(i / GOLD_PER_COL), row: i % GOLD_PER_COL, gold: true });
-  let col = Math.ceil(golds / GOLD_PER_COL);
   const silver = Math.floor((number - golds * GOLD_BLOCK) / SILVER_BLOCK); // 0 또는 1
-  if (silver) cells.push({ col: col++, row: 0, silver: true });
   const rest = number - golds * GOLD_BLOCK - silver * SILVER_BLOCK;
-  const per = golds || silver ? 10 : 5;
-  for (let i = 0; i < rest; i++) cells.push({ col: col + Math.floor(i / per), row: i % per });
+  if (!golds && !silver) return Array.from({ length: rest }, (_, i) => ({ col: Math.floor(i / 5), row: i % 5 })); // 11~24: 다섯 칸 기둥
+  // 종류별 개수 비율에 맞춰 고르게 섞는다 (놓인 비율이 가장 낮은 종류부터)
+  const kinds = [{ n: rest, cell: {} }, { n: silver, cell: { silver: true } }, { n: golds, cell: { gold: true } }];
+  const placed = [0, 0, 0];
+  const cells = [];
+  for (let i = 0; i < rest + silver + golds; i++) {
+    let pick = -1, best = Infinity;
+    kinds.forEach((k, j) => { if (k.n > 0 && (placed[j] + 1) / k.n < best) { best = (placed[j] + 1) / k.n; pick = j; } });
+    placed[pick]++;
+    cells.push({ col: Math.floor(i / GOLD_PER_COL), row: i % GOLD_PER_COL, ...kinds[pick].cell });
+  }
   return cells;
 }
 

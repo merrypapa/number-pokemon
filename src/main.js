@@ -142,7 +142,7 @@ const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, s
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 별이에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
-  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name });
+  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null });
   WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
 }
 const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
@@ -1096,9 +1096,7 @@ function spawnRescue(z) {
     nb.help.scale.set(0.8, 0.8, 1);
     nb.mesh.add(nb.help);
     z.rescues.push(nb);
-    // 여럿이 동시에 나와도 시끄럽지 않게, 첫 친구만 길게 알려 준다
-    if (z.rescues.length <= 1) say(`${data.name}이(가) 도와달래! 머리 위에 빨간 ! 가 떠 있는 친구를 찾아가서 구출하기 버튼을 눌러 문제를 풀자!`, { face: String(number), sec: 7 });
-    else say(`${data.name}도 도와달래! 찾아가 보자.`, { face: String(number), sec: 3 });
+    // 나타났다는 말풍선은 띄우지 않는다 (자주 나와서 시끄럽다). 머리 위 빨간 ! 로만 알린다
     z.nbTimer = rand(6, 13); // 다음 친구는 잠시 뒤에
     return;
   }
@@ -1108,8 +1106,7 @@ function removeRescue(z, nb, escaped) {
   if (!nb || !z.rescues.includes(nb)) return;
   z.scene.remove(nb.mesh);
   z.rescues = z.rescues.filter((o) => o !== nb);
-  z.nbTimer = Math.min(z.nbTimer, rand(4, 9));
-  if (escaped) say(`${nb.data.name}이(가) 다른 곳으로 가 버렸어… 다음에 또 나타날 거야.`, { face: String(nb.data.number), sec: 4 });
+  z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 가 버렸다는 말풍선도 띄우지 않는다
 }
 function rescueSolved(z, nb) {
   nb.rescued = true;
@@ -1263,7 +1260,7 @@ function showAdminPanel() {
   document.body.appendChild(box);
 }
 // 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
-const BUILD = 'v2026-09-16c';
+const BUILD = 'v2026-09-16d';
 document.getElementById('title-help').insertAdjacentText('beforeend', ` · ${BUILD}`);
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');

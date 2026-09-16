@@ -59,7 +59,7 @@
   },
   "p_sun": {
    "name": "태양",
-   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다",
+   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다. 북쪽 아레나에 보스 포니타",
    "targetAtk": 16,
    "atkRange": "14~20",
    "blockValue": 3,
@@ -78,7 +78,7 @@
   },
   "p_mercury": {
    "name": "수성",
-   "desc": "태양에 가장 가까운 크레이터투성이 작은 행성. 땅·바위·격투 포켓몬이 산다",
+   "desc": "태양에 가장 가까운 크레이터투성이 작은 행성. 땅·바위·격투 포켓몬이 산다. 북쪽 아레나에 보스 꼬마돌",
    "targetAtk": 8,
    "atkRange": "6~10",
    "blockValue": 3,
@@ -97,7 +97,7 @@
   },
   "p_venus": {
    "name": "금성",
-   "desc": "노란 구름과 산성 호수로 덮인 뜨거운 행성. 독·벌레·불 포켓몬이 산다",
+   "desc": "노란 구름과 산성 호수로 덮인 뜨거운 행성. 독·벌레·불 포켓몬이 산다. 북쪽 아레나에 보스 질퍽이",
    "targetAtk": 10,
    "atkRange": "8~14",
    "blockValue": 3,
@@ -116,7 +116,7 @@
   },
   "p_earth": {
    "name": "지구",
-   "desc": "초록 들판과 파란 호수가 있는 우리 행성. 온갖 포켓몬이 어울려 산다",
+   "desc": "초록 들판과 파란 호수가 있는 우리 행성. 온갖 포켓몬이 어울려 산다. 북쪽 아레나에 보스 잠만보",
    "targetAtk": 8,
    "atkRange": "4~15",
    "blockValue": 3,
@@ -138,7 +138,7 @@
   },
   "p_mars": {
    "name": "화성",
-   "desc": "붉은 사막과 골짜기, 하얀 얼음 모자가 있는 행성. 땅·바위·불 포켓몬이 산다",
+   "desc": "붉은 사막과 골짜기, 하얀 얼음 모자가 있는 행성. 땅·바위·불 포켓몬이 산다. 북쪽 아레나에 보스 탕구리",
    "targetAtk": 8,
    "atkRange": "6~10",
    "blockValue": 3,
@@ -158,7 +158,7 @@
   },
   "p_jupiter": {
    "name": "목성",
-   "desc": "줄무늬 구름 위 번개가 치는 가장 큰 행성. 전기 포켓몬과 나는 포켓몬이 산다",
+   "desc": "줄무늬 구름 위 번개가 치는 가장 큰 행성. 전기 포켓몬과 나는 포켓몬이 산다. 북쪽 아레나에 보스 라이츄",
    "targetAtk": 18,
    "atkRange": "14~20",
    "blockValue": 3,
@@ -177,7 +177,7 @@
   },
   "p_saturn": {
    "name": "토성",
-   "desc": "거대한 고리가 하늘에 걸린 행성. 얼음 조각 사이에 페어리·에스퍼·노말 포켓몬이 산다",
+   "desc": "거대한 고리가 하늘에 걸린 행성. 얼음 조각 사이에 페어리·에스퍼·노말 포켓몬이 산다. 북쪽 아레나에 보스 푸린",
    "targetAtk": 18,
    "atkRange": "12~20",
    "blockValue": 3,
@@ -197,7 +197,7 @@
   },
   "p_uranus": {
    "name": "천왕성",
-   "desc": "옆으로 누워 도는 청록색 얼음 행성. 물·에스퍼 포켓몬이 산다",
+   "desc": "옆으로 누워 도는 청록색 얼음 행성. 물·에스퍼 포켓몬이 산다. 북쪽 아레나에 보스 라프라스",
    "targetAtk": 14,
    "atkRange": "10~16",
    "blockValue": 3,
@@ -216,7 +216,7 @@
   },
   "p_neptune": {
    "name": "해왕성",
-   "desc": "거센 바람이 부는 짙푸른 행성. 물 포켓몬이 산다",
+   "desc": "거센 바람이 부는 짙푸른 행성. 물 포켓몬이 산다. 북쪽 아레나에 보스 갸라도스",
    "targetAtk": 12,
    "atkRange": "8~14",
    "blockValue": 3,
@@ -236,7 +236,7 @@
   },
   "p_pluto": {
    "name": "명왕성",
-   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬이 산다",
+   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬이 산다. 북쪽 아레나에 보스 고우스트",
    "targetAtk": 20,
    "atkRange": "16~22",
    "blockValue": 3,
@@ -2149,6 +2149,435 @@
    "personality": "장난꾸러기",
    "story": "꿈의우주를 다스리는 그림자 포켓몬. 별빛도 삼켜 버리는 어둠 속에서 낄낄 웃으며 나타나. 장난이 심하지만 친구가 되면 그림자 속에 숨어 늘 따라다닌대.",
    "grade": 6
+  },
+  {
+   "id": "pb01",
+   "name": "포니타",
+   "type": "불",
+   "zone": "p_sun",
+   "catchable": true,
+   "model": "포니타.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FF9A3C",
+    "glowSegments": 7
+   },
+   "baseHp": 130,
+   "baseAtk": 16,
+   "skills": [
+    {
+     "name": "불꽃",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃세례",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃질주",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "ability": "light",
+   "story": "태양의 불꽃 들판을 지키는 커다란 포니타. 갈기가 태양처럼 이글거려서 가까이 가면 뜨거워.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb02",
+   "name": "꼬마돌",
+   "type": "바위",
+   "zone": "p_mercury",
+   "catchable": true,
+   "model": "꼬마돌.glb",
+   "scale": 2.4,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8D8D8D",
+    "paws": 2
+   },
+   "baseHp": 110,
+   "baseAtk": 12,
+   "skills": [
+    {
+     "name": "바위던지기",
+     "atk": 1,
+     "power": 1,
+     "kind": "rock"
+    },
+    {
+     "name": "돌떨구기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "rock"
+    },
+    {
+     "name": "바위굴리기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "rock"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "story": "수성의 크레이터에서 굴러다니는 바위 왕. 낮의 열과 밤의 추위를 견디느라 껍데기가 아주 단단해졌어.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb03",
+   "name": "질퍽이",
+   "type": "독",
+   "zone": "p_venus",
+   "catchable": true,
+   "model": "질퍽이.glb",
+   "scale": 2.3,
+   "draftShape": {
+    "body": "drop",
+    "color": "#8E6BAA"
+   },
+   "baseHp": 120,
+   "baseAtk": 13,
+   "skills": [
+    {
+     "name": "오물",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "오물폭탄",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison"
+    },
+    {
+     "name": "독안개",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "poison"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "story": "금성의 산성 호수에서 자란 거대한 질퍽이. 노란 구름 속에서 독 안개를 뿜어.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb04",
+   "name": "잠만보",
+   "type": "노말",
+   "zone": "p_earth",
+   "catchable": true,
+   "model": "잠만보.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2F5D62",
+    "belly": "#F5E6C8"
+   },
+   "baseHp": 150,
+   "baseAtk": 12,
+   "skills": [
+    {
+     "name": "배치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "헤비봄버",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    },
+    {
+     "name": "잠자기",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 20,
+   "story": "지구의 초록 들판에서 배불리 먹고 자란 잠만보. 느리지만 몸이 산처럼 무거워.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb05",
+   "name": "탕구리",
+   "type": "땅",
+   "zone": "p_mars",
+   "catchable": true,
+   "model": "탕구리.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C9A27E"
+   },
+   "baseHp": 115,
+   "baseAtk": 12,
+   "skills": [
+    {
+     "name": "뼈다귀치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "bone"
+    },
+    {
+     "name": "바위굴리기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "rock"
+    },
+    {
+     "name": "뼈다귀부메랑",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "rock"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "story": "화성의 붉은 골짜기를 지키는 탕구리. 붉은 먼지를 뒤집어써서 뼈다귀까지 붉어졌어.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb06",
+   "name": "라이츄",
+   "type": "전기",
+   "zone": "p_jupiter",
+   "catchable": true,
+   "model": "라이츄.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F5A623",
+    "ears": 2,
+    "curls": 3
+   },
+   "baseHp": 150,
+   "baseAtk": 20,
+   "skills": [
+    {
+     "name": "10만볼트",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "전기쇼크",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bolt"
+    },
+    {
+     "name": "백만볼트",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    },
+    {
+     "name": "볼트태클",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "story": "목성의 번개 구름 위에서 사는 라이츄. 번개를 맞을수록 힘이 세져서 볼이 늘 반짝거려.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb07",
+   "name": "푸린",
+   "type": "페어리",
+   "zone": "p_saturn",
+   "catchable": true,
+   "model": "푸린.glb",
+   "scale": 2.4,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FFB6E1",
+    "glow": true
+   },
+   "baseHp": 140,
+   "baseAtk": 18,
+   "skills": [
+    {
+     "name": "노래하기",
+     "atk": 1,
+     "power": 1,
+     "kind": "sing"
+    },
+    {
+     "name": "자장가",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing"
+    },
+    {
+     "name": "더블슬랩",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 20,
+   "story": "토성의 고리 얼음 조각 사이에서 노래하는 푸린. 노래가 고리를 따라 멀리멀리 퍼져.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb08",
+   "name": "라프라스",
+   "type": "물",
+   "zone": "p_uranus",
+   "catchable": true,
+   "model": "라프라스.glb",
+   "scale": 1.8,
+   "draftShape": {
+    "body": "drop",
+    "color": "#6ec6e8",
+    "bubbles": 4
+   },
+   "baseHp": 150,
+   "baseAtk": 16,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "노래하기",
+     "atk": 12,
+     "power": 1.3,
+     "kind": "sing"
+    },
+    {
+     "name": "파도타기",
+     "atk": 22,
+     "power": 1.55,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "story": "천왕성의 얼음 호수를 헤엄치는 라프라스. 등껍데기에 다이아몬드 서리가 반짝여.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb09",
+   "name": "갸라도스",
+   "type": "물",
+   "zone": "p_neptune",
+   "catchable": true,
+   "model": "갸라도스.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "drop",
+    "color": "#3557c9",
+    "bubbles": 6
+   },
+   "baseHp": 160,
+   "baseAtk": 18,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "파도타기",
+     "atk": 14,
+     "power": 1.35,
+     "kind": "water"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 24,
+     "power": 1.6,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "story": "해왕성의 거센 바람을 타고 날아오르는 갸라도스. 폭풍을 부른다는 소문이 있어.",
+   "grade": 6,
+   "boss": true
+  },
+  {
+   "id": "pb10",
+   "name": "고우스트",
+   "type": "고스트",
+   "zone": "p_pluto",
+   "catchable": true,
+   "model": "고우스트.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#6A4C9C",
+    "glow": true,
+    "translucent": true
+   },
+   "baseHp": 170,
+   "baseAtk": 22,
+   "skills": [
+    {
+     "name": "핥기",
+     "atk": 1,
+     "power": 1,
+     "kind": "ghost"
+    },
+    {
+     "name": "그림자펀치",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "ghost"
+    },
+    {
+     "name": "나이트헤드",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "ghost"
+    },
+    {
+     "name": "섀도볼",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "ghost"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 13,
+   "story": "명왕성의 어둠 속에서 하트 평원을 지키는 고우스트. 카론의 빛 아래서만 모습을 드러내.",
+   "grade": 6,
+   "boss": true
   },
   {
    "id": "m01e",

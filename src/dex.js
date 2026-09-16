@@ -231,12 +231,16 @@ export class Dex {
     };
     for (const r of MAP_REGIONS) {
       const done = !!conquered[r.id];
-      if (r.planet) { // 행성: 보스·정복이 없으니 ★/? 표시 없이 작은 그림과 이름표만. 이름표는 아래·위로 번갈아 놓아 겹치지 않게. 지금 있는 곳엔 핀
+      if (r.planet) { // 행성: 작은 그림 + 이름표(아래·위로 번갈아 놓아 겹치지 않게) + 작은 ★/? 표시. 지금 있는 곳엔 핀
         const above = PLANETS.indexOf(r.planet) % 2 === 1;
         const ly = above ? -r.rx - 3.4 : r.rx + 3.4;
-        svg += `<g class="region planet${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})">
+        const mx = r.rx * 0.75 + 1.2, my = above ? r.rx * 0.75 + 0.6 : -r.rx * 0.75 - 0.6; // 이름표 반대쪽 어깨에
+        svg += `<g class="region planet${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})">
           ${drawPlanet[r.planet.id](r.rx)}
           <g transform="translate(0,${ly})"><rect x="-6.2" y="-2" width="12.4" height="4" rx="2" class="label-bg"/><text class="name small" y="1.05" text-anchor="middle">${this.zoneName[r.id]}</text></g>
+          ${done
+            ? `<g class="mark" transform="translate(${mx},${my})"><circle r="2" fill="#ffd93d" stroke="#20232e" stroke-width=".3"/><text class="star small" y=".85" text-anchor="middle">★</text></g>`
+            : `<g class="mark" transform="translate(${mx},${my})"><circle r="1.9" fill="#f4f4f8" stroke="#20232e" stroke-width=".3"/><text class="lock small" y=".8" text-anchor="middle">?</text></g>`}
           ${here === r.id ? `<g class="pin" transform="translate(0,${above ? -r.rx - 6 : -r.rx - 1.6})"><path d="M0,0 L-2,-3.4 A2.2,2.2 0 1 1 2,-3.4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-3.9" r=".8" fill="#fff"/></g>` : ''}
         </g>`;
         continue;
@@ -264,11 +268,11 @@ export class Dex {
     const list = [...this.species.filter((sp) => sp.zone === r.id), ...roster.map((id) => this.byId[id]).filter((sp) => sp && sp.zone !== r.id)];
     const known = list.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
     const done = !!conquered[r.id];
-    const badge = r.planet ? '<span class="badge planet">🛸 UFO 로 가는 행성</span>' : `<span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>`;
+    const badge = `${r.planet ? '<span class="badge planet">🛸 UFO 로 가는 행성</span>' : ''}<span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>`;
     let html = `<div class="map-title">${r.icon} ${this.zoneName[r.id]} ${badge}${here === r.id ? '<span class="badge">지금 여기</span>' : ''}</div>
       <div class="map-desc">${r.desc}</div>
       <div class="map-how">가는 길: ${r.how}</div>
-      <div class="map-count">${r.planet ? `이 행성의 포켓몬 ${list.length}종 중 ${known}종을 잡았어 · 보스는 없어` : `이 지역의 포켓몬 ${list.length}종 중 ${known}종을 잡았어${done ? '' : ' · 보스를 잡으면 정복!'}`}</div>
+      <div class="map-count">이 ${r.planet ? '행성' : '지역'}의 포켓몬 ${list.length}종 중 ${known}종을 잡았어${done ? '' : ' · 보스를 잡으면 정복!'}</div>
       <div class="map-pokes">`;
     for (const sp of list.sort((a, b) => (b.boss ? 1 : 0) - (a.boss ? 1 : 0))) {
       const n = caughtById[sp.id] || 0;

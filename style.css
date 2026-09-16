@@ -369,6 +369,10 @@ body.intro #btn-save { display: none !important; }
 #dex-map .region.planet .name.small { font-size: 2.6px; fill: #fff; }
 #dex-map .region.planet.sel .label-bg { fill: #ffd93d; stroke: #20232e; }
 #dex-map .region.planet.sel .name.small { fill: #20232e; }
+#dex-map .region.planet.conquered .label-bg { fill: #ffe98a; stroke: #b8860b; }
+#dex-map .region.planet.conquered .name.small { fill: #20232e; }
+#dex-map .region.planet .star.small { font-size: 2.2px; }
+#dex-map .region.planet .lock.small { font-size: 2.3px; }
 #dex-map-detail .badge.planet { background: #8e6cff; color: #fff; }
 #dex-map-detail { flex: 0 0 auto; background: #fff; border-radius: 16px; padding: 12px; border: 3px solid #ddd; }
 .map-title { font-size: 20px; font-weight: 900; color: #333; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

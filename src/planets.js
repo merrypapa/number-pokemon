@@ -110,7 +110,7 @@ export function planetSvg(p) {
 
 // ---------- 행성 지역 만들기 ----------
 const S = 180; // 행성 지역 한 변
-const SPAWN = { x: 0, z: 62 }, STATION = { x: 13, z: 54 };
+const SPAWN = { x: 0, z: 62 }, STATION = { x: 13, z: 54 }, ARENA = { x: 0, z: -52, r: 8 }; // 아레나: 북쪽, 보스가 지킨다
 // 야생·블록 자리 틀 (막힌 곳이면 근처 빈 자리로 옮긴다)
 const WILD_TEMPLATE = [[-32, 30], [32, 34], [-52, -8], [52, -14], [-20, -46], [26, -50], [-66, 44], [66, 48], [0, -72], [-70, -56], [70, -60], [-4, 8]];
 const PICKUP_TEMPLATE = [[-14, 44], [16, 40], [-40, 10], [42, 12], [-24, -24], [28, -26], [0, -40], [-60, 70], [62, 74], [-76, -20], [78, -22], [0, 78]];
@@ -151,7 +151,7 @@ function puffTexture(rgb) {
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
 }
 const near = (x, z, pt, r) => Math.hypot(x - pt.x, z - pt.z) < r;
-const keepClear = (x, z) => near(x, z, SPAWN, 9) || near(x, z, STATION, 9); // 시작 자리와 정거장 둘레는 비워 둔다
+const keepClear = (x, z) => near(x, z, SPAWN, 9) || near(x, z, STATION, 9) || near(x, z, ARENA, ARENA.r + 4); // 시작 자리·정거장·아레나 둘레는 비워 둔다
 
 // 행성별 테마: 하늘·안개·빛·바닥색·지형·못 가는 곳·장식
 const THEMES = {
@@ -436,8 +436,31 @@ const THEMES = {
 /** 명왕성의 하트 평원 (톰보 지역): 하트 방정식 (x²+z²−1)³ − x²z³ < 0 */
 function inHeart(x, z) { const hx = x / 42, hz = -(z + 8) / 42 + 0.15; const q = hx * hx + hz * hz - 1; return q * q * q - hx * hx * hz * hz * hz < 0; }
 
-/** 행성 지역 하나를 만든다. info: ZONE_INFO[p.zone] (atkRange 등), speciesName(id) 는 별이의 대사에 쓴다 */
-export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id } = {}) {
+/** 보스 아레나: 행성 색 빛나는 원판 + 기둥 여섯 + 불빛. 보스는 한가운데 선다 */
+function buildArena(scene, decor, block, height, tint) {
+  const a = ARENA, y = height(a.x, a.z);
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(a.r, a.r + 1, 0.4, 36), new THREE.MeshStandardMaterial({ color: tint, emissive: tint, emissiveIntensity: 0.35, roughness: 0.6 }));
+  disc.position.set(a.x, y + 0.15, a.z); disc.userData.noHide = true;
+  decor.add(disc);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(a.r - 0.6, 0.12, 8, 48), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 1 }));
+  ring.rotation.x = Math.PI / 2; ring.position.set(a.x, y + 0.4, a.z); ring.userData.noHide = true;
+  decor.add(ring);
+  for (let i = 0; i < 6; i++) {
+    const ang = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const px = a.x + Math.cos(ang) * (a.r + 0.6), pz = a.z + Math.sin(ang) * (a.r + 0.6);
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.55, 3.4, 8), new THREE.MeshStandardMaterial({ color: 0xf4f4f8, emissive: tint, emissiveIntensity: 0.4 }));
+    pillar.position.set(px, y + 1.9, pz); pillar.castShadow = true;
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), new THREE.MeshStandardMaterial({ color: tint, emissive: tint, emissiveIntensity: 0.9 }));
+    cap.position.set(px, y + 3.9, pz);
+    decor.add(pillar, cap); block(px, pz, 0.6);
+  }
+  const light = new THREE.PointLight(tint, 5, 26);
+  light.position.set(a.x, y + 5, a.z);
+  scene.add(light);
+}
+
+/** 행성 지역 하나를 만든다. info: ZONE_INFO[p.zone] (atkRange 등), speciesName(id) 는 별이의 대사에, boss 는 그 행성의 보스 종 */
+export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, boss = null } = {}) {
   const T = THEMES[p.id];
   const pools = T.pools || [], craters = T.craters || [];
   function height(x, z) {
@@ -482,10 +505,13 @@ export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id } = 
       `${p.name}에 온 걸 환영해, ${c.name}! 난 UFO 조종사 별이야. ${p.greet}`,
       `${p.name}에는 ${wildNames.slice(0, 5).join('·')}${wildNames.length > 5 ? ' 등' : ''}이 살아. 공격 ${c.zone.atkRange || '?'}쯤 되면 편하게 이겨.`,
       p.fact,
+      boss ? (c.conquered[p.zone] ? `보스 ${boss.name}을(를) 이겼구나! ${p.name}은 이제 네 거야.` : `북쪽 아레나에 보스 ${boss.name}이(가) 있어. 체력 ${boss.baseHp}, 공격 ${boss.baseAtk}! 공격 ${(info.targetAtk || 10) + 3} 이상이면 도전해 봐.`) : p.fact,
       '꿈의우주로 돌아가려면 나한테 말을 걸고 빨간 버튼을, 다른 행성으로 가려면 보라 버튼을 눌러!',
     ],
   });
   T.decorate({ scene, decor, block, height, pools, anim, blocked });
+  const tint = Number(`0x${p.tint.slice(1)}`);
+  buildArena(scene, decor, block, height, tint);
   anim.push(station.animate);
   // 도착 자리 표시
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.25 }));
@@ -500,6 +526,7 @@ export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id } = 
   return {
     sun, animate: (t) => { for (const f of anim) f(t); }, terrain, decor, spawn: SPAWN, dark: T.dark, gravity: p.gravity, noShrine: true, quizZone: p.quiz,
     npcs: [station.npc],
+    bossSpot: { x: ARENA.x, z: ARENA.z },
     ufo: station.vehicle,
     ufoArrival: station.arrival,
     wildSpots, pickupSpots,
