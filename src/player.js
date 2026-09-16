@@ -96,8 +96,12 @@ export class Player {
       this.walkT += dt * 2 * speed;
     }
     this.group.rotation.y = this.facing;
-    this.body.rotation.z = moving && !this.boat ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0; // 배 위에서는 몸이 좌우로 흔들리지 않는다
-    tickModel(this.group, dt, this.boat ? 'idle' : (moving ? (this.running ? 'run' : 'walk') : 'idle')); // run 클립이 없으면 walk/첫 클립
+    // 진짜 애니메이션이 있는 모델이면 손으로 흔드는 연출(몸 기울임)은 끈다 — 두 개가 겹치면 어색하다
+    const anim = this.group.userData.model?.userData.anim;
+    this.body.rotation.z = !anim && moving && !this.boat ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0; // 배 위에서는 몸이 좌우로 흔들리지 않는다
+    tickModel(this.group, dt, this.boat ? 'idle'
+      : this.swimming ? (moving ? 'swim' : 'swimidle')   // 심해에서 떠 있을 때는 헤엄 동작 (클립이 없으면 walk/idle 로 대신)
+      : moving ? (this.running ? 'run' : 'walk') : 'idle');
 
     // 경계
     const lim = worldSize() / 2 - 2;
@@ -140,7 +144,7 @@ export class Player {
     }
     if (sw && p.y >= sw.ceiling) { p.y = sw.ceiling; this.vy = Math.min(this.vy, 0); } // 수면 바로 아래까지
     this.swimming = !!sw && !this.onGround;
-    if (this.body) this.body.rotation.x = this.swimming ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다
+    if (this.body) this.body.rotation.x = this.swimming && !anim ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다 (헤엄 애니가 있으면 애니에 맡긴다)
 
     // 구멍에 떨어지면 main 이 지역을 바꾼다 (초원 → 동굴)
     if (p.y < -4) {

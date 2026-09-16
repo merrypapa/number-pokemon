@@ -74,18 +74,67 @@ export function instantiate(file) {
   return wrap;
 }
 
-// idle / walk / happy 이름의 클립을 찾아 재생. 이름이 없으면 첫 번째 클립을 계속 돈다.
+// idle / walk / run / swim 이름의 클립을 찾아 재생.
+// 툴마다 클립 이름이 달라서(Mixamo 는 Running, Walking, Swim_Forward, restpose …) 별명으로도 찾아 준다.
+// 하나도 안 맞으면 첫 번째 클립을 계속 돈다.
+const ALIAS = {
+  idle: ['idle', 'restpose', 'rest', 'stand', 'breathing'],
+  walk: ['walk', 'walking'],
+  run: ['run', 'running', 'jog', 'walk'],
+  swim: ['swim_forward', 'swimming', 'swim'],      // 물속에서 앞으로 나아갈 때
+  swimidle: ['swim_idle', 'tread', 'float', 'swim'], // 물속에서 가만히 떠 있을 때
+};
+const MATCH = [(n, c) => n === c, (n, c) => n.startsWith(c), (n, c) => n.includes(c)]; // 딱 맞는 이름 → 앞부분이 같은 이름 → 포함하는 이름 순
+
+// 제자리(In Place) 애니가 아니면 캐릭터가 게임 좌표와 따로 앞으로 밀려나가 보인다.
+// 뼈의 x/z 가 그 뼈 높이의 20% 넘게 움직이면 걸음의 흔들림이 아니라 "이동"이므로 첫 프레임 값으로 고정한다.
+// (걷기·달리기의 자연스러운 좌우 흔들림은 그대로 둔다. 같은 클립에 두 번 해도 결과는 같다)
+function stripRootMotion(clip) {
+  for (const track of clip.tracks) {
+    if (!track.name.endsWith('.position')) continue;
+    const v = track.values, n = v.length / 3;
+    if (n < 2) continue;
+    const ref = Math.abs(v[1]) || 1; // 첫 프레임 높이를 이 모델의 크기 기준으로 삼는다
+    for (const axis of [0, 2]) {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < n; i++) { const x = v[i * 3 + axis]; if (x < lo) lo = x; if (x > hi) hi = x; }
+      if (hi - lo <= ref * 0.2) continue;
+      for (let i = 1; i < n; i++) v[i * 3 + axis] = v[axis];
+    }
+  }
+}
+
 class ModelAnim {
   constructor(root, clips) {
     this.mixer = new THREE.AnimationMixer(root);
     this.actions = {};
-    for (const clip of clips) this.actions[clip.name.toLowerCase()] = this.mixer.clipAction(clip);
-    this.first = clips[0]?.name.toLowerCase();
+    this.names = [];
+    for (const clip of clips) {
+      stripRootMotion(clip);
+      const key = clip.name.toLowerCase();
+      this.actions[key] = this.mixer.clipAction(clip);
+      this.names.push(key);
+    }
+    this.found = {};   // 'walk' → 이 모델이 실제로 가진 클립 이름 (한 번 찾으면 기억한다)
+    this.first = this.names[0];
     this.current = null;
     this.play('idle');
   }
+  /** 원하는 동작 이름을 이 모델에 있는 클립 이름으로 바꿔 준다 */
+  find(name) {
+    if (name in this.found) return this.found[name];
+    let hit = null;
+    for (const test of MATCH) {
+      for (const cand of ALIAS[name] || [name]) {
+        hit = this.names.find((n) => test(n, cand));
+        if (hit) break;
+      }
+      if (hit) break;
+    }
+    return (this.found[name] = hit || this.first);
+  }
   play(name) {
-    const key = this.actions[name] ? name : (name === 'run' && this.actions.walk ? 'walk' : this.first);
+    const key = this.find(name);
     if (!key || key === this.current) return;
     const next = this.actions[key];
     if (this.current) this.actions[this.current].fadeOut(0.2);
