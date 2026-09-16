@@ -1014,7 +1014,7 @@ function finishUfoRide() {
   warp.stop();
   ride = null; snapCam = true;
   const p = PLANET_BY_ZONE[zone.name];
-  say(p ? p.arrive : (RIDE_MSG[zone.name] || `${zone.label}에 도착!`), { sec: 9 });
+  say(p ? p.arrive : zone.name === 'space' ? '꿈의우주로 돌아왔어! 별이에게 말을 걸면 다른 행성으로 갈 수 있고, 착륙장의 로켓을 타면 푸른숲으로 돌아가.' : (RIDE_MSG[zone.name] || `${zone.label}에 도착!`), { sec: 9 });
   sound.fanfare(); confetti.burst(60);
   autosave();
 }
