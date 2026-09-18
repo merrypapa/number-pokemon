@@ -14,6 +14,7 @@ const DEFAULT_ZONE_NAME = { forest: '푸른숲', cave: '지하동굴', volcano: 
 // 지도 탭: 지역 위치(0~100 좌표), 모양, 아이콘, 가는 길
 const MAP_REGIONS = [
   { id: 'forest', x: 50, y: 33, rx: 17, ry: 10.5, icon: '🌲', fill: '#7ccf5a', desc: '시작 마을이 있는 숲. 풀·노말·벌레·전기 포켓몬이 산다. 다른 지역으로 가는 길이 모두 여기서 시작해.', how: '처음 시작하는 곳. 다른 지역에서 포탈·기차·로켓으로 돌아온다.' },
+  { id: 'hive', x: 27, y: 19, rx: 6.5, ry: 5, icon: '🐝', fill: '#f4b400', desc: '푸른숲 서남쪽 큰 나무에 매달린 벌집 속. 육각형 벌집 칸 바닥, 빛나는 꿀 웅덩이, 천장에서 떨어지는 꿀 방울, 날아다니는 꿀벌 떼. 벌레·풀 포켓몬이 살고 북쪽 금빛 단에 여왕 콘팡이 있어.', how: '푸른숲 서남쪽 큰 나무 아래 벌집에 닿으면 들어간다. 남쪽 초록 포탈로 나오면 그 나무 아래.' },
   { id: 'cave', x: 50, y: 10, rx: 13, ry: 8, icon: '🕳️', fill: '#4b5261', desc: '어두운 지하 동굴. 땅·바위·독 포켓몬이 산다. 호수와 다리, 빛나는 웅덩이가 있어.', how: '푸른숲 북쪽 큰 구멍에 빠지거나, 푸른숲 보스를 잡은 뒤 북쪽 산의 동굴 입구로. 포탈로 돌아온다.' },
   { id: 'volcano', x: 83, y: 15, rx: 14, ry: 8.5, icon: '🌋', fill: '#c0533a', desc: '용암이 끓는 화산. 불 포켓몬이 산다. 큰 화산 꼭대기에 보스가 있어.', how: '푸른숲 동북쪽 붉은 바위 아치로 들어간다. 포탈로 돌아온다.' },
   { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어. 동쪽 선착장에서 배를 타면 먼바다로 나가 헤엄치는 포켓몬(잉어킹·셀러·크랩·독파리, 아주 먼바다엔 라프라스)을 만난다.', how: '푸른숲 서쪽 기차역에서 기차 타기 버튼을 누른다. 돌아올 때도 그곳 기차역에서 탄다. 바다는 도착 섬 동쪽 선착장에서 배 타기.' },
@@ -179,7 +180,7 @@ export class Dex {
       <!-- 큰 섬(육지): 푸른숲 + 동굴 산 + 화산 + 우주 착륙지 -->
       <path class="land" d="M28,58 C18,50 20,34 34,26 C36,14 46,6 58,8 C66,2 80,2 92,8 C104,12 104,26 98,34 C104,44 100,58 88,62 C76,66 60,66 48,63 C40,64 32,64 28,58 Z" fill="url(#gLand)"/>
       <!-- 흙길 / 철길 / 항로 -->
-      ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}
+      ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}${curve('forest', 'hive', 'path', 2)}
       <!-- 물의길 → 심해: 소용돌이로 내려가는 길 (지역 그림·이름표에 가리지 않게 왼쪽으로 비껴 그린다) -->
       <path class="dive" d="M${R.sea.x - R.sea.rx + 1},${R.sea.y + R.sea.ry - 2} Q${R.sea.x - R.sea.rx - 4},${(R.sea.y + R.deepsea.y) / 2} ${R.deepsea.x - R.deepsea.rx + 1},${R.deepsea.y - R.deepsea.ry + 2}"/>
       <!-- 태양계 띠 (지도 아래): 별 + 궤도선 + 제목. 꿈의우주에서 UFO 항로가 내려온다 -->
@@ -196,6 +197,9 @@ export class Dex {
       forest: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="url(#gLand)"/>
         ${[[-11, 3], [-6, -4], [0, 5], [7, -3], [11, 3], [4, 0], [-3, 0]].map(([x, y]) => `<g transform="translate(${x},${y})"><rect x="-.5" y="1.5" width="1" height="2.2" fill="#8b5a2b"/><path d="M0,-4 L3,1.8 L-3,1.8 Z" fill="#2e9e4f"/><path d="M0,-2 L2.4,2.2 L-2.4,2.2 Z" fill="#3fb85a"/></g>`).join('')}
         <g transform="translate(-1,-2)"><rect x="-2.2" y="-1.4" width="4.4" height="3.2" fill="#fff4dc" stroke="#20232e" stroke-width=".25"/><path d="M-2.8,-1.4 L0,-3.6 L2.8,-1.4 Z" fill="#e8453c"/></g>`,
+      hive: (r) => `<ellipse rx="${r.rx}" ry="${r.ry}" class="blob" fill="#f4b400"/>
+        ${[[-3, -1.5], [0, -1.5], [3, -1.5], [-1.5, 1.2], [1.5, 1.2]].map(([x, y]) => `<path d="M${x},${y - 1.4} L${x + 1.2},${y - 0.7} L${x + 1.2},${y + 0.7} L${x},${y + 1.4} L${x - 1.2},${y + 0.7} L${x - 1.2},${y - 0.7} Z" fill="#ffd86a" stroke="#8a5a10" stroke-width=".25"/>`).join('')}
+        <ellipse cx="4.6" cy="-3.4" rx="1" ry=".6" fill="#ffd23f" stroke="#20232e" stroke-width=".2"/><ellipse cx="-5" cy="2.8" rx="1" ry=".6" fill="#ffd23f" stroke="#20232e" stroke-width=".2"/>`,
       cave: (r) => `<path d="M${-r.rx},${r.ry} Q${-r.rx * 0.5},${-r.ry * 1.3} 0,${-r.ry} Q${r.rx * 0.5},${-r.ry * 1.3} ${r.rx},${r.ry} Z" class="blob" fill="url(#gRock)"/>
         <path d="M-3,${r.ry} Q-3,${r.ry - 6} 0,${r.ry - 6} Q3,${r.ry - 6} 3,${r.ry} Z" fill="#1b1f2a"/>
         <circle cx="-6" cy="-1" r=".9" fill="#9fe8ff"/><circle cx="6" cy="0" r=".7" fill="#c9b8ff"/><circle cx="-2" cy="-4" r=".6" fill="#9fe8ff"/>`,

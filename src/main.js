@@ -8,6 +8,7 @@ import { buildSea } from './sea.js';
 import { buildDeepSea } from './deepsea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
+import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
 import { WarpFx } from './ufo.js';
 import { strongAgainst, weakTo, skillIcon } from './types.js';
@@ -138,9 +139,9 @@ function makeZone(name, builder) {
   return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(3, 7), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab };
-const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
-const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, hive: buildHive };
+const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
+const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 별이에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
   BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null });
   WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
@@ -1131,7 +1132,7 @@ function rescueSolved(z, nb) {
  *  단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값의 절반보다는 많다 — 두 번쯤 이기면 그 볼 하나를 만들 수 있게.
  *  (볼 값을 두 배로 올리면서 이 바닥값도 "볼 값 + 1" 에서 절반으로 낮췄다. 그러지 않으면 볼이 비싸질수록
  *   대결 보상이 따라 올라가서, 비싸진 값이 하나도 어렵지 않게 된다.) */
-const ZONE_GRADE = { forest: 1, cave: 2, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
+const ZONE_GRADE = { forest: 1, hive: 1, cave: 2, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
 for (const p of PLANETS) ZONE_GRADE[p.zone] = 5; // 행성은 우주 등급
 function winReward(c) {
   const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
@@ -1260,7 +1261,7 @@ function showAdminPanel() {
   document.body.appendChild(box);
 }
 // 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
-const BUILD = 'v2026-09-16d';
+const BUILD = 'v2026-09-18a';
 document.getElementById('title-help').insertAdjacentText('beforeend', ` · ${BUILD}`);
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');
@@ -1480,6 +1481,9 @@ function frame() {
       } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
+      } else if (near(w.hiveDoor, 2.0)) {
+        moved = true;
+        switchZone('hive', getZone('hive').world.spawn, { text: '윙윙! 꿀벌집 안으로 들어왔어! 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해. 벌레·풀 포켓몬이 살아. 남쪽 포탈로 나갈 수 있어.', sec: 8 });
       } else if (near(w.volcanoGate, 2.4)) {
         moved = true;
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });

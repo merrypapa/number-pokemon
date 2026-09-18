@@ -8,6 +8,24 @@
    "atkRange": "3~6",
    "blockValue": 1
   },
+  "hive": {
+   "name": "꿀벌집",
+   "desc": "푸른숲 큰 나무에 매달린 벌집 속. 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼. 벌레·풀 포켓몬이 산다. 북쪽 금빛 단에 여왕 콘팡",
+   "targetAtk": 5,
+   "atkRange": "4~7",
+   "blockValue": 1,
+   "wild": [
+    "m06",
+    "m36",
+    "m31",
+    "m28",
+    "m01"
+   ],
+   "wildOverride": {
+    "swim": false,
+    "deepSea": false
+   }
+  },
   "cave": {
    "name": "지하동굴",
    "desc": "땅·바위·독·격투·벌레 포켓몬이 사는 어두운 동굴",
@@ -832,6 +850,46 @@
    "personality": "숲의 수호자",
    "story": "등에 커다란 꽃이 활짝 핀 풀 포켓몬. 꽃에서 달콤한 향기가 나서 다른 포켓몬들이 모여든대. 푸른숲의 수호자야.",
    "grade": 6
+  },
+  {
+   "id": "hb01",
+   "name": "콘팡",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "model": "콘팡.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#B57EDC"
+   },
+   "baseHp": 60,
+   "baseAtk": 6,
+   "skills": [
+    {
+     "name": "독가루",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "실묶기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bug"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "story": "꿀벌집 북쪽 금빛 단에 앉은 여왕 콘팡. 꿀벌들이 지키고, 꿀 향기를 맡으면 잠이 온대.",
+   "grade": 6,
+   "boss": true
   },
   {
    "id": "m04",

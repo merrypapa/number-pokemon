@@ -24,6 +24,7 @@ export const SHAPES = {
 // colors: 아래 줄부터 순서대로 칠하고 넘치면 반복. emissive: 스스로 빛나는 정도(형광). light: 함께 켜는 작은 불빛 색.
 export const BLOCK_THEMES = {
   forest:  { name: '풀',   colors: ['#2f9e44', '#51cf66', '#8ce99a', '#a9e34b', '#69db7c'], emissive: 0 },
+  hive:    { name: '꿀',   colors: ['#f4b400', '#ffd23f', '#ff9a1f', '#ffe08a', '#e08a00'], emissive: 0.1 },
   volcano: { name: '불',   colors: ['#c92a2a', '#f03e3e', '#ff6b1a', '#ff922b', '#ffd43b'], emissive: 0.35, light: 0xff7a30 },
   sea:     { name: '물',   colors: ['#1c7ed6', '#339af0', '#4dabf7', '#74c0fc', '#a5d8ff'], emissive: 0.15, light: 0x74d0ff },
   cave:    { name: '형광', colors: ['#39ff14', '#00fff2', '#7cff00', '#18ffb2', '#c6ff00'], emissive: 0.85, light: 0x5dffc8 },

@@ -40,6 +40,7 @@ export const WORLD = {
   station: { x: -88, z: 42 },      // 기차역 (물의길로 가는 기차)
   rocketPad: { x: 82, z: 82 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
   sleepSpot: { x: -96, z: -96, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
+  hiveTree: { x: -40, z: 62 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
   lab: { x: 0, z: 64 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
@@ -846,7 +847,7 @@ export function buildWorld(scene) {
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
-    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || distToPath(x, z) < 2.5 + extra;
+    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 12 || distToPath(x, z) < 2.5 + extra;
   const treeSpots = [];
   while (treeSpots.length < 170) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
@@ -941,6 +942,42 @@ export function buildWorld(scene) {
     decor.add(stems, petals);
   }
 
+  // ---------- 서남쪽: 꿀벌집이 매달린 큰 나무 (벌집에 닿으면 꿀벌집 안으로 들어간다) ----------
+  const ht = WORLD.hiveTree;
+  const hiveBees = [];
+  {
+    const y0 = meadowHeight(ht.x, ht.z);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.1, 6, 12), trunkMat); trunk.position.set(ht.x, y0 + 3, ht.z); trunk.castShadow = true;
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(4.2, 16, 12), leafMats[2]); crown.position.set(ht.x, y0 + 8.2, ht.z); crown.castShadow = true;
+    const crown2 = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 10), leafMats[1]); crown2.position.set(ht.x + 2.6, y0 + 6.4, ht.z + 1.2);
+    const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 4.2, 8), trunkMat); branch.position.set(ht.x - 1.6, y0 + 5.6, ht.z + 1.2); branch.rotation.z = 1.1; branch.rotation.y = 0.4;
+    decor.add(trunk, crown, crown2, branch); block(ht.x, ht.z, 1.2);
+    // 벌집: 가지에 매달린 호박색 덩어리 (고리 여러 겹) + 어두운 입구 + 꿀 방울
+    const hx = ht.x - 3.4, hz = ht.z + 2.4, hy = y0 + 3.2;
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 6), trunkMat); rope.position.set(hx, hy + 1.9, hz);
+    const hive = new THREE.Group();
+    const combMat = new THREE.MeshStandardMaterial({ color: 0xe8a020, roughness: 0.7 });
+    for (const [dy, r] of [[1.2, 0.6], [0.8, 0.95], [0.35, 1.2], [-0.15, 1.3], [-0.65, 1.15], [-1.05, 0.85], [-1.35, 0.5]]) {
+      const ring = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 10), combMat); ring.scale.y = 0.45; ring.position.y = dy; ring.castShadow = true; hive.add(ring);
+    }
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(0.32, 16), new THREE.MeshBasicMaterial({ color: 0x3a2206 })); hole.position.set(0, -0.6, 1.02); hive.add(hole);
+    const honeyDrip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffa020, emissive: 0xff7a00, emissiveIntensity: 0.5 })); honeyDrip.position.set(0.5, -1.55, 0.4); hive.add(honeyDrip);
+    hive.position.set(hx, hy, hz);
+    decor.add(rope, hive);
+    // 벌집 둘레를 도는 꿀벌 (노란 몸 + 검은 줄)
+    for (let i = 0; i < 7; i++) {
+      const bee = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffd23f })); body.scale.x = 1.5;
+      const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 12), new THREE.MeshStandardMaterial({ color: 0x20232e })); stripe.rotation.y = Math.PI / 2;
+      const wing = new THREE.Mesh(new THREE.CircleGeometry(0.14, 8), new THREE.MeshStandardMaterial({ color: 0xdff6ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide })); wing.rotation.x = -Math.PI / 2; wing.position.y = 0.14;
+      bee.add(body, stripe, wing);
+      bee.userData = { r: rand(1.6, 3.2), h: rand(-0.8, 1.4), speed: rand(0.8, 1.6) * (i % 2 ? 1 : -1), phase: rand(0, 6) };
+      hive.add(bee); hiveBees.push(bee);
+    }
+    decor.add(makeSignAt('🐝 꿀벌집 · 벌집에 닿으면 안으로!', ht.x + 4.5, y0, ht.z + 4.5, -0.6, { bg: '#ffe08a', fg: '#5a3a08', board: 0xf4b400 }));
+    block(ht.x + 4.5, ht.z + 4.5, 0.3);
+  }
+
   // ---------- 북서쪽 구석: 잠만보가 자는 곳 (버섯 고리 + 낙엽 이불 + 팻말) ----------
   const sleep = WORLD.sleepSpot;
   {
@@ -1003,6 +1040,7 @@ export function buildWorld(scene) {
   decor.traverse((o) => { if (o.userData.flame) flames.push(o); });
 
   function animate(t) {
+    for (const b of hiveBees) { const u = b.userData; const a = t * u.speed + u.phase; b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t * 3 + u.phase) * 0.2, Math.sin(a) * u.r); b.rotation.y = -a - Math.PI / 2 * Math.sign(u.speed); }
     ranger.position.y = meadowHeight(4.5, 15) + Math.sin(t * 2) * 0.03;
     for (const b of butterflies) {
       const u = b.userData;
@@ -1027,6 +1065,7 @@ export function buildWorld(scene) {
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
+    hiveDoor: { x: ht.x - 3.4, z: ht.z + 4.2 }, // 벌집 바로 아래 (닿으면 꿀벌집 안으로)
     npcs: [{ x: 4.5, z: 15, mesh: ranger, name: '나미', warp: true, lines: (c) => [
       `안녕, ${c.name}! 난 푸른숲 안내원 나미야. 여기 포켓몬은 공격 ${c.zone.atkRange} 정도면 편하게 이길 수 있어.`,
       '하얀 블록을 줍거나 대결에서 이기면 블록이 생겨. 도감에서 블록으로 포켓몬을 키우자. 숫자블록 친구가 도와달라고 하면 문제를 풀어 주면 블록을 많이 줘!',
@@ -1034,6 +1073,7 @@ export function buildWorld(scene) {
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구! 북쪽 산의 동굴 입구가 열렸어. 지하동굴에 가 보자.' : `서북쪽 돌기둥 아레나에 보스 이상해꽃이 있어. 공격 ${c.zone.targetAtk + 2} 이상, 체력 15쯤 되면 도전해 봐. 불 포켓몬이면 더 좋아!`,
       '북서쪽 구석 버섯 고리에는 잠만보가 자고 있어. 체력이 60이나 되니까 충분히 강해진 다음에 가 보렴.',
       '동북쪽 붉은 바위 협곡은 불의산, 서쪽 기차역은 물의길, 남동쪽 로켓은 꿈의우주로 가는 길이야. 마을 남쪽 큰 건물은 오박사 연구소!',
+      '서남쪽 큰 나무에 꿀벌집이 매달려 있어. 벌집에 닿으면 안으로 들어가는데, 벌레·풀 포켓몬과 꿀 웅덩이가 가득하대!',
     ] }, { x: conductorAt.x, z: conductorAt.z, mesh: conductor, name: '리리', boards: 'train', lines: (c) => [
       `어서 오게, ${c.name}! 난 선장 리리야. 이 기차는 바다 마을 물의길로 간다네.`,
       '표는 필요 없어. 나한테 말을 걸고 아래 빨간 "출발" 버튼만 누르면 태워 주지!',
@@ -1048,6 +1088,6 @@ export function buildWorld(scene) {
     train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },
     // 다른 지역에서 돌아올 때 도착하는 자리
-    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI } }, // 연구소에서 나오면 건물을 등지고 서고, 카메라는 건물 앞(북쪽)에서 본다
+    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI }, hive: { x: ht.x + 1, z: ht.z + 9 } }, // 연구소에서 나오면 건물을 등지고 서고, 카메라는 건물 앞(북쪽)에서 본다
   };
 }
