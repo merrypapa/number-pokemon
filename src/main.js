@@ -16,6 +16,7 @@ import { portrait } from './portrait.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
+import { makeCar, CAR_MODEL, CAR_NAME } from './car.js';
 import { Creature, buildDraftMesh } from './creatures.js';
 import { preloadModels, onModelLoaded } from './models.js';
 import { buildIntro } from './intro.js';
@@ -121,7 +122,7 @@ const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, 
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
 const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb'];
-const modelFiles = [PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS];
+const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS];
 const loadingEl = document.getElementById('title-loading');
 preloadModels(modelFiles, (done, total) => {
   loadingEl.textContent = `친구들 불러오는 중 ${done}/${total}`;
@@ -167,6 +168,62 @@ function spawnPickup(z, x, zz) {
   z.scene.add(m);
   z.pickups.push(m);
 }
+// ---------- 이상해꽃 자동차: 주인공의 탈것 ----------
+// 푸른숲 시작 지점 옆에 세워져 있다. 가까이 가서 "🚗 타기"를 누르면 타고, 한 번 타면 내 차가 되어 어느 지역에서든 HUD 🚗 버튼(C)으로 부르거나 내린다.
+// 걷기의 2.2배로 달리고(가속 버튼이면 더) 점프는 못 한다. 물 위·심해·꿀벌집·연구소에서는 못 타고, 기차·로켓·배·UFO 를 타면 자동으로 내린다.
+const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab'].includes(name);
+const CAR_HOME = { x: -5.5, z: 8, yaw: 2.4 }; // 푸른숲 시작 지점 옆 (나무가 없는 빈터)
+let carAt = null;   // 세워 둔 차: { zone, car, obs }
+let driving = false;
+const carBtn = document.getElementById('hud-car-row');
+function refreshCarBtn() { carBtn.hidden = !state.hasCar; carBtn.textContent = driving ? '🚶 내리기' : '🚗 타기'; }
+/** 차를 그 지역에 세운다 */
+function parkCar(z, x, zz, yaw, car = null) {
+  removeParkedCar();
+  car = car || makeCar();
+  car.group.position.set(x, terrainHeight(x, zz), zz);
+  car.group.rotation.y = yaw;
+  z.scene.add(car.group);
+  const obs = { x, z: zz, r: 1.5 };
+  z.terrain.obstacles.push(obs);
+  carAt = { zone: z.name, car, obs };
+}
+function removeParkedCar() {
+  if (!carAt) return;
+  const z = zones[carAt.zone];
+  if (z) { z.scene.remove(carAt.car.group); const i = z.terrain.obstacles.indexOf(carAt.obs); if (i >= 0) z.terrain.obstacles.splice(i, 1); }
+  carAt = null;
+}
+function mountCar() {
+  if (driving || !zone || !CAR_ZONE_OK(zone.name) || sailing || battle.active || ride || switching) return;
+  const car = carAt?.car || makeCar();
+  removeParkedCar();
+  carAt = null;
+  player.drive(car.body);
+  driving = true;
+  car.body.userData.car = car;
+  if (!state.hasCar) { state.hasCar = true; say(`🚗 ${CAR_NAME}를 탔어! 이제 내 차야. 달리기 버튼을 누르면 더 빨라지고, 🚗 버튼(C)으로 어디서든 부르거나 내릴 수 있어.`, { sec: 8 }); }
+  sound.click();
+  refreshCarBtn();
+}
+/** 내린다. park 가 true 면 옆에 세워 두고, false 면 차는 사라진다(다음에 🚗 버튼으로 다시 부른다) */
+function dismountCar({ park = true } = {}) {
+  if (!driving) return;
+  const body = player.dismount();
+  driving = false;
+  const car = body?.userData.car;
+  if (park && car && zone) {
+    const f = player.facing, px = player.position.x, pz = player.position.z;
+    let x = px + Math.cos(f) * 2.4, zz = pz - Math.sin(f) * 2.4; // 주인공 왼쪽 옆
+    if (isBlocked(x, zz) || insideObstacle(x, zz, 1.2)) { x = px; zz = pz; }
+    car.group.add(body);
+    parkCar(zone, x, zz, f, car);
+  }
+  refreshCarBtn();
+}
+function toggleCar() { driving ? dismountCar() : mountCar(); }
+carBtn.onclick = toggleCar;
+
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
 const SHRINE_HINT = { forest: { x: 62, z: -62 }, cave: { x: -44, z: 34 }, volcano: { x: -68, z: 62 }, sea: { x: -34, z: 18 }, space: { x: 62, z: 58 } };
 /** 성역을 놓을 만한 넓고 평평한 자리를 찾는다 (바다 지역은 탁 트인 물 위) */
@@ -288,6 +345,7 @@ function getZone(name) {
   }
   applyPendingCaught(z);
   if (name === 'forest' && state.conquered.forest) removeBoulder();
+  if (name === 'forest' && !state.hasCar && !carAt) parkCar(z, CAR_HOME.x, CAR_HOME.z, CAR_HOME.yaw); // 아직 안 타 본 차는 시작 지점 옆에
   if (name === 'cave' && state.glow) z.scene.fog.far = 110;
   if (zone) setActiveTerrain(zone.terrain);
   return z;
@@ -310,7 +368,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, hasCar: false, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // hasCar: 이상해꽃 자동차를 한 번 탔으면 어디서든 부를 수 있다 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -604,6 +662,7 @@ function switchZone(name, spawn, message) {
   boardBtn.classList.add('hidden'); boardNpc = null;
   ufoBtn.classList.add('hidden'); ufoNpc = null;
   if (switching || !BUILDERS[name]) return;
+  if (driving && !CAR_ZONE_OK(name)) dismountCar({ park: false }); // 심해·꿀벌집·연구소에는 차를 못 가져간다
   if (sailing || parked || goingHome) { // 다른 지역으로 가면 배와 루피는 선착장 제자리로
     const b = boatHere(), npc = sailorNpc(), home = zone.world.sailorHome;
     sailing = false; returning = null; parked = null; goingHome = null; player.boat = null; input.enabled = true;
@@ -666,6 +725,7 @@ function placeSailorOnBoat() {
 function boardBoat() {
   const b = boatHere();
   if (!b || sailing || battle.active || ride || switching || goingHome) return;
+  dismountCar({ park: false }); // 배를 탈 때 차는 두고 간다
   parked = null;
   const surface = waterLevel() ?? 0;
   sailing = true;
@@ -782,6 +842,7 @@ function dockLanding() {
 function rideNpc(v) { return (zone.world.npcs || []).find((n) => n.boards === v.kind) || null; }
 function startRide(v) {
   if (ride || switching) return;
+  dismountCar({ park: false });
   const npc = rideNpc(v);
   ride = { v, t: 0, from: zone.name, switched: false, puff: 0, npc, npcHome: npc ? { x: npc.x, z: npc.z, y: npc.mesh.position.y, rot: npc.mesh.rotation.y } : null };
   for (const m of partyMeshes()) m.visible = false;
@@ -921,6 +982,7 @@ function startUfoRide(to) {
   const v = zone?.world.ufo;
   if (!v || ride || switching || battle.active || !BUILDERS[to]) return;
   closePlanetPopup();
+  dismountCar({ park: false });
   boardBtn.classList.add('hidden'); ufoBtn.classList.add('hidden'); boardNpc = null; ufoNpc = null;
   const meshes = partyMeshes();
   ride = { kind: 'ufo', v, t: 0, from: zone.name, to, switched: false, beamed: false, destInit: false, landT: 0, meshes, scales: meshes.map((m) => m.scale.clone()), ys: meshes.map((m) => m.position.y), targets: null, land: null };
@@ -1034,9 +1096,9 @@ function updateCtxButton() {
     ctxBtn.classList.add('hidden');
     const label = show ? ctxAction.short : (player.swim ? '🫧\n헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼
     if (jumpBtn.textContent !== label) { jumpBtn.textContent = label; jumpBtn.classList.toggle('ctx', !!show); jumpBtn.dataset.key = show ? 'action' : 'jump'; }
-    jumpBtn.hidden = sailing && !show;             // 배 위에서는 점프 버튼을 숨긴다 (할 일이 있을 때만 보인다)
-    const runLabel = sailing ? '⚡ 가속' : '달리기'; // 배 위에서는 달리기 대신 가속
-    if (runBtn.textContent !== runLabel) { runBtn.textContent = runLabel; runBtn.classList.toggle('boost', sailing); }
+    jumpBtn.hidden = (sailing || driving) && !show;             // 배 위·차 안에서는 점프 버튼을 숨긴다 (할 일이 있을 때만 보인다)
+    const runLabel = sailing || driving ? '⚡ 가속' : '달리기'; // 배 위·차 안에서는 달리기 대신 가속
+    if (runBtn.textContent !== runLabel) { runBtn.textContent = runLabel; runBtn.classList.toggle('boost', sailing || driving); }
     return;
   }
   if (!show) { ctxBtn.classList.add('hidden'); return; }
@@ -1326,6 +1388,7 @@ function buildSaveData() {
     balls: { ...state.balls },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
     returnTo: state.returnTo,
+    car: !!state.hasCar,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -1394,6 +1457,8 @@ function applySave(d) {
   Object.assign(state.dex, d.dex || {});
   pendingCaught = d.caughtCreatures || {};
   state.returnTo = d.returnTo || null;
+  state.hasCar = !!d.car;
+  refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
   if (state.conquered.forest) removeBoulder();
@@ -1450,6 +1515,7 @@ function frame() {
   }
   ctxAction = null; // 이번 프레임에 할 수 있는 일은 아래 탐험 코드가 다시 채운다
   if (input.wasPressed('dex') && !battle.active && !quiz.open && !ride) dex.toggle(state.dex);
+  if (input.wasPressed('car') && state.hasCar && !battle.active && !quiz.open && !dex.open && !ride && !switching) toggleCar();
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
   } else if (quiz.open) {
@@ -1513,6 +1579,8 @@ function frame() {
     // 배 위에서 뭍이 가까우면 "내리기"를 먼저 준다 (루피 대화는 트인 바다에서)
     const landNear = sailing && !returning ? landingSpot(t) : null;
     if (landNear) offer('⚓ 여기 내리기', () => leaveBoat(true), '⚓\n내리기');
+    // ----- 세워 둔 이상해꽃 자동차 옆: 타기 -----
+    if (!moved && !driving && carAt && carAt.zone === zone.name && near(carAt.car.group.position, 3.4)) offer('🚗 타기', mountCar, '🚗\n타기');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
     if (!moved) for (const npc of zone.world.npcs || []) {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);

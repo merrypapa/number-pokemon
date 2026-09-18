@@ -9,6 +9,7 @@ const KEYMAP = {
   Escape: 'cancel',
   KeyQ: 'camLeft', KeyR: 'camRight',
   KeyB: 'dex',
+  KeyC: 'car', // 이상해꽃 자동차 타기/내리기 (한 번 탄 뒤부터)
   Digit1: 'skill1', Digit2: 'skill2', Digit3: 'skill3', Digit4: 'skill4', // 대결에서 기술 바로 쓰기
   ShiftLeft: 'run', ShiftRight: 'run', ControlLeft: 'run', ControlRight: 'run', // 달리기 (누르고 이동)
 };

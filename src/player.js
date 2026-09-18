@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { addFace, lerpAngle } from './util.js';
 import { terrainHeight, inHole, worldSize, isBlocked, resolveObstacles } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
+import { CAR_SPEED, CAR_BOOST } from './car.js';
 
 export const PLAYER_NAME = '인하';
 export const PLAYER_MODEL = '인하.glb'; // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
@@ -47,6 +48,7 @@ export class Player {
     this.boat = null;      // 배를 타고 있을 때: { canGo(x,z), floorY, speed } — 물 위를 달리고 뭍에서 막힌다
     this.swim = null;      // 물속 지역(심해)에서: { ceiling, up, rise, sink, clear } — 점프 버튼으로 헤엄쳐 올라간다
     this.swimming = false; // 지금 물에 떠 있나 (바닥을 딛고 있지 않나)
+    this.car = null;       // 이상해꽃 자동차를 타고 있을 때: 차체 그룹 (주인공 모델 대신 보인다). 빠르고, 점프는 못 한다
     // 주인공이 드는 등불 (동굴에서 주변을 밝힌다)
     this.lamp = new THREE.PointLight(0xffd9a0, 0, 24);
     this.lamp.position.set(0, 1.6, 0.4);
@@ -55,6 +57,29 @@ export class Player {
   }
 
   get position() { return this.group.position; }
+
+  /** 차에 탄다: 주인공 모습을 숨기고 차체를 붙인다 */
+  drive(body) {
+    if (this.car) this.dismount();
+    this.car = body;
+    body.position.set(0, 0, 0);
+    this.group.add(body);
+    this.setShown(false);
+  }
+  /** 차에서 내린다. 떼어 낸 차체를 돌려준다 */
+  dismount() {
+    const body = this.car;
+    if (!body) return null;
+    this.group.remove(body);
+    this.car = null;
+    this.setShown(true);
+    if (this.body) this.body.rotation.z = 0;
+    return body;
+  }
+  setShown(on) {
+    if (this.group.userData.draft) this.group.userData.draft.visible = on;
+    if (this.group.userData.model) this.group.userData.model.visible = on;
+  }
 
   /** 지역 이동 시 위치를 옮기고 "뿅" 효과 */
   teleport(x, z) {
@@ -72,12 +97,14 @@ export class Player {
     const wx = axis.x * cy + axis.y * sy;
     const wz = axis.y * cy - axis.x * sy;
     const k = Math.min(1, ACCEL * dt);
-    const top = this.boat ? this.boat.speed * (input.isHeld('run') ? this.boat.boost : 1) : SPEED * (input.isHeld('run') ? RUN : 1);
+    const top = this.boat ? this.boat.speed * (input.isHeld('run') ? this.boat.boost : 1)
+      : this.car ? SPEED * CAR_SPEED * (input.isHeld('run') ? CAR_BOOST : 1) // 차: 걷기의 2.2배, 가속 버튼이면 더
+      : SPEED * (input.isHeld('run') ? RUN : 1);
     this.vx += (wx * top - this.vx) * k;
     this.vz += (wz * top - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
     const moving = speed > 0.4;
-    this.running = !this.boat && moving && speed > SPEED * 1.15; // 배 위에서는 뛰지 않는다 (배가 달리는 것이지 내가 뛰는 게 아니다)
+    this.running = !this.boat && !this.car && moving && speed > SPEED * 1.15; // 배 위에서는 뛰지 않는다 (배가 달리는 것이지 내가 뛰는 게 아니다)
     // 물(연못·호수)은 못 들어간다. 배를 타면 반대로 물 위만 갈 수 있다.
     // 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
     const blocked = this.boat ? (x, z) => !this.boat.canGo(x, z) : isBlocked;
@@ -89,16 +116,20 @@ export class Player {
     // 나무·집·바위 같은 구조물 밖으로 밀어낸다 (배는 지형(canGo)으로만 막히므로 건너뛴다).
     // 물속에서 바위·다시마·가라앉은 배보다 높이 떠오르면 그 위로 헤엄쳐 지나갈 수 있다.
     const overObstacles = !!this.swim && p.y > terrainHeight(p.x, p.z) + this.swim.clear;
-    if (!this.boat && !overObstacles && resolveObstacles(p, 0.45) && blocked(p.x, p.z)) { p.x = ox; p.z = oz; }
+    if (!this.boat && !overObstacles && resolveObstacles(p, this.car ? 0.8 : 0.45) && blocked(p.x, p.z)) { p.x = ox; p.z = oz; }
     if (moving) {
-      this.facing = lerpAngle(this.facing, Math.atan2(this.vx, this.vz), 0.3);
+      const before = this.facing;
+      this.facing = lerpAngle(this.facing, Math.atan2(this.vx, this.vz), this.car ? 0.18 : 0.3); // 차는 천천히 꺾인다
+      this.lean = (this.lean || 0) * 0.8 + Math.atan2(Math.sin(this.facing - before), Math.cos(this.facing - before)) * 2; // 꺾는 정도 (차가 기우는 데 쓴다)
       this.moved = true;
       this.walkT += dt * 2 * speed;
     }
     this.group.rotation.y = this.facing;
     // 진짜 애니메이션이 있는 모델이면 손으로 흔드는 연출(몸 기울임)은 끈다 — 두 개가 겹치면 어색하다
     const anim = this.group.userData.model?.userData.anim;
-    this.body.rotation.z = !anim && moving && !this.boat ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0; // 배 위에서는 몸이 좌우로 흔들리지 않는다
+    this.body.rotation.z = !anim && moving && !this.boat && !this.car ? Math.sin(this.walkT) * 0.12 * Math.min(1, speed / SPEED) : 0; // 배 위·차 안에서는 몸이 좌우로 흔들리지 않는다
+    if (!moving) this.lean = (this.lean || 0) * 0.8;
+    if (this.car) this.car.rotation.z = -Math.max(-0.18, Math.min(0.18, this.lean || 0)); // 차는 꺾을 때 살짝 기운다
     tickModel(this.group, dt, this.boat ? 'idle'
       : this.swimming ? (moving ? 'swim' : 'swimidle')   // 심해에서 떠 있을 때는 헤엄 동작 (클립이 없으면 walk/idle 로 대신)
       : moving ? (this.running ? 'run' : 'walk') : 'idle');
@@ -125,7 +156,7 @@ export class Player {
       this.vy += GRAVITY * this.gravityScale * dt;
       this.vy = Math.max(-sw.sink, Math.min(sw.rise, this.vy)); // 너무 빨리 뜨거나 가라앉지 않게
     } else {
-      if (input.wasPressed('jump') && this.onGround) {
+      if (input.wasPressed('jump') && this.onGround && !this.car) { // 차에서는 점프 없음
         this.vy = JUMP;
         this.onGround = false;
         this.jumped = true;
