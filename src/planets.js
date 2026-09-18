@@ -459,8 +459,8 @@ function buildArena(scene, decor, block, height, tint) {
   scene.add(light);
 }
 
-/** 행성 지역 하나를 만든다. info: ZONE_INFO[p.zone] (atkRange 등), speciesName(id) 는 별이의 대사에, boss 는 그 행성의 보스 종 */
-export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, boss = null } = {}) {
+/** 행성 지역 하나를 만든다. info: ZONE_INFO[p.zone] (atkRange 등), speciesName(id) 는 별이의 대사에, boss 는 그 행성의 보스 종, hidden 은 보스를 잡으면 나타나는 숨은 종(리자풀·리흑회·보라거북왕) */
+export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, boss = null, hidden = null } = {}) {
   const T = THEMES[p.id];
   const pools = T.pools || [], craters = T.craters || [];
   function height(x, z) {
@@ -505,7 +505,8 @@ export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, bos
       `${p.name}에 온 걸 환영해, ${c.name}! 난 UFO 조종사 별이야. ${p.greet}`,
       `${p.name}에는 ${wildNames.slice(0, 5).join('·')}${wildNames.length > 5 ? ' 등' : ''}이 살아. 공격 ${c.zone.atkRange || '?'}쯤 되면 편하게 이겨.`,
       p.fact,
-      boss ? (c.conquered[p.zone] ? `보스 ${boss.name}을(를) 이겼구나! ${p.name}은 이제 네 거야.` : `북쪽 아레나에 보스 ${boss.name}이(가) 있어. 체력 ${boss.baseHp}, 공격 ${boss.baseAtk}! 공격 ${(info.targetAtk || 10) + 3} 이상이면 도전해 봐.`) : p.fact,
+      boss ? (c.conquered[p.zone] ? `보스 ${boss.name}을(를) 이겼구나! ${p.name}은 이제 네 거야.${hidden ? ` 그리고 ${p.name} 어딘가에 숨어 있던 ${hidden.name}이(가) 나타났대. 체력 ${hidden.baseHp}, 공격 ${hidden.baseAtk}이니 조심해!` : ''}` : `북쪽 아레나에 보스 ${boss.name}이(가) 있어. 체력 ${boss.baseHp}, 공격 ${boss.baseAtk}! 공격 ${(info.targetAtk || 10) + 3} 이상이면 도전해 봐.${hidden ? ' 보스를 잡으면 이 행성에 숨은 포켓몬이 하나 더 나타난대.' : ''}`) : p.fact,
+      '행성 열 곳의 보스를 모두 잡으면 꿈의우주에 전설의 포켓몬 뮤가 나타난다는 소문이 있어. 아주아주 세니까 메가볼을 잔뜩 준비해!',
       '꿈의우주로 돌아가려면 나한테 말을 걸고 빨간 버튼을, 다른 행성으로 가려면 보라 버튼을 눌러!',
     ],
   });

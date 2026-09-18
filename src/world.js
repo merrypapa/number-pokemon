@@ -1014,6 +1014,13 @@ export function buildWorld(scene) {
   ranger.rotation.y = -0.6;
   decor.add(ranger); block(4.5, 15, 0.6);
 
+  // ---------- 아이 손오공: 아레나 입구 옆에서 수련하는 대결 코치. 대결 요령을 알려 준다 ----------
+  const goku = makeNpc({ outfit: 'ranger', name: '아이 손오공', model: '아이손오공.glb' });
+  const gk = { x: -53.3, z: -52 };
+  goku.position.set(gk.x, meadowHeight(gk.x, gk.z), gk.z);
+  goku.rotation.y = 0.9; // 마을에서 오는 길 쪽을 본다
+  decor.add(goku); block(gk.x, gk.z, 0.6);
+
   // ---------- 구름, 나비 ----------
   const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
   const cloudItems = [];
@@ -1042,6 +1049,7 @@ export function buildWorld(scene) {
   function animate(t) {
     for (const b of hiveBees) { const u = b.userData; const a = t * u.speed + u.phase; b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t * 3 + u.phase) * 0.2, Math.sin(a) * u.r); b.rotation.y = -a - Math.PI / 2 * Math.sign(u.speed); }
     ranger.position.y = meadowHeight(4.5, 15) + Math.sin(t * 2) * 0.03;
+    goku.position.y = meadowHeight(gk.x, gk.z) + Math.abs(Math.sin(t * 4)) * 0.12; // 제자리에서 폴짝폴짝 수련
     for (const b of butterflies) {
       const u = b.userData;
       const a = t * u.speed + u.t;
@@ -1066,7 +1074,13 @@ export function buildWorld(scene) {
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
     hiveDoor: { x: ht.x - 3.4, z: ht.z + 2.4 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
-    npcs: [{ x: 4.5, z: 15, mesh: ranger, name: '나미', warp: true, lines: (c) => [
+    npcs: [{ x: gk.x, z: gk.z, mesh: goku, name: '아이 손오공', lines: (c) => [
+      `오스! 난 아이 손오공이야, ${c.name}! 여기 돌기둥 아레나 앞에서 매일 수련하고 있어. 대결 요령을 알려 줄게!`,
+      '대결에서는 기술을 고를 수 있어. 공격력이 오르면 더 센 기술이 열리니까 도감에서 블록으로 공격을 키워 봐!',
+      '상대 속성을 잘 봐. 불은 풀에, 물은 불에, 풀은 물에 세! 대결 중 "교체하기"로 잘 맞는 포켓몬을 내보낼 수 있어.',
+      c.conquered.forest ? '이상해꽃을 이겼다니 대단해! 다음엔 다른 지역 보스한테 도전해 봐. 정복할수록 넘버볼 만들 블록도 많이 생겨.' : `아레나 보스 이상해꽃은 체력이 많아. 공격 ${c.zone.targetAtk + 2} 이상으로 키우고, 볼도 넉넉히 만들어서 가자!`,
+      '체력이 0이 된 포켓몬은 마을 남쪽 연구소에서 오박사님이 치료해 줘. 무리하지 말고 다녀와!',
+    ] }, { x: 4.5, z: 15, mesh: ranger, name: '나미', warp: true, lines: (c) => [
       `안녕, ${c.name}! 난 푸른숲 안내원 나미야. 여기 포켓몬은 공격 ${c.zone.atkRange} 정도면 편하게 이길 수 있어.`,
       '하얀 블록을 줍거나 대결에서 이기면 블록이 생겨. 도감에서 블록으로 포켓몬을 키우자. 숫자블록 친구가 도와달라고 하면 문제를 풀어 주면 블록을 많이 줘!',
       '불 포켓몬은 풀에 세고, 물은 불에 세고, 풀은 물에 세. 전기는 물에 세지. 상대 속성을 보고 대표를 고르면 훨씬 쉬워!',

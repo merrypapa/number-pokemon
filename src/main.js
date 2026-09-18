@@ -120,7 +120,7 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb'];
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb'];
 const modelFiles = [PLAYER_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS];
 const loadingEl = document.getElementById('title-loading');
 preloadModels(modelFiles, (done, total) => {
@@ -143,7 +143,7 @@ const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, s
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 별이에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
-  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null });
+  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null, hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null });
   WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
 }
 const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
@@ -211,8 +211,9 @@ function buildShrine(z) {
   if (state.conquered[z.name]) revealShrine(z, true);
 }
 /** 성역을 드러내고 메가 포켓몬을 불러낸다 */
-/** 조건 포켓몬(메가리자몽X)을 잡을 수 있게 됐나: unlockedBy 종을 이미 잡았으면 열린다 */
-function megaUnlocked(sp) { return (state.dex[sp.unlockedBy] || 0) > 0; }
+/** 조건 포켓몬(메가리자몽X·리자풀·뮤 …)을 잡을 수 있게 됐나: unlockedBy 종을 이미 잡았으면 열린다 (배열이면 그 종을 모두 잡아야 한다 — 뮤는 행성 보스 열 마리) */
+function unlockNeeds(sp) { return Array.isArray(sp.unlockedBy) ? sp.unlockedBy : [sp.unlockedBy]; }
+function megaUnlocked(sp) { return unlockNeeds(sp).every((id) => (state.dex[id] || 0) > 0); }
 /** 그 포켓몬을 지역의 빈 자리에 세운다 (성역이 아니라 일반 맵) */
 function spawnUnlocked(z, sp) {
   if (z.creatures.some((c) => c.data.id === sp.id)) return null;
@@ -229,11 +230,12 @@ function spawnUnlocked(z, sp) {
 }
 /** 방금 잡은 종 때문에 열린 특별 포켓몬을 그 지역에 세운다 (이미 만든 지역이면 바로, 아니면 들어갈 때 생긴다) */
 function checkUnlocked(caughtId) {
-  for (const sp of creatureData.creatures.filter((c) => c.unlockedBy === caughtId)) {
+  for (const sp of creatureData.creatures.filter((c) => c.unlockedBy && unlockNeeds(c).includes(caughtId))) {
+    if (!megaUnlocked(sp) || (state.dex[sp.id] || 0) > 0) continue;
     const z = zones[sp.zone];
-    if (!z || !megaUnlocked(sp)) continue;
-    if (!spawnUnlocked(z, sp)) continue;
-    setTimeout(() => say(`✨ ${sp.name}이(가) ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
+    if (z && !spawnUnlocked(z, sp)) continue; // 아직 안 만든 지역이면 처음 갈 때 getZone 이 세운다
+    const many = unlockNeeds(sp).length > 1; // 뮤: 행성 보스를 모두 잡았을 때
+    setTimeout(() => say(`✨ ${many ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : ''}${sp.name}이(가) ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
   }
 }
 function revealShrine(z, silent = false) {
@@ -896,7 +898,7 @@ function renderPlanet() {
   planetSub.textContent = p.title;
   planetPos.textContent = `${planetIdx + 1} / ${PLANETS.length} · ${planetIdx === 0 ? '태양계의 중심' : `태양에서 ${planetIdx}번째`}`;
   planetDesc.innerHTML = `<p>${p.desc}</p><p class="planet-fact">💡 ${p.fact}</p><div class="planet-stats"><span>📏 ${p.size}</span><span>📍 ${p.dist}</span><span>🪂 중력: ${p.gravityText}</span></div>`;
-  const wild = (info.wild || []).map((id) => speciesById[id]).filter(Boolean);
+  const wild = [...(info.wild || []).map((id) => speciesById[id]).filter(Boolean), ...creatureData.creatures.filter((c) => c.zone === p.zone && c.unlockedBy)]; // 보스를 잡으면 나타나는 숨은 포켓몬도 함께
   planetPokes.innerHTML = `<div class="planet-poke-note">🐾 ${p.pokeNote}</div><div class="planet-poke-list">${wild.map((sp) => {
     const t = dex.thumbs(sp)?.color;
     return `<div class="planet-poke">${t ? `<img src="${t}" alt="">` : `<span class="planet-poke-dot" style="background:${sp.draftShape?.color || '#ccc'}"></span>`}<span>${sp.name}</span><small>${sp.type}</small></div>`;

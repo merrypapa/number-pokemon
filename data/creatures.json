@@ -1,5 +1,5 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing).",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤).",
  "zones": {
   "forest": {
    "name": "푸른숲",
@@ -42,7 +42,7 @@
   },
   "sea": {
    "name": "물의길",
-   "desc": "물 포켓몬이 사는 바다 섬들과 배로 나가는 먼바다",
+   "desc": "물 포켓몬이 사는 바다 섬들과 배로 나가는 먼바다. 모래섬에는 아기 거북 끼북겅이 아장아장 걸어 다닌다",
    "targetAtk": 12,
    "atkRange": "10~15",
    "blockValue": 2
@@ -70,14 +70,14 @@
   },
   "space": {
    "name": "꿈의우주",
-   "desc": "신비한 포켓몬이 사는 우주",
+   "desc": "신비한 포켓몬이 사는 우주. 행성 열 곳의 보스를 모두 잡으면 전설의 뮤가 나타난다",
    "targetAtk": 22,
    "atkRange": "20~25",
    "blockValue": 3
   },
   "p_sun": {
    "name": "태양",
-   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다. 북쪽 아레나에 보스 포니타",
+   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다. 북쪽 아레나에 보스 포니타. 포니타를 잡으면 검은 리자몽 리흑회가 나타난다",
    "targetAtk": 16,
    "atkRange": "14~20",
    "blockValue": 3,
@@ -134,7 +134,7 @@
   },
   "p_earth": {
    "name": "지구",
-   "desc": "초록 들판과 파란 호수가 있는 우리 행성. 온갖 포켓몬이 어울려 산다. 북쪽 아레나에 보스 잠만보",
+   "desc": "초록 들판과 파란 호수가 있는 우리 행성. 온갖 포켓몬이 어울려 산다. 북쪽 아레나에 보스 잠만보. 잠만보를 잡으면 초록 리자풀이 나타난다",
    "targetAtk": 8,
    "atkRange": "4~15",
    "blockValue": 3,
@@ -234,7 +234,7 @@
   },
   "p_neptune": {
    "name": "해왕성",
-   "desc": "거센 바람이 부는 짙푸른 행성. 물 포켓몬이 산다. 북쪽 아레나에 보스 갸라도스",
+   "desc": "거센 바람이 부는 짙푸른 행성. 물 포켓몬이 산다. 북쪽 아레나에 보스 갸라도스. 갸라도스를 잡으면 보라거북왕이 나타난다",
    "targetAtk": 12,
    "atkRange": "8~14",
    "blockValue": 3,
@@ -254,13 +254,14 @@
   },
   "p_pluto": {
    "name": "명왕성",
-   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬이 산다. 북쪽 아레나에 보스 고우스트",
+   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬과 호박을 쓴 이상해할로윈이 산다. 북쪽 아레나에 보스 고우스트",
    "targetAtk": 20,
    "atkRange": "16~22",
    "blockValue": 3,
    "planet": true,
    "wild": [
     "m26",
+    "m45",
     "m24",
     "m15",
     "m23",
@@ -501,10 +502,15 @@
      "kind": "tackle"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m11e",
+    "atk": 10,
+    "hp": 15,
+    "wins": 5
+   },
    "favoriteNumber": 12,
    "personality": "조용함",
-   "story": "여러 모습으로 진화할 수 있는 신기한 포켓몬. 사는 곳에 따라 몸이 바뀐대. 푸른숲에서는 보송보송한 털로 지내.",
+   "story": "여러 모습으로 진화할 수 있는 신기한 포켓몬. 사는 곳에 따라 몸이 바뀐대. 푸른숲에서는 보송보송한 털로 지내다가, 달빛을 받으면 엄브레온이 돼.",
    "grade": 1
   },
   {
@@ -2638,6 +2644,151 @@
    "boss": true
   },
   {
+   "id": "px01",
+   "name": "리자풀",
+   "type": "풀",
+   "zone": "p_earth",
+   "catchable": true,
+   "unlockedBy": "pb04",
+   "model": "리자풀.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#2E9E6B",
+    "glow": true
+   },
+   "baseHp": 160,
+   "baseAtk": 16,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "잎날가르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "덩굴휘두르기",
+     "atk": 10,
+     "power": 1.3,
+     "kind": "whip"
+    },
+    {
+     "name": "얼음날개",
+     "atk": 20,
+     "power": 1.55,
+     "kind": "wind"
+    },
+    {
+     "name": "솔라빔",
+     "atk": 30,
+     "power": 1.8,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "늠름함",
+   "story": "지구의 초록 들판에서 자라 온몸이 풀빛이 된 리자몽. 뿔은 얼음처럼 차갑고 날개는 단풍처럼 붉어. 지구의 보스 잠만보를 잡은 트레이너 앞에만 나타나."
+  },
+  {
+   "id": "px02",
+   "name": "리흑회",
+   "type": "불",
+   "zone": "p_sun",
+   "catchable": true,
+   "unlockedBy": "pb01",
+   "model": "리흑회.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#3A3A3A",
+    "flames": 6,
+    "glow": true
+   },
+   "baseHp": 200,
+   "baseAtk": 24,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "불꽃세례",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "드래곤클로",
+     "atk": 14,
+     "power": 1.35,
+     "kind": "scratch"
+    },
+    {
+     "name": "검은불꽃",
+     "atk": 24,
+     "power": 1.6,
+     "kind": "fire"
+    },
+    {
+     "name": "블러스트번",
+     "atk": 34,
+     "power": 1.85,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "과묵함",
+   "story": "태양의 불꽃에 그을려 온몸이 새까매진 리자몽. 꼬리 불꽃만은 태양처럼 환해. 태양의 보스 포니타를 잡은 트레이너 앞에만 나타나."
+  },
+  {
+   "id": "px03",
+   "name": "보라거북왕",
+   "type": "물",
+   "zone": "p_neptune",
+   "catchable": true,
+   "unlockedBy": "pb09",
+   "model": "보라거북왕.glb",
+   "scale": 2.4,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8A5CC9",
+    "bubbles": 6
+   },
+   "baseHp": 190,
+   "baseAtk": 20,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "로켓박치기",
+     "atk": 12,
+     "power": 1.3,
+     "kind": "tackle"
+    },
+    {
+     "name": "파도타기",
+     "atk": 22,
+     "power": 1.55,
+     "kind": "water"
+    },
+    {
+     "name": "하이드로캐논",
+     "atk": 32,
+     "power": 1.8,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "묵직함",
+   "story": "해왕성의 짙푸른 바다에서 살다 껍질이 보라색과 초록색으로 물든 거북왕. 등의 큰 대포로 해왕성의 폭풍을 뚫고 물을 쏴. 해왕성의 보스 갸라도스를 잡은 트레이너 앞에만 나타나."
+  },
+  {
    "id": "m01e",
    "name": "이상해풀",
    "type": "풀",
@@ -3074,6 +3225,55 @@
    "grade": 4
   },
   {
+   "id": "m11e",
+   "name": "엄브레온",
+   "type": "고스트",
+   "zone": "space",
+   "catchable": true,
+   "model": "엄브레온.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2B2B33",
+    "ears": 2,
+    "glow": true
+   },
+   "baseHp": 80,
+   "baseAtk": 17,
+   "skills": [
+    {
+     "name": "속임수",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "섀도클로",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "ghost"
+    },
+    {
+     "name": "악의파동",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "ghost"
+    },
+    {
+     "name": "문포스",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "ghost"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 12,
+   "evolvedFrom": "m11",
+   "personality": "차분함",
+   "story": "이브이가 달빛을 받아 진화한 모습. 몸의 노란 고리가 밤에 은은하게 빛나. 꿈의우주 별하늘 아래에서 조용히 산책하는 걸 좋아해.",
+   "grade": 5
+  },
+  {
    "id": "m42",
    "name": "라프라스",
    "type": "물",
@@ -3115,6 +3315,141 @@
    "personality": "다정",
    "story": "등에 사람을 태우고 바다를 건네주는 상냥한 포켓몬. 먼바다에서만 아주 가끔 만날 수 있어. 아름다운 노래를 부른다.",
    "grade": 4
+  },
+  {
+   "id": "m43",
+   "name": "구회",
+   "type": "페어리",
+   "zone": "space",
+   "catchable": true,
+   "model": "구회.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFD93D",
+    "glow": true
+   },
+   "baseHp": 70,
+   "baseAtk": 15,
+   "skills": [
+    {
+     "name": "반짝임",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "별가루",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "wind"
+    },
+    {
+     "name": "유성충돌",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    },
+    {
+     "name": "소원빌기",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "반짝반짝",
+   "story": "꿈의우주 별하늘에서 떨어진 노란 별 포켓몬. 꼭짓점이 다섯 개라 숫자 5를 제일 좋아해. 만지면 온몸이 반짝이며 소원을 하나 들어준다는 소문이 있어.",
+   "grade": 5
+  },
+  {
+   "id": "m44",
+   "name": "끼북겅",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "끼북겅.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8BE04A",
+    "eyes": 2
+   },
+   "baseHp": 24,
+   "baseAtk": 6,
+   "skills": [
+    {
+     "name": "거품",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "물총",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "아장아장",
+   "story": "물의길 모래섬에서 아장아장 걸어 다니는 아기 거북. 큰 눈으로 두리번거리며 조개껍데기를 모아. 물의길에서 가장 약하지만 제일 귀여워.",
+   "grade": 3
+  },
+  {
+   "id": "m45",
+   "name": "이상해할로윈",
+   "type": "고스트",
+   "zone": "p_pluto",
+   "catchable": true,
+   "model": "이상해할로윈.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#6E6E6E",
+    "glow": true
+   },
+   "baseHp": 66,
+   "baseAtk": 17,
+   "skills": [
+    {
+     "name": "핥기",
+     "atk": 1,
+     "power": 1,
+     "kind": "ghost"
+    },
+    {
+     "name": "씨폭탄",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "leaf"
+    },
+    {
+     "name": "도깨비불",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "호박폭탄",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "ghost"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "장난꾸러기",
+   "story": "등의 씨앗 대신 웃는 호박을 얹은 회색 이상해씨. 어둡고 조용한 명왕성에서 호박에 불을 켜고 돌아다녀. 할로윈 밤이면 제일 신이 난대.",
+   "grade": 5
   },
   {
    "id": "x01",
@@ -3375,6 +3710,66 @@
    "favoriteNumber": 10,
    "personality": "푸른 불꽃",
    "story": "메가팬텀의 어둠을 이겨 낸 트레이너 앞에만 나타나는 푸른 불꽃의 리자몽. 별 사이를 날아다니며 우주에서 가장 뜨거운 불을 뿜어. 넘버랜드에서 가장 강한 포켓몬이야."
+  },
+  {
+   "id": "x07",
+   "name": "뮤",
+   "type": "에스퍼",
+   "zone": "space",
+   "catchable": true,
+   "mega": true,
+   "unlockedBy": [
+    "pb01",
+    "pb02",
+    "pb03",
+    "pb04",
+    "pb05",
+    "pb06",
+    "pb07",
+    "pb08",
+    "pb09",
+    "pb10"
+   ],
+   "model": "뮤.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F7B7D4",
+    "glow": true
+   },
+   "baseHp": 320,
+   "baseAtk": 60,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "사이코키네시스",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "환상빔",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "사이코브레이크",
+     "atk": 35,
+     "power": 1.9,
+     "kind": "psychic"
+    },
+    {
+     "name": "꿈의 힘",
+     "atk": 50,
+     "power": 2.2,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 10,
+   "personality": "신비로움",
+   "story": "태양계 열 곳의 보스를 모두 잡은 트레이너 앞에만 나타나는 전설의 포켓몬. 모든 포켓몬의 조상이라고 전해지며, 꿈의우주 어딘가에서 장난스럽게 숨바꼭질을 해. 넘버랜드에서 가장 강한 포켓몬이니 메가볼을 꼭 준비하자."
   }
  ]
 }
