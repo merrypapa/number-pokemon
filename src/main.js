@@ -1261,7 +1261,7 @@ function showAdminPanel() {
   document.body.appendChild(box);
 }
 // 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
-const BUILD = 'v2026-09-18a';
+const BUILD = 'v2026-09-18b';
 document.getElementById('title-help').insertAdjacentText('beforeend', ` · ${BUILD}`);
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');
@@ -1481,7 +1481,7 @@ function frame() {
       } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
-      } else if (near(w.hiveDoor, 2.0)) {
+      } else if (near(w.hiveDoor, 2.8)) { // 매달린 벌집 아래 (어느 방향에서 와도)
         moved = true;
         switchZone('hive', getZone('hive').world.spawn, { text: '윙윙! 꿀벌집 안으로 들어왔어! 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해. 벌레·풀 포켓몬이 살아. 남쪽 포탈로 나갈 수 있어.', sec: 8 });
       } else if (near(w.volcanoGate, 2.4)) {
@@ -1507,6 +1507,7 @@ function frame() {
       const back = dest.world.arrivals?.[zone.name] || dest.world.spawn;
       switchZone(toName, back, { text: `${dest.label}(으)로 돌아왔어!`, sec: 4 });
     }
+    if (!moved && zone.name === 'forest' && state.prompt <= 0 && near(zone.world.hiveDoor, 7)) { state.prompt = 8; say('🐝 꿀벌집이야! 매달린 벌집 바로 아래로 걸어가면 안으로 들어가.', { sec: 4 }); }
     // 배 위에서 뭍이 가까우면 "내리기"를 먼저 준다 (루피 대화는 트인 바다에서)
     const landNear = sailing && !returning ? landingSpot(t) : null;
     if (landNear) offer('⚓ 여기 내리기', () => leaveBoat(true), '⚓\n내리기');

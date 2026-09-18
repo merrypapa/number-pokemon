@@ -1065,7 +1065,7 @@ export function buildWorld(scene) {
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
-    hiveDoor: { x: ht.x - 3.4, z: ht.z + 4.2 }, // 벌집 바로 아래 (닿으면 꿀벌집 안으로)
+    hiveDoor: { x: ht.x - 3.4, z: ht.z + 2.4 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: 4.5, z: 15, mesh: ranger, name: '나미', warp: true, lines: (c) => [
       `안녕, ${c.name}! 난 푸른숲 안내원 나미야. 여기 포켓몬은 공격 ${c.zone.atkRange} 정도면 편하게 이길 수 있어.`,
       '하얀 블록을 줍거나 대결에서 이기면 블록이 생겨. 도감에서 블록으로 포켓몬을 키우자. 숫자블록 친구가 도와달라고 하면 문제를 풀어 주면 블록을 많이 줘!',
