@@ -10,12 +10,16 @@
   },
   "hive": {
    "name": "꿀벌집",
-   "desc": "푸른숲 큰 나무에 매달린 벌집 속. 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼. 벌레·풀 포켓몬이 산다. 북쪽 금빛 단에 여왕 콘팡",
+   "desc": "푸른숲 큰 나무에 매달린 벌집 속. 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼. 뿔충이·딱충이·세꿀버리 같은 벌레·풀 포켓몬이 산다. 북쪽 금빛 단에 보스 독침붕, 잡으면 메가독침붕이 나타난다",
    "targetAtk": 5,
    "atkRange": "4~7",
    "blockValue": 1,
    "wild": [
+    "m51",
+    "m52",
     "m06",
+    "hb01",
+    "m51e",
     "m36",
     "m31",
     "m28",
@@ -28,7 +32,7 @@
   },
   "cave": {
    "name": "지하동굴",
-   "desc": "땅·바위·독·격투·벌레 포켓몬이 사는 어두운 동굴",
+   "desc": "땅·바위·독·격투·벌레 포켓몬이 사는 어두운 동굴. 주뱃을 키우면 골뱃이 된다",
    "targetAtk": 8,
    "atkRange": "6~10",
    "blockValue": 1
@@ -869,13 +873,13 @@
    "zone": "hive",
    "catchable": true,
    "model": "콘팡.glb",
-   "scale": 2.0,
+   "scale": 1.2,
    "draftShape": {
     "body": "sphere",
     "color": "#B57EDC"
    },
-   "baseHp": 60,
-   "baseAtk": 6,
+   "baseHp": 26,
+   "baseAtk": 5,
    "skills": [
     {
      "name": "독가루",
@@ -898,9 +902,291 @@
    ],
    "evolution": null,
    "favoriteNumber": 6,
-   "story": "꿀벌집 북쪽 금빛 단에 앉은 여왕 콘팡. 꿀벌들이 지키고, 꿀 향기를 맡으면 잠이 온대.",
+   "story": "꿀벌집 북쪽 금빛 단 근처를 지키던 콘팡. 꿀 향기를 맡으면 잠이 온대.",
+   "grade": 2
+  },
+  {
+   "id": "m51",
+   "name": "뿔충이",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "model": "뿔충이.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#D9A15A",
+    "dots": 3
+   },
+   "baseHp": 12,
+   "baseAtk": 3,
+   "skills": [
+    {
+     "name": "독침",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "실뿜기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bug"
+    },
+    {
+     "name": "벌레먹기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    }
+   ],
+   "evolution": {
+    "to": "m51e",
+    "atk": 10,
+    "hp": 15,
+    "wins": 5
+   },
+   "favoriteNumber": 3,
+   "personality": "꼬물꼬물",
+   "story": "머리에 뾰족한 독침이 달린 애벌레. 벌집 바닥을 꼬물꼬물 기어 다니며 꽃가루를 먹어. 꿀벌집에서 제일 약해.",
+   "grade": 1
+  },
+  {
+   "id": "m51e",
+   "name": "딱충이",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "model": "딱충이.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#E8C94A"
+   },
+   "baseHp": 24,
+   "baseAtk": 4,
+   "skills": [
+    {
+     "name": "단단해지기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "독침",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": {
+    "to": "m51ee",
+    "atk": 20,
+    "hp": 30,
+    "boss": 1
+   },
+   "favoriteNumber": 4,
+   "evolvedFrom": "m51",
+   "personality": "느긋함",
+   "story": "뿔충이가 번데기가 된 모습. 거의 움직이지 않고 껍질을 단단하게 만들어. 벌집 벽에 매달려 독침붕이 될 날을 기다려.",
+   "grade": 2
+  },
+  {
+   "id": "m51ee",
+   "name": "독침붕",
+   "type": "벌레",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "독침붕.glb",
+   "scale": 1.3,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F5C518",
+    "dots": 3
+   },
+   "baseHp": 36,
+   "baseAtk": 11,
+   "skills": [
+    {
+     "name": "독침",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "더블니들",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bug"
+    },
+    {
+     "name": "미사일바늘",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    },
+    {
+     "name": "독찌르기",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "poison"
+    }
+   ],
+   "evolution": {
+    "to": "x09",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
+   "favoriteNumber": 3,
+   "evolvedFrom": "m51e",
+   "personality": "용맹함",
+   "story": "딱충이가 진화한 말벌 포켓몬. 앞발과 꼬리의 독침 세 개로 세 번 연달아 찔러. 벌집을 지키는 일이라면 누구보다 용감해.",
+   "grade": 3
+  },
+  {
+   "id": "hb02",
+   "name": "독침붕",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "model": "독침붕.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F5C518",
+    "dots": 3
+   },
+   "baseHp": 60,
+   "baseAtk": 6,
    "grade": 6,
-   "boss": true
+   "boss": true,
+   "skills": [
+    {
+     "name": "독침",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "더블니들",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bug"
+    },
+    {
+     "name": "미사일바늘",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    },
+    {
+     "name": "독찌르기",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "poison"
+    }
+   ],
+   "evolution": {
+    "to": "x09",
+    "atk": 30,
+    "hp": 45,
+    "mega": 1
+   },
+   "favoriteNumber": 3,
+   "personality": "용맹함",
+   "story": "꿀벌집 북쪽 금빛 단에 서서 벌집을 지키는 대장 말벌. 독침 세 개로 세 번 연달아 찔러. 잡으면 꿀벌집 정복!"
+  },
+  {
+   "id": "x09",
+   "name": "메가독침붕",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "mega": true,
+   "unlockedBy": "hb02",
+   "model": "메가독침붕.glb",
+   "scale": 3.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FFE066",
+    "dots": 3,
+    "glow": true
+   },
+   "baseHp": 190,
+   "baseAtk": 34,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "더블니들",
+     "atk": 1,
+     "power": 1,
+     "kind": "bug"
+    },
+    {
+     "name": "미사일바늘",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    },
+    {
+     "name": "메가혼",
+     "atk": 35,
+     "power": 1.9,
+     "kind": "bug"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "번개같음",
+   "story": "하얀 날개가 커지고 독침이 더 날카로워진 독침붕의 메가 모습. 꿀벌집 보스 독침붕을 잡은 트레이너 앞에만 나타나. 메가급이라 메가큐브라야 잡혀."
+  },
+  {
+   "id": "m52",
+   "name": "세꿀버리",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "model": "세꿀버리.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F2A93B",
+    "dots": 3
+   },
+   "baseHp": 18,
+   "baseAtk": 4,
+   "skills": [
+    {
+     "name": "꿀모으기",
+     "atk": 1,
+     "power": 1,
+     "kind": "bug"
+    },
+    {
+     "name": "돌풍",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "wind"
+    },
+    {
+     "name": "벌레의야단법석",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "부지런함",
+   "story": "벌집 칸 세 개가 붙은 모양의 꿀벌 포켓몬. 얼굴이 셋이라 숫자 3을 제일 좋아해. 온종일 꽃꿀을 모아 벌집으로 나른다.",
+   "grade": 1
   },
   {
    "id": "m04",
@@ -949,8 +1235,8 @@
    "type": "독",
    "zone": "cave",
    "catchable": true,
-   "model": null,
-   "scale": 0.7,
+   "model": "주뱃.glb",
+   "scale": 0.8,
    "draftShape": {
     "body": "sphere",
     "color": "#5B6ED6",
@@ -978,10 +1264,63 @@
      "kind": "poison"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m17e",
+    "atk": 10,
+    "hp": 15,
+    "wins": 5
+   },
    "favoriteNumber": 7,
    "personality": "장난꾸러기",
    "story": "눈이 없는 대신 초음파로 길을 찾는 박쥐 포켓몬. 어두운 동굴 천장에 매달려 살아.",
+   "grade": 2
+  },
+  {
+   "id": "m17e",
+   "name": "골뱃",
+   "type": "독",
+   "zone": "cave",
+   "catchable": true,
+   "model": "골뱃.glb",
+   "scale": 1.3,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#7B5EC9",
+    "ears": 2
+   },
+   "baseHp": 34,
+   "baseAtk": 7,
+   "skills": [
+    {
+     "name": "초음파",
+     "atk": 1,
+     "power": 1,
+     "kind": "wind"
+    },
+    {
+     "name": "흡혈",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison"
+    },
+    {
+     "name": "독안개",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "poison"
+    },
+    {
+     "name": "에어슬래시",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "wind"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "evolvedFrom": "m17",
+   "personality": "사나움",
+   "story": "주뱃이 진화한 큰 박쥐 포켓몬. 입이 커서 한입에 많이 빨아 먹어. 어두운 동굴 깊은 곳을 소리 없이 날아다녀.",
    "grade": 2
   },
   {
