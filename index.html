@@ -20,7 +20,6 @@
 
   <div id="hud">
     <div class="hud-row"><span class="hud-icon block"></span><span id="hud-blocks">0개</span></div>
-    <div class="hud-row mega" id="hud-mega-row" hidden><span class="hud-icon mega"></span><span id="hud-mega">0개</span></div>
     <button class="hud-row" id="hud-car-row" title="이상해꽃 자동차 타기/내리기 (C)" hidden>🚗 타기</button>
     <button class="hud-row" id="hud-leader-row" title="누르면 다음 포켓몬이 대표가 돼"><img class="hud-thumb" id="hud-poke-img" alt="" hidden><span class="hud-icon poke" id="hud-poke-icon"></span><span id="hud-leader">대표 없음</span><span class="hud-swap" hidden>⇄</span></button>
   </div>
@@ -28,7 +27,6 @@
 
   <button id="btn-dex">📖 도감<span class="dex-more"> · 지도</span></button>
   <button id="btn-code" class="hidden" title="저장 코드 복사">🔗 코드</button>
-  <button id="btn-save" class="hidden">💾 저장</button>
   <div id="save-toast" class="hidden"></div>
   <div id="dex" class="hidden">
     <div id="dex-card">
@@ -37,7 +35,7 @@
         <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="admin" hidden>관리자</button></div>
         <div id="dex-blocks">블록 0개</div>
         <div id="dex-count"></div>
-        <button id="btn-dex-close" aria-label="닫기">✕</button>
+        <button id="dex-save" title="지금까지 한 것 저장">💾 저장</button><button id="btn-dex-close" aria-label="닫기">✕</button>
       </div>
       <div id="dex-body">
         <div id="dex-members"></div>

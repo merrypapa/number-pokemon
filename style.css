@@ -42,7 +42,7 @@ body.battle #msg { display: none; } /* 대결 중엔 말풍선을 숨긴다 (같
 .hp-ten { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 22px; border-radius: 5px; border: 2px solid #20232e; font-size: 12px; font-weight: 900; color: #fff; -webkit-text-stroke: .5px #20232e; transition: opacity .25s; }
 .hp-ten.gone { opacity: .15; }
 #battle-mine-hp .hp-ten { width: 36px; height: 16px; font-size: 10px; }
-body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !important; }
+body.battle #btn-dex, body.battle #hud { display: none !important; }
 /* 상대 포켓몬 머리 위 이름표 + 체력 바 (battle.js 가 매 프레임 위치를 맞춘다) */
 #battle-tag { position: fixed; transform: translate(-50%, -100%); z-index: 10; width: 220px; text-align: center; pointer-events: none; }
 #battle-tag .tag-name { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,251,230,.95); border: 2px solid #20232e; border-radius: 999px; padding: 3px 8px 3px 12px; font-size: 17px; font-weight: 900; color: #20232e; pointer-events: auto; }
@@ -177,14 +177,16 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 #btn-dex { position: fixed; top: 12px; right: 12px; z-index: 6; font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
 #dex { position: fixed; inset: 0; background: rgba(20,30,50,.6); z-index: 14; display: flex; align-items: center; justify-content: center; padding: 12px; }
 #dex-card { background: #fffbe6; border-radius: 22px; width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
-#dex-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid #f0e6c0; }
+#dex-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 130px 12px 16px; border-bottom: 2px solid #f0e6c0; } /* 오른쪽 여백은 저장·닫기 버튼 자리 (절대 위치라 좁은 화면에서도 안 밀려난다) */
 #dex-title { font-size: 20px; font-weight: 900; color: #333; white-space: nowrap; }
 #dex-count { font-weight: 800; color: #777; white-space: nowrap; }
 #dex-blocks { font-weight: 900; color: #fff; background: #bbb; padding: 4px 12px 4px 8px; border-radius: 999px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 #dex-blocks::before { content: ''; width: 14px; height: 14px; border-radius: 3px; background: #fff; border: 2px solid #20232e; box-sizing: border-box; }
 #dex-body { flex: 1; min-height: 0; overflow-y: auto; }
 #dex-grid-title { font-size: 16px; font-weight: 900; color: #555; padding: 10px 12px 0; }
-#btn-dex-close { margin-left: auto; width: 40px; height: 40px; font-size: 20px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #eee; color: #20232e; cursor: pointer; }
+#dex-save { position: absolute; top: 50%; right: 62px; transform: translateY(-50%); font: inherit; font-size: 14px; font-weight: 900; padding: 8px 12px; border-radius: 999px; border: 0; background: #57b947; color: #fff; cursor: pointer; box-shadow: 0 2px 0 #3d8c30; white-space: nowrap; }
+#dex-save:active { transform: translateY(calc(-50% + 2px)); box-shadow: none; }
+#btn-dex-close { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); width: 40px; height: 40px; font-size: 20px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #eee; color: #20232e; cursor: pointer; }
 #dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
 .dex-item { background: #fff; border-radius: 16px; padding: 8px; text-align: center; border: 3px solid transparent; position: relative; }
 .dex-item.caught { border-color: #ffd93d; }
@@ -329,7 +331,7 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 .save-empty { color: #777; font-weight: 800; padding: 14px; }
 #btn-save { position: fixed; top: 12px; right: 190px; z-index: 6; font-size: 16px; font-weight: 800; padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
 body.intro #btn-save { display: none !important; }
-#save-toast { position: fixed; top: 58px; right: 12px; z-index: 6; background: #57b947; color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
+#save-toast { position: fixed; top: 58px; right: 12px; z-index: 30; background: #57b947; color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 
 /* ---------- 도감: 탭 + 지도 ---------- */
 #dex-tabs { display: flex; gap: 4px; background: #f0e6c0; border-radius: 999px; padding: 3px; }
@@ -401,13 +403,18 @@ body.intro #btn-save { display: none !important; }
 #dex-map-nav button { font-size: 15px; font-weight: 900; padding: 10px 16px; border-radius: 12px; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 3px 0 #c99400; cursor: pointer; }
 #dex-map-nav button:active { transform: translateY(2px); box-shadow: none; }
 #map-pos { font-size: 14px; font-weight: 900; color: #666; }
-@media (max-width: 640px) { #btn-save { top: 56px; right: 12px; } #save-toast { top: 100px; } } /* 좁은 화면: 저장 버튼을 도감 버튼 아래로 */
+@media (max-width: 640px) { #save-toast { top: 100px; } }
 
 /* ---------- 도감: 휴대폰(좁은 화면)에서는 전체 화면 + 상단 큰 ✕ 버튼 ---------- */
 @media (max-width: 640px) {
   #dex { padding: 0; align-items: stretch; }
   #dex-card { width: 100%; max-height: none; height: 100dvh; border-radius: 0; }
-  #dex-head { position: sticky; top: 0; background: #fffbe6; z-index: 2; gap: 8px; padding: 8px 10px; }
+  #dex-head { position: sticky; top: 0; background: #fffbe6; z-index: 2; gap: 6px 8px; padding: 8px 10px; }
+  #dex-title { flex-basis: 100%; padding-right: 112px; line-height: 40px; } /* 첫 줄: 제목 + (오른쪽 위) 저장·닫기, 둘째 줄: 탭과 블록 알약 */
+  #dex-tabs { max-width: 100%; overflow-x: auto; }
+  #dex-save { top: 8px; right: 58px; transform: none; font-size: 13px; padding: 7px 10px; height: 34px; margin-top: 3px; }
+  #dex-save:active { transform: translateY(2px); }
+  #btn-dex-close { top: 8px; transform: none; width: 40px; height: 40px; font-size: 22px; }
   #dex-title { font-size: 15px; }
   #dex-count { display: none; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }

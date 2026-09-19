@@ -849,7 +849,7 @@ export function buildWorld(scene) {
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
-    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 12 || distToPath(x, z) < 2.5 + extra;
+    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 16 || distToPath(x, z) < 2.5 + extra;
   const treeSpots = [];
   while (treeSpots.length < 170) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
@@ -955,8 +955,9 @@ export function buildWorld(scene) {
     const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 4.2, 8), trunkMat); branch.position.set(ht.x - 1.6, y0 + 5.6, ht.z + 1.2); branch.rotation.z = 1.1; branch.rotation.y = 0.4;
     decor.add(trunk, crown, crown2, branch); block(ht.x, ht.z, 1.2);
     // 벌집: 가지에 매달린 호박색 덩어리 (고리 여러 겹) + 어두운 입구 + 꿀 방울
-    const hx = ht.x - 3.4, hz = ht.z + 2.4, hy = y0 + 3.6, HIVE_SCALE = 1.7; // 벌집은 멀리서도 보이게 크게 (아래쪽이 땅에서 1m 쯤 떠 있다)
-    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.6, 6), trunkMat); rope.position.set(hx, hy + 1.47 * HIVE_SCALE + 0.8, hz);
+    const hx = ht.x - 7.6, hz = ht.z + 3.2, HIVE_SCALE = 2.3, hy = y0 + 1.6 * HIVE_SCALE + 0.9; // 벌집은 나뭇잎에 안 가리게 가지 끝(나무 밖)에 크게 매달린다. 아래쪽이 땅에서 0.9m 떠 있다
+    const bigBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 8.6, 8), trunkMat); bigBranch.position.set((ht.x + hx) / 2, hy + 1.47 * HIVE_SCALE + 1.3, (ht.z + hz) / 2); bigBranch.rotation.z = Math.PI / 2 - 0.25; bigBranch.rotation.y = -Math.atan2(hz - ht.z, hx - ht.x); bigBranch.castShadow = true; decor.add(bigBranch); // 나무에서 벌집까지 뻗은 긴 가지
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.4, 6), trunkMat); rope.position.set(hx, hy + 1.47 * HIVE_SCALE + 0.7, hz);
     const hive = new THREE.Group();
     hive.scale.setScalar(HIVE_SCALE);
     const combMat = new THREE.MeshStandardMaterial({ color: 0xe8a020, roughness: 0.7 });
@@ -1082,7 +1083,7 @@ export function buildWorld(scene) {
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
-    hiveDoor: { x: ht.x - 3.4, z: ht.z + 2.4 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
+    hiveDoor: { x: ht.x - 7.6, z: ht.z + 3.2 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [
       `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
       '벌집 바로 아래로 걸어가면 벌집 속으로 들어갈 수 있어. 안에는 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해!',

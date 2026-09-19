@@ -438,8 +438,6 @@ function setBlocks(n, { glow = false, quiet = false } = {}) {
 }
 
 const hudBlocks = document.getElementById('hud-blocks');
-const hudMega = document.getElementById('hud-mega');
-const hudMegaRow = document.getElementById('hud-mega-row');
 const hudLeader = document.getElementById('hud-leader');
 const hudBlockIcon = document.querySelector('.hud-icon.block');
 const hudPokeIcon = document.getElementById('hud-poke-icon');
@@ -447,8 +445,7 @@ const hudPokeImg = document.getElementById('hud-poke-img');
 const hudSwap = document.querySelector('#hud-leader-row .hud-swap');
 function refreshHud() {
   hudBlocks.textContent = `${state.blocks}개`;
-  hudMegaRow.hidden = state.megaBlocks <= 0;      // 메가블럭은 얻은 뒤부터 보인다
-  hudMega.textContent = `메가블럭 ${state.megaBlocks}개`;
+  // 메가블럭 수는 게임 화면에는 안 보이고 도감(블록 알약의 💠)에서 본다
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   const L = party.leader;
   if (L) {
@@ -1284,7 +1281,6 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   if (state.glow) { player.lamp.distance = 30; }
   camera.position.copy(player.position).add(camOffset());
   snapCam = true;
-  document.getElementById('btn-save').classList.remove('hidden');
   document.getElementById('btn-code').classList.remove('hidden');
   showZoneBanner(zone.label);
   refreshHud();
@@ -1433,7 +1429,7 @@ function doSave(manual = false) {
   return ok;
 }
 function autosave() { if (zone && player) { doSave(false); state.autosave = 90; } }
-document.getElementById('btn-save').onclick = () => doSave(true);
+document.getElementById('dex-save').onclick = () => { if (doSave(true)) sound.click(); }; // 저장은 도감 안에서
 
 // ---------- 저장 코드: 다른 기기로 옮기기 (텍스트로 복사해 두었다가 붙여넣기) ----------
 const CODE_PREFIX = 'NPK1.';
@@ -1581,7 +1577,7 @@ function frame() {
       } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
-      } else if (near(w.hiveDoor, 3.4)) { // 매달린 벌집 아래 (어느 방향에서 와도. 벌집이 커진 만큼 넓게)
+      } else if (near(w.hiveDoor, 4.0)) { // 매달린 벌집 아래 (어느 방향에서 와도. 벌집이 커진 만큼 넓게)
         moved = true;
         switchZone('hive', getZone('hive').world.spawn, { text: '윙윙! 꿀벌집 안으로 들어왔어! 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해. 북쪽 벌집 탑은 육각 계단을 뛰어서 올라가! 벌레·풀 포켓몬이 살아. 남쪽 포탈로 나갈 수 있어.', sec: 8 });
       } else if (near(w.volcanoGate, 2.4)) {
