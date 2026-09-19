@@ -70,14 +70,14 @@
   },
   "space": {
    "name": "꿈의우주",
-   "desc": "신비한 포켓몬이 사는 우주. 행성 열 곳의 보스를 모두 잡으면 전설의 뮤가 나타난다",
+   "desc": "신비한 포켓몬이 사는 우주. 행성 열 곳의 보스를 모두 잡으면 전설의 뮤가 나타난다. 줍는 블록 대신 황금 별이 떠 있다",
    "targetAtk": 22,
    "atkRange": "20~25",
    "blockValue": 3
   },
   "p_sun": {
    "name": "태양",
-   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다. 북쪽 아레나에 보스 리흑회",
+   "desc": "활활 타는 태양계의 중심 별. 뜨거운 걸 좋아하는 불 포켓몬이 산다. 북쪽 아레나에 보스 리흑회. 줍는 블록 대신 황금 햇님이 떠 있다",
    "targetAtk": 16,
    "atkRange": "14~20",
    "blockValue": 3,
@@ -197,7 +197,7 @@
   },
   "p_saturn": {
    "name": "토성",
-   "desc": "거대한 고리가 하늘에 걸린 행성. 얼음 조각 사이에 페어리·에스퍼·노말 포켓몬과 버섯 모자 버빨황이 산다. 북쪽 아레나에 보스 푸린",
+   "desc": "거대한 고리가 하늘에 걸린 행성. 얼음 조각 사이에 페어리·에스퍼·노말 포켓몬과 버섯 모자 버빨황이 산다. 북쪽 아레나에 보스 망나뇽. 망나뇽을 잡으면 메가망나뇽이 나타난다",
    "targetAtk": 18,
    "atkRange": "12~20",
    "blockValue": 3,
@@ -218,7 +218,7 @@
   },
   "p_uranus": {
    "name": "천왕성",
-   "desc": "옆으로 누워 도는 청록색 얼음 행성. 물·에스퍼 포켓몬과 이상해물이 산다. 북쪽 아레나에 보스 라프라스",
+   "desc": "옆으로 누워 도는 청록색 얼음 행성. 물·에스퍼 포켓몬과 이상해물이 산다. 북쪽 아레나에 보스 라프라스. 줍는 블록 대신 파란 보석이 떠 있다",
    "targetAtk": 14,
    "atkRange": "10~16",
    "blockValue": 3,
@@ -258,13 +258,14 @@
   },
   "p_pluto": {
    "name": "명왕성",
-   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬과 호박을 쓴 이상해할로윈이 산다. 북쪽 아레나에 보스 고우스트",
+   "desc": "하트 모양 얼음 평원이 있는 어둡고 작은 왜소행성. 고스트·에스퍼·페어리 포켓몬과 호박을 쓴 이상해할로윈, 마법사 도마뱀 에스퍼가 산다. 북쪽 아레나에 보스 고우스트",
    "targetAtk": 20,
    "atkRange": "16~22",
    "blockValue": 3,
    "planet": true,
    "wild": [
     "m26",
+    "m50",
     "m45",
     "m24",
     "m15",
@@ -2353,47 +2354,6 @@
    "boss": true
   },
   {
-   "id": "pb07",
-   "name": "푸린",
-   "type": "페어리",
-   "zone": "p_saturn",
-   "catchable": true,
-   "model": "푸린.glb",
-   "scale": 2.4,
-   "draftShape": {
-    "body": "capsule",
-    "color": "#FFB6E1",
-    "glow": true
-   },
-   "baseHp": 140,
-   "baseAtk": 18,
-   "skills": [
-    {
-     "name": "노래하기",
-     "atk": 1,
-     "power": 1,
-     "kind": "sing"
-    },
-    {
-     "name": "자장가",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "sing"
-    },
-    {
-     "name": "더블슬랩",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "sing"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 20,
-   "story": "토성의 고리 얼음 조각 사이에서 노래하는 푸린. 노래가 고리를 따라 멀리멀리 퍼져.",
-   "grade": 6,
-   "boss": true
-  },
-  {
    "id": "pb08",
    "name": "라프라스",
    "type": "물",
@@ -2723,6 +2683,98 @@
    "favoriteNumber": 8,
    "personality": "냉정함",
    "story": "목성의 번개를 맞고 온몸에 파란 회로가 새겨진 거북왕. 두 대포에서 번개를 쏴. 줄무늬 구름 위 목성 북쪽 아레나를 지키는 보스야."
+  },
+  {
+   "id": "px06",
+   "name": "망나뇽",
+   "type": "노말",
+   "zone": "p_saturn",
+   "catchable": true,
+   "model": "망나뇽.glb",
+   "scale": 2.4,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F5A35C",
+    "ears": 2
+   },
+   "baseHp": 170,
+   "baseAtk": 20,
+   "grade": 6,
+   "boss": true,
+   "skills": [
+    {
+     "name": "날개치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "wind"
+    },
+    {
+     "name": "용의숨결",
+     "atk": 12,
+     "power": 1.3,
+     "kind": "fire"
+    },
+    {
+     "name": "드래곤테일",
+     "atk": 22,
+     "power": 1.55,
+     "kind": "tackle"
+    },
+    {
+     "name": "역린",
+     "atk": 32,
+     "power": 1.8,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "상냥함",
+   "story": "토성의 고리 사이를 날아다니는 주황빛 드래곤. 힘은 세지만 마음씨가 고와서 길 잃은 우주선을 도와준대. 토성 북쪽 아레나를 지키는 보스야."
+  },
+  {
+   "id": "x08",
+   "name": "메가망나뇽",
+   "type": "노말",
+   "zone": "p_saturn",
+   "catchable": true,
+   "mega": true,
+   "unlockedBy": "px06",
+   "model": "메가망나뇽.glb",
+   "scale": 3.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FFF3D6",
+    "ears": 2,
+    "glow": true
+   },
+   "baseHp": 240,
+   "baseAtk": 46,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "날개치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "wind"
+    },
+    {
+     "name": "드래곤클로",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "scratch"
+    },
+    {
+     "name": "유성폭발",
+     "atk": 35,
+     "power": 1.9,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "위풍당당",
+   "story": "하얀 깃털 날개가 돋아난 망나뇽의 메가 모습. 토성의 보스 망나뇽을 잡은 트레이너 앞에만 토성 어딘가에 나타나. 메가급이라 메가큐브라야 잡혀."
   },
   {
    "id": "m01e",
@@ -3552,6 +3604,53 @@
    "grade": 5
   },
   {
+   "id": "m50",
+   "name": "에스퍼",
+   "type": "에스퍼",
+   "zone": "p_pluto",
+   "catchable": true,
+   "model": "에스퍼.glb",
+   "scale": 1.1,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#8E5BD6",
+    "glow": true
+   },
+   "baseHp": 70,
+   "baseAtk": 18,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "마법지팡이",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "psychic"
+    },
+    {
+     "name": "수정구슬",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "별의마법",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "신비로움",
+   "story": "별무늬 마법사 모자를 쓰고 지팡이를 든 초록 도마뱀. 명왕성의 어둠 속에서 수정 구슬로 별빛을 모아 마법을 부려.",
+   "grade": 5
+  },
+  {
    "id": "x01",
    "name": "메가이상해꽃",
    "type": "풀",
@@ -3825,7 +3924,7 @@
     "px01",
     "pb05",
     "px05",
-    "pb07",
+    "px06",
     "pb08",
     "px03",
     "pb10"
@@ -3869,7 +3968,7 @@
    "evolution": null,
    "favoriteNumber": 10,
    "personality": "신비로움",
-   "story": "태양계 열 곳의 보스를 모두 잡은 트레이너 앞에만 나타나는 전설의 포켓몬. 모든 포켓몬의 조상이라고 전해지며, 꿈의우주 어딘가에서 장난스럽게 숨바꼭질을 해. 넘버랜드에서 가장 강한 포켓몬이니 메가볼을 꼭 준비하자."
+   "story": "태양계 열 곳의 보스를 모두 잡은 트레이너 앞에만 나타나는 전설의 포켓몬. 모든 포켓몬의 조상이라고 전해지며, 꿈의우주 어딘가에서 장난스럽게 숨바꼭질을 해. 넘버랜드에서 가장 강한 포켓몬이니 메가큐브을 꼭 준비하자."
   }
  ]
 }

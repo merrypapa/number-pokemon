@@ -1,10 +1,10 @@
-// 넘버볼: 숫자블록으로 교환하는 포획 도구. 등급이 높을수록 센 포켓몬도 잘 잡힌다.
+// 넘버볼: 숫자블록으로 교환하는 포획 도구. 브론즈·실버·골드는 몬스터볼(포켓몬볼.glb)의 뚜껑 색만 다르고, 메가큐브는 큐브 퍼즐 모양이다. 등급이 높을수록 센 포켓몬도 잘 잡힌다.
 // 값은 키우기 비용과 함께 두 배로 올렸다 — 볼 하나를 만들지, 포켓몬을 키울지 고민하게.
 export const BALLS = [
   { id: 'bronze',  name: '브론즈볼',  tier: 1, cost: 4,  color: 0xcd7f32, css: '#cd7f32' },
   { id: 'silver',  name: '실버볼',   tier: 2, cost: 12, color: 0xc0c0c0, css: '#b8bcc4' },
   { id: 'gold',    name: '골드볼',   tier: 3, cost: 30, color: 0xffc300, css: '#f2b705' },
-  { id: 'diamond', name: '메가볼', tier: 4, cost: 80, color: 0x7fe3ff, css: '#5fd3f5' }, // id 는 예전 저장과 맞추려고 그대로 둔다
+  { id: 'diamond', name: '메가큐브', tier: 4, cost: 80, color: 0x7fe3ff, css: '#5fd3f5', shape: 'cube' }, // 큐브 퍼즐 모양(포켓몬큐브.glb). id 는 예전 저장과 맞추려고 그대로 둔다
 ];
 export const BALL_BY_ID = Object.fromEntries(BALLS.map((b) => [b.id, b]));
 
@@ -20,7 +20,7 @@ const CHANCE = {
   4: [20, 50, 85, 100],
   5: [10, 35, 70, 98],
   6: [10, 30, 60, 95],
-  7: [2, 8, 25, 80], // 메가급: 메가볼이라야 제대로 잡힌다
+  7: [2, 8, 25, 80], // 메가급: 메가큐브라야 제대로 잡힌다
 };
 // 같은 포켓몬에게 실패할 때마다 잡힐 확률이 이만큼 오른다 (계속 도망만 가지 않게)
 export const RETRY_BONUS = 15;

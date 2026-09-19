@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { makePillSprite } from './world.js';
 
-// UFO(비행접시)와 UFO 정거장. 꿈의우주와 각 행성에 하나씩 있고, 조종사 별이에게 말을 걸면 탈 수 있다.
-// 정거장은 착륙 패드(빛나는 고리 셋 + 유도등 넷) 위에 비행접시가 떠 있고, 옆에 별이가 서 있다.
-export const UFO_NPC_NAME = '별이';
+// UFO(비행접시)와 UFO 정거장. 꿈의우주와 각 행성에 하나씩 있고, 조종사 손오공에게 말을 걸면 탈 수 있다.
+// 정거장은 착륙 패드(빛나는 고리 셋 + 유도등 넷) 위에 비행접시가 떠 있고, 옆에 손오공이 서 있다.
+export const UFO_NPC_NAME = '손오공'; // UFO 조종사 (손오공.glb)
 
 /** 비행접시: 은빛 접시 + 투명 돔 + 테두리 색등 12개 + 아래 빛나는 배 + 다리 셋. userData 에 lights/beam/glow 를 둔다 */
 export function makeUfo() {
@@ -52,7 +52,7 @@ export function makeUfo() {
 
 /**
  * UFO 정거장을 세운다. to: 타면 가는 곳('space' = 행성에서 꿈의우주로 돌아간다, null = 팝업에서 행성을 고른다).
- * 돌려주는 값: vehicle(main 의 ride 가 쓴다) · npc(별이) · animate(t) · arrival(도착해서 내리는 자리)
+ * 돌려주는 값: vehicle(main 의 ride 가 쓴다) · npc(손오공) · animate(t) · arrival(도착해서 내리는 자리)
  */
 export function buildUfoStation(scene, decor, block, { x, z, heightFn, to = null, color = 0x66e0ff, lines }) {
   const y = heightFn(x, z);
@@ -87,7 +87,7 @@ export function buildUfoStation(scene, decor, block, { x, z, heightFn, to = null
   sign.position.set(x, y + 5.4, z);
   scene.add(sign);
   const nx = x - 4.4, nz = z + 4.4;
-  const pilot = makeNpc({ outfit: 'pilot', name: UFO_NPC_NAME });
+  const pilot = makeNpc({ outfit: 'pilot', name: UFO_NPC_NAME, model: '손오공.glb' });
   pilot.position.set(nx, heightFn(nx, nz), nz);
   pilot.rotation.y = -2.3;
   decor.add(pilot); block(nx, nz, 0.6);

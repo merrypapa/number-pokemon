@@ -19,7 +19,7 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
     captain:   { coat: 0x1f3a93, pants: 0xf4f4f8, hat: 0x1f3a93, hatKind: 'capcap' },
     astronaut: { coat: 0xf4f4f8, pants: 0xf4f4f8, hat: 0xdddddd, hatKind: 'bubble' },
     professor: { coat: 0xffffff, pants: 0x556070, hat: 0xbfc5cc, hatKind: 'hair' },
-    pilot:     { coat: 0x7c6cff, pants: 0x2b2450, hat: 0xe8e8ff, hatKind: 'antenna' }, // UFO 조종사 별이
+    pilot:     { coat: 0x7c6cff, pants: 0x2b2450, hat: 0xe8e8ff, hatKind: 'antenna' }, // UFO 조종사 (지금은 손오공.glb 모델, 이 드래프트는 예비)
   }[outfit];
   const mat = (c) => new THREE.MeshStandardMaterial({ color: c });
   const coat = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.7, 6, 12), mat(C.coat)); coat.position.y = 0.75;

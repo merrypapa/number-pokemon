@@ -515,6 +515,8 @@ body.battle #btn-code, body.intro #btn-code { display: none !important; }
 .ball-rows { display: flex; flex-direction: column; gap: 8px; }
 .ball-row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 14px; padding: 8px 12px; border: 3px solid var(--ball); }
 .ball-dot.big { width: 34px; height: 34px; }
+/* 메가큐브: 3×3 색 칸 큐브 퍼즐 */
+.ball-dot.cube { border-radius: 5px; background: conic-gradient(#ff3b30 0 25%, #ffd60a 0 50%, #34c759 0 75%, #007aff 0), #fff; background-image: linear-gradient(#20232e 0 2px, transparent 2px), linear-gradient(90deg, #20232e 0 2px, transparent 2px), conic-gradient(#ff3b30 0 25%, #ffd60a 0 50%, #34c759 0 75%, #007aff 0); background-size: 100% 33.4%, 33.4% 100%, 100% 100%; }
 .ball-row .ball-name { font-weight: 900; font-size: 17px; width: 84px; }
 .ball-row .ball-count { font-weight: 900; font-size: 24px; color: #333; flex: 1; white-space: nowrap; }
 .ball-row .ball-count small { font-size: 13px; color: #888; margin-left: 2px; }

@@ -18,11 +18,11 @@ import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { makeCar, CAR_MODEL, CAR_NAME } from './car.js';
 import { Creature, buildDraftMesh } from './creatures.js';
-import { preloadModels, onModelLoaded } from './models.js';
+import { preloadModels, onModelLoaded, swapDraftWithModel } from './models.js';
 import { buildIntro } from './intro.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK, SILVER_BLOCK } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
-import { Battle } from './battle.js';
+import { Battle, BALL_MODEL, CUBE_MODEL } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
 import { Dex } from './dex.js';
 import { Party } from './party.js';
@@ -122,8 +122,10 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb'];
-const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS];
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb'];
+const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
+const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL)];
+const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
 const loadingEl = document.getElementById('title-loading');
 preloadModels(modelFiles, (done, total) => {
   loadingEl.textContent = `친구들 불러오는 중 ${done}/${total}`;
@@ -144,8 +146,8 @@ function makeZone(name, builder) {
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, hive: buildHive };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 2 }; // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
-for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 별이에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
-  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null, hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null });
+for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
+  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null, hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
   WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
 }
 const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
@@ -162,8 +164,16 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
   return c;
 }
 function spawnPickup(z, x, zz) {
-  const m = makeBlockMesh(0xffffff);
-  if (z.world.dark) { m.material.emissive = new THREE.Color(0x9fe8ff); m.material.emissiveIntensity = 0.7; m.userData.glow = true; } // 어두운 곳의 형광 블록
+  let m;
+  if (PICKUP_MODEL[z.name]) { // 태양·천왕성·꿈의우주: 흰 블록 대신 햇님·보석·황금 별 모델 (없으면 흰 블록)
+    m = new THREE.Group();
+    const draft = new THREE.Group(); draft.add(makeBlockMesh(0xffffff)); m.add(draft); m.userData.draft = draft;
+    swapDraftWithModel(m, PICKUP_MODEL[z.name], { scale: 1.1, onSwap: (mm) => { mm.position.y = -0.55; } }); // 높이 1.1m, 가운데가 원점 (블록처럼 떠서 돈다)
+    if (z.world.dark) m.userData.glow = true;
+  } else {
+    m = makeBlockMesh(0xffffff);
+    if (z.world.dark) { m.material.emissive = new THREE.Color(0x9fe8ff); m.material.emissiveIntensity = 0.7; m.userData.glow = true; } // 어두운 곳의 형광 블록
+  }
   m.position.set(x, z.terrain.height(x, zz) + 0.6, zz);
   m.userData.t = rand(0, 10);
   z.scene.add(m);
@@ -310,7 +320,7 @@ function revealShrine(z, silent = false) {
   }
   if (!silent) {
     showZoneBanner(`✨ ${shrineName(z.name)} 출현!`);
-    setTimeout(() => say(`숨어 있던 ${shrineName(z.name)}이(가) 솟아올랐어! ${mega ? `그곳을 지키는 ${mega.name}이(가) 나타났어. 메가볼을 준비해서 도전해 봐!` : ''}`, { sec: 10 }), 1800);
+    setTimeout(() => say(`숨어 있던 ${shrineName(z.name)}이(가) 솟아올랐어! ${mega ? `그곳을 지키는 ${mega.name}이(가) 나타났어. 메가큐브을 준비해서 도전해 봐!` : ''}`, { sec: 10 }), 1800);
   }
 }
 /** 지역을 만들고(없으면) 몬스터·보스·블록을 채운다. 저장에서 이미 잡은 몬스터는 빼 둔다. */
@@ -920,7 +930,7 @@ boardBtn.onclick = () => {
   if (npc.sails) { sailing ? startReturn() : boardBoat(); return; } // 루피: 배 타기 / 선착장 복귀
   const v = zone.world[npc.boards];
   if (!v) return;
-  if (v.kind === 'ufo') { if (v.to) startUfoRide(v.to); else openPlanetPopup(); return; } // 별이: 행성에서는 꿈의우주로 돌아가고, 우주에서는 행성 고르기 팝업
+  if (v.kind === 'ufo') { if (v.to) startUfoRide(v.to); else openPlanetPopup(); return; } // 손오공: 행성에서는 꿈의우주로 돌아가고, 우주에서는 행성 고르기 팝업
   startRide(v);
 };
 const warpBtn = document.getElementById('btn-warp');
@@ -931,10 +941,10 @@ warpBtn.onclick = () => {
   state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
   goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
 };
-// ----- UFO (별이): 행성 고르기 팝업과 비행접시 타기 -----
-// 꿈의우주 UFO 정거장의 별이에게 말을 걸면 "다른 행성으로 가기" 버튼이 켜지고, 누르면 화면 가운데 팝업에서
+// ----- UFO (손오공): 행성 고르기 팝업과 비행접시 타기 -----
+// 꿈의우주 UFO 정거장의 손오공에게 말을 걸면 "다른 행성으로 가기" 버튼이 켜지고, 누르면 화면 가운데 팝업에서
 // 태양·수성·금성·지구·화성·목성·토성·천왕성·해왕성·명왕성을 ◀ ▶ 로 넘겨 보며 그림·설명·사는 포켓몬을 읽고 오른쪽 "출발!" 로 간다.
-// 행성의 별이는 빨간 "꿈의우주로 돌아가기"와 보라 "다른 행성으로 가기" 버튼을 켜 준다.
+// 행성의 손오공은 빨간 "꿈의우주로 돌아가기"와 보라 "다른 행성으로 가기" 버튼을 켜 준다.
 const ufoBtn = document.getElementById('btn-ufo');
 let ufoNpc = null;
 /** 행성 이름 뒤에 붙는 '로/으로' (받침이 없거나 ㄹ 받침이면 '로': 지구로, 태양으로, 수성으로) */
@@ -1080,7 +1090,7 @@ function finishUfoRide() {
   warp.stop();
   ride = null; snapCam = true;
   const p = PLANET_BY_ZONE[zone.name];
-  say(p ? p.arrive : zone.name === 'space' ? '꿈의우주로 돌아왔어! 별이에게 말을 걸면 다른 행성으로 갈 수 있고, 착륙장의 로켓을 타면 푸른숲으로 돌아가.' : (RIDE_MSG[zone.name] || `${zone.label}에 도착!`), { sec: 9 });
+  say(p ? p.arrive : zone.name === 'space' ? '꿈의우주로 돌아왔어! 손오공에게 말을 걸면 다른 행성으로 갈 수 있고, 착륙장의 로켓을 타면 푸른숲으로 돌아가.' : (RIDE_MSG[zone.name] || `${zone.label}에 도착!`), { sec: 9 });
   sound.fanfare(); confetti.burst(60);
   autosave();
 }
@@ -1122,7 +1132,7 @@ function talkTo(npc) {
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
-  if (npc.ufo && zone.world.ufo) { // 별이: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
+  if (npc.ufo && zone.world.ufo) { // 손오공: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
     const v = zone.world.ufo;
     boardNpc = npc;
     boardBtn.textContent = v.to ? '🛸 꿈의우주로 돌아가기' : '🛸 다른 행성으로 가기';
@@ -1621,7 +1631,7 @@ function frame() {
     if (!moved && state.prompt <= 0) for (const v of vehiclesHere()) {
       if (!near(v.boardPoint, 3.6)) continue;
       state.prompt = 8;
-      say(v.kind === 'train' ? '기차역이야! 옆에 선 리리에게 말을 걸면 탈 수 있어.' : v.kind === 'ufo' ? 'UFO 정거장이야! 옆에 선 별이에게 말을 걸면 비행접시를 탈 수 있어.' : '로켓 발사장이야! 옆에 선 코리에게 말을 걸면 탈 수 있어.', { sec: 4 });
+      say(v.kind === 'train' ? '기차역이야! 옆에 선 리리에게 말을 걸면 탈 수 있어.' : v.kind === 'ufo' ? 'UFO 정거장이야! 옆에 선 손오공에게 말을 걸면 비행접시를 탈 수 있어.' : '로켓 발사장이야! 옆에 선 코리에게 말을 걸면 탈 수 있어.', { sec: 4 });
       break;
     }
 

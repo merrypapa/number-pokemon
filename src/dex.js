@@ -21,12 +21,12 @@ const MAP_REGIONS = [
   { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓 타기 버튼을 누른다. 돌아올 때도 착륙장의 로켓을 탄다.' },
   { id: 'deepsea', x: 16, y: 64, rx: 13, ry: 7.5, icon: '🫧', fill: '#0b3a5c', desc: '물의길 먼바다의 소용돌이 아래에 있는 깊은 바다. 다시마 숲과 산호, 가라앉은 배가 있고 저 위로 수면이 보인다. 물속이라 몸이 가벼워 아주 높이 뛴다. 남쪽 해구에 보스 갸라도스가 산다.', how: '물의길을 정복한 뒤, 루피의 배를 타고 서쪽 먼바다의 소용돌이로 들어간다. 북쪽 상승 해류를 타면 선착장으로 돌아온다.' },
 ];
-// 지도 아래 띠: 태양계 (꿈의우주 UFO 정거장에서 별이의 비행접시로 가는 태양·행성 10곳). x 는 가로 자리, r 은 그림 크기
+// 지도 아래 띠: 태양계 (꿈의우주 UFO 정거장에서 손오공의 비행접시로 가는 태양·행성 10곳). x 는 가로 자리, r 은 그림 크기
 const PLANET_LAYOUT = { sun: [4, 6], mercury: [15, 2.2], venus: [24, 3], earth: [34, 3.3], mars: [44, 2.7], jupiter: [57, 5.6], saturn: [72, 4.8], uranus: [85, 3.6], neptune: [94, 3.3], pluto: [101, 1.9] };
 const PLANET_Y = 98.5;
 for (const p of PLANETS) {
   const [x, r] = PLANET_LAYOUT[p.id];
-  MAP_REGIONS.push({ id: p.zone, planet: p, x, y: PLANET_Y, rx: r, ry: r, icon: p.emoji, fill: p.tint, desc: `${p.title}. ${p.desc} 💡 ${p.fact}`, how: `꿈의우주 서쪽 UFO 정거장의 별이에게 말을 걸고 "다른 행성으로 가기" 팝업에서 ${p.name}을 골라 출발! 행성의 UFO 정거장에서 꿈의우주나 다른 행성으로 갈 수 있다. 중력: ${p.gravityText}.` });
+  MAP_REGIONS.push({ id: p.zone, planet: p, x, y: PLANET_Y, rx: r, ry: r, icon: p.emoji, fill: p.tint, desc: `${p.title}. ${p.desc} 💡 ${p.fact}`, how: `꿈의우주 서쪽 UFO 정거장의 손오공에게 말을 걸고 "다른 행성으로 가기" 팝업에서 ${p.name}을 골라 출발! 행성의 UFO 정거장에서 꿈의우주나 다른 행성으로 갈 수 있다. 중력: ${p.gravityText}.` });
 }
 
 export class Dex {
@@ -125,7 +125,7 @@ export class Dex {
     let html = `<div class="shop-title">🔮 내 넘버볼</div><div class="ball-rows">`;
     for (const b of BALLS) {
       html += `<div class="ball-row" style="--ball:${b.css}">
-        <span class="ball-dot big"></span><span class="ball-name">${b.name}</span>
+        <span class="ball-dot big${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name}</span>
         <span class="ball-count">${stock[b.id] || 0}<small>개</small></span>
         <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>
       </div>`;
@@ -137,7 +137,7 @@ export class Dex {
       const grades = Object.keys(GRADES).map(Number).filter((g) => catchChance(g, b.tier) >= 90);
       const top = grades[grades.length - 1] || 1;
       const where = top >= 6 ? '모든 지역의 보스까지' : `${this.zoneName[GRADE_ZONE[top]] || ''} 포켓몬까지`;
-      html += `<div class="ball-info" style="--ball:${b.css}"><span class="ball-dot"></span><b>${b.name}</b><span>블록 ${b.cost}개 · ${gradeStars(top)} ${where} 잘 잡혀</span></div>`;
+      html += `<div class="ball-info" style="--ball:${b.css}"><span class="ball-dot${b.shape === 'cube' ? ' cube' : ''}"></span><b>${b.name}</b><span>블록 ${b.cost}개 · ${gradeStars(top)} ${where} 잘 잡혀</span></div>`;
     }
     html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가! (다시 만나면 잡힐 확률이 15%씩 올라)</div>`;
     this.ballsEl.innerHTML = html;
@@ -187,7 +187,7 @@ export class Dex {
       <rect x="-5" y="83" width="110" height="27" fill="url(#gBand)"/>
       ${Array.from({ length: 46 }, (_, i) => `<circle cx="${((i * 37) % 110) - 5}" cy="${84 + ((i * 53) % 22)}" r="${0.25 + (i % 3) * 0.15}" fill="#fff" opacity="${0.35 + (i % 4) * 0.15}"/>`).join('')}
       <path class="orbit" d="M-5,${PLANET_Y} H105"/>
-      <text class="band" x="50" y="85.4" text-anchor="middle">☀️ 태양계 · 꿈의우주 UFO 정거장에서 별이의 비행접시로 간다 🛸</text>
+      <text class="band" x="50" y="85.4" text-anchor="middle">☀️ 태양계 · 꿈의우주 UFO 정거장에서 손오공의 비행접시로 간다 🛸</text>
       <path class="ufo-route" d="M${R.space.x},${R.space.y + R.space.ry} Q${R.space.x + 8},${(R.space.y + 90) / 2} 70,88"/>
       <g class="ufo" transform="translate(${R.space.x + 6},${R.space.y + R.space.ry + 12})"><ellipse rx="3.2" ry="1" fill="#d7dde8" stroke="#20232e" stroke-width=".25"/><path d="M-1.4,-.6 A1.4,1.4 0 0 1 1.4,-.6 Z" fill="#9fe8ff" stroke="#20232e" stroke-width=".2"/><circle cx="-1.8" cy=".3" r=".3" fill="#ff5c8a"/><circle cx="0" cy=".5" r=".3" fill="#ffd93d"/><circle cx="1.8" cy=".3" r=".3" fill="#6cff8a"/></g>
       <!-- 기차 -->

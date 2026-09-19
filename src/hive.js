@@ -213,11 +213,11 @@ export function buildHive(scene) {
     bees.push(b);
   }
 
-  // 포탈 (푸른숲으로) + 양봉가 꿀이
+  // 포탈 (푸른숲으로) + 벌집을 돌보는 숲의 요정 도토로
   const P = HIVE.portal;
   const portal = makePortal(scene, P.x, hiveHeight(P.x, P.z), P.z, { color: 0x9be36d, label: '푸른숲으로 가는 포탈', labelBg: '#5a3a08', labelFg: '#ffe08a' });
   const keeperAt = { x: 6, z: 40 };
-  const keeper = makeNpc({ outfit: 'miner', name: '꿀이' });
+  const keeper = makeNpc({ outfit: 'miner', name: '도토로', model: '도토로.glb' });
   keeper.position.set(keeperAt.x, hiveHeight(keeperAt.x, keeperAt.z), keeperAt.z);
   keeper.rotation.y = -0.8;
   decor.add(keeper); block(keeperAt.x, keeperAt.z, 0.6);
@@ -254,8 +254,8 @@ export function buildHive(scene) {
 
   return {
     sun, animate, terrain: HIVE_TERRAIN, decor, portal: P, spawn: HIVE.spawn, dark: false, noShrine: true,
-    npcs: [{ x: keeperAt.x, z: keeperAt.z, mesh: keeper, name: '꿀이', warp: true, lines: (c) => [
-      `꿀벌집에 온 걸 환영해, ${c.name}! 난 양봉가 꿀이야. 여긴 푸른숲 큰 나무에 매달린 벌집 속이란다.`,
+    npcs: [{ x: keeperAt.x, z: keeperAt.z, mesh: keeper, name: '도토로', warp: true, lines: (c) => [
+      `꿀벌집에 온 걸 환영해, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 꿀벌들과 벌집을 돌보고 있단다.`,
       '바닥의 육각형 무늬가 벌집 칸이야. 벌들은 왜 육각형으로 집을 지을까? 빈틈없이 꽉 채우면서 밀랍은 가장 적게 쓰거든!',
       '주황빛 꿀 웅덩이는 끈적해서 들어갈 수 없어. 천장에서 떨어지는 꿀 방울도 구경해 봐.',
       `여기 포켓몬은 벌레·풀 속성이야. 공격 ${c.zone.atkRange}쯤 되면 편하게 이겨. 불 포켓몬이 벌레와 풀에 세!`,

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { colorForCount } from './palette.js';
 import { terrainHeight, waterLevel } from './world.js';
 import { effectiveness, effectWord, skillIcon } from './types.js';
-import { tickModel } from './models.js';
+import { tickModel, instantiate, hasModel } from './models.js';
 import { strongAgainst, weakTo } from './types.js';
 import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
 import { View3D } from './view3d.js';
@@ -15,7 +15,41 @@ import { View3D } from './view3d.js';
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const SKILL_KEYS = ['skill1', 'skill2', 'skill3', 'skill4'];
 
-function makeBall(color) {
+export const BALL_MODEL = '포켓몬볼.glb', CUBE_MODEL = '포켓몬큐브.glb';
+const BALL_R = 0.32; // 볼 반지름(m). 모델도 이 크기로 맞춘다 (가운데가 원점)
+/** 몬스터볼 모델: 텍스처의 빨간 부분(뚜껑)만 그 볼 색으로 칠한다 (브론즈·실버·골드). 재질은 복제해서 볼마다 따로 */
+function tintRed(root, color) {
+  const tint = new THREE.Color(color);
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = o.material.clone();
+    o.material.onBeforeCompile = (shader) => {
+      shader.uniforms.tintColor = { value: tint };
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 tintColor;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+  { float r = diffuseColor.r, g = diffuseColor.g, b = diffuseColor.b;
+    if (r > 0.12 && r > g * 2.2 && r > b * 2.2) diffuseColor.rgb = tintColor * (0.55 + r * 0.75); } // 빨간 뚜껑 → 볼 색 (밝기는 그대로)`);
+    };
+    o.material.needsUpdate = true;
+  });
+}
+export function makeBall(color, spec = null) {
+  const file = spec?.shape === 'cube' ? CUBE_MODEL : BALL_MODEL;
+  if (hasModel(file)) { // 진짜 모델: 높이 1m·발바닥 원점으로 맞춰져 있으니 볼 크기로 줄이고 가운데를 원점에
+    const g = new THREE.Group();
+    const m = instantiate(file);
+    const s = BALL_R * 2 * (spec?.shape === 'cube' ? 0.95 : 1);
+    m.scale.setScalar(s); m.position.y = -BALL_R;
+    m.userData.popT = 1; m.userData.targetScale = s;
+    if (spec?.shape !== 'cube') tintRed(m, color);
+    m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    g.add(m);
+    return g;
+  }
+  return makeDraftBall(color);
+}
+function makeDraftBall(color) {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 20, 16), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
   const band = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.07, 10, 32), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4 }));
@@ -369,7 +403,7 @@ export class Battle {
       const row = document.createElement('div');
       row.className = 'ball-row';
       row.style.setProperty('--ball', b.css);
-      row.innerHTML = `<span class="ball-dot big"></span><span class="ball-name">${b.name}</span><span class="ball-count">${stock[b.id] || 0}<small>개</small></span><span class="ball-pct-sm">${this.chanceFor(b.tier)}%</span><button ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>`;
+      row.innerHTML = `<span class="ball-dot big${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name}</span><span class="ball-count">${stock[b.id] || 0}<small>개</small></span><span class="ball-pct-sm">${this.chanceFor(b.tier)}%</span><button ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>`;
       row.querySelector('button').onclick = () => { if (this.onBuyBall?.(b.id)) { this.sound.pickup?.(); this.renderCraft(); } };
       this.craftRowsEl.appendChild(row);
     }
@@ -533,7 +567,7 @@ export class Battle {
       const btn = document.createElement('button');
       btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
-      btn.innerHTML = `<span class="ball-dot"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
+      btn.innerHTML = `<span class="ball-dot${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
       btn.title = `잡힐 확률 ${pct}%`;
       btn.disabled = !n;
       btn.onclick = () => this.throwBall(b.id);
@@ -546,7 +580,7 @@ export class Battle {
     const spec = BALL_BY_ID[ballId] || BALLS[0];
     if (this.onUseBall && !this.onUseBall(spec.id)) { this.msgEl.textContent = `${spec.name}이 없어! 도감의 넘버볼 탭에서 블록으로 바꿀 수 있어.`; return; }
     this.ballSpec = spec;
-    const ball = makeBall(spec.color);
+    const ball = makeBall(spec.color, spec);
     const from = this.throwFrom.clone();
     this.scene.add(ball);
     this.flying.push({ mesh: ball, from, to: this.targetPoint(), t: 0, dur: 0.7, kind: 'ball', arc: 1.6 });
