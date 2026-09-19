@@ -12,18 +12,43 @@ export const HIVE = {
   size: 160,
   spawn: { x: 0, z: 58 },
   portal: { x: 0, z: 64 },
-  tower: { x: 0, z: -46, r: 7, h: 12 },       // 벌집 탑: 꼭대기(높이 12)에 보스
-  stepRing: 12, stepR: 2.6, stepRise: 1.0, stepCount: 11, // 계단: 탑 둘레 반지름 12 의 고리를 따라 30° 마다, 남쪽(90°)에서 시작해 한 바퀴
+  tower: { x: 0, z: -46, r: 8, h: 12 },       // 벌집 탑: 꼭대기(높이 12)에 보스
   pools: [{ x: -34, z: 18, r: 6 }, { x: 31, z: -8, r: 7 }, { x: -36, z: -36, r: 6 }, { x: 39, z: 36, r: 5.5 }, { x: 0, z: 10, r: 5 }, { x: 47, z: -44, r: 5 }, { x: -49, z: 52, r: 5 }],
   bumps: [{ x: -26, z: -16, r: 15, h: 1.4 }, { x: 29, z: 21, r: 15, h: 1.2 }, { x: -47, z: 29, r: 12, h: 1.0 }, { x: 44, z: -26, r: 11, h: 1.1 }, { x: 13, z: 34, r: 12, h: 0.9 }],
   wallR: 72, // 이 바깥은 벌집 벽
 };
 const HEX = 2.6; // 바닥 육각 무늬 한 칸의 크기
-/** 계단 자리: 탑 둘레 고리를 남쪽(90°)에서 시작해 30° 씩 돌며 1m 씩 높아진다 (마지막 칸 다음이 탑 꼭대기) */
-export const HIVE_STEPS = Array.from({ length: HIVE.stepCount }, (_, i) => {
-  const a = Math.PI / 2 + (i * Math.PI) / 6;
-  return { x: HIVE.tower.x + Math.cos(a) * HIVE.stepRing, z: HIVE.tower.z + Math.sin(a) * HIVE.stepRing, h: HIVE.stepRise * (i + 1), r: HIVE.stepR, n: i + 1 };
-});
+/** 육각 계단(벌집 칸): 탑 둘레를 남쪽(90°)에서 시작해 30° 씩 감아 오르며 1m 씩 높아진다. 칸마다 크기·고리 반지름이 조금씩 달라 리듬이 생긴다.
+ *  칸 사이 틈은 1.2~2.4m 로 맞춘다(걷는 속도 점프로 건널 수 있는 거리). 마지막 칸은 탑에 바짝 붙어 꼭대기로 건너간다.
+ *  bonus 칸은 옆으로 살짝 벗어난 보너스 벌집: 위에 블록이 놓여 있다 (3·6·9번 칸 옆). */
+export const HIVE_STEPS = [];
+export const HIVE_BONUS = [];
+{
+  const T = HIVE.tower, N = 11;
+  const rings = [12.6, 13.4, 12.2, 13.8, 12.8, 12.0, 13.6, 12.4, 13.2, 12.6, 11.4]; // 마지막은 탑에 붙인다
+  const sizes = [2.8, 2.3, 3.2, 2.4, 2.9, 2.2, 3.0, 2.5, 2.7, 2.3, 3.1];
+  for (let i = 0; i < N; i++) {
+    const a = Math.PI / 2 + (i * Math.PI) / 6 + (i % 2 ? 0.05 : -0.05);
+    HIVE_STEPS.push({ x: T.x + Math.cos(a) * rings[i], z: T.z + Math.sin(a) * rings[i], h: i + 1, r: sizes[i], n: i + 1, a });
+  }
+  // 틈 맞추기: 이전 칸과의 틈이 2.4m 를 넘으면 이전 칸 쪽으로 당긴다 (육각 꼭짓점·변 방향 차이까지 넉넉히)
+  const ap = (r) => r * Math.sqrt(3) / 2;
+  for (let i = 1; i < N; i++) {
+    const a = HIVE_STEPS[i - 1], b = HIVE_STEPS[i];
+    for (let k = 0; k < 20; k++) {
+      const d = Math.hypot(b.x - a.x, b.z - a.z), gap = d - ap(a.r) - ap(b.r);
+      if (gap <= 2.4) break;
+      b.x += (a.x - b.x) * 0.06; b.z += (a.z - b.z) * 0.06;
+    }
+  }
+  // 보너스 칸: 3·6·9번 칸 바깥쪽에 0.5m 더 높게, 위에 블록
+  for (const n of [3, 6, 9]) {
+    const st = HIVE_STEPS[n - 1];
+    const dx = st.x - T.x, dz = st.z - T.z, d = Math.hypot(dx, dz);
+    const R = 2.2, ring = d + ap(st.r) + ap(R) + 1.6;
+    HIVE_BONUS.push({ x: T.x + (dx / d) * ring, z: T.z + (dz / d) * ring, h: st.h + 0.5, r: R, n: `+${n}` });
+  }
+}
 /** 점이 육각형(CylinderGeometry 6각과 같은 방향: 꼭짓점이 ±z) 안에 있나. R 은 꼭짓점까지의 거리 */
 function inHex(dx, dz, R) {
   const d = Math.max(Math.abs(dx), Math.abs(dx * 0.5 + dz * Math.sqrt(3) / 2), Math.abs(dx * 0.5 - dz * Math.sqrt(3) / 2));
@@ -43,6 +68,7 @@ function hiveHeight(x, z) {
   const T = HIVE.tower;
   if (inHex(x - T.x, z - T.z, T.r)) return Math.max(y, T.h);
   for (const s of HIVE_STEPS) if (inHex(x - s.x, z - s.z, s.r)) return Math.max(y, s.h);
+  for (const s of HIVE_BONUS) if (inHex(x - s.x, z - s.z, s.r)) return Math.max(y, s.h);
   return y;
 }
 function hiveBlocked(x, z) {
@@ -169,7 +195,7 @@ export function buildHive(scene) {
 
   // 밀랍 기둥(장애물)과 꿀단지
   const pillarItems = [];
-  const clear = (x, z) => Math.hypot(x - HIVE.spawn.x, z - HIVE.spawn.z) < 9 || Math.hypot(x - HIVE.tower.x, z - HIVE.tower.z) < HIVE.stepRing + HIVE.stepR + 4 || HIVE.pools.some((p) => Math.hypot(x - p.x, z - p.z) < p.r + 2.5);
+  const clear = (x, z) => Math.hypot(x - HIVE.spawn.x, z - HIVE.spawn.z) < 9 || Math.hypot(x - HIVE.tower.x, z - HIVE.tower.z) < 22 || HIVE.pools.some((p) => Math.hypot(x - p.x, z - p.z) < p.r + 2.5);
   for (let i = 0; i < 44; i++) {
     const a = rand(0, Math.PI * 2), r = rand(6, HIVE.wallR - 6);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -214,7 +240,16 @@ export function buildHive(scene) {
   throneLight.position.set(T.x, ty + 5, T.z);
   scene.add(throneLight);
   // 육각 계단: 탑 둘레를 나선으로 감아 오르는 벌집 기둥 열한 개 (1m 씩 높아진다). 위에는 번호표
-  const stepItems = [], capItems = [];
+  const stepItems = [], capItems = [], bonusItems = [], bonusCaps = [];
+  for (const st of HIVE_BONUS) {
+    bonusItems.push({ x: st.x, y: st.h / 2 - 0.3, z: st.z, sx: st.r, sy: st.h + 0.6, sz: st.r });
+    bonusCaps.push({ x: st.x, y: st.h + 0.06, z: st.z, sx: st.r * 0.92, sy: 0.12, sz: st.r * 0.92 });
+    const tag = makePillSprite('🍯', { bg: '#ffb020', fg: '#5a3a08', border: '#ffe08a' }, 0.7);
+    tag.position.set(st.x, st.h + 1.6, st.z);
+    decor.add(tag);
+  }
+  decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1.06, 1, 6), new THREE.MeshStandardMaterial({ color: 0xffc23a, roughness: 0.6 }), bonusItems, { shadow: true }));
+  decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1, 1, 6), new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xffb300, emissiveIntensity: 0.35 }), bonusCaps));
   for (const st of HIVE_STEPS) {
     stepItems.push({ x: st.x, y: st.h / 2 - 0.3, z: st.z, sx: st.r, sy: st.h + 0.6, sz: st.r });
     capItems.push({ x: st.x, y: st.h + 0.06, z: st.z, sx: st.r * 0.92, sy: 0.12, sz: st.r * 0.92 });
@@ -227,7 +262,7 @@ export function buildHive(scene) {
   // 계단 시작 안내판 (첫 칸 앞)
   const s0 = HIVE_STEPS[0];
   const signAt = { x: s0.x + 3.5, z: s0.z + 4.5 };
-  const stepSign = makePillSprite('⬆ 육각 계단을 뛰어서 올라가면 꼭대기에 보스!', { bg: '#ffe08a', fg: '#5a3a08', border: '#d98c1a' }, 0.75);
+  const stepSign = makePillSprite('⬆ 육각 계단을 뛰어서 올라가면 꼭대기에 보스! 🍯 칸에는 블록', { bg: '#ffe08a', fg: '#5a3a08', border: '#d98c1a' }, 0.75);
   stepSign.position.set(signAt.x, hiveFloor(signAt.x, signAt.z) + 2.2, signAt.z);
   decor.add(stepSign);
 
@@ -311,6 +346,6 @@ export function buildHive(scene) {
     ] }],
     wildSpots: [[-24, 40], [24, 44], [-46, 4], [46, 10], [-20, -20], [20, -24], [-54, -18], [54, -20], [-30, -56], [30, -58], [0, -18], [-58, 34], [58, 52], [10, 28]],
     bossSpot: { x: T.x, z: T.z }, // 탑 꼭대기 (hiveHeight 가 12)
-    pickupSpots: [[-14, 32], [16, 24], [-40, -10], [40, -40], [0, -28], [-26, 58], [28, 58], [-60, 14], [60, 26], [0, 40], [-10, -48], [48, -10]],
+    pickupSpots: [...HIVE_BONUS.map((b) => [b.x, b.z]), [-14, 32], [16, 24], [-40, -10], [40, -40], [0, -28], [-26, 58], [28, 58], [-60, 14], [60, 26], [0, 40], [-10, -48], [48, -10]], // 앞 셋은 보너스 벌집 위
   };
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { buildDraftMesh } from './creatures.js';
+import { buildDraftMesh , dexSizeFactor } from './creatures.js';
 
 // 작은 360° 3D 화면: 포켓몬 한 마리를 캔버스에 그려 저절로 돌리고, 끌면 직접 돌릴 수 있다 (도감 카드·대결 교체 팝업에서 쓴다)
 export class View3D {
@@ -29,15 +29,16 @@ export class View3D {
     this.spin = 0.8; this.angle = -0.4; this.drag = null;
     // 크기 맞추기는 회전을 0으로 되돌린 상태에서 잰다 (돌아가는 도중에 재면 상자 크기가 각도마다 달라져 화면이 커졌다 작아졌다 한다)
     let fitted = null;
+    const f = dexSizeFactor(sp); // 메가·보스는 같은 틀에서 더 크게
     const fit = () => {
-      const rot = mesh.rotation.y; mesh.rotation.y = 0; mesh.updateMatrixWorld(true);
+      const rot = mesh.rotation.y; mesh.rotation.y = 0; mesh.scale.setScalar(1); mesh.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(mesh);
-      mesh.rotation.y = rot;
+      mesh.rotation.y = rot; mesh.scale.setScalar(f);
       const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
       const r = Math.max(Math.hypot(size.x, size.z), size.y, 0.8); // 어느 각도로 돌아도 들어가는 반지름
       const dist = r / Math.tan(THREE.MathUtils.degToRad(15)) * 0.6 + r * 0.6;
-      this.camera.position.set(0, center.y + r * 0.25, dist);
-      this.camera.lookAt(0, center.y, 0);
+      this.camera.position.set(0, center.y * f + r * 0.25, dist);
+      this.camera.lookAt(0, center.y * f, 0);
       fitted = mesh.userData.model || null;
     };
     fit();

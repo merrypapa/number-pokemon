@@ -71,6 +71,9 @@ export function buildDraftMesh(c, opts = {}) {
   return g;
 }
 
+/** 도감 그림·360° 화면에서의 상대 크기: 메가급은 1.4배, 보스급은 1.15배 (같은 틀에서도 메가가 크게 보이게) */
+export function dexSizeFactor(sp) { return sp.mega || (sp.grade || 1) >= 7 ? 1.4 : sp.boss ? 1.15 : 1; }
+
 export class Creature {
   constructor(scene, data, home) {
     this.data = data;

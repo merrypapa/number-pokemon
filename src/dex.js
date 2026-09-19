@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
-import { buildDraftMesh } from './creatures.js';
+import { buildDraftMesh , dexSizeFactor } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
@@ -89,8 +89,9 @@ export class Dex {
     const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
     const r = Math.max(size.x, size.y, size.z, 0.8);
     const dist = r / Math.tan(THREE.MathUtils.degToRad(15)) * 0.6 + r * 0.6;
-    this.camera.position.set(0, center.y + r * 0.25, dist);
-    this.camera.lookAt(0, center.y, 0);
+    const f = dexSizeFactor(sp); mesh.scale.setScalar(f); // 메가·보스는 같은 틀에서 더 크게
+    this.camera.position.set(0, center.y * f + r * 0.25, dist);
+    this.camera.lookAt(0, center.y * f, 0);
     mesh.rotation.y = -0.4;
     this.renderer.render(this.scene, this.camera);
     const color = this.renderer.domElement.toDataURL();
