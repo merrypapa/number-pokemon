@@ -1439,11 +1439,14 @@ function doSave(manual = false) {
   if (!zone || !player || battle.active || ride || switching) return false;
   const data = buildSaveData();
   const ok = saveGame(data);
+  const toast = (text, sec) => { saveToastEl.textContent = text; saveToastEl.classList.remove('hidden'); saveToastTimer = sec; };
   if (ok && cloud.user && (manual || Date.now() - cloudSavedAt > 60000)) { // 클라우드: 수동 저장은 바로, 자동 저장은 1분에 한 번
     cloudSavedAt = Date.now();
-    cloud.saveGame(data, cloudSummary(data)).then((sent) => { if (sent && manual) { saveToastEl.textContent = `☁️ 클라우드에도 저장했어! (${state.name})`; } }).catch((e) => { console.warn('[cloud] 저장 실패', e); if (manual) { saveToastEl.textContent = `저장은 됐지만 클라우드 저장은 실패했어: ${e.message}`; saveToastTimer = 4; } });
-  }
-  if (manual) { saveToastEl.textContent = ok ? `💾 저장했어! (${state.name})` : '저장할 수 없어요 (브라우저 저장 공간)'; saveToastEl.classList.remove('hidden'); saveToastTimer = 2.2; sound.click(); }
+    // 계정으로 하는 중이면 클라우드까지 올라가야 "저장 완료". 그동안은 "저장하는 중…"을 보여 주고, 끝나면 완료(또는 실패)로 바꾼다
+    if (manual) toast('☁️ 저장하는 중…', 30);
+    cloud.saveGame(data, cloudSummary(data)).then(() => { if (manual) toast(`✅ 저장 완료! (${state.name})`, 2.2); }).catch((e) => { console.warn('[cloud] 저장 실패', e); if (manual) toast(`이 기기에는 저장됐지만 클라우드 저장은 실패했어: ${e.message}`, 5); });
+  } else if (manual) toast(ok ? `💾 저장했어! (${state.name})` : '저장할 수 없어요 (브라우저 저장 공간)', 2.2);
+  if (manual) sound.click();
   return ok;
 }
 function autosave() { if (zone && player) { doSave(false); state.autosave = 90; } }
@@ -1464,7 +1467,7 @@ function acctShowChoice() { acctChoice.classList.remove('hidden'); acctForm.clas
 function acctShowForm(mode) {
   acctMode = mode; acctChoice.classList.add('hidden'); acctForm.classList.remove('hidden'); acctError('');
   document.getElementById('acct-form-title').textContent = mode === 'signup' ? '새 계정: 이름과 숫자 6자리 비밀번호를 정해요 (잊지 않게 적어 두세요!)' : '기존 계정의 이름과 비밀번호를 적어요';
-  document.getElementById('btn-acct-go').textContent = mode === 'signup' ? '계정 만들고 시작 ▶' : '로그인해서 이어하기 ▶';
+  document.getElementById('btn-acct-go').textContent = mode === 'signup' ? '만들기' : '로그인';
   acctPin.value = ''; setTimeout(() => acctName.focus(), 50);
 }
 document.getElementById('btn-acct-choose-login').onclick = () => acctShowForm('login');
