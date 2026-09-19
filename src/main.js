@@ -1504,7 +1504,7 @@ document.getElementById('btn-acct-logout').onclick = async () => { await cloud.s
 async function renderFriends() {
   const box = dex.friendsEl;
   if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = () => acctBtn.onclick(); return; }
-  box.innerHTML = `<div class="friend-add"><div class="friend-me" style="flex:1 1 auto">☁️ 나: ${cloud.user.name}</div><button id="btn-friend-logout" class="save-del" style="flex:0 0 auto">로그아웃</button></div>
+  box.innerHTML = `<div class="friend-add"><div class="friend-me" style="flex:1 1 auto">☁️ 나: ${cloud.user.name}</div><button id="btn-friend-logout" class="friend-logout">로그아웃</button></div>
     <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 추가</button></div>
     <div class="friend-note">친구가 만든 계정 이름을 적으면 친구의 도감·정복 상황이 보여요.</div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
   box.querySelector('#btn-friend-logout').onclick = () => document.getElementById('btn-acct-logout').onclick();
