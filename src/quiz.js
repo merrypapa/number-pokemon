@@ -6,14 +6,15 @@
 //  - 불의산: 곱하기        "파이리가 3마리씩 4무리. 모두 몇 마리? (3×4)"
 //  - 꿈의우주: 세제곱      "케이시가 3마리씩 3줄, 그런 층이 3층. 모두 몇 마리? (3×3×3)"
 //  - 행성(p_*): 숫자 문제 대신 그 행성 상식 퀴즈 (src/planetquiz.js, 어린이 눈높이 세 보기)
-import { makePlanetProblem } from './planetquiz.js';
+//  - 꿀벌집: 꿀벌·꿀·벌집 상식 퀴즈 (같은 파일의 HIVE_QUIZ)
+import { makePlanetProblem, TRIVIA_ZONE } from './planetquiz.js';
 import { PLANET_BY_ZONE, planetSvg } from './planets.js';
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const TIER_NAME = { 1: '세기', 2: '더하기', 3: '빼기', 4: '10 만들기', 5: '세 무리 더하기', 6: '곱하기', 7: '세제곱', 8: '나누기' };
 const ZONE_KIND = { forest: 'add', cave: 'ten', sea: 'sub', volcano: 'mul', space: 'cube' };
 
 export function makeProblem(number, species, zone = 'forest') {
-  if (PLANET_BY_ZONE[zone]) return makePlanetProblem(zone); // 행성에서는 행성 상식 퀴즈
+  if (PLANET_BY_ZONE[zone] || TRIVIA_ZONE[zone]) return makePlanetProblem(zone); // 행성·꿀벌집에서는 상식 퀴즈
   const pool = [...species];
   const pick = () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
   const A = pick(), B = pick(), C = pick();
@@ -86,7 +87,7 @@ export class Quiz {
       this.number = number;
       this.done = false; // 답을 고른 뒤에는 더 못 고른다 (정답을 보여 주는 동안)
       this.problem = makeProblem(number, this.species, zone);
-      this.planet = PLANET_BY_ZONE[zone] || null;
+      this.planet = PLANET_BY_ZONE[zone] || TRIVIA_ZONE[zone] || null; // 상식 퀴즈의 제목(이모지·이름)과 그림
       this.render(name);
       this.el.classList.remove('hidden');
       this.open = true;
@@ -103,7 +104,7 @@ export class Quiz {
     if (p.trivia) { // 행성 상식: 그림 대신 행성 그림 + 글자 보기 셋
       const art = document.createElement('div');
       art.className = 'quiz-planet';
-      art.innerHTML = planetSvg(this.planet);
+      art.innerHTML = this.planet.art || planetSvg(this.planet);
       this.iconsEl.appendChild(art);
       this.choicesEl.innerHTML = '';
       for (const c of p.choices) {
