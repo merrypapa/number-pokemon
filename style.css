@@ -492,6 +492,27 @@ body.intro #btn-save { display: none !important; }
 #dex-tabs button[hidden] { display: none; }
 /* 관리자 탭: 지역 바로 가기 버튼들 (관리자 모드에서만 탭이 보인다) */
 #dex-admin { padding: 12px; overflow-y: auto; }
+/* 계정 모달 · 친구 탭 */
+#account-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#account-modal.hidden { display: none; }
+#acct-form { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+#acct-form input { font: inherit; font-size: 20px; font-weight: 800; padding: 12px 14px; border-radius: 14px; border: 3px solid #ffd93d; text-align: center; }
+#acct-error { color: #e8453c; font-weight: 800; font-size: 14px; }
+#acct-error.hidden { display: none; }
+.acct-me { font-size: 18px; font-weight: 800; color: #333; margin-top: 12px; }
+#btn-account[hidden] { display: none; }
+#dex-friends { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#dex-friends.hidden { display: none; }
+#dex-tabs button[data-tab="friends"][hidden] { display: none; }
+.friend-add { display: flex; gap: 8px; }
+.friend-add input { flex: 1; min-width: 0; font: inherit; font-size: 16px; font-weight: 800; padding: 10px 12px; border-radius: 12px; border: 3px solid #ffd93d; }
+.friend-add button { font: inherit; font-size: 15px; font-weight: 900; padding: 10px 14px; border-radius: 12px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; cursor: pointer; white-space: nowrap; }
+.friend-row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 8px 10px; border: 3px solid #ffd93d; text-align: left; }
+.friend-row img { width: 56px; height: 56px; border-radius: 12px; object-fit: contain; background: #fffbe6; }
+.friend-row .friend-noimg { width: 56px; height: 56px; border-radius: 12px; background: #eee; }
+.friend-row .save-del { font-size: 14px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #eee; color: #888; cursor: pointer; }
+.friend-note { font-size: 13px; color: #777; font-weight: 700; }
+.friend-me { font-size: 14px; font-weight: 900; color: #333; }
 #dex-admin .admin-title { font-weight: 900; color: #333; margin: 6px 0 8px; }
 #dex-admin .admin-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 #dex-admin button { font: inherit; font-size: 14px; font-weight: 800; padding: 8px 12px; border: 0; border-radius: 10px; background: #ffd93d; color: #333; cursor: pointer; box-shadow: 0 2px 0 #d4b02a; }

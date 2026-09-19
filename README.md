@@ -79,6 +79,7 @@ python3 -m http.server 8000
 | `src/npc.js` | 지역 안내 NPC 드래프트 캐릭터(숲지기·광부·화산학자·선장·우주비행사·오박사·UFO 조종사) |
 | `src/types.js` | 속성 상성표, 진화 고향 지역 |
 | `src/balls.js` | 넘버볼 등급·가격·잡힐 확률표 |
+| `src/cloud.js`, `src/cloud-config.js`, `firestore.rules` | 클라우드 계정(Firebase): 이름+비밀번호 로그인, 클라우드 저장, 친구 목록. 설정이 비면 꺼진다 |
 | `tools/shrink_glb.py` | .glb 텍스처 줄이기(로딩 속도) |
 | `src/palette.js` | 숫자별 색 (number-mario 와 동일 팔레트) |
 | `src/numberblocks.js` | 숫자블록 친구(숫자별 색·배치·얼굴·팔다리), 파트너 줄지어 따라오기 |
@@ -87,6 +88,23 @@ python3 -m http.server 8000
 | `src/effects.js` | 색종이, 별/조각 파티클, 합성 효과음 |
 | `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 + GLTFLoader/SkeletonUtils 애드온 |
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
+
+## 클라우드 계정 (여러 기기에서 이어 하기 · 친구 도감 보기)
+
+이름 + 숫자 4자리 비밀번호로 계정을 만들면 진행이 클라우드에 저장돼 어느 기기에서든 이어 할 수 있고, 도감의 **친구** 탭에서 친구 이름을 추가해 친구의 도감·정복·대표 포켓몬을 볼 수 있다. 실시간으로 같은 맵에서 만나는 건 아직 아니다(3단계).
+
+- 코드: `src/cloud.js`(Firebase Authentication 이메일/비밀번호 + Firestore, 이름은 `<이름>@np-kids.app` 가짜 이메일로 바뀐다), 설정: `src/cloud-config.js`, 규칙: `firestore.rules`.
+- 설정이 비어 있으면 ☁️ 계정 버튼이 안 보이고 게임은 지금처럼 이 기기 저장만 쓴다. 주소에 `?mockcloud` 를 붙이면 브라우저 안에서만 도는 가짜 백엔드로 화면을 시험할 수 있다.
+- 저장: 도감의 💾 저장은 이 기기 + 클라우드에 바로, 90초 자동 저장은 1분에 한 번 클라우드에 올린다. 로그인하면 클라우드 저장이 이 기기 저장보다 새것일 때 가져오고(이어서하기 목록에 나온다), 클라우드에 없고 이 기기에만 있으면 올린다.
+- Firestore: `profiles/{uid}`(친구에게 보이는 요약: 이름·잡은 수·도감 종 수·정복·블록·대표·지역), `saves/{uid}`(진행 전체, JSON), `friends/{uid}/list/{friendUid}`.
+
+**켜는 방법 (한 번만, 10분)**
+1. https://console.firebase.google.com 에서 프로젝트를 만든다(구글 애널리틱스는 꺼도 된다).
+2. 프로젝트 설정 → 일반 → "앱 추가" → 웹(</>) → 앱 이름 아무거나 → **firebaseConfig** 값을 복사해 `src/cloud-config.js` 의 `firebase:` 에 붙여넣는다(공개용 키라 저장소에 올려도 된다).
+3. 빌드 → Authentication → 시작하기 → 로그인 방법에서 **이메일/비밀번호** 를 사용 설정.
+4. Authentication → 설정 → **승인된 도메인** 에 게임 주소의 도메인(예: `merrypapa.github.io`)을 추가.
+5. 빌드 → Firestore Database → 데이터베이스 만들기(프로덕션 모드, 위치는 asia-northeast3 서울) → **규칙** 탭에 `firestore.rules` 내용을 붙여넣고 게시.
+6. 커밋·푸시하면 제목 화면에 ☁️ 계정 버튼이 나타난다. 계정을 만들고, 친구는 서로 이름을 알려 주고 도감 → 친구 탭에서 추가한다.
 
 ## 문서 목차
 

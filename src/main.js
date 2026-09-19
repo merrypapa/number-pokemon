@@ -28,6 +28,7 @@ import { Dex } from './dex.js';
 import { Party } from './party.js';
 import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
+import { cloud, validName, validPin } from './cloud.js';
 import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -1426,14 +1427,114 @@ function buildSaveData() {
 }
 const saveToastEl = document.getElementById('save-toast');
 let saveToastTimer = 0;
+let cloudSavedAt = 0;
 function doSave(manual = false) {
   if (!zone || !player || battle.active || ride || switching) return false;
-  const ok = saveGame(buildSaveData());
+  const data = buildSaveData();
+  const ok = saveGame(data);
+  if (ok && cloud.user && (manual || Date.now() - cloudSavedAt > 60000)) { // 클라우드: 수동 저장은 바로, 자동 저장은 1분에 한 번
+    cloudSavedAt = Date.now();
+    cloud.saveGame(data, cloudSummary(data)).then((sent) => { if (sent && manual) { saveToastEl.textContent = `☁️ 클라우드에도 저장했어! (${state.name})`; } }).catch((e) => { console.warn('[cloud] 저장 실패', e); if (manual) { saveToastEl.textContent = `저장은 됐지만 클라우드 저장은 실패했어: ${e.message}`; saveToastTimer = 4; } });
+  }
   if (manual) { saveToastEl.textContent = ok ? `💾 저장했어! (${state.name})` : '저장할 수 없어요 (브라우저 저장 공간)'; saveToastEl.classList.remove('hidden'); saveToastTimer = 2.2; sound.click(); }
   return ok;
 }
 function autosave() { if (zone && player) { doSave(false); state.autosave = 90; } }
 document.getElementById('dex-save').onclick = () => { if (doSave(true)) sound.click(); }; // 저장은 도감 안에서
+
+// ---------- 클라우드 계정: 이름 + 4자리 비밀번호. 진행을 클라우드에 올려 어느 기기에서든 이어 하고, 친구의 도감을 본다 (src/cloud.js) ----------
+/** 친구에게 보이는 내 요약 (profiles 문서) */
+function cloudSummary(d) {
+  const leader = d.party?.[d.leader] ? speciesById[d.party[d.leader].speciesId] : null;
+  return { name: d.name, caught: d.caught || 0, dexCount: Object.keys(d.dex || {}).filter((id) => d.dex[id] > 0 && speciesById[id]).length, conquered: Object.keys(d.conquered || {}).length, blocks: d.blocks || 0, leaderId: leader?.id || null, leaderName: leader?.name || null, zone: d.zone || 'forest' };
+}
+const acctModal = document.getElementById('account-modal'), acctBtn = document.getElementById('btn-account');
+const acctName = document.getElementById('acct-name'), acctPin = document.getElementById('acct-pin'), acctErr = document.getElementById('acct-error');
+const acctForm = document.getElementById('acct-form'), acctSigned = document.getElementById('acct-signed');
+const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]');
+function acctError(msg) { acctErr.textContent = msg || ''; acctErr.classList.toggle('hidden', !msg); }
+function refreshAccountUi() {
+  const u = cloud.user;
+  acctBtn.hidden = !cloud.enabled;
+  acctBtn.textContent = u ? `☁️ ${u.name}` : '☁️ 계정';
+  acctForm.classList.toggle('hidden', !!u); acctSigned.classList.toggle('hidden', !u);
+  if (u) document.getElementById('acct-me-name').textContent = u.name;
+  friendsTabBtn.hidden = !cloud.enabled; // 친구 탭은 클라우드가 켜져 있으면 늘 보인다 (로그인 전에는 로그인 버튼)
+  if (dex.open && dex.tab === 'friends') renderFriends();
+}
+cloud.onUser = () => { refreshAccountUi(); };
+acctBtn.onclick = () => { acctError(''); acctModal.classList.remove('hidden'); if (!cloud.user) setTimeout(() => acctName.focus(), 50); };
+document.getElementById('btn-acct-close').onclick = () => acctModal.classList.add('hidden');
+for (const el of [acctName, acctPin]) { el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-acct-login').click(); e.stopPropagation(); }); el.addEventListener('keyup', (e) => e.stopPropagation()); }
+function acctInputs() {
+  const name = acctName.value.trim(), pin = acctPin.value.trim();
+  if (!validName(name)) { acctError('이름은 2~8글자, 띄어쓰기 없이 적어 주세요.'); return null; }
+  if (!validPin(pin)) { acctError('비밀번호는 숫자 4자리예요.'); return null; }
+  return { name, pin };
+}
+let acctBusy = false;
+/** 로그인 뒤: 클라우드 저장이 있으면 이 기기로 가져와(더 새것일 때) 이어서하기 목록에 보여 준다 */
+async function afterSignIn(u, fresh) {
+  acctModal.classList.add('hidden');
+  if (fresh) { // 새 계정: 계정 이름으로 새 모험을 시작한다
+    titleEl.classList.add('hidden'); nameInput.value = u.name; newgameEl.classList.remove('hidden');
+    say(`☁️ ${u.name} 계정을 만들었어! 이 이름으로 모험을 시작하면 클라우드에 저장돼.`, { sec: 6 });
+    return;
+  }
+  try {
+    const remote = await cloud.loadGame();
+    const local = loadSave(u.name);
+    if (remote && (!local || (remote.savedAt || 0) > (local.savedAt || 0))) { saveGame(remote); say(`☁️ ${u.name}의 클라우드 저장을 가져왔어! 이어서하기에서 골라 봐.`, { sec: 6 }); }
+    else if (!remote && local) { cloud.saveGame(local, cloudSummary(local)).catch(() => {}); say(`☁️ ${u.name}로 로그인했어! 이 기기의 저장을 클라우드에 올렸어.`, { sec: 6 }); }
+    else say(`☁️ ${u.name}로 로그인했어!`, { sec: 4 });
+  } catch (e) { say(`☁️ 로그인했지만 클라우드 저장을 못 읽었어: ${e.message}`, { sec: 6 }); }
+  document.getElementById('btn-continue').disabled = listSaves().length === 0;
+  if (!zone && listSaves().length) { titleEl.classList.add('hidden'); renderContinue(); continueEl.classList.remove('hidden'); }
+}
+document.getElementById('btn-acct-login').onclick = async () => {
+  const v = acctInputs(); if (!v || acctBusy) return; acctBusy = true; acctError('');
+  try { const u = await cloud.signIn(v.name, v.pin); acctPin.value = ''; await afterSignIn(u, false); } catch (e) { acctError(e.message); } finally { acctBusy = false; }
+};
+document.getElementById('btn-acct-signup').onclick = async () => {
+  const v = acctInputs(); if (!v || acctBusy) return; acctBusy = true; acctError('');
+  try { const u = await cloud.signUp(v.name, v.pin); acctPin.value = ''; await afterSignIn(u, true); } catch (e) { acctError(e.message); } finally { acctBusy = false; }
+};
+document.getElementById('btn-acct-logout').onclick = async () => { await cloud.signOut(); acctModal.classList.add('hidden'); say('☁️ 로그아웃했어. 저장은 이 기기에 그대로 있어.', { sec: 4 }); };
+// 친구 탭
+async function renderFriends() {
+  const box = dex.friendsEl;
+  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = () => acctBtn.onclick(); return; }
+  box.innerHTML = `<div class="friend-add"><div class="friend-me" style="flex:1">☁️ 나: ${cloud.user.name}</div><button id="btn-friend-logout" class="save-del">로그아웃</button></div>
+    <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 추가</button></div>
+    <div class="friend-note">친구가 만든 계정 이름을 적으면 친구의 도감·정복 상황이 보여요.</div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
+  box.querySelector('#btn-friend-logout').onclick = () => document.getElementById('btn-acct-logout').onclick();
+  const input = box.querySelector('#friend-name');
+  input.addEventListener('keydown', (e) => e.stopPropagation()); input.addEventListener('keyup', (e) => e.stopPropagation());
+  box.querySelector('#btn-friend-add').onclick = async () => {
+    const n = input.value.trim(); if (!n) return;
+    try { const p = await cloud.addFriend(n); input.value = ''; say(`👫 ${p.name}을(를) 친구로 추가했어!`, { sec: 4 }); renderFriendList(); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
+  };
+  renderFriendList();
+}
+async function renderFriendList() {
+  const list = dex.friendsEl.querySelector('#friend-list'); if (!list) return;
+  let friends = [];
+  try { friends = await cloud.listFriends(); } catch (e) { list.innerHTML = `<div class="friend-note">친구 목록을 못 읽었어: ${e.message}</div>`; return; }
+  if (!friends.length) { list.innerHTML = '<div class="friend-note">아직 친구가 없어요. 위에 친구 이름을 적어 추가해 봐요!</div>'; return; }
+  list.innerHTML = '';
+  for (const f of friends.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))) {
+    const sp = f.leaderId ? speciesById[f.leaderId] : null, t = sp ? dex.thumbs(sp) : null;
+    const row = document.createElement('div'); row.className = 'friend-row';
+    row.innerHTML = `${t ? `<img src="${t.color}" alt="">` : '<div class="friend-noimg"></div>'}
+      <div class="save-info"><div class="save-name">${f.name}</div>
+      <div class="save-sub">${ZONE_INFO[f.zone]?.name || ''} · 친구 ${f.caught || 0}마리 · 도감 ${f.dexCount || 0}종 · 정복 ${f.conquered || 0}/${ZONE_COUNT} · 블록 ${f.blocks || 0}개${sp ? ` · 대표 ${sp.name}` : ''}${f.updatedAt ? ` · ${formatWhen(f.updatedAt)}` : ''}</div></div>
+      <button class="save-del" title="친구 삭제">✕</button>`;
+    row.querySelector('.save-del').onclick = async () => { if (confirm(`${f.name}을(를) 친구 목록에서 뺄까요?`)) { await cloud.removeFriend(f.uid); renderFriendList(); } };
+    list.appendChild(row);
+  }
+}
+dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); };
+cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
 // ---------- 저장 코드: 다른 기기로 옮기기 (텍스트로 복사해 두었다가 붙여넣기) ----------
 const CODE_PREFIX = 'NPK1.';
@@ -1521,7 +1622,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------

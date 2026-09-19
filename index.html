@@ -32,7 +32,7 @@
     <div id="dex-card">
       <div id="dex-head">
         <div id="dex-title">내 포켓몬 · 도감</div>
-        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="admin" hidden>관리자</button></div>
+        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="friends" hidden>친구</button><button data-tab="admin" hidden>관리자</button></div>
         <div id="dex-blocks">블록 0개</div>
         <div id="dex-count"></div>
         <button id="dex-save" title="지금까지 한 것 저장">💾 저장</button><button id="btn-dex-close" aria-label="닫기">✕</button>
@@ -45,6 +45,7 @@
       </div>
       <div id="dex-balls" class="hidden"></div>
       <div id="dex-admin" class="hidden"></div>
+      <div id="dex-friends" class="hidden"></div>
       <div id="dex-mapview" class="hidden">
         <div id="dex-map"></div>
         <div id="dex-map-nav"><button id="map-prev">◀ 이전 지역</button><span id="map-pos"></span><button id="map-next">다음 지역 ▶</button></div>
@@ -60,6 +61,23 @@
 
   <canvas id="fx"></canvas>
   <div id="fade"></div>
+  <div id="account-modal" class="hidden">
+    <div class="menu-card">
+      <div class="menu-title">☁️ 클라우드 계정</div>
+      <div class="menu-sub" id="acct-sub">계정을 만들면 어느 기기에서든 내 모험을 이어 하고, 친구의 도감도 볼 수 있어요.</div>
+      <div id="acct-form">
+        <input id="acct-name" type="text" maxlength="8" placeholder="이름 (2~8글자)" autocomplete="username" />
+        <input id="acct-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="비밀번호 숫자 4자리" autocomplete="current-password" />
+        <div id="acct-error" class="hidden"></div>
+        <div class="menu-actions"><button id="btn-acct-login">로그인</button><button id="btn-acct-signup" class="secondary">새 계정 만들기</button></div>
+      </div>
+      <div id="acct-signed" class="hidden">
+        <div class="acct-me">☁️ <b id="acct-me-name"></b> 계정으로 로그인 중</div>
+        <div class="menu-actions"><button id="btn-acct-logout" class="secondary">로그아웃</button></div>
+      </div>
+      <div class="menu-actions"><button id="btn-acct-close" class="secondary">닫기</button></div>
+    </div>
+  </div>
   <div id="code-modal" class="hidden">
     <div class="menu-card">
       <div class="menu-title">🔗 저장 코드</div>
@@ -218,6 +236,7 @@
       <div id="title-buttons">
         <button id="btn-new" class="title-btn">새로하기</button>
         <button id="btn-continue" class="title-btn secondary">이어서하기</button>
+        <button id="btn-account" class="title-btn secondary" hidden>☁️ 계정</button>
       </div>
       <div id="title-loading" class="hidden"></div>
       <div id="title-help">방향키/WASD 이동 · Shift 달리기 · 스페이스 점프 · 가까이 가면 나오는 버튼(또는 E키): 대화·기차·로켓·구출 · 화면 드래그/Q·R 카메라 회전 · B 도감</div>
