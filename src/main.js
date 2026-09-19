@@ -182,12 +182,19 @@ function spawnPickup(z, x, zz) {
 // ---------- 이상해꽃 자동차: 주인공의 탈것 ----------
 // 푸른숲 시작 지점 옆에 세워져 있다. 가까이 가서 "🚗 타기"를 누르면 타고, 한 번 타면 내 차가 되어 어느 지역에서든 HUD 🚗 버튼(C)으로 부르거나 내린다.
 // 걷기의 2.2배로 달리고(가속 버튼이면 더) 점프는 못 한다. 물 위·심해·꿀벌집·연구소에서는 못 타고, 기차·로켓·배·UFO 를 타면 자동으로 내린다.
+// 이상해꽃 자동차는 이상해꽃(푸른숲 보스·이상해씨의 최종 진화·메가이상해꽃)이 대표 포켓몬일 때만 쓸 수 있다. 대표를 바꾸면 차는 사라진다.
 const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab'].includes(name);
-const CAR_HOME = { x: -5.5, z: 8, yaw: 2.4 }; // 푸른숲 시작 지점 옆 (나무가 없는 빈터)
+const CAR_SPECIES = new Set(['b01', 'm01ee', 'x01']); // 이상해꽃(보스) · 이상해꽃(진화형) · 메가이상해꽃
+const carAllowed = () => !!party.leader && CAR_SPECIES.has(party.leader.speciesId);
 let carAt = null;   // 세워 둔 차: { zone, car, obs }
 let driving = false;
 const carBtn = document.getElementById('hud-car-row');
-function refreshCarBtn() { carBtn.hidden = !state.hasCar; carBtn.textContent = driving ? '🚶 내리기' : '🚗 타기'; }
+function refreshCarBtn() { const show = carAllowed(); if (carBtn.hidden === show) carBtn.hidden = !show; const label = driving ? '🚶 내리기' : '🚗 타기'; if (carBtn.textContent !== label) carBtn.textContent = label; }
+/** 매 프레임: 대표가 이상해꽃이 아니면 차를 거둔다 */
+function tickCar() {
+  if (!carAllowed()) { if (driving) dismountCar({ park: false }); if (carAt) removeParkedCar(); }
+  refreshCarBtn();
+}
 /** 차를 그 지역에 세운다 */
 function parkCar(z, x, zz, yaw, car = null) {
   removeParkedCar();
@@ -206,14 +213,14 @@ function removeParkedCar() {
   carAt = null;
 }
 function mountCar() {
-  if (driving || !zone || !CAR_ZONE_OK(zone.name) || sailing || battle.active || ride || switching) return;
+  if (driving || !zone || !carAllowed() || !CAR_ZONE_OK(zone.name) || sailing || battle.active || ride || switching) return;
   const car = carAt?.car || makeCar();
   removeParkedCar();
   carAt = null;
   player.drive(car.body);
   driving = true;
   car.body.userData.car = car;
-  if (!state.hasCar) { state.hasCar = true; say(`🚗 ${CAR_NAME}를 탔어! 이제 내 차야. 달리기 버튼을 누르면 더 빨라지고, 🚗 버튼(C)으로 어디서든 부르거나 내릴 수 있어.`, { sec: 8 }); }
+  if (!state.carTold) { state.carTold = true; say(`🚗 ${CAR_NAME} 출발! 달리기 버튼을 누르면 더 빨라지고, 🚗 버튼(C)이나 액션 버튼으로 내릴 수 있어. 이상해꽃이 대표일 때만 탈 수 있어.`, { sec: 8 }); }
   sound.click();
   refreshCarBtn();
 }
@@ -356,7 +363,6 @@ function getZone(name) {
   }
   applyPendingCaught(z);
   if (name === 'forest' && state.conquered.forest) removeBoulder();
-  if (name === 'forest' && !state.hasCar && !carAt) parkCar(z, CAR_HOME.x, CAR_HOME.z, CAR_HOME.yaw); // 아직 안 타 본 차는 시작 지점 옆에
   if (name === 'cave' && state.glow) z.scene.fog.far = 110;
   if (zone) setActiveTerrain(zone.terrain);
   return z;
@@ -379,7 +385,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, hasCar: false, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // hasCar: 이상해꽃 자동차를 한 번 탔으면 어디서든 부를 수 있다 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -490,6 +496,7 @@ battle.thumb = (sp) => dex.thumbs(speciesById[sp.id] || sp)?.color || null; // (
 // ---------- 내 포켓몬 (파티) ----------
 // 대표 포켓몬 한 마리만 주인공 뒤(숫자블록 다음)를 따라다닌다. 나머지는 볼 안에(화면에 없음).
 function attachLeader(member) {
+  if (CAR_SPECIES.has(member.speciesId) && !state.carShown && zone) { state.carShown = true; setTimeout(() => say(`🚗 이상해꽃이 대표가 됐으니 ${CAR_NAME}를 부를 수 있어! 화면 위 🚗 버튼(C)을 눌러 봐.`, { sec: 7 }), 900); }
   const old = chain.find((f) => f.isLeader);
   if (old) { chain.remove(old.mesh); zone.scene.remove(old.mesh); }
   party.setLeader(member);
@@ -1399,7 +1406,7 @@ function buildSaveData() {
     balls: { ...state.balls },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
     returnTo: state.returnTo,
-    car: !!state.hasCar,
+    carTold: !!state.carTold,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -1468,7 +1475,7 @@ function applySave(d) {
   Object.assign(state.dex, d.dex || {});
   pendingCaught = d.caughtCreatures || {};
   state.returnTo = d.returnTo || null;
-  state.hasCar = !!d.car;
+  state.carTold = !!d.carTold;
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
@@ -1526,7 +1533,7 @@ function frame() {
   }
   ctxAction = null; // 이번 프레임에 할 수 있는 일은 아래 탐험 코드가 다시 채운다
   if (input.wasPressed('dex') && !battle.active && !quiz.open && !ride) dex.toggle(state.dex);
-  if (input.wasPressed('car') && state.hasCar && !battle.active && !quiz.open && !dex.open && !ride && !switching) toggleCar();
+  if (input.wasPressed('car') && carAllowed() && !battle.active && !quiz.open && !dex.open && !ride && !switching) toggleCar();
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
   } else if (quiz.open) {
@@ -1774,6 +1781,7 @@ function frame() {
         });
       }, '🧩\n구출');
     }
+    tickCar();
     if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
     if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();

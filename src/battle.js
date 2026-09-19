@@ -836,8 +836,7 @@ export class Battle {
         const t = el / SUCK;
         this.ball.position.copy(this.ballHold);
         this.ball.position.y += Math.sin(this.timer * 6) * 0.05; // 공중에 떠서 살짝 흔들
-        this.ball.rotation.x = 0; this.ball.rotation.z = 0;
-        this.ball.rotation.y += dt * 4;
+        this.ball.rotation.set(0, this.ballFace + Math.sin(this.timer * 5) * 0.12, 0); // 앞면을 보인 채 살짝 갸웃
         m.scale.setScalar(base * (1 - easeOut(t)));
         m.position.lerp(this.ballHold, Math.min(1, dt * 6));
         if (Math.random() < 0.6) this.particles.stars(this.scene, m.position.clone().add(new THREE.Vector3(0, 0.3 * m.scale.x, 0)), 2, 0xff6a6a, 0.25);
@@ -847,8 +846,8 @@ export class Battle {
         m.visible = false;
         this.ball.position.lerpVectors(this.ballHold, this.ballLand, t);
         this.ball.position.y += Math.sin(t * Math.PI) * 0.6;
-        this.ball.rotation.x += dt * 6;
-        if (t >= 1) { this.ball.position.copy(this.ballLand); this.ball.rotation.set(0, 0, 0); this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; this.sound.bounce(); }
+        this.ball.rotation.set(0, this.ballFace, 0); // 떨어지는 동안에도 앞면
+        if (t >= 1) { this.ball.position.copy(this.ballLand); this.ball.rotation.set(0, this.ballFace, 0); this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; this.sound.bounce(); }
       }
     } else if (this.phase === 'wobble') {
       const bt = this.timer - this.wobbleStart;
@@ -857,6 +856,7 @@ export class Battle {
       this.ball.position.y += (groundY - this.ball.position.y) * Math.min(1, dt * 6);
       const idx = Math.floor((bt - 0.3) / 0.55);
       const local = ((bt - 0.3) % 0.55) / 0.55;
+      this.ball.rotation.y = this.ballFace ?? 0;
       if (bt > 0.3 && idx < 3) {
         this.ball.rotation.z = Math.sin(local * Math.PI * 2) * 0.55 * (1 - local);
         if (idx > this.wobbles - 1 && local < 0.05) { this.wobbles = idx + 1; this.sound.bounce(); }
@@ -900,6 +900,8 @@ export class Battle {
     this.ballHold = this.ballHit.clone().addScaledVector(this.dir, -(0.6 + 0.35 * (this.creature.data.scale || 1))); // 상대 몸 바로 앞 (몸에 안 가려지게)
     this.ballHold.y = Math.max(this.ballHold.y, this.groundY(this.ballHold.x, this.ballHold.z) + 0.9);
     this.ball.position.copy(this.ballHold);
+    this.ballFace = Math.atan2(-this.dir.x, -this.dir.z); // 볼 앞면(버튼)이 카메라(내 쪽)를 보게
+    this.ball.rotation.set(0, this.ballFace, 0);
     ballOnTop(this.ball, true); // 흡수되는 동안 상대가 볼 위로 겹쳐도 볼이 보이게
     this.ballLand = new THREE.Vector3().copy(this.stageTo).addScaledVector(this.dir, -1.9);
     this.ballLand.y = this.groundY(this.ballLand.x, this.ballLand.z) + 0.32;
