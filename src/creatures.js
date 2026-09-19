@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, makeNumberSprite, rand } from './util.js';
-import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture, makePillSprite, waterLevel, canSail } from './world.js';
+import { terrainHeight, inHole, isBlocked, insideObstacle, resolveObstacles, worldSize, makeLabelTexture, makePillSprite, waterLevel, canSail, ledgeStep } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 
 // data/creatures.json 의 draftShape 를 읽어 기본 도형으로 드래프트 몬스터를 만든다.
@@ -162,7 +162,7 @@ export class Creature {
     p.x += (dx / dist) * step;
     p.z += (dz / dist) * step;
     if (!this.swim) resolveObstacles(p, 0.5 * (this.data.scale || 1));
-    if (!this.canGo(p.x, p.z)) { p.x = ox; p.z = oz; } // 물가(헤엄치는 몬스터는 뭍) 앞에서는 멈춘다
+    if (!this.canGo(p.x, p.z) || (!this.swim && Math.abs(terrainHeight(p.x, p.z) - terrainHeight(ox, oz)) > ledgeStep())) { p.x = ox; p.z = oz; } // 물가(헤엄치는 몬스터는 뭍) 앞에서는 멈춘다. 턱(꿀벌집 계단·탑) 가장자리에서도 멈춘다
     this.mesh.rotation.y = Math.atan2(dx, dz);
     return dist;
   }

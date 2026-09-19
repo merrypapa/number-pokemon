@@ -123,6 +123,8 @@ export function terrainHeight(x, z) { return active.height(x, z); }
 export function inHole(x, z) { return active.inHole(x, z); }
 export function worldSize() { return active.size; }
 export function isBlocked(x, z) { return active.blocked ? active.blocked(x, z) : false; }
+/** 이 지역에서 점프 없이 걸어 올라갈 수 있는 턱 높이(m). 지형이 정하지 않으면 제한 없음(언덕은 그냥 걸어 오른다). 꿀벌집 육각 계단은 0.6 이라 뛰어야 오른다 */
+export function ledgeStep() { return active.ledge ?? Infinity; }
 export function insideObstacle(x, z, r = 0.4) { return (active.obstacles || []).some((o) => obstacleDist(o, x, z) < o.r + r); }
 /** 이 지역의 수면 높이 (바다가 있는 지역만, 없으면 null) */
 export function waterLevel() { return active.waterY ?? null; }
@@ -1085,7 +1087,7 @@ export function buildWorld(scene) {
       `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
       '벌집 바로 아래로 걸어가면 벌집 속으로 들어갈 수 있어. 안에는 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해!',
       `안에는 뿔충이·딱충이·세꿀버리 같은 벌레·풀 포켓몬이 살아. 공격 ${c.zone.targetAtk + 1}쯤이면 편하게 이겨. 불 포켓몬이 벌레에 세!`,
-      c.conquered.hive ? '대장 독침붕을 이겼다며? 대단해! 벌집 안 어딘가에 메가독침붕이 나타났을지도 몰라.' : '벌집 북쪽 금빛 단에는 대장 독침붕이 있어. 체력 60에 공격 6이니까 충분히 키우고 도전해 봐.',
+      c.conquered.hive ? '대장 독침붕을 이겼다며? 대단해! 벌집 안 어딘가에 메가독침붕이 나타났을지도 몰라.' : '벌집 안 북쪽에는 높은 벌집 탑이 있고 꼭대기에 대장 독침붕이 있어. 육각 계단 열한 개를 폴짝폴짝 뛰어서 올라가야 해. 체력 60에 공격 6이니까 충분히 키우고 도전해 봐.',
       '벌집 안에서 숫자블록 친구를 구하면 꿀벌·꿀·벌집 퀴즈가 나와. 벌집 방이 왜 육각형인지 알아? 빈틈없이 채우면서 밀랍은 제일 적게 쓰거든!',
     ] }, { x: gk.x, z: gk.z, mesh: goku, name: '아이 손오공', lines: (c) => [
       `오스! 난 아이 손오공이야, ${c.name}! 여기 돌기둥 아레나 앞에서 매일 수련하고 있어. 대결 요령을 알려 줄게!`,

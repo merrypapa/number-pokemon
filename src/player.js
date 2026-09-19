@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { addFace, lerpAngle } from './util.js';
-import { terrainHeight, inHole, worldSize, isBlocked, resolveObstacles } from './world.js';
+import { terrainHeight, inHole, worldSize, isBlocked, resolveObstacles, ledgeStep } from './world.js';
 import { swapDraftWithModel, tickModel } from './models.js';
 import { CAR_SPEED, CAR_BOOST } from './car.js';
 
@@ -107,7 +107,10 @@ export class Player {
     this.running = !this.boat && !this.car && moving && speed > SPEED * 1.15; // 배 위에서는 뛰지 않는다 (배가 달리는 것이지 내가 뛰는 게 아니다)
     // 물(연못·호수)은 못 들어간다. 배를 타면 반대로 물 위만 갈 수 있다.
     // 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
-    const blocked = this.boat ? (x, z) => !this.boat.canGo(x, z) : isBlocked;
+    // 턱: 지형이 정한 높이(ledgeStep)보다 높은 곳으로는 걸어 올라갈 수 없고 뛰어서 발이 그 높이 가까이 올라와야 올라선다 (꿀벌집 육각 계단)
+    const ledge = ledgeStep();
+    const wall = (x, z) => (this.boat ? !this.boat.canGo(x, z) : isBlocked(x, z)) || (!this.boat && terrainHeight(x, z) > p.y + ledge);
+    const blocked = wall;
     const ox = p.x, oz = p.z;
     p.x += this.vx * dt;
     if (blocked(p.x, oz)) { p.x = ox; this.vx = 0; }
