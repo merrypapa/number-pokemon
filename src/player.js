@@ -4,7 +4,7 @@ import { terrainHeight, inHole, worldSize, isBlocked, resolveObstacles, ledgeSte
 import { swapDraftWithModel, tickModel } from './models.js';
 import { CAR_SPEED, CAR_BOOST } from './car.js';
 
-export const PLAYER_NAME = '인하';
+export const PLAYER_NAME = '지우'; // 인트로에서 이름을 안 지으면 쓰는 기본 이름 (주인공 모델 파일 이름과는 별개)
 export const PLAYER_MODEL = '인하.glb'; // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
 export const PLAYER_HEIGHT = 1.9;      // 주인공 모델 키(m). 몬스터(1m 기준)보다 크게
 
