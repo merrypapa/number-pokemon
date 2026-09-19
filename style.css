@@ -15,7 +15,7 @@ button.hud-row:active { transform: scale(.96); }
 .hud-icon { width: 28px; height: 28px; border-radius: 7px; display: inline-block; }
 .hud-icon.mega { background: linear-gradient(135deg, #ff5cf0, #7d5cff 55%, #2bffea); box-shadow: 0 0 8px rgba(255,92,240,.7); border-radius: 50%; }
 .hud-row.mega { background: rgba(32,35,46,.88); color: #fff; }
-.hud-row.mega[hidden] { display: none; }
+.hud-row.mega[hidden], #hud-car-row[hidden] { display: none; }
 .hud-icon.block { background: #fff; border: 2px solid #999; }
 .hud-icon.mon { background: #ffd93d; border-radius: 50%; }
 .hud-icon.map { background: linear-gradient(135deg, #7ccf5a, #3fb8e8); border: 2px solid #20232e; }

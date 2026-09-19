@@ -12,7 +12,7 @@ import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
 import { WarpFx } from './ufo.js';
 import { strongAgainst, weakTo, skillIcon } from './types.js';
-import { portrait } from './portrait.js';
+import { portrait, setPortraitRenderer } from './portrait.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
@@ -47,6 +47,7 @@ function fitRenderer() {
   onFit?.(w / h);
 }
 renderer.shadowMap.enabled = true;
+setPortraitRenderer(renderer); // 말풍선 얼굴 그림도 이 렌더러로 그린다 (컨텍스트를 따로 만들지 않는다)
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
@@ -1811,6 +1812,7 @@ function frame() {
     camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
   }
   ctxClicked = false;
+  if (driving && !ctxAction && !ride && !switching) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기'
   updateCtxButton();
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
