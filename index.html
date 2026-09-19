@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#8fd3ff" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <!-- iOS 홈 화면 앱: 전체 화면 + 아이콘 (iOS 는 manifest 만으로는 아이콘을 안 읽는다) -->
+  <!-- iOS 홈 화면 앱: 전체 화면 + 아이콘 (iOS 는 manifest 만으로는 아이콘을 안 읽는다).
+       상태 표시줄은 black-translucent 가 아니라 default: translucent 로 하면 iOS 가 화면 높이를 상태 표시줄만큼 짧게 잡아
+       아래에 배경색 띠가 남고, 위에서는 게임이 시계·배터리 밑으로 들어간다. default 면 상태 표시줄이 theme-color(하늘색)로 따로 있고 그 아래가 게임이다. -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="넘버몬스터" />
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
   <title>넘버 몬스터 어드벤처</title>

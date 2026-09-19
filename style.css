@@ -431,7 +431,7 @@ body.intro #btn-save { display: none !important; }
   .hud-row { font-size: 17px; padding: 6px 12px 6px 8px; gap: 7px; }
   .hud-icon { width: 22px; height: 22px; }
   .hud-thumb { width: 36px; height: 36px; margin: -5px 0; }
-  #btn-dex { top: 10px; font-size: 16px; padding: 7px 12px; }
+  #btn-dex { top: max(10px, env(safe-area-inset-top)); font-size: 16px; padding: 7px 12px; } /* 홈 화면 앱: 상태 표시줄 아래로 */
   #btn-dex .dex-more { display: none; } /* 휴대폰: 도감 버튼을 짧게 해서 HUD 한 줄과 안 겹치게 */
   .ball-row { gap: 8px; padding: 6px 8px; }
   .ball-row .ball-name { width: 64px; font-size: 14px; }
