@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
-import { buildDraftMesh , dexSizeFactor } from './creatures.js';
+import { buildDraftMesh, dexSizeFactor, bossZoneOf } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
@@ -281,11 +281,12 @@ export class Dex {
       <div class="map-how">가는 길: ${r.how}</div>
       <div class="map-count">이 ${r.planet ? '행성' : '지역'}의 포켓몬 ${list.length}종 중 ${known}종을 잡았어${done ? '' : ' · 보스를 잡으면 정복!'}</div>
       <div class="map-pokes">`;
-    for (const sp of list.sort((a, b) => (b.boss ? 1 : 0) - (a.boss ? 1 : 0))) {
+    const isBossHere = (sp) => !!sp.boss && bossZoneOf(sp) === r.id; // 꼬마돌은 지하동굴에선 야생, 수성에서만 보스
+    for (const sp of list.sort((a, b) => (isBossHere(b) ? 1 : 0) - (isBossHere(a) ? 1 : 0))) {
       const n = caughtById[sp.id] || 0;
       const t = this.thumbs(sp);
-      html += `<div class="map-poke ${n ? 'caught' : 'unknown'}${sp.boss ? ' boss' : ''}" data-id="${sp.id}">
-        ${sp.boss ? '<span class="bossmark">보스</span>' : ''}
+      html += `<div class="map-poke ${n ? 'caught' : 'unknown'}${isBossHere(sp) ? ' boss' : ''}" data-id="${sp.id}">
+        ${isBossHere(sp) ? '<span class="bossmark">보스</span>' : ''}
         ${t ? `<img src="${n ? t.color : t.silhouette}" alt="">` : ''}
         <div class="nm">${n ? sp.name : '???'}</div>
         <div class="sub">${n ? `${sp.type} · ${n}마리 잡음` : '아직 못 잡음'}</div>
@@ -340,8 +341,8 @@ export class Dex {
           ${t ? `<img src="${t.silhouette}" alt="">` : ''}
           <div class="detail-info">
             <div class="detail-name">???</div>
-            <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형` : `사는 곳: ${zone}${sp.boss ? ' (보스)' : ''}`}</div>
-            <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${zone}의 보스를 찾아 잡아 보자!` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
+            <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}` : `사는 곳: ${zone}${sp.boss ? ` (${this.zoneName[bossZoneOf(sp)] || ''} 보스)` : ''}`}</div>
+            <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${this.zoneName[bossZoneOf(sp)] || zone}의 보스를 찾아 잡아 보자!` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
           </div>
         </div>`;
       this.partyEl.appendChild(card);
@@ -452,8 +453,8 @@ export class Dex {
       const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
       const sub = (known
-        ? (from ? `${from.name}의 진화형 · ${n}마리` : `${zone}${sp.boss ? ' 보스' : ''} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ' 보스' : ''}`)) + ` · ${gradeStars(sp.grade || 1)}`;
+        ? (from ? `${from.name}의 진화형 · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''} · ${n}마리`)
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}`)) + ` · ${gradeStars(sp.grade || 1)}`;
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}

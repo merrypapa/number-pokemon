@@ -17,7 +17,7 @@ import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } f
 import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { makeCar, CAR_MODEL, CAR_NAME } from './car.js';
-import { Creature, buildDraftMesh } from './creatures.js';
+import { Creature, buildDraftMesh, bossZoneOf, bossOverride, partyScale } from './creatures.js';
 import { preloadModels, onModelLoaded, swapDraftWithModel } from './models.js';
 import { buildIntro } from './intro.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK, SILVER_BLOCK } from './numberblocks.js';
@@ -143,11 +143,13 @@ function makeZone(name, builder) {
   return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(3, 7), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
+/** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
+function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, hive: buildHive };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
-  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: creatureData.creatures.find((c) => c.zone === p.zone && c.boss) || null, hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
+  BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: bossFor(p.zone), hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
   WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
 }
 const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
@@ -184,7 +186,7 @@ function spawnPickup(z, x, zz) {
 // 걷기의 2.2배로 달리고(가속 버튼이면 더) 점프는 못 한다. 물 위·심해·꿀벌집·연구소에서는 못 타고, 기차·로켓·배·UFO 를 타면 자동으로 내린다.
 // 이상해꽃 자동차는 이상해꽃(푸른숲 보스·이상해씨의 최종 진화·메가이상해꽃)이 대표 포켓몬일 때만 쓸 수 있다. 대표를 바꾸면 차는 사라진다.
 const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab'].includes(name);
-const CAR_SPECIES = new Set(['b01', 'm01ee', 'x01']); // 이상해꽃(보스) · 이상해꽃(진화형) · 메가이상해꽃
+const CAR_SPECIES = new Set(['m01ee', 'x01']); // 이상해꽃 · 메가이상해꽃
 const carAllowed = () => !!party.leader && CAR_SPECIES.has(party.leader.speciesId);
 let carAt = null;   // 세워 둔 차: { zone, car, obs }
 let driving = false;
@@ -288,7 +290,8 @@ function buildShrine(z) {
 /** 성역을 드러내고 메가 포켓몬을 불러낸다 */
 /** 조건 포켓몬(메가리자몽X·리자풀·뮤 …)을 잡을 수 있게 됐나: unlockedBy 종을 이미 잡았으면 열린다 (배열이면 그 종을 모두 잡아야 한다 — 뮤는 행성 보스 열 마리) */
 function unlockNeeds(sp) { return Array.isArray(sp.unlockedBy) ? sp.unlockedBy : [sp.unlockedBy]; }
-function megaUnlocked(sp) { return unlockNeeds(sp).every((id) => (state.dex[id] || 0) > 0); }
+function caughtFor(id) { const sp = speciesById[id]; return sp?.boss ? (state.bossDex[id] || 0) > 0 : (state.dex[id] || 0) > 0; } // 보스 모습이 있는 종은 보스로 잡아야 센다 (야생 꼬마돌은 안 됨)
+function megaUnlocked(sp) { return unlockNeeds(sp).every(caughtFor); }
 /** 그 포켓몬을 지역의 빈 자리에 세운다 (성역이 아니라 일반 맵) */
 function spawnUnlocked(z, sp) {
   if (z.creatures.some((c) => c.data.id === sp.id)) return null;
@@ -343,14 +346,15 @@ function getZone(name) {
   const wildExtra = zi.wildOverride || {};
   const wild = zi.wild
     ? zi.wild.map((id) => speciesById[id]).filter(Boolean).map((c) => ({ ...c, ...wildExtra }))
-    : creatureData.creatures.filter((c) => c.zone === z.name && !c.boss && !c.special && !c.mega && c.catchable);
+    : creatureData.creatures.filter((c) => c.zone === z.name && !(c.boss && bossZoneOf(c) === z.name) && !c.special && !c.mega && c.catchable); // 이 지역의 보스는 야생으로 안 나온다 (다른 지역 보스인 종은 여기선 야생)
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
-  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) spawnCreature(z, land[i % land.length].id, x, zz, wildExtra); });
+  const wildOnly = { ...wildExtra, boss: false }; // 야생으로 나올 땐 보스 표시를 뗀다 (꼬마돌은 수성에서만 보스)
+  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) spawnCreature(z, land[i % land.length].id, x, zz, wildOnly); });
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
-  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) spawnCreature(z, swimmers[i % swimmers.length].id, x, zz, wildExtra); });
-  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) spawnCreature(z, deep[i % deep.length].id, x, zz, wildExtra); });
-  const boss = creatureData.creatures.find((c) => c.zone === z.name && c.boss);
-  if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z); c.mesh.userData.bossZone = z.name; }
+  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) spawnCreature(z, swimmers[i % swimmers.length].id, x, zz, wildOnly); });
+  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) spawnCreature(z, deep[i % deep.length].id, x, zz, wildOnly); });
+  const boss = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === z.name);
+  if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z, bossOverride(boss)); c.mesh.userData.bossZone = z.name; }
   // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
   for (const c of creatureData.creatures.filter((c) => c.zone === z.name && c.special)) {
     const spot = z.world.specialSpots?.[c.special];
@@ -379,13 +383,13 @@ function removeBoulder() {
   if (bi >= 0) obs.splice(bi, 1); // 바위가 치워지면 지나갈 수 있다
 }
 const totalCreatures = Object.values(WILD_TOTAL).reduce((a, b) => a + b, 0);
-const CONQUERABLE = Object.keys(BUILDERS).filter((n) => creatureData.creatures.some((c) => c.zone === n && c.boss)); // 보스가 있는 지역만 정복 대상 (연구소 제외)
+const CONQUERABLE = Object.keys(BUILDERS).filter((n) => creatureData.creatures.some((c) => c.boss && bossZoneOf(c) === n)); // 보스가 있는 지역만 정복 대상 (연구소 제외)
 const ZONE_COUNT = CONQUERABLE.length;
 
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -397,7 +401,7 @@ const dex = new Dex(
   Object.fromEntries(Object.entries(ZONE_INFO).filter(([, v]) => v.wild).map(([k, v]) => [k, v.wild])),
 );
 dex.lastCaught = state.dex;
-const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && !c.boss && !c.evolvedFrom), sound });
+const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && c.boss !== true && !c.evolvedFrom), sound }); // 순수 보스(큰 것)만 뺀다
 for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
@@ -500,7 +504,7 @@ function attachLeader(member) {
   const mesh = member.mesh;
   mesh.visible = true;
   mesh.rotation.set(0, 0, 0);
-  mesh.scale.setScalar(party.species(member).scale || 1);
+  mesh.scale.setScalar(partyScale(party.species(member)));
   const behind = myStack.mesh ? myStack.mesh.position : player.position;
   mesh.position.copy(behind).addScaledVector(camForward(), 1.8);
   mesh.position.y = terrainHeight(mesh.position.x, mesh.position.z);
@@ -533,7 +537,7 @@ function evolveMember(m) {
   stage.y = terrainHeight(stage.x, stage.z);
   if (wasLeader && oldMesh) { chain.replace(oldMesh, newMesh); zone.scene.remove(oldMesh); }
   if (!oldMesh) { m.mesh = newMesh; newMesh.position.copy(stage); zone.scene.add(newMesh); evoBanner.classList.add('hidden'); return; } // 모습이 없던 멤버는 연출 없이 바로
-  oldMesh.visible = true; oldMesh.scale.setScalar(oldSp.scale || 1);
+  oldMesh.visible = true; oldMesh.scale.setScalar(partyScale(oldSp));
   oldMesh.position.copy(stage); oldMesh.rotation.set(0, Math.atan2(player.position.x - stage.x, player.position.z - stage.z), 0);
   zone.scene.add(oldMesh);
   newMesh.visible = false; newMesh.position.copy(stage); newMesh.rotation.copy(oldMesh.rotation); newMesh.scale.setScalar(0.001);
@@ -567,7 +571,7 @@ function updateEvolution(dt) {
   } else if (T < 4.2) { // 3) 새 모습이 커지며 등장, 색종이
     const k = Math.min(1, (T - 2.2) / 0.8);
     const back = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
-    e.newMesh.scale.setScalar(Math.max(0.001, (e.sp.scale || 1) * back));
+    e.newMesh.scale.setScalar(Math.max(0.001, partyScale(e.sp) * back));
     e.newMesh.rotation.y += dt * 1.5 * (1 - k);
     evoFlash.style.opacity = String(Math.max(0, 1 - (T - 2.2) * 2));
     if (T - 2.2 < 0.1) confetti.burst(220);
@@ -575,7 +579,7 @@ function updateEvolution(dt) {
   } else { // 끝: 원래 자리로
     evoFlash.style.opacity = '0';
     evoBanner.classList.add('hidden');
-    e.newMesh.scale.setScalar(e.sp.scale || 1);
+    e.newMesh.scale.setScalar(partyScale(e.sp));
     if (e.wasLeader) attachLeader(e.m); else zone.scene.remove(e.newMesh);
     say(`축하해! ${e.oldSp.name}이(가) ${e.sp.name}(으)로 진화했어! 공격 ${e.m.atk}, 체력 ${e.m.maxHp}!`, { sec: 7 });
     refreshHud(); autosave();
@@ -1411,7 +1415,7 @@ function buildSaveData() {
     v: 1, name: state.name, admin: !!state.admin, savedAt: Date.now(),
     zone: zone.name, pos: sailing ? { ...dockLanding() } : { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1) }, // 배 위에서 저장하면 선착장에서 다시 시작
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
-    conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex },
+    conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
     balls: { ...state.balls },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
@@ -1481,8 +1485,13 @@ function applySave(d) {
   state.name = d.name;
   state.admin = !!d.admin || isAdminName(d.name || '');
   Object.assign(state, { blocks: 0, megaBlocks: d.megaBlocks || 0, glowBlocks: d.glowBlocks || 0, caught: d.caught || 0, rescued: d.rescued || 0, conquered: { ...(d.conquered || {}) }, caughtCreatures: d.caughtCreatures || {}, tutorial: d.tutorial ?? 5, upgradeTold: !!d.upgradeTold, mapTold: !!d.mapTold, glow: !!d.glow });
+  // 옛 저장의 보스 전용 id → 합쳐진 종 id (보스로 잡은 기록도 남긴다)
+  const ALIAS = { b01: 'm01ee', b03: 'm02ee', b04: 'm05ee', hb01: 'm36', pb02: 'm18', pb05: 'm33', pb08: 'm42', pb10: 'm26', pb01: 'm07', pb04: 'm27', pb09: 'm21e', pb03: 'm34', pb06: 'm03e', pb07: 'm15', m51ee: 'hb02' };
+  const BOSS_ALIAS = new Set(['b01', 'b03', 'b04', 'pb02', 'pb05', 'pb08', 'pb10']);
   for (const k of Object.keys(state.dex)) delete state.dex[k];
-  Object.assign(state.dex, d.dex || {});
+  for (const k of Object.keys(state.bossDex)) delete state.bossDex[k];
+  for (const [k, v] of Object.entries(d.dex || {})) { const id = ALIAS[k] || k; state.dex[id] = (state.dex[id] || 0) + v; if (BOSS_ALIAS.has(k)) state.bossDex[id] = (state.bossDex[id] || 0) + v; }
+  Object.assign(state.bossDex, d.bossDex || {});
   pendingCaught = d.caughtCreatures || {};
   state.returnTo = d.returnTo || null;
   state.carTold = !!d.carTold;
@@ -1491,7 +1500,11 @@ function applySave(d) {
   for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
   if (state.conquered.forest) removeBoulder();
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
+  const seenSpecies = new Set();
   for (const m of d.party || []) {
+    m.speciesId = ALIAS[m.speciesId] || m.speciesId;
+    if (seenSpecies.has(m.speciesId)) continue; // 합쳐진 종이 둘이면 하나만
+    seenSpecies.add(m.speciesId);
     const sp = speciesById[m.speciesId];
     if (!sp) continue;
     const member = party.add(m.speciesId, buildDraftMesh(sp));
@@ -1701,8 +1714,15 @@ function frame() {
           onCaught: () => {
             const L = battle.member; // 대결 중 교체했을 수 있다
             c.becomeFriend();
-            const already = party.members.find((m) => m.speciesId === c.data.id || party.name(m) === c.data.name); // 같은 포켓몬은 파티에 한 마리만 (보스로 만난 이상해꽃 = 진화한 이상해꽃). 또 잡으면 보상과 누적 수만 오른다
-            const member = already || party.add(c.data.id, c.mesh);
+            const already = party.members.find((m) => m.speciesId === c.data.id || party.name(m) === c.data.name); // 같은 포켓몬은 파티에 한 마리만 (보스로 만난 이상해꽃 = 진화한 이상해꽃)
+            const member = already || party.add(c.data.id, c.mesh, { hp: c.data.baseHp, atk: c.data.baseAtk }); // 보스로 잡으면 보스 능력치로 들어온다
+            let upgraded = false;
+            if (already && c.isBoss) { // 이미 있는 같은 종은 보스 능력치로 올라간다 (낮아지지는 않는다)
+              const hp = Math.max(already.maxHp, c.data.baseHp), atk = Math.max(already.atk, c.data.baseAtk);
+              upgraded = hp > already.maxHp || atk > already.atk;
+              already.maxHp = hp; already.hp = hp; already.atk = atk;
+            }
+            if (c.isBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
@@ -1722,8 +1742,8 @@ function frame() {
               conquer(zone.name);
               if (zone.name === 'forest') {
                 removeBoulder();
-                say(`${c.data.name}이(가) 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!`, { sec: 7 });
-              } else say(`${c.data.name}이(가) 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!`, { sec: 6 });
+                say(`${c.data.name}이(가) 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
+              } else say(`${c.data.name}이(가) 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${c.data.name}이(가) 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
             } else {
               state.caught++;
               const sp = speciesById[c.data.id];

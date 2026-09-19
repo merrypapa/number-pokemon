@@ -3,6 +3,7 @@ import { colorForCount } from './palette.js';
 import { terrainHeight, waterLevel } from './world.js';
 import { effectiveness, effectWord, skillIcon } from './types.js';
 import { tickModel, instantiate, hasModel } from './models.js';
+import { partyScale } from './creatures.js';
 import { strongAgainst, weakTo } from './types.js';
 import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
 import { View3D } from './view3d.js';
@@ -219,7 +220,7 @@ export class Battle {
     const tGround = ray.y < -0.02 ? (p.y - this.camPos.y) / ray.y : 4;
     this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(2, Math.min(6, tGround)));
     this.mineTo.y = this.groundY(this.mineTo.x, this.mineTo.z);
-    this.mineScale = this.party.species(member).scale || 1;
+    this.mineScale = partyScale(this.party.species(member)); // 내 포켓몬은 메가라도 1.6 까지
     // 둘이 서로 마주 본다: 내 포켓몬은 상대 자리를, 상대는 내 포켓몬 자리를 향한다
     this.mineYaw = Math.atan2(this.stageTo.x - this.mineTo.x, this.stageTo.z - this.mineTo.z);
     this.enemyYaw = Math.atan2(this.mineTo.x - this.stageTo.x, this.mineTo.z - this.stageTo.z);
@@ -419,7 +420,7 @@ export class Battle {
     old.mesh.visible = false;
     const mesh = x.mesh;
     this.scene.add(mesh);
-    this.mineScale = this.party.species(x).scale || 1;
+    this.mineScale = partyScale(this.party.species(x));
     mesh.visible = true;
     mesh.scale.setScalar(this.mineScale);
     mesh.rotation.set(0, this.mineYaw, 0); // 상대를 마주 본다

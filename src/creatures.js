@@ -71,6 +71,16 @@ export function buildDraftMesh(c, opts = {}) {
   return g;
 }
 
+/** 보스 모습이 있는 종의 보스 지역 (boss 가 객체면 그 zone, true 면 사는 지역) */
+export function bossZoneOf(sp) { return sp.boss && typeof sp.boss === 'object' && sp.boss.zone ? sp.boss.zone : sp.zone; }
+/** 그 지역에 보스로 세울 때 덮어쓸 값 (boss 객체의 hp·atk·scale·grade). true 인 보스는 종 값 그대로 */
+export function bossOverride(sp) {
+  const b = sp.boss;
+  if (!b || typeof b !== 'object') return { boss: true };
+  return { boss: true, baseHp: b.hp ?? sp.baseHp, baseAtk: b.atk ?? sp.baseAtk, scale: b.scale ?? sp.scale, grade: b.grade ?? 6 };
+}
+/** 내 포켓몬으로 데리고 다니거나 대결에 내보낼 때의 크기: 메가·보스도 1.6 을 넘지 않게 (너무 크면 데리고 다니기 어렵고 상대가 안 보인다) */
+export function partyScale(sp) { return Math.min(sp.scale || 1, 1.6); }
 /** 도감 그림·360° 화면에서의 상대 크기: 메가급은 1.4배, 보스급은 1.15배 (같은 틀에서도 메가가 크게 보이게) */
 export function dexSizeFactor(sp) { return sp.mega || (sp.grade || 1) >= 7 ? 1.4 : sp.boss ? 1.15 : 1; }
 
