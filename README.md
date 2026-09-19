@@ -87,6 +87,13 @@ python3 -m http.server 8000
 | `src/effects.js` | 색종이, 별/조각 파티클, 합성 효과음 |
 | `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 + GLTFLoader/SkeletonUtils 애드온 |
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
+| `manifest.webmanifest`, `sw.js`, `assets/icons/` | 홈 화면 앱(PWA): 설치 정보, 오프라인·모델 캐시 서비스 워커, 아이콘 |
+
+## 홈 화면 앱 (PWA)
+
+- `manifest.webmanifest` + `sw.js` + `assets/icons/`(Pillow 로 그린 넘버볼·숫자블록 아이콘 192/512/maskable/apple-touch 180). 홈 화면에 추가하면 주소창 없이 전체 화면으로 열린다(`apple-mobile-web-app-capable`, `viewport-fit=cover`, HUD·도감 버튼은 `env(safe-area-inset-*)` 만큼 노치를 피한다).
+- 서비스 워커(`sw.js`): 앱 껍데기(index·css·src/*.js·data·vendor)는 설치 때 미리 받아 `np-shell-<VERSION>` 에, 모델(glb)·그림은 처음 받을 때 `np-assets-<ASSET_VERSION>` 에 넣고 다음부터는 캐시에서 준다(두 번째부터 바로 뜨고 오프라인에서도 열린다). 다른 출처(Firebase)는 건드리지 않는다. **코드를 고쳐 올릴 때마다 `sw.js` 의 `VERSION` 을 올려야** 새 버전이 깔린다(모델 파일을 바꿔 올렸으면 `ASSET_VERSION` 도). 새 버전이 설치되면 화면 위에 "🎁 새 버전이 나왔어요! 다시 열기" 막대가 뜨고, 누르면 저장한 뒤 새 버전으로 다시 연다. 주소에 `?nosw` 를 붙이면 서비스 워커를 등록하지 않는다(개발용).
+- 처음 화면의 **📱 홈 화면에 추가** 버튼: 안드로이드·데스크톱 크롬은 설치 창을 바로 띄우고, iOS(자동 설치 창이 없다)는 Safari 공유 → "홈 화면에 추가" 순서를 단계로 보여 준다(카카오톡 등 앱 안 브라우저면 "Safari로 열기"부터 안내). 홈 화면에서 연 상태(`display-mode: standalone`)면 버튼이 숨는다.
 
 ## 클라우드 계정 (여러 기기에서 이어 하기 · 친구 도감 보기)
 

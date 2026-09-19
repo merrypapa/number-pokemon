@@ -5,7 +5,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .hidden { display: none !important; }
 body.intro #hud, body.intro #btn-dex, body.intro #touch { display: none !important; } /* 시작 화면에서는 HUD 숨김 */
 
-#hud { position: fixed; top: 12px; left: 12px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; z-index: 5; max-width: calc(100vw - 24px); }
+#hud { position: fixed; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; z-index: 5; max-width: calc(100vw - 24px); }
 .hud-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.9); border-radius: 999px; padding: 8px 18px 8px 10px; font-size: 22px; font-weight: 700; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); border: 0; font-family: inherit; white-space: nowrap; }
 button.hud-row { cursor: pointer; }
 button.hud-row:active { transform: scale(.96); }
@@ -174,7 +174,7 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 @keyframes btn-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 
 /* ---------- 도감 ---------- */
-#btn-dex { position: fixed; top: 12px; right: 12px; z-index: 6; font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
+#btn-dex { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); z-index: 6; font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
 #dex { position: fixed; inset: 0; background: rgba(20,30,50,.6); z-index: 14; display: flex; align-items: center; justify-content: center; padding: 12px; }
 #dex-card { background: #fffbe6; border-radius: 22px; width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
 #dex-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 240px 12px 16px; border-bottom: 2px solid #f0e6c0; } /* 오른쪽 여백은 저장·닫기 버튼 자리 (절대 위치라 좁은 화면에서도 안 밀려난다) */
@@ -340,7 +340,7 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 .save-empty { color: #777; font-weight: 800; padding: 14px; }
 #btn-save { position: fixed; top: 12px; right: 190px; z-index: 6; font-size: 16px; font-weight: 800; padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
 body.intro #btn-save { display: none !important; }
-#save-toast { position: fixed; top: 58px; right: 12px; z-index: 30; background: #57b947; color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
+#save-toast { position: fixed; top: calc(46px + max(12px, env(safe-area-inset-top))); right: max(12px, env(safe-area-inset-right)); z-index: 30; background: #57b947; color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 
 /* ---------- 도감: 탭 + 지도 ---------- */
 #dex-tabs { display: flex; gap: 4px; background: #f0e6c0; border-radius: 999px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; } /* 탭이 7개(관리자)면 좁은 화면에서 옆으로 밀어 본다 */
@@ -511,7 +511,16 @@ body.intro #btn-save { display: none !important; }
 #acct-error { color: #e8453c; font-weight: 800; font-size: 14px; }
 #acct-error.hidden { display: none; }
 .acct-me { font-size: 18px; font-weight: 800; color: #333; margin-top: 12px; }
-#btn-continue[hidden], #title-acct[hidden], #btn-rank[hidden] { display: none; }
+#btn-continue[hidden], #title-acct[hidden], #btn-rank[hidden], #btn-install[hidden] { display: none; }
+/* PWA: 새 버전 안내 막대와 홈 화면 추가 안내 */
+#update-bar { position: fixed; left: 50%; top: calc(56px + max(12px, env(safe-area-inset-top))); transform: translateX(-50%); z-index: 40; background: #20232e; color: #fff; font-weight: 900; font-size: 15px; padding: 10px 14px; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.35); display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+#update-bar[hidden] { display: none; }
+#update-bar button { font: inherit; font-weight: 900; padding: 6px 14px; border-radius: 999px; border: 0; background: #ffd93d; color: #20232e; cursor: pointer; }
+#install-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#install-modal.hidden { display: none; }
+.install-steps { text-align: left; margin: 0; padding-left: 22px; font-size: 16px; font-weight: 800; color: #333; line-height: 1.5; display: flex; flex-direction: column; gap: 8px; }
+.install-steps b { color: #e8453c; }
+.install-steps .install-note { font-size: 13px; color: #777; font-weight: 700; list-style: none; margin-left: -22px; }
 .title-btn.small { font-size: clamp(15px, 2.6vw, 19px); padding: 9px 20px; border-width: 3px; box-shadow: 0 5px 0 #2a9bc4, 0 10px 20px rgba(0,0,0,.25); }
 #rank-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
 #rank-modal.hidden { display: none; }

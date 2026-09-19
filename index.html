@@ -2,8 +2,16 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>넘버 몬스터 어드벤처 — 프로토타입</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#8fd3ff" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <!-- iOS 홈 화면 앱: 전체 화면 + 아이콘 (iOS 는 manifest 만으로는 아이콘을 안 읽는다) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="넘버몬스터" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <title>넘버 몬스터 어드벤처</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2714%27 fill=%27%23f4f4f8%27 stroke=%27%2320232e%27 stroke-width=%273%27/%3E%3Cpath d=%27M2.5 16 A13.5 13.5 0 0 1 29.5 16 Z%27 fill=%27%23e8453c%27/%3E%3Crect x=%272%27 y=%2714.5%27 width=%2728%27 height=%273%27 fill=%27%2320232e%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%275%27 fill=%27%23f4f4f8%27 stroke=%27%2320232e%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%272%27 fill=%27%2320232e%27/%3E%3C/svg%3E" />
   <script type="importmap">
@@ -62,6 +70,15 @@
 
   <canvas id="fx"></canvas>
   <div id="fade"></div>
+  <div id="update-bar" hidden>🎁 새 버전이 나왔어요! <button id="btn-update">다시 열기</button></div>
+  <div id="install-modal" class="hidden">
+    <div class="menu-card">
+      <div class="menu-title">📱 홈 화면에 추가하기</div>
+      <div class="menu-sub">홈 화면에 넣으면 앱처럼 아이콘으로 바로 열리고, 주소창 없이 전체 화면으로 놀 수 있어요. 한 번 받은 포켓몬 모델은 기기에 남아서 다음부터 빨리 떠요.</div>
+      <ol class="install-steps" id="install-steps"></ol>
+      <div class="menu-actions"><button id="btn-install-close" class="secondary">닫기</button></div>
+    </div>
+  </div>
   <div id="rank-modal" class="hidden">
     <div class="menu-card wide">
       <div id="rank-modal-body"></div>
@@ -237,6 +254,7 @@
         <button id="btn-new" class="title-btn">▶ 시작하기</button>
         <button id="btn-continue" class="title-btn secondary" hidden>이어서하기</button>
         <button id="btn-rank" class="title-btn secondary small" hidden>🏆 이번 주 순위</button>
+        <button id="btn-install" class="title-btn secondary small" hidden>📱 홈 화면에 추가</button>
       </div>
       <div id="title-acct" hidden>☁️ <b id="title-acct-name"></b> 계정으로 시작해요 · <a href="#" id="title-switch">다른 계정으로</a></div>
       <div id="title-loading" class="hidden"></div>

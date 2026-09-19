@@ -1700,6 +1700,65 @@ async function renderAdminFeedback() {
   }
 }
 dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+// ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
+const installBtn = document.getElementById('btn-install'), installModal = document.getElementById('install-modal');
+let installPrompt = null; // 안드로이드 크롬이 주는 설치 창 (있으면 버튼으로 바로 띄운다)
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
+installBtn.hidden = isStandalone(); // 이미 홈 화면에서 열었으면 안내가 필요 없다
+/** 기기별 홈 화면 추가 순서 (iOS 는 자동 설치 창이 없어서 손으로 하는 순서를 그림처럼 보여 준다) */
+function installSteps() {
+  const ua = navigator.userAgent;
+  if (isIOS()) {
+    const inApp = /KAKAOTALK|Line\/|Instagram|FBAN|FBAV|NAVER/i.test(ua) || (!/Safari/.test(ua) && !/CriOS|FxiOS/.test(ua));
+    return [
+      ...(inApp ? ['<li class="install-note">지금 열린 앱(카카오톡 등)의 창에서는 안 돼요. 오른쪽 위 메뉴에서 <b>Safari로 열기</b>를 먼저 눌러 주세요.</li>'] : []),
+      '<li><b>Safari</b>로 이 게임을 열어요. (아이폰은 화면 아래, 아이패드는 화면 위에 버튼이 있어요)</li>',
+      '<li><b>공유 버튼</b>(네모에서 화살표가 위로 나가는 모양 ⎋)을 눌러요.</li>',
+      '<li>목록을 조금 내려서 <b>"홈 화면에 추가"</b>를 눌러요.</li>',
+      '<li>오른쪽 위 <b>추가</b>를 누르면 홈 화면에 넘버몬스터 아이콘이 생겨요!</li>',
+    ];
+  }
+  if (/Android/i.test(ua)) return [
+    '<li><b>크롬</b>으로 이 게임을 열어요.</li>',
+    '<li>오른쪽 위 <b>⋮ 메뉴</b>를 눌러요.</li>',
+    '<li><b>"홈 화면에 추가"</b> 또는 <b>"앱 설치"</b>를 누르고 <b>설치</b>를 눌러요.</li>',
+    '<li class="install-note">아래에 "홈 화면에 추가" 안내가 떠 있으면 그걸 눌러도 돼요.</li>',
+  ];
+  return [
+    '<li><b>크롬</b>이나 <b>엣지</b>로 이 게임을 열어요.</li>',
+    '<li>주소창 오른쪽 끝의 <b>설치 아이콘</b>(모니터에 화살표 ⤓)을 눌러요.</li>',
+    '<li><b>설치</b>를 누르면 앱처럼 창이 따로 열려요.</li>',
+  ];
+}
+installBtn.onclick = async () => {
+  sound.ensure();
+  if (installPrompt) { // 안드로이드·데스크톱 크롬: 바로 설치 창
+    installPrompt.prompt();
+    const r = await installPrompt.userChoice.catch(() => null); installPrompt = null;
+    if (r?.outcome === 'accepted') { installBtn.hidden = true; return; }
+  }
+  document.getElementById('install-steps').innerHTML = installSteps().join('');
+  installModal.classList.remove('hidden');
+};
+document.getElementById('btn-install-close').onclick = () => installModal.classList.add('hidden');
+if ('serviceWorker' in navigator && !location.search.includes('nosw') && location.protocol !== 'file:') {
+  const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
+  const updateBar = document.getElementById('update-bar');
+  const offerUpdate = (worker) => {
+    updateBar.hidden = false;
+    document.getElementById('btn-update').onclick = () => { if (zone && player) doSave(false); updateBar.textContent = '새 버전으로 바꾸는 중…'; worker.postMessage('SKIP_WAITING'); };
+  };
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    if (reg.waiting && hadController) offerUpdate(reg.waiting);
+    reg.addEventListener('updatefound', () => { const w = reg.installing; w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); }); });
+    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000); // 오래 켜 두어도 한 시간마다 새 버전을 확인
+  }).catch((e) => console.warn('[sw] 등록 실패', e));
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloading) return; reloading = true; location.reload(); });
+}
 // ---------- 주간 순위표: 도감 "순위" 탭과 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
 const rankModal = document.getElementById('rank-modal');
 document.getElementById('btn-rank').onclick = () => { sound.ensure(); rankModal.classList.remove('hidden'); renderRank(document.getElementById('rank-modal-body'), false); };
