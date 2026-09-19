@@ -85,6 +85,8 @@ const ALIAS = {
   swimidle: ['swim_idle', 'tread', 'float', 'swim'], // 물속에서 가만히 떠 있을 때
 };
 const MATCH = [(n, c) => n === c, (n, c) => n.startsWith(c), (n, c) => n.includes(c)]; // 딱 맞는 이름 → 앞부분이 같은 이름 → 포함하는 이름 순
+// "가만히 있는" 동작. 이 클립이 없는 모델(뮤는 Walking·Running 뿐)은 걷기 클립을 계속 도는 대신 첫 장면에서 멈춰 서 있는다 — 전투에서 제자리걸음을 하지 않게
+const STILL = new Set(['idle', 'swimidle']);
 
 // 제자리(In Place) 애니가 아니면 캐릭터가 게임 좌표와 따로 앞으로 밀려나가 보인다.
 // 뼈의 x/z 가 그 뼈 높이의 20% 넘게 움직이면 걸음의 흔들림이 아니라 "이동"이므로 첫 프레임 값으로 고정한다.
@@ -116,8 +118,10 @@ class ModelAnim {
       this.names.push(key);
     }
     this.found = {};   // 'walk' → 이 모델이 실제로 가진 클립 이름 (한 번 찾으면 기억한다)
+    this.exact = {};   // 'walk' → 그 동작에 맞는 클립이 정말 있었나 (없으면 첫 클립으로 대신한 것)
     this.first = this.names[0];
-    this.current = null;
+    this.current = null; // 지금 도는 클립 이름
+    this.still = false;  // 지금 클립을 첫 장면에서 멈춰 두었나
     this.play('idle');
   }
   /** 원하는 동작 이름을 이 모델에 있는 클립 이름으로 바꿔 준다 */
@@ -131,15 +135,23 @@ class ModelAnim {
       }
       if (hit) break;
     }
+    this.exact[name] = !!hit;
     return (this.found[name] = hit || this.first);
   }
   play(name) {
     const key = this.find(name);
-    if (!key || key === this.current) return;
+    if (!key) return;
+    const still = STILL.has(name) && !this.exact[name]; // idle 이 없어서 걷기 클립으로 대신할 때는 멈춰 선다
+    if (key === this.current) {
+      if (still !== this.still) { const a = this.actions[key]; a.paused = still; if (still) a.time = 0; this.still = still; } // 같은 클립: 페이드 없이 멈추거나 다시 돈다
+      return;
+    }
     const next = this.actions[key];
     if (this.current) this.actions[this.current].fadeOut(0.2);
     next.reset().fadeIn(0.2).play();
+    next.paused = still; // 멈춘 클립도 fadeIn 은 그대로 되므로 자연스럽게 바뀐다
     this.current = key;
+    this.still = still;
   }
   update(dt) { this.mixer.update(dt); }
 }

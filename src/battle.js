@@ -565,7 +565,7 @@ export class Battle {
   /** 어질어질할 때 넘버볼 고르기 버튼들 (재고·잡힐 확률) */
   /** 잡힐 확률 (등급·볼 + 이 포켓몬에게 실패한 만큼 보너스) */
   chanceFor(tier) { return Math.min(100, catchChance(this.creature.data.grade || 1, tier) + (this.creature.catchBonus || 0)); }
-  renderBalls() {
+  renderBalls() { // 넘버볼 3개 + 메가큐브를 늘 2줄(2×2)로 보여 준다 (style.css #battle-balls)
     this.ballsEl.innerHTML = '';
     const stock = this.getBalls();
     for (const b of BALLS) {
@@ -573,7 +573,7 @@ export class Battle {
       const btn = document.createElement('button');
       btn.className = 'ball-btn' + (n ? '' : ' none');
       btn.style.setProperty('--ball', b.css);
-      btn.innerHTML = `<span class="ball-dot${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
+      btn.innerHTML = `<span class="ball-dot${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-meta"><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span></span>`; // 개수·확률은 한 묶음: 휴대폰에서는 이름 아랫줄로 내려간다
       btn.title = `잡힐 확률 ${pct}%`;
       btn.disabled = !n;
       btn.onclick = () => this.throwBall(b.id);

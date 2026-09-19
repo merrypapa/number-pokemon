@@ -449,8 +449,18 @@ body.intro #btn-save { display: none !important; }
 .member-actions button small { font-size: 11px; color: #777; font-weight: 700; }
 
 /* 넘버볼 고르기 (대결) */
-#battle-balls { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
-.ball-btn { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; }
+/* 넘버볼 고르기: 브론즈·실버 / 골드·메가큐브 — 화면이 좁아도 넓어도 늘 2줄(2×2)이라 메가큐브가 혼자 셋째 줄로 밀리지 않는다 */
+#battle-balls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.ball-btn { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px; border-radius: 999px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; font-family: inherit; }
+.ball-btn .ball-meta { display: flex; align-items: baseline; gap: 6px; }
+@media (max-width: 640px) { /* 휴대폰: 볼 이름 아래에 개수·확률을 두 줄로 — 320px 폭에서도 한 줄에 두 개가 들어간다 */
+  .ball-btn { display: grid; grid-template-columns: auto 1fr; grid-template-areas: 'dot name' 'dot meta'; column-gap: 8px; row-gap: 0; padding: 6px 10px; border-radius: 18px; text-align: left; }
+  .ball-btn .ball-dot { grid-area: dot; align-self: center; }
+  .ball-btn .ball-name { grid-area: name; font-size: 14px; line-height: 1.25; white-space: nowrap; }
+  .ball-btn .ball-meta { grid-area: meta; gap: 5px; }
+  .ball-btn .ball-n { font-size: 14px; }
+  .ball-btn .ball-pct { margin-left: 0; }
+}
 .ball-col { display: flex; flex-direction: column; gap: 2px; }
 .ball-line { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .ball-btn:active { transform: translateY(2px); box-shadow: none; }
