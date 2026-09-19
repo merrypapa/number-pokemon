@@ -1455,7 +1455,8 @@ function cloudSummary(d) {
   const leader = d.party?.[d.leader] ? speciesById[d.party[d.leader].speciesId] : null;
   return { name: d.name, caught: d.caught || 0, dexCount: Object.keys(d.dex || {}).filter((id) => d.dex[id] > 0 && speciesById[id]).length, conquered: Object.keys(d.conquered || {}).length, blocks: d.blocks || 0, leaderId: leader?.id || null, leaderName: leader?.name || null, zone: d.zone || 'forest' };
 }
-const acctModal = document.getElementById('account-modal'), acctBtn = document.getElementById('btn-account'), dexLogoutBtn = document.getElementById('dex-logout');
+const acctModal = document.getElementById('account-modal'), dexLogoutBtn = document.getElementById('dex-logout');
+const titleAcct = document.getElementById('title-acct');
 const acctName = document.getElementById('acct-name'), acctPin = document.getElementById('acct-pin'), acctErr = document.getElementById('acct-error');
 const acctForm = document.getElementById('acct-form'), acctSigned = document.getElementById('acct-signed'), acctChoice = document.getElementById('acct-choice');
 let acctMode = 'login'; // 'login' | 'signup'
@@ -1473,8 +1474,8 @@ const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends
 function acctError(msg) { acctErr.textContent = msg || ''; acctErr.classList.toggle('hidden', !msg); }
 function refreshAccountUi() {
   const u = cloud.user;
-  acctBtn.hidden = !cloud.enabled;
-  acctBtn.textContent = u ? `☁️ ${u.name}` : '☁️ 계정';
+  titleAcct.hidden = !(cloud.enabled && u); // 처음 화면 버튼은 시작하기 하나. 이미 로그인돼 있으면 그 아래에 누구 계정인지 작게 알려 준다
+  if (u) document.getElementById('title-acct-name').textContent = u.name;
   if (u) { acctChoice.classList.add('hidden'); acctForm.classList.add('hidden'); } else acctShowChoice();
   acctSigned.classList.toggle('hidden', !u);
   if (u) document.getElementById('acct-me-name').textContent = u.name;
@@ -1484,7 +1485,10 @@ function refreshAccountUi() {
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
 cloud.onUser = () => { refreshAccountUi(); };
-acctBtn.onclick = () => { acctError(''); if (!cloud.user) acctShowChoice(); acctModal.classList.remove('hidden'); };
+/** 계정 창 열기: 로그인 전이면 로그인/새 계정 고르기, 로그인 뒤면 내 계정(로그아웃) */
+function openAccount() { acctError(''); if (!cloud.user) acctShowChoice(); acctModal.classList.remove('hidden'); }
+/** 처음 화면의 "다른 계정으로": 물어보지 않고 로그아웃하고 로그인/새 계정 고르기로 (아직 게임을 시작하기 전이라 저장할 것이 없다) */
+document.getElementById('title-switch').onclick = async (e) => { e.preventDefault(); sound.ensure(); try { await cloud.signOut(); } catch (err) { console.warn('[cloud] 로그아웃', err); } acctShowChoice(); acctModal.classList.remove('hidden'); };
 document.getElementById('btn-acct-close').onclick = () => acctModal.classList.add('hidden');
 for (const el of [acctName, acctPin]) { el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-acct-go').click(); e.stopPropagation(); }); el.addEventListener('keyup', (e) => e.stopPropagation()); }
 function acctInputs() {
@@ -1529,7 +1533,7 @@ dexLogoutBtn.onclick = logoutAndRestart;
 // 친구 탭: 이름으로 친구 요청 → 상대가 수락하면 서로 친구. 받은 요청은 수락/거절
 async function renderFriends() {
   const box = dex.friendsEl;
-  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = () => acctBtn.onclick(); return; }
+  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = openAccount; return; }
   box.innerHTML = `<div class="friend-me">☁️ 나: ${cloud.user.name}</div>
     <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 요청</button></div>
     <div class="friend-note">친구가 만든 계정 이름을 적어 요청을 보내면, 친구가 수락한 뒤부터 서로의 도감·정복 상황이 보여요.</div>
@@ -1616,7 +1620,7 @@ async function fbToggleRecord(btn) {
 }
 async function renderFeedback() {
   const box = dex.feedbackEl;
-  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 만든 사람에게 하고 싶은 말을 보낼 수 있어요.</div><div class="friend-add"><button id="btn-fb-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-fb-login').onclick = () => acctBtn.onclick(); return; }
+  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 만든 사람에게 하고 싶은 말을 보낼 수 있어요.</div><div class="friend-add"><button id="btn-fb-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-fb-login').onclick = openAccount; return; }
   box.innerHTML = `<div class="friend-me">📨 만든 사람에게 요청하기</div>
     <div class="friend-note">게임에 넣고 싶은 것, 고쳤으면 하는 것을 글로 적거나, 목소리로 말하거나, 종이에 쓴 걸 사진으로 찍어 보내요.</div>
     <textarea id="fb-text" maxlength="1000" placeholder="예: 리자몽이 하늘을 날았으면 좋겠어요"></textarea>

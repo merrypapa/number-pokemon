@@ -511,7 +511,9 @@ body.intro #btn-save { display: none !important; }
 #acct-error { color: #e8453c; font-weight: 800; font-size: 14px; }
 #acct-error.hidden { display: none; }
 .acct-me { font-size: 18px; font-weight: 800; color: #333; margin-top: 12px; }
-#btn-account[hidden], #btn-continue[hidden] { display: none; }
+#btn-continue[hidden], #title-acct[hidden] { display: none; }
+#title-acct { margin-top: 12px; font-size: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); font-weight: 700; } /* 이미 로그인돼 있을 때만: 누구 계정으로 시작하는지 + 다른 계정으로 바꾸는 작은 글자 링크 */
+#title-acct a { color: #ffe066; text-decoration: underline; }
 .friend-accept { font: inherit; font-size: 14px; font-weight: 900; padding: 8px 12px; border-radius: 10px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; cursor: pointer; white-space: nowrap; }
 .friend-decline { font: inherit; font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #eee; color: #888; cursor: pointer; white-space: nowrap; }
 #dex-friends { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
