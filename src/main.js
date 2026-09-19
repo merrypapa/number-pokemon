@@ -132,7 +132,7 @@ preloadModels(modelFiles, (done, total) => {
   loadingEl.textContent = `친구들 불러오는 중 ${done}/${total}`;
   loadingEl.classList.toggle('hidden', done >= total);
 });
-document.getElementById('title-sub').textContent = `${starters.map((c) => c.name).join('·')}와 함께 떠나는 신나는 숫자 모험!`;
+document.getElementById('title-sub').textContent = '포켓몬과 함께 떠나는 신나는 숫자 모험!';
 const nbById = Object.fromEntries(nbData.numberblocks.map((n) => [n.id, n]));
 const nbByNumber = Object.fromEntries(nbData.numberblocks.map((n) => [n.number, n]));
 
@@ -1286,7 +1286,6 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   if (state.glow) { player.lamp.distance = 30; }
   camera.position.copy(player.position).add(camOffset());
   snapCam = true;
-  document.getElementById('btn-code').classList.remove('hidden');
   showZoneBanner(zone.label);
   refreshHud();
 }
@@ -1305,7 +1304,9 @@ function chooseStarter(id) {
 // ---------- 관리자 모드 (기능 테스트용) ----------
 // 새로하기에서 이름을 "Admin" 으로 하면 보스를 잡지 않아도 모든 지역이 열린다.
 // 도감의 "관리자" 탭에서 어느 지역이든 바로 갈 수 있고, 모든 포켓몬이 도감에 들어 있어 대표로 고를 수 있다.
-const isAdminName = (name) => name.trim().toLowerCase() === 'admin';
+const DEBUG_ADMIN = location.search.includes('debug') && location.search.includes('admin'); // 시험용: ?debug&admin
+const isAdminName = () => false; // 이름 Admin 으로 관리자가 되던 기능은 껐다. 계정 프로필의 admin 이 true 인 계정(콘솔에서 켠다)만 관리자
+const accountAdmin = (name) => DEBUG_ADMIN || !!(cloud.user?.admin && (name || '').trim().toLowerCase() === cloud.user.name.trim().toLowerCase());
 function applyAdmin() {
   for (const n of CONQUERABLE) state.conquered[n] = true; // 정복 처리 → 동굴 입구·심해 소용돌이가 열린다
   state.megaBlocks = 30;
@@ -1358,14 +1359,20 @@ function showAdminPanel() {
   const note = document.createElement('div'); note.className = 'admin-note'; note.textContent = '관리자 모드: 모든 지역이 열려 있고, 모든 포켓몬이 도감에 있어 대표로 고를 수 있어요. 메가블럭 30개, 넘버볼 각 30개로 시작해요.'; box.appendChild(note);
 }
 // 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
-const BUILD = 'v2026-09-18b';
-document.getElementById('title-help').insertAdjacentText('beforeend', ` · ${BUILD}`);
+const BUILD = 'v2026-09-19', UPDATED = '2026년 9월 19일';
+document.getElementById('title-help').textContent = `버전 ${BUILD} · 업데이트 ${UPDATED}`;
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');
 const continueEl = document.getElementById('continue');
 const nameInput = document.getElementById('name-input');
+/** 시작하기: 클라우드가 켜져 있으면 계정 모달(로그인/새 계정)로, 아니면 예전처럼 이름을 적는 화면으로 */
 document.getElementById('btn-new').onclick = () => {
   sound.ensure();
+  if (cloud.enabled) {
+    if (cloud.user) { startWithAccount(cloud.user); return; } // 이미 로그인돼 있으면 바로
+    acctShowChoice(); acctModal.classList.remove('hidden');
+    return;
+  }
   titleEl.classList.add('hidden');
   nameInput.value = '';
   newgameEl.classList.remove('hidden');
@@ -1375,7 +1382,7 @@ function confirmName() {
   const name = (nameInput.value || '').trim().slice(0, 8) || PLAYER_NAME;
   if (loadSave(name) && !confirm(`"${name}" 이름으로 저장된 모험이 있어요. 새로 시작하면 지워집니다. 새로 시작할까요?`)) return;
   state.name = name;
-  state.admin = isAdminName(name); // 이름이 Admin 이면 관리자 모드로 시작한다
+  state.admin = accountAdmin(name); // 관리자 계정이면 관리자 모드로 시작한다
   newgameEl.classList.add('hidden');
   starterEl.classList.remove('hidden');
   renderStarter();
@@ -1408,7 +1415,6 @@ function renderContinue() {
     list.appendChild(row);
   }
 }
-document.getElementById('btn-continue').disabled = listSaves().length === 0;
 
 // ---------- 저장 / 불러오기 ----------
 function buildSaveData() {
@@ -1448,80 +1454,110 @@ function cloudSummary(d) {
   const leader = d.party?.[d.leader] ? speciesById[d.party[d.leader].speciesId] : null;
   return { name: d.name, caught: d.caught || 0, dexCount: Object.keys(d.dex || {}).filter((id) => d.dex[id] > 0 && speciesById[id]).length, conquered: Object.keys(d.conquered || {}).length, blocks: d.blocks || 0, leaderId: leader?.id || null, leaderName: leader?.name || null, zone: d.zone || 'forest' };
 }
-const acctModal = document.getElementById('account-modal'), acctBtn = document.getElementById('btn-account');
+const acctModal = document.getElementById('account-modal'), acctBtn = document.getElementById('btn-account'), dexLogoutBtn = document.getElementById('dex-logout');
 const acctName = document.getElementById('acct-name'), acctPin = document.getElementById('acct-pin'), acctErr = document.getElementById('acct-error');
-const acctForm = document.getElementById('acct-form'), acctSigned = document.getElementById('acct-signed');
+const acctForm = document.getElementById('acct-form'), acctSigned = document.getElementById('acct-signed'), acctChoice = document.getElementById('acct-choice');
+let acctMode = 'login'; // 'login' | 'signup'
+function acctShowChoice() { acctChoice.classList.remove('hidden'); acctForm.classList.add('hidden'); acctError(''); }
+function acctShowForm(mode) {
+  acctMode = mode; acctChoice.classList.add('hidden'); acctForm.classList.remove('hidden'); acctError('');
+  document.getElementById('acct-form-title').textContent = mode === 'signup' ? '새 계정: 이름과 숫자 6자리 비밀번호를 정해요 (잊지 않게 적어 두세요!)' : '기존 계정의 이름과 비밀번호를 적어요';
+  document.getElementById('btn-acct-go').textContent = mode === 'signup' ? '계정 만들고 시작 ▶' : '로그인해서 이어하기 ▶';
+  acctPin.value = ''; setTimeout(() => acctName.focus(), 50);
+}
+document.getElementById('btn-acct-choose-login').onclick = () => acctShowForm('login');
+document.getElementById('btn-acct-choose-signup').onclick = () => acctShowForm('signup');
+document.getElementById('btn-acct-back').onclick = acctShowChoice;
 const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]');
 function acctError(msg) { acctErr.textContent = msg || ''; acctErr.classList.toggle('hidden', !msg); }
 function refreshAccountUi() {
   const u = cloud.user;
   acctBtn.hidden = !cloud.enabled;
   acctBtn.textContent = u ? `☁️ ${u.name}` : '☁️ 계정';
-  acctForm.classList.toggle('hidden', !!u); acctSigned.classList.toggle('hidden', !u);
+  if (u) { acctChoice.classList.add('hidden'); acctForm.classList.add('hidden'); } else acctShowChoice();
+  acctSigned.classList.toggle('hidden', !u);
   if (u) document.getElementById('acct-me-name').textContent = u.name;
   friendsTabBtn.hidden = !cloud.enabled; // 친구 탭은 클라우드가 켜져 있으면 늘 보인다 (로그인 전에는 로그인 버튼)
+  dexLogoutBtn.hidden = !u;
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
 cloud.onUser = () => { refreshAccountUi(); };
-acctBtn.onclick = () => { acctError(''); acctModal.classList.remove('hidden'); if (!cloud.user) setTimeout(() => acctName.focus(), 50); };
+acctBtn.onclick = () => { acctError(''); if (!cloud.user) acctShowChoice(); acctModal.classList.remove('hidden'); };
 document.getElementById('btn-acct-close').onclick = () => acctModal.classList.add('hidden');
-for (const el of [acctName, acctPin]) { el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-acct-login').click(); e.stopPropagation(); }); el.addEventListener('keyup', (e) => e.stopPropagation()); }
+for (const el of [acctName, acctPin]) { el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-acct-go').click(); e.stopPropagation(); }); el.addEventListener('keyup', (e) => e.stopPropagation()); }
 function acctInputs() {
   const name = acctName.value.trim(), pin = acctPin.value.trim();
   if (!validName(name)) { acctError('이름은 2~8글자, 띄어쓰기 없이 적어 주세요.'); return null; }
-  if (!validPin(pin)) { acctError('비밀번호는 숫자 4자리예요.'); return null; }
+  if (!validPin(pin)) { acctError('비밀번호는 숫자 6자리예요.'); return null; }
   return { name, pin };
 }
 let acctBusy = false;
-/** 로그인 뒤: 클라우드 저장이 있으면 이 기기로 가져와(더 새것일 때) 이어서하기 목록에 보여 준다 */
-async function afterSignIn(u, fresh) {
+/** 로그인/가입 뒤 바로 시작: 클라우드 저장(또는 이 기기 저장)이 있으면 이어서, 없으면 그 이름으로 포켓몬 고르기 */
+async function startWithAccount(u) {
   acctModal.classList.add('hidden');
-  if (fresh) { // 새 계정: 계정 이름으로 새 모험을 시작한다
-    titleEl.classList.add('hidden'); nameInput.value = u.name; newgameEl.classList.remove('hidden');
-    say(`☁️ ${u.name} 계정을 만들었어! 이 이름으로 모험을 시작하면 클라우드에 저장돼.`, { sec: 6 });
-    return;
-  }
-  try {
-    const remote = await cloud.loadGame();
-    const local = loadSave(u.name);
-    if (remote && (!local || (remote.savedAt || 0) > (local.savedAt || 0))) { saveGame(remote); say(`☁️ ${u.name}의 클라우드 저장을 가져왔어! 이어서하기에서 골라 봐.`, { sec: 6 }); }
-    else if (!remote && local) { cloud.saveGame(local, cloudSummary(local)).catch(() => {}); say(`☁️ ${u.name}로 로그인했어! 이 기기의 저장을 클라우드에 올렸어.`, { sec: 6 }); }
-    else say(`☁️ ${u.name}로 로그인했어!`, { sec: 4 });
-  } catch (e) { say(`☁️ 로그인했지만 클라우드 저장을 못 읽었어: ${e.message}`, { sec: 6 }); }
-  document.getElementById('btn-continue').disabled = listSaves().length === 0;
-  if (!zone && listSaves().length) { titleEl.classList.add('hidden'); renderContinue(); continueEl.classList.remove('hidden'); }
+  if (zone) { say(`☁️ ${u.name}로 로그인했어!`, { sec: 4 }); return; } // 게임 중 로그인: 그대로 계속
+  let remote = null;
+  try { remote = await cloud.loadGame(); } catch (e) { say(`☁️ 클라우드 저장을 못 읽었어: ${e.message}`, { sec: 6 }); }
+  const local = loadSave(u.name);
+  let d = null;
+  if (remote && (!local || (remote.savedAt || 0) >= (local.savedAt || 0))) { d = remote; saveGame(remote); }
+  else if (local) { d = local; cloud.saveGame(local, cloudSummary(local)).catch(() => {}); }
+  titleEl.classList.add('hidden');
+  if (d) { applySave(d); say(`☁️ ${u.name}의 모험을 이어서 해! (${formatWhen(d.savedAt)} 저장)`, { sec: 6 }); }
+  else { state.name = u.name; state.admin = accountAdmin(u.name); starterEl.classList.remove('hidden'); renderStarter(); say(`☁️ ${u.name}, 함께 모험할 포켓몬을 골라 봐!`, { sec: 5 }); }
 }
-document.getElementById('btn-acct-login').onclick = async () => {
+document.getElementById('btn-acct-go').onclick = async () => {
   const v = acctInputs(); if (!v || acctBusy) return; acctBusy = true; acctError('');
-  try { const u = await cloud.signIn(v.name, v.pin); acctPin.value = ''; await afterSignIn(u, false); } catch (e) { acctError(e.message); } finally { acctBusy = false; }
+  try {
+    const u = acctMode === 'signup' ? await cloud.signUp(v.name, v.pin) : await cloud.signIn(v.name, v.pin);
+    acctPin.value = ''; await startWithAccount(u);
+  } catch (e) { acctError(e.message); } finally { acctBusy = false; }
 };
-document.getElementById('btn-acct-signup').onclick = async () => {
-  const v = acctInputs(); if (!v || acctBusy) return; acctBusy = true; acctError('');
-  try { const u = await cloud.signUp(v.name, v.pin); acctPin.value = ''; await afterSignIn(u, true); } catch (e) { acctError(e.message); } finally { acctBusy = false; }
-};
-document.getElementById('btn-acct-logout').onclick = async () => { await cloud.signOut(); acctModal.classList.add('hidden'); say('☁️ 로그아웃했어. 저장은 이 기기에 그대로 있어.', { sec: 4 }); };
-// 친구 탭
+/** 로그아웃: 물어본 뒤 저장하고 로그아웃, 처음 화면으로 (페이지를 새로 연다) */
+async function logoutAndRestart() {
+  if (!confirm(`정말 로그아웃할까요?${zone ? ' 지금까지 한 것은 저장돼요.' : ''}`)) return;
+  try {
+    if (zone && player && !battle.active) { const data = buildSaveData(); saveGame(data); await cloud.saveGame(data, cloudSummary(data)); }
+    await cloud.signOut();
+  } catch (e) { console.warn('[cloud] 로그아웃', e); }
+  location.reload();
+}
+document.getElementById('btn-acct-logout').onclick = logoutAndRestart;
+dexLogoutBtn.onclick = logoutAndRestart;
+// 친구 탭: 이름으로 친구 요청 → 상대가 수락하면 서로 친구. 받은 요청은 수락/거절
 async function renderFriends() {
   const box = dex.friendsEl;
   if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = () => acctBtn.onclick(); return; }
-  box.innerHTML = `<div class="friend-add"><div class="friend-me" style="flex:1 1 auto">☁️ 나: ${cloud.user.name}</div><button id="btn-friend-logout" class="friend-logout">로그아웃</button></div>
-    <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 추가</button></div>
-    <div class="friend-note">친구가 만든 계정 이름을 적으면 친구의 도감·정복 상황이 보여요.</div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
-  box.querySelector('#btn-friend-logout').onclick = () => document.getElementById('btn-acct-logout').onclick();
+  box.innerHTML = `<div class="friend-me">☁️ 나: ${cloud.user.name}</div>
+    <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 요청</button></div>
+    <div class="friend-note">친구가 만든 계정 이름을 적어 요청을 보내면, 친구가 수락한 뒤부터 서로의 도감·정복 상황이 보여요.</div>
+    <div id="friend-requests"></div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
   const input = box.querySelector('#friend-name');
-  input.addEventListener('keydown', (e) => e.stopPropagation()); input.addEventListener('keyup', (e) => e.stopPropagation());
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') box.querySelector('#btn-friend-add').click(); e.stopPropagation(); }); input.addEventListener('keyup', (e) => e.stopPropagation());
   box.querySelector('#btn-friend-add').onclick = async () => {
     const n = input.value.trim(); if (!n) return;
-    try { const p = await cloud.addFriend(n); input.value = ''; say(`👫 ${p.name}을(를) 친구로 추가했어!`, { sec: 4 }); renderFriendList(); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
+    try { const p = await cloud.requestFriend(n); input.value = ''; say(`📨 ${p.name}에게 친구 요청을 보냈어! 수락하면 친구 목록에 나타나.`, { sec: 5 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
   };
   renderFriendList();
 }
 async function renderFriendList() {
-  const list = dex.friendsEl.querySelector('#friend-list'); if (!list) return;
-  let friends = [];
-  try { friends = await cloud.listFriends(); } catch (e) { list.innerHTML = `<div class="friend-note">친구 목록을 못 읽었어: ${e.message}</div>`; return; }
-  if (!friends.length) { list.innerHTML = '<div class="friend-note">아직 친구가 없어요. 위에 친구 이름을 적어 추가해 봐요!</div>'; return; }
-  list.innerHTML = '';
+  const box = dex.friendsEl, list = box.querySelector('#friend-list'), reqBox = box.querySelector('#friend-requests'); if (!list) return;
+  let friends = [], requests = [];
+  try { [friends, requests] = await Promise.all([cloud.listFriends(), cloud.listRequests()]); } catch (e) { list.innerHTML = `<div class="friend-note">친구 목록을 못 읽었어: ${e.message}</div>`; return; }
+  reqBox.innerHTML = '';
+  if (requests.length) {
+    reqBox.innerHTML = `<div class="friend-me">📨 받은 친구 요청 ${requests.length}개</div>`;
+    for (const r of requests.sort((a, b) => (b.at || 0) - (a.at || 0))) {
+      const row = document.createElement('div'); row.className = 'friend-row';
+      row.innerHTML = `<div class="save-info"><div class="save-name">${r.fromName || '?'}</div><div class="save-sub">친구가 되고 싶대요${r.at ? ` · ${formatWhen(r.at)}` : ''}</div></div>
+        <button class="friend-accept">✅ 수락</button><button class="friend-decline">거절</button>`;
+      row.querySelector('.friend-accept').onclick = async () => { try { await cloud.acceptRequest(r.uid); say(`👫 ${r.fromName}과(와) 친구가 됐어!`, { sec: 4 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); } renderFriendList(); };
+      row.querySelector('.friend-decline').onclick = async () => { await cloud.declineRequest(r.uid); renderFriendList(); };
+      reqBox.appendChild(row);
+    }
+  }
+  if (!friends.length) { list.innerHTML = '<div class="friend-note">아직 친구가 없어요. 위에 친구 이름을 적어 요청을 보내 봐요!</div>'; return; }
+  list.innerHTML = '<div class="friend-me">👫 내 친구</div>';
   for (const f of friends.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))) {
     const sp = f.leaderId ? speciesById[f.leaderId] : null, t = sp ? dex.thumbs(sp) : null;
     const row = document.createElement('div'); row.className = 'friend-row';
@@ -1536,55 +1572,9 @@ async function renderFriendList() {
 dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); };
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
-// ---------- 저장 코드: 다른 기기로 옮기기 (텍스트로 복사해 두었다가 붙여넣기) ----------
-const CODE_PREFIX = 'NPK1.';
-function encodeSave(data) { const bytes = new TextEncoder().encode(JSON.stringify(data)); let bin = ''; for (const b of bytes) bin += String.fromCharCode(b); return CODE_PREFIX + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-function decodeSave(text) {
-  const t = (text || '').replace(/\s+/g, '');
-  if (!t.startsWith(CODE_PREFIX)) throw new Error('NPK1. 으로 시작하는 저장 코드가 아니에요');
-  let b64 = t.slice(CODE_PREFIX.length).replace(/-/g, '+').replace(/_/g, '/');
-  while (b64.length % 4) b64 += '=';
-  const bin = atob(b64); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const d = JSON.parse(new TextDecoder().decode(bytes));
-  if (!d || d.v !== 1 || !d.name) throw new Error('알 수 없는 저장 코드예요');
-  return d;
-}
-const codeModalEl = document.getElementById('code-modal'), codeTextEl = document.getElementById('code-text');
-document.getElementById('btn-code').onclick = async () => {
-  if (!zone || !player || battle.active) return;
-  const data = buildSaveData(); saveGame(data);
-  const code = encodeSave(data);
-  codeTextEl.value = code;
-  let copied = false;
-  try { await navigator.clipboard.writeText(code); copied = true; } catch (_) { copied = false; }
-  document.getElementById('code-modal-sub').textContent = copied ? '복사했어! 텔레그램이나 메모에 붙여넣어 두면 다른 기기에서 이어 할 수 있어.' : '아래 코드를 길게 눌러 전체 선택한 뒤 복사해서 텔레그램이나 메모에 붙여넣어 둬.';
-  codeModalEl.classList.remove('hidden');
-  sound.click();
-};
-document.getElementById('btn-code-close').onclick = () => codeModalEl.classList.add('hidden');
-document.getElementById('btn-code-copy').onclick = async () => { try { await navigator.clipboard.writeText(codeTextEl.value); document.getElementById('code-modal-sub').textContent = '복사했어!'; } catch (_) { codeTextEl.focus(); codeTextEl.select(); } };
-codeTextEl.onclick = () => { codeTextEl.focus(); codeTextEl.select(); };
-let codeLoaded = null;
-document.getElementById('btn-code-check').onclick = () => {
-  const prev = document.getElementById('code-preview'), btn = document.getElementById('btn-code-load');
-  try {
-    const d = decodeSave(document.getElementById('code-input').value);
-    codeLoaded = d;
-    const leader = d.party?.[d.leader] ? speciesById[d.party[d.leader].speciesId]?.name : null;
-    prev.textContent = `✅ ${d.name}의 모험 · ${ZONE_INFO[d.zone]?.name || d.zone} · 친구 ${d.caught || 0}마리 · 정복 ${Object.keys(d.conquered || {}).length}/${ZONE_COUNT} · 블록 ${d.blocks || 0}개${leader ? ` · 대표 ${leader}` : ''} · ${formatWhen(d.savedAt)}`;
-    prev.classList.remove('bad'); prev.classList.remove('hidden'); btn.disabled = false;
-  } catch (e) { codeLoaded = null; prev.textContent = `❌ ${e.message}`; prev.classList.add('bad'); prev.classList.remove('hidden'); btn.disabled = true; }
-};
-document.getElementById('btn-code-load').onclick = () => {
-  if (!codeLoaded) return;
-  if (loadSave(codeLoaded.name) && !confirm(`"${codeLoaded.name}" 이름의 저장이 이 기기에 이미 있어요. 코드의 진행으로 바꿀까요?`)) return;
-  saveGame(codeLoaded);
-  continueEl.classList.add('hidden');
-  applySave(codeLoaded);
-};
 function applySave(d) {
   state.name = d.name;
-  state.admin = !!d.admin || isAdminName(d.name || '');
+  state.admin = accountAdmin(d.name || '') || (DEBUG_ADMIN && !!d.admin);
   Object.assign(state, { blocks: 0, megaBlocks: d.megaBlocks || 0, glowBlocks: d.glowBlocks || 0, caught: d.caught || 0, rescued: d.rescued || 0, conquered: { ...(d.conquered || {}) }, caughtCreatures: d.caughtCreatures || {}, tutorial: d.tutorial ?? 5, upgradeTold: !!d.upgradeTold, mapTold: !!d.mapTold, glow: !!d.glow });
   // 옛 저장의 보스 전용 id → 합쳐진 종 id (보스로 잡은 기록도 남긴다)
   const ALIAS = { b01: 'm01ee', b03: 'm02ee', b04: 'm05ee', hb01: 'm36', pb02: 'm18', pb05: 'm33', pb08: 'm42', pb10: 'm26', pb01: 'm07', pb04: 'm27', pb09: 'm21e', pb03: 'm34', pb06: 'm03e', pb07: 'm15', m51ee: 'hb02' };

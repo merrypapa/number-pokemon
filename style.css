@@ -177,16 +177,21 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 #btn-dex { position: fixed; top: 12px; right: 12px; z-index: 6; font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
 #dex { position: fixed; inset: 0; background: rgba(20,30,50,.6); z-index: 14; display: flex; align-items: center; justify-content: center; padding: 12px; }
 #dex-card { background: #fffbe6; border-radius: 22px; width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
-#dex-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 130px 12px 16px; border-bottom: 2px solid #f0e6c0; } /* 오른쪽 여백은 저장·닫기 버튼 자리 (절대 위치라 좁은 화면에서도 안 밀려난다) */
+#dex-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 240px 12px 16px; border-bottom: 2px solid #f0e6c0; } /* 오른쪽 여백은 저장·닫기 버튼 자리 (절대 위치라 좁은 화면에서도 안 밀려난다) */
 #dex-title { font-size: 20px; font-weight: 900; color: #333; white-space: nowrap; }
 #dex-count { font-weight: 800; color: #777; white-space: nowrap; }
 #dex-blocks { font-weight: 900; color: #fff; background: #bbb; padding: 4px 12px 4px 8px; border-radius: 999px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 #dex-blocks::before { content: ''; width: 14px; height: 14px; border-radius: 3px; background: #fff; border: 2px solid #20232e; box-sizing: border-box; }
 #dex-body { flex: 1; min-height: 0; overflow-y: auto; }
 #dex-grid-title { font-size: 16px; font-weight: 900; color: #555; padding: 10px 12px 0; }
-#dex-save { position: absolute; top: 50%; right: 62px; transform: translateY(-50%); font: inherit; font-size: 14px; font-weight: 900; padding: 8px 12px; border-radius: 999px; border: 0; background: #57b947; color: #fff; cursor: pointer; box-shadow: 0 2px 0 #3d8c30; white-space: nowrap; }
-#dex-save:active { transform: translateY(calc(-50% + 2px)); box-shadow: none; }
-#btn-dex-close { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); width: 40px; height: 40px; font-size: 20px; font-weight: 900; line-height: 1; padding: 0; border-radius: 50%; border: 0; background: #eee; color: #20232e; cursor: pointer; }
+
+#dex-actions { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
+#dex-actions button { font: inherit; font-size: 14px; font-weight: 900; height: 40px; padding: 0 14px; border-radius: 999px; border: 0; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+#dex-actions button:active { transform: translateY(2px); box-shadow: none; }
+#dex-save { background: #57b947; color: #fff; }
+#dex-logout { background: #eee; color: #666; }
+#dex-logout[hidden] { display: none; }
+#btn-dex-close { width: 40px; padding: 0; font-size: 20px; background: #ffd93d; color: #20232e; }
 #dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
 .dex-item { background: #fff; border-radius: 16px; padding: 8px; text-align: center; border: 3px solid transparent; position: relative; }
 .dex-item.caught { border-color: #ffd93d; }
@@ -410,11 +415,11 @@ body.intro #btn-save { display: none !important; }
   #dex { padding: 0; align-items: stretch; }
   #dex-card { width: 100%; max-height: none; height: 100dvh; border-radius: 0; }
   #dex-head { position: sticky; top: 0; background: #fffbe6; z-index: 2; gap: 6px 8px; padding: 8px 10px; }
-  #dex-title { flex-basis: 100%; padding-right: 112px; line-height: 40px; } /* 첫 줄: 제목 + (오른쪽 위) 저장·닫기, 둘째 줄: 탭과 블록 알약 */
+  #dex-title { flex-basis: 100%; padding-right: 200px; line-height: 40px; } /* 첫 줄: 제목 + (오른쪽 위) 저장·닫기, 둘째 줄: 탭과 블록 알약 */
   #dex-tabs { max-width: 100%; overflow-x: auto; }
-  #dex-save { top: 8px; right: 58px; transform: none; font-size: 13px; padding: 7px 10px; height: 34px; margin-top: 3px; }
-  #dex-save:active { transform: translateY(2px); }
-  #btn-dex-close { top: 8px; transform: none; width: 40px; height: 40px; font-size: 22px; }
+  #dex-actions { top: 8px; right: 8px; transform: none; gap: 5px; }
+  #dex-actions button { height: 36px; font-size: 13px; padding: 0 10px; }
+  #btn-dex-close { width: 36px; font-size: 18px; }
   #dex-title { font-size: 15px; }
   #dex-count { display: none; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }
@@ -428,7 +433,6 @@ body.intro #btn-save { display: none !important; }
   .ball-row .ball-count { font-size: 20px; }
   .ball-row button { font-size: 12px; padding: 7px 8px; }
   #dex-tabs button { font-size: 13px; padding: 5px 10px; }
-  #btn-dex-close { width: 46px; height: 46px; font-size: 24px; background: #ffd93d; box-shadow: 0 3px 0 #c99400; }
   #dex-map { max-height: 40vh; height: calc(100vw * 101 / 110 - 16px); }
   .detail-top img { width: 96px; height: 96px; }
   #touch-actions { right: 12px; bottom: 80px; gap: 8px; }
@@ -449,8 +453,8 @@ body.intro #btn-save { display: none !important; }
 .member-actions button small { font-size: 11px; color: #777; font-weight: 700; }
 
 /* 넘버볼 고르기 (대결) */
-#battle-balls { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
-.ball-btn { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; }
+#battle-balls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; } /* 볼 넷은 늘 2×2 */
+.ball-btn { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 8px 10px; border-radius: 999px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; }
 .ball-col { display: flex; flex-direction: column; gap: 2px; }
 .ball-line { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .ball-btn:active { transform: translateY(2px); box-shadow: none; }
@@ -496,11 +500,16 @@ body.intro #btn-save { display: none !important; }
 #account-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
 #account-modal.hidden { display: none; }
 #acct-form { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+#acct-form.hidden, #acct-choice.hidden, #acct-signed.hidden { display: none; }
+#acct-choice { flex-direction: column; }
+#acct-choice button { width: 100%; }
 #acct-form input { font: inherit; font-size: 20px; font-weight: 800; padding: 12px 14px; border-radius: 14px; border: 3px solid #ffd93d; text-align: center; }
 #acct-error { color: #e8453c; font-weight: 800; font-size: 14px; }
 #acct-error.hidden { display: none; }
 .acct-me { font-size: 18px; font-weight: 800; color: #333; margin-top: 12px; }
-#btn-account[hidden] { display: none; }
+#btn-account[hidden], #btn-continue[hidden] { display: none; }
+.friend-accept { font: inherit; font-size: 14px; font-weight: 900; padding: 8px 12px; border-radius: 10px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; cursor: pointer; white-space: nowrap; }
+.friend-decline { font: inherit; font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #eee; color: #888; cursor: pointer; white-space: nowrap; }
 #dex-friends { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 #dex-friends.hidden { display: none; }
 #dex-tabs button[data-tab="friends"][hidden] { display: none; }
@@ -535,20 +544,10 @@ body.intro #btn-save { display: none !important; }
 .shop-table td:first-child { text-align: left; font-weight: 900; }
 .detail-grade { font-size: 14px; font-weight: 800; color: #b8860b; margin-top: 4px; }
 /* 저장 코드 */
-#btn-code { position: fixed; top: 12px; right: 270px; z-index: 6; font-size: 16px; font-weight: 800; padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
-body.battle #btn-code, body.intro #btn-code { display: none !important; }
-#code-load { margin-top: 12px; padding-top: 10px; border-top: 2px dashed #e0d6b0; }
-#code-input { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 13px; padding: 8px; border-radius: 10px; border: 2px solid #ccc; resize: vertical; }
-#code-preview { margin-top: 8px; background: #fff; border-radius: 12px; padding: 8px 12px; font-weight: 800; font-size: 14px; color: #333; border: 2px solid #ffd93d; }
-#code-preview.bad { border-color: #e8453c; color: #c0392b; }
-#code-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
-#code-modal .menu-card { max-width: 560px; }
-#code-text { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12px; padding: 8px; border-radius: 10px; border: 2px solid #ccc; height: 110px; resize: none; }
 /* 진화 연출 */
 #evo-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 25; transition: opacity .25s; }
 #evo-banner { position: fixed; left: 50%; top: 14%; transform: translateX(-50%); font-size: clamp(28px, 5.5vw, 52px); font-weight: 900; color: #fff; -webkit-text-stroke: 2px #20232e; text-shadow: 0 6px 0 #20232e, 0 10px 18px rgba(0,0,0,.35); z-index: 26; white-space: nowrap; text-align: center; }
 #evo-banner small { display: block; font-size: 45%; -webkit-text-stroke: 1px #20232e; text-shadow: 0 3px 0 #20232e; margin-top: 6px; }
-@media (max-width: 760px) { #btn-code { top: 56px; right: 12px; } }
 
 /* 도감 넘버볼 탭 (단순) */
 .shop-count { font-size: 34px; font-weight: 900; line-height: 1; color: #20232e; }

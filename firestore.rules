@@ -1,20 +1,32 @@
 // Firebase 콘솔 → Firestore Database → 규칙 에 그대로 붙여넣는다.
-// profiles 는 로그인한 누구나 읽고(친구 찾기) 본인만 쓴다. saves(진행)·friends(친구 목록)는 본인만 읽고 쓴다.
+// profiles 는 로그인한 누구나 읽고(친구 찾기) 본인만 쓴다(admin 값은 콘솔에서만 바꿀 수 있다).
+// saves(진행)·friends(친구 목록)는 본인만. requests(친구 요청)는 보낸 사람이 만들고, 받은 사람이 수락/거절한다.
+// 수락하면 받은 사람이 보낸 사람의 friends 에도 자기를 넣는데, 그 요청 문서가 남아 있을 때만 허용한다.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function mine(uid) { return signedIn() && request.auth.uid == uid; }
+    function adminUnchanged() {
+      return !('admin' in request.resource.data) || (resource != null && 'admin' in resource.data && request.resource.data.admin == resource.data.admin);
+    }
     match /profiles/{uid} {
       allow read: if signedIn();
-      allow create, update: if mine(uid) && request.resource.data.name is string && request.resource.data.name.size() <= 8;
+      allow create, update: if mine(uid) && request.resource.data.name is string && request.resource.data.name.size() <= 8 && adminUnchanged();
       allow delete: if mine(uid);
     }
     match /saves/{uid} {
       allow read, write: if mine(uid) && (!("data" in request.resource.data) || request.resource.data.data.size() < 900000);
     }
     match /friends/{uid}/list/{friendUid} {
-      allow read, write: if mine(uid);
+      allow read, delete: if mine(uid);
+      allow create, update: if mine(uid)
+        || (signedIn() && request.auth.uid == friendUid && exists(/databases/$(database)/documents/requests/$(friendUid)/list/$(uid)));
+    }
+    match /requests/{toUid}/list/{fromUid} {
+      allow read: if mine(toUid) || (signedIn() && request.auth.uid == fromUid);
+      allow create: if signedIn() && request.auth.uid == fromUid && fromUid != toUid;
+      allow delete: if mine(toUid) || (signedIn() && request.auth.uid == fromUid);
     }
   }
 }

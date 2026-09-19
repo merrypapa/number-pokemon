@@ -129,7 +129,8 @@ export class Dex {
     if (!ctx) return;
     const stock = ctx.getBalls?.() || {}, blocks = ctx.getBlocks();
     // 위: 볼마다 한 줄씩 (그림 · 이름 · 몇 개 · 만들기 버튼)
-    let html = `<div class="shop-title">🔮 내 넘버볼</div><div class="ball-rows">`;
+    const megaB = ctx.getMegaBlocks?.() || 0;
+    let html = `<div class="shop-title">🔮 내 넘버볼</div>${megaB > 0 ? `<div class="shop-note">💠 메가블럭 ${megaB}개 · 최종 진화한 포켓몬을 메가 진화시킬 때 1개씩 써요</div>` : ''}<div class="ball-rows">`;
     for (const b of BALLS) {
       html += `<div class="ball-row" style="--ball:${b.css}">
         <span class="ball-dot big${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name}</span>
@@ -436,7 +437,7 @@ export class Dex {
     const ctx = this.partyCtx;
     if (ctx) {
       const blocks = ctx.getBlocks(), megaB = ctx.getMegaBlocks?.() || 0;
-      this.blocksEl.textContent = megaB > 0 ? `${blocks} · 💠${megaB}` : `${blocks}`;
+      this.blocksEl.textContent = `${blocks}`; // 메가블럭 수는 넘버볼 탭에서
       this.blocksEl.style.background = blocks > 0 ? colorForCount(blocks) : '#bbb';
       const L = ctx.party.leader;
       if (!this.selectedId || !this.byId[this.selectedId]) this.selectedId = L ? L.speciesId : (this.species.find((s) => caughtById[s.id])?.id || null);
