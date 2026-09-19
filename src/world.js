@@ -953,9 +953,10 @@ export function buildWorld(scene) {
     const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 4.2, 8), trunkMat); branch.position.set(ht.x - 1.6, y0 + 5.6, ht.z + 1.2); branch.rotation.z = 1.1; branch.rotation.y = 0.4;
     decor.add(trunk, crown, crown2, branch); block(ht.x, ht.z, 1.2);
     // 벌집: 가지에 매달린 호박색 덩어리 (고리 여러 겹) + 어두운 입구 + 꿀 방울
-    const hx = ht.x - 3.4, hz = ht.z + 2.4, hy = y0 + 3.2;
-    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 6), trunkMat); rope.position.set(hx, hy + 1.9, hz);
+    const hx = ht.x - 3.4, hz = ht.z + 2.4, hy = y0 + 3.6, HIVE_SCALE = 1.7; // 벌집은 멀리서도 보이게 크게 (아래쪽이 땅에서 1m 쯤 떠 있다)
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.6, 6), trunkMat); rope.position.set(hx, hy + 1.47 * HIVE_SCALE + 0.8, hz);
     const hive = new THREE.Group();
+    hive.scale.setScalar(HIVE_SCALE);
     const combMat = new THREE.MeshStandardMaterial({ color: 0xe8a020, roughness: 0.7 });
     for (const [dy, r] of [[1.2, 0.6], [0.8, 0.95], [0.35, 1.2], [-0.15, 1.3], [-0.65, 1.15], [-1.05, 0.85], [-1.35, 0.5]]) {
       const ring = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 10), combMat); ring.scale.y = 0.45; ring.position.y = dy; ring.castShadow = true; hive.add(ring);
@@ -977,6 +978,12 @@ export function buildWorld(scene) {
     decor.add(makeSignAt('🐝 꿀벌집 · 벌집에 닿으면 안으로!', ht.x + 4.5, y0, ht.z + 4.5, -0.6, { bg: '#ffe08a', fg: '#5a3a08', board: 0xf4b400 }));
     block(ht.x + 4.5, ht.z + 4.5, 0.3);
   }
+  // 도토로: 벌집 나무 옆에 서서 꿀벌집을 소개한다 (꿀벌집 안에서도 만난다)
+  const totoroAt = { x: ht.x + 1.5, z: ht.z + 8 };
+  const totoro = makeNpc({ outfit: 'miner', name: '도토로', model: '도토로.glb' });
+  totoro.position.set(totoroAt.x, meadowHeight(totoroAt.x, totoroAt.z), totoroAt.z);
+  totoro.rotation.y = 2.4;
+  decor.add(totoro); block(totoroAt.x, totoroAt.z, 0.7);
 
   // ---------- 북서쪽 구석: 잠만보가 자는 곳 (버섯 고리 + 낙엽 이불 + 팻말) ----------
   const sleep = WORLD.sleepSpot;
@@ -1074,7 +1081,13 @@ export function buildWorld(scene) {
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
     hiveDoor: { x: ht.x - 3.4, z: ht.z + 2.4 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
-    npcs: [{ x: gk.x, z: gk.z, mesh: goku, name: '아이 손오공', lines: (c) => [
+    npcs: [{ x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [
+      `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
+      '벌집 바로 아래로 걸어가면 벌집 속으로 들어갈 수 있어. 안에는 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해!',
+      `안에는 뿔충이·딱충이·세꿀버리 같은 벌레·풀 포켓몬이 살아. 공격 ${c.zone.targetAtk + 1}쯤이면 편하게 이겨. 불 포켓몬이 벌레에 세!`,
+      c.conquered.hive ? '대장 독침붕을 이겼다며? 대단해! 벌집 안 어딘가에 메가독침붕이 나타났을지도 몰라.' : '벌집 북쪽 금빛 단에는 대장 독침붕이 있어. 체력 60에 공격 6이니까 충분히 키우고 도전해 봐.',
+      '벌집 안에서 숫자블록 친구를 구하면 꿀벌·꿀·벌집 퀴즈가 나와. 벌집 방이 왜 육각형인지 알아? 빈틈없이 채우면서 밀랍은 제일 적게 쓰거든!',
+    ] }, { x: gk.x, z: gk.z, mesh: goku, name: '아이 손오공', lines: (c) => [
       `오스! 난 아이 손오공이야, ${c.name}! 여기 돌기둥 아레나 앞에서 매일 수련하고 있어. 대결 요령을 알려 줄게!`,
       '대결에서는 기술을 고를 수 있어. 공격력이 오르면 더 센 기술이 열리니까 도감에서 블록으로 공격을 키워 봐!',
       '상대 속성을 잘 봐. 불은 풀에, 물은 불에, 풀은 물에 세! 대결 중 "교체하기"로 잘 맞는 포켓몬을 내보낼 수 있어.',

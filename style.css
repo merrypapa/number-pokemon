@@ -82,8 +82,8 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
 #battle-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 #battle-controls > button { flex: 0 0 auto; }
 /* 기술 버튼: 한 줄을 통째로 쓰고, 칸이 좁으면 저절로 1열이 된다. 이름은 두 줄까지 접히고 글자 하나씩 세로로 쪼개지지 않는다 */
-#battle-skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; flex: 1 1 100%; width: 100%; }
-#battle-skills .skill { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 3px; min-width: 0; padding: 8px 10px; border-radius: 14px; border: 3px solid transparent; background: #ffd93d; box-shadow: 0 3px 0 #c99400; cursor: pointer; font-weight: 900; color: #20232e; text-align: center; font-family: inherit; }
+#battle-skills { display: flex; gap: 8px; flex: 1 1 100%; width: 100%; } /* 기술은 몇 개든 한 줄에 나란히 (버튼이 같은 너비로 줄어든다) */
+#battle-skills .skill { flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 3px; min-width: 0; padding: 8px 6px; border-radius: 14px; border: 3px solid transparent; background: #ffd93d; box-shadow: 0 3px 0 #c99400; cursor: pointer; font-weight: 900; color: #20232e; text-align: center; font-family: inherit; }
 #battle-skills .skill.sel { border-color: #20232e; }
 #battle-skills .skill:active { transform: translateY(2px); box-shadow: none; }
 #battle-skills .skill:disabled { opacity: .5; cursor: default; }
@@ -106,16 +106,19 @@ body.battle #btn-save, body.battle #btn-dex, body.battle #hud { display: none !i
   #battle { left: 8px; right: 8px; width: auto; bottom: 8px; }
   #battle-mine { left: 8px; bottom: calc(var(--battle-h, 170px) + 16px); width: min(62vw, 260px); }
   #battle-tag { width: 180px; } #battle-tag .tag-bar { width: 160px; }
-  #battle-skills { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 6px; }
-  #battle-skills .skill { padding: 7px 8px; }
-  #battle-skills .skill-name { font-size: 14px; }
-  #battle-skills .skill-icon { font-size: 18px; }
+  #battle-skills { gap: 5px; }
+  #battle-skills .skill { padding: 7px 4px; }
+  #battle-skills .skill-name { font-size: 13px; }
+  #battle-skills .skill-icon { font-size: 17px; }
+  #battle-skills .skill-dmg { font-size: 12px; padding: 1px 7px; }
   #battle-controls > button { font-size: 16px; padding: 10px 14px; }
 }
 @media (max-width: 400px) { /* 아주 좁은 휴대폰: 가장 긴 기술 이름(7글자)도 한 줄에 들어가게 */
-  #battle-skills { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
-  #battle-skills .skill-top { gap: 4px; }
-  #battle-skills .skill-icon { font-size: 16px; }
+  #battle-skills { gap: 4px; }
+  #battle-skills .skill-top { gap: 3px; }
+  #battle-skills .skill-icon { font-size: 15px; }
+  #battle-skills .skill-name { font-size: 12px; }
+  #battle-skills .skill-dmg { font-size: 11px; padding: 1px 6px; }
   #battle-skills .skill-name { font-size: 13px; }
   #battle-skills .skill-dmg { font-size: 12px; }
 }

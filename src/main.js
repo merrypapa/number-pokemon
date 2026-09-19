@@ -1581,7 +1581,7 @@ function frame() {
       } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
-      } else if (near(w.hiveDoor, 2.8)) { // 매달린 벌집 아래 (어느 방향에서 와도)
+      } else if (near(w.hiveDoor, 3.4)) { // 매달린 벌집 아래 (어느 방향에서 와도. 벌집이 커진 만큼 넓게)
         moved = true;
         switchZone('hive', getZone('hive').world.spawn, { text: '윙윙! 꿀벌집 안으로 들어왔어! 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해. 벌레·풀 포켓몬이 살아. 남쪽 포탈로 나갈 수 있어.', sec: 8 });
       } else if (near(w.volcanoGate, 2.4)) {
