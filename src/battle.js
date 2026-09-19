@@ -34,6 +34,10 @@ function tintRed(root, color) {
     o.material.needsUpdate = true;
   });
 }
+export /** 볼을 다른 것보다 위에 그린다 (상대가 볼 위로 겹쳐도 볼이 안 사라지게). on=false 면 원래대로 */
+function ballOnTop(ball, on) {
+  ball.traverse((o) => { if (o.isMesh) { o.material.depthTest = !on; o.renderOrder = on ? 20 : 0; } });
+}
 export function makeBall(color, spec = null) {
   const file = spec?.shape === 'cube' ? CUBE_MODEL : BALL_MODEL;
   if (hasModel(file)) { // 진짜 모델: 높이 1m·발바닥 원점으로 맞춰져 있으니 볼 크기로 줄이고 가운데를 원점에
@@ -43,6 +47,7 @@ export function makeBall(color, spec = null) {
     m.scale.setScalar(s); m.position.y = -BALL_R;
     m.userData.popT = 1; m.userData.targetScale = s;
     if (spec?.shape !== 'cube') tintRed(m, color);
+    else m.traverse((o) => { if (o.isMesh) o.material = o.material.clone(); });
     m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     g.add(m);
     return g;
@@ -744,6 +749,7 @@ export class Battle {
       f.mesh.position.lerpVectors(f.from, f.to, t);
       f.mesh.position.y += Math.sin(t * Math.PI) * (f.arc ?? 1.6);
       if (f.keepRot) { if (f.spin) f.mesh.rotateX(dt * f.spin); }
+      else if (f.kind === 'ball') f.mesh.rotation.x += dt * 9; // 넘버볼은 앞으로 구르듯
       else { f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 4; }
       if (t >= 1) {
         if (f.kind !== 'ball') this.scene.remove(f.mesh); // 넘버볼은 그대로 남아 상대에게 맞고 튕겨 떨어진다
@@ -822,16 +828,28 @@ export class Battle {
       m.position.y = ground;
       m.scale.setScalar(base);
     } else if (this.phase === 'capture') {
-      const t = Math.min(1, (this.timer - this.captureStart) / 0.7);
-      // 볼: 맞은 자리에서 튕겨 올라 앞 땅에 떨어진다 (포물선)
-      this.ball.position.lerpVectors(this.ballHit, this.ballLand, t);
-      this.ball.position.y += Math.sin(t * Math.PI) * 1.1;
-      this.ball.rotation.y += dt * 12;
-      // 상대: 빨간 빛처럼 작아지며 볼을 따라 빨려 들어간다
-      m.scale.setScalar(base * (1 - easeOut(Math.min(1, t * 1.25))));
-      m.position.lerp(this.ball.position, Math.min(1, dt * 7));
-      if (t > 0.15 && Math.random() < 0.5) this.particles.stars(this.scene, m.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 2, 0xff6a6a, 0.25);
-      if (t >= 1) { m.visible = false; this.ball.position.copy(this.ballLand); this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; this.sound.bounce(); }
+      // 1) 흡수 (0.65초): 볼은 상대 앞 공중에 멈춰 천천히 돌고, 상대는 빨간 빛이 되어 작아지며 볼 속으로 빨려 들어간다
+      // 2) 떨어짐 (0.5초): 볼이 닫히고 포물선으로 앞 땅에 떨어진다 → wobble (흔들림)
+      const SUCK = 0.65, DROP = 0.5;
+      const el = this.timer - this.captureStart;
+      if (el < SUCK) {
+        const t = el / SUCK;
+        this.ball.position.copy(this.ballHold);
+        this.ball.position.y += Math.sin(this.timer * 6) * 0.05; // 공중에 떠서 살짝 흔들
+        this.ball.rotation.x = 0; this.ball.rotation.z = 0;
+        this.ball.rotation.y += dt * 4;
+        m.scale.setScalar(base * (1 - easeOut(t)));
+        m.position.lerp(this.ballHold, Math.min(1, dt * 6));
+        if (Math.random() < 0.6) this.particles.stars(this.scene, m.position.clone().add(new THREE.Vector3(0, 0.3 * m.scale.x, 0)), 2, 0xff6a6a, 0.25);
+        if (t > 0.9 && m.visible) { m.visible = false; this.particles.stars(this.scene, this.ballHold, 8, 0xffffff, 0.3); this.sound.hit(); ballOnTop(this.ball, false); } // 볼이 닫힌다
+      } else {
+        const t = Math.min(1, (el - SUCK) / DROP);
+        m.visible = false;
+        this.ball.position.lerpVectors(this.ballHold, this.ballLand, t);
+        this.ball.position.y += Math.sin(t * Math.PI) * 0.6;
+        this.ball.rotation.x += dt * 6;
+        if (t >= 1) { this.ball.position.copy(this.ballLand); this.ball.rotation.set(0, 0, 0); this.phase = 'wobble'; this.wobbleStart = this.timer; this.wobbles = 0; this.sound.bounce(); }
+      }
     } else if (this.phase === 'wobble') {
       const bt = this.timer - this.wobbleStart;
       // 공이 땅에 떨어진 뒤 0.55초마다 흔들림 (총 3번), 그다음 잡혔는지 판정
@@ -857,12 +875,14 @@ export class Battle {
       m.rotation.z = 0;
       if (this.timer - this.escapeStart > 1.7) this.end('escaped');
     } else if (this.phase === 'success') {
-      const t = Math.min(1, (this.timer - this.successStart) / 0.5);
-      m.visible = true;
-      m.scale.setScalar(base * easeOut(t));
-      m.position.y = ground + Math.abs(Math.sin(this.timer * 8)) * 0.5;
-      m.rotation.z = 0;
-      mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 8)) * 0.4; // 내 포켓몬도 같이 기뻐한다
+      m.visible = false; // 상대는 볼 안에 있다 (잡았다 팝업에 그림으로 나온다)
+      if (this.ball) { // 볼은 땅에 그대로, 반짝이며 살짝 튄다
+        const groundY = this.groundY(this.ball.position.x, this.ball.position.z) + 0.32;
+        this.ball.position.y = groundY + Math.abs(Math.sin((this.timer - this.successStart) * 9)) * 0.18 * Math.max(0, 1 - (this.timer - this.successStart));
+        this.ball.rotation.z = 0;
+        if (Math.random() < 0.25) this.particles.stars(this.scene, this.ball.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 2, 0xffd93d, 0.3);
+      }
+      mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 8)) * 0.4; // 내 포켓몬은 기뻐서 폴짝폴짝
       if (this.timer - this.successStart > 0.9 && !this.catchShown) this.showCatchPopup(); // 잠깐 기뻐한 뒤 "잡았다!" 팝업 (버튼을 눌러야 끝난다)
     }
     if (this.phase !== 'enter') tickModel(m, dt, 'idle');
@@ -872,12 +892,15 @@ export class Battle {
     if (this.bannerTimer > 0) { this.bannerTimer -= dt; if (this.bannerTimer <= 0) this.bannerEl.classList.add('hidden'); }
   }
 
-  startCapture() { // 볼이 상대에게 맞았다: 튕겨서 앞 땅에 떨어지는 동안 상대가 빛이 되어 볼로 빨려 들어간다
+  startCapture() { // 볼이 상대에게 맞았다: 상대 앞 공중에 멈춰 열리고, 상대가 빛이 되어 빨려 들어간 뒤 닫혀서 앞 땅에 떨어진다
     this.phase = 'capture';
     this.captureStart = this.timer;
     this.catchRoll = null;
     this.ballHit = this.targetPoint();
-    this.ball.position.copy(this.ballHit);
+    this.ballHold = this.ballHit.clone().addScaledVector(this.dir, -(0.6 + 0.35 * (this.creature.data.scale || 1))); // 상대 몸 바로 앞 (몸에 안 가려지게)
+    this.ballHold.y = Math.max(this.ballHold.y, this.groundY(this.ballHold.x, this.ballHold.z) + 0.9);
+    this.ball.position.copy(this.ballHold);
+    ballOnTop(this.ball, true); // 흡수되는 동안 상대가 볼 위로 겹쳐도 볼이 보이게
     this.ballLand = new THREE.Vector3().copy(this.stageTo).addScaledVector(this.dir, -1.9);
     this.ballLand.y = this.groundY(this.ballLand.x, this.ballLand.z) + 0.32;
     this.sound.hit();
@@ -916,9 +939,9 @@ export class Battle {
     const c = this.creature;
     c.mesh.position.copy(this.ball.position);
     c.mesh.position.y = this.groundY(c.mesh.position.x, c.mesh.position.z);
-    this.scene.remove(this.ball); this.ball = null;
-    this.particles.stars(this.scene, this.targetPoint(), 28, 0xffd93d);
-    this.particles.stars(this.scene, this.targetPoint(), 16, colorForCount(c.data.favoriteNumber || c.data.baseHp));
+    const at = this.ball.position.clone().add(new THREE.Vector3(0, 0.4, 0)); // 볼은 땅에 남겨 두고(대결이 끝날 때 치운다) 그 둘레에서 축하
+    this.particles.stars(this.scene, at, 28, 0xffd93d);
+    this.particles.stars(this.scene, at, 16, colorForCount(c.data.favoriteNumber || c.data.baseHp));
     this.confetti.burst(160);
     this.sound.fanfare();
     this.showBanner(`잡았다! ${c.data.name}!`);

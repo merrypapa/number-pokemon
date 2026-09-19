@@ -1774,6 +1774,7 @@ function frame() {
         });
       }, '🧩\n구출');
     }
+    if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
     if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();
 
@@ -1822,7 +1823,6 @@ function frame() {
     camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
   }
   ctxClicked = false;
-  if (driving && !ctxAction && !ride && !switching) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기'
   updateCtxButton();
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
