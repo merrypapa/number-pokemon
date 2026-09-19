@@ -97,8 +97,9 @@ python3 -m http.server 8000
 - 친구: 도감 **친구** 탭에서 이름을 적어 **친구 요청**을 보내고, 상대가 자기 친구 탭의 "받은 친구 요청"에서 **수락**해야 서로 친구가 된다(거절도 가능). 친구가 되면 상대의 지역·잡은 수·도감 종 수·정복·블록·대표 포켓몬이 보인다.
 - 관리자: 이름을 Admin 으로 짓던 관리자 모드는 껐다. Firebase 콘솔 → Firestore → `profiles/{그 계정의 uid}` 문서에 `admin: true`(boolean) 필드를 넣은 계정만 관리자다(규칙이 게임에서는 못 바꾸게 막는다). 그 계정으로 로그인해 시작하면 모든 지역·모든 포켓몬·도감 관리자 탭이 열린다. 시험용으로는 `?debug&admin`.
 - 요청하기: 도감 **요청** 탭에서 아이가 개발자에게 **글**(1000자까지)·**목소리**(마이크 🎤, 30초까지)·**사진**(카메라/앨범, 긴 변 1024px JPEG 로 줄여 450KB 안팎)을 보낸다. 보낸 것과 개발자의 **답장**은 같은 탭 아래 "내가 보낸 요청"에 남는다. 관리자 계정은 도감 **관리자** 탭 아래 "받은 요청"에서 모두 보고(목소리는 재생, 사진은 열기) **답장**·**삭제**할 수 있다. 파일은 Storage 없이 base64 로 Firestore 문서에 넣는다(문서 1MB 한도 안).
-- Firestore: `profiles/{uid}`(친구에게 보이는 요약 + admin), `saves/{uid}`(진행 전체), `friends/{uid}/list/{friendUid}`, `requests/{받는 uid}/list/{보낸 uid}`, `feedback/{id}`(요청: uid·name·text·mime·data·createdAt, 답장 reply·repliedAt 는 관리자만 씀).
-- **규칙을 바꿨으면 다시 게시**: `firestore.rules` 에 친구 요청(`requests`)과 요청하기(`feedback`) 규칙이 늘었다. Firebase 콘솔 → Firestore → 규칙 탭에 파일 내용을 다시 붙여넣고 게시해야 그 기능이 실제로 동작한다.
+- **주간 순위표**(`src/rank.js`): 한 주(월~일, ISO 주) 동안 **퀴즈 정답 ×5 + 포켓몬 잡기 ×3 + 보스 정복 ×20** 을 점수로 섞어 매긴다. 이번 주 기록은 저장 데이터의 `week`/`wk` 에 있고, 주가 바뀌면(자동 저장 때·불러올 때 확인) 0으로 돌아가며 "새로운 한 주" 말풍선이 뜬다. 클라우드 저장 때 `profiles` 에 `week`·`wk`·`wkScore`(친구 순위용)를, `leaderboard/{주}` 문서의 `entries.{uid}` 에 **이름을 첫 글자만 남기고 `**` 로 가린** 항목(`n`·`s`·`q`·`c`·`b`·대표 `l`)을 올린다. 도감 **순위** 탭에는 내 이번 주 점수 · 🌍 전체 TOP 20(가린 이름, 내 줄은 "(나)"로 강조, 0점은 숨김) · 👫 친구 순위(이름 그대로, 친구 프로필의 이번 주 기록) 가 나오고, 처음 화면의 **🏆 이번 주 순위** 버튼은 로그인 없이 전체 TOP 20 만 보여 준다(`leaderboard` 는 누구나 읽을 수 있고, 각자 자기 항목만 쓸 수 있게 규칙이 막는다).
+- Firestore: `profiles/{uid}`(친구에게 보이는 요약 + admin), `saves/{uid}`(진행 전체), `friends/{uid}/list/{friendUid}`, `requests/{받는 uid}/list/{보낸 uid}`, `feedback/{id}`(요청: uid·name·text·mime·data·createdAt, 답장 reply·repliedAt 는 관리자만 씀), `leaderboard/{주}`(주간 순위: entries.{uid} = 가린 이름·점수).
+- **규칙을 바꿨으면 다시 게시**: `firestore.rules` 에 친구 요청(`requests`)·요청하기(`feedback`)·주간 순위(`leaderboard`) 규칙이 늘었다. Firebase 콘솔 → Firestore → 규칙 탭에 파일 내용을 다시 붙여넣고 게시해야 그 기능이 실제로 동작한다.
 
 **켜는 방법 (한 번만)**: Firebase 프로젝트 → 웹 앱 추가 → `firebaseConfig` 를 `src/cloud-config.js` 에 → Authentication 에서 이메일/비밀번호 켜기 + 승인된 도메인에 `merrypapa.github.io` → Firestore 만들기(서울, 프로덕션) → 규칙 탭에 `firestore.rules` 붙여넣고 게시.
 

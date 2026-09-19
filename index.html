@@ -31,7 +31,7 @@
     <div id="dex-card">
       <div id="dex-head">
         <div id="dex-title">내 포켓몬 · 도감</div>
-        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="friends" hidden>친구</button><button data-tab="feedback" hidden>요청</button><button data-tab="admin" hidden>관리자</button></div>
+        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="friends" hidden>친구</button><button data-tab="feedback" hidden>요청</button><button data-tab="rank" hidden>순위</button><button data-tab="admin" hidden>관리자</button></div>
         <div id="dex-blocks">블록 0개</div>
         <div id="dex-count"></div>
         <div id="dex-actions"><button id="dex-save" title="지금까지 한 것 저장">💾 저장</button><button id="dex-logout" hidden title="계정에서 로그아웃">로그아웃</button><button id="btn-dex-close" aria-label="닫기">✕</button></div>
@@ -46,6 +46,7 @@
       <div id="dex-admin" class="hidden"></div>
       <div id="dex-friends" class="hidden"></div>
       <div id="dex-feedback" class="hidden"></div>
+      <div id="dex-rank" class="hidden"></div>
       <div id="dex-mapview" class="hidden">
         <div id="dex-map"></div>
         <div id="dex-map-nav"><button id="map-prev">◀ 이전 지역</button><span id="map-pos"></span><button id="map-next">다음 지역 ▶</button></div>
@@ -61,6 +62,12 @@
 
   <canvas id="fx"></canvas>
   <div id="fade"></div>
+  <div id="rank-modal" class="hidden">
+    <div class="menu-card wide">
+      <div id="rank-modal-body"></div>
+      <div class="menu-actions"><button id="btn-rank-close" class="secondary">닫기</button></div>
+    </div>
+  </div>
   <div id="account-modal" class="hidden">
     <div class="menu-card">
       <div class="menu-title">☁️ 클라우드 계정</div>
@@ -229,6 +236,7 @@
       <div id="title-buttons">
         <button id="btn-new" class="title-btn">▶ 시작하기</button>
         <button id="btn-continue" class="title-btn secondary" hidden>이어서하기</button>
+        <button id="btn-rank" class="title-btn secondary small" hidden>🏆 이번 주 순위</button>
       </div>
       <div id="title-acct" hidden>☁️ <b id="title-acct-name"></b> 계정으로 시작해요 · <a href="#" id="title-switch">다른 계정으로</a></div>
       <div id="title-loading" class="hidden"></div>

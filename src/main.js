@@ -29,6 +29,7 @@ import { Party } from './party.js';
 import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
 import { cloud, validName, validPin } from './cloud.js';
+import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -390,7 +391,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 } }; // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -1201,6 +1202,7 @@ function rescueSolved(z, nb) {
   z.rescues = z.rescues.filter((o) => o !== nb);
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
+  wkAdd('quiz');
   // 퀴즈 보상은 문제 종류·지역과 상관없이 딱 "그 친구의 숫자만큼" —
   // 줍기·대결과 달리 퀴즈는 자주 나오니, 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
   setBlocks(state.blocks + n);
@@ -1225,6 +1227,17 @@ function winReward(c) {
   return Math.max(c.data.baseAtk * blockValue() * (c.isBoss ? 2 : 1), Math.ceil(ball.cost / 2));
 }
 
+// ---------- 주간 순위 기록 (src/rank.js) ----------
+/** 이번 주 기록 +1 (quiz | caught | boss). 주가 바뀌었으면 먼저 0으로 돌린다 */
+function wkAdd(key) { checkWeek(); state.wk[key] = (state.wk[key] || 0) + 1; }
+/** 주가 바뀌었으면 이번 주 기록을 0으로. announce 면 말풍선으로 알린다 */
+function checkWeek(announce = true) {
+  const now = weekKey();
+  if (state.week === now) return false;
+  state.week = now; state.wk = emptyWeek();
+  if (announce && zone) say('🏆 새로운 한 주가 시작됐어! 이번 주 순위에 다시 도전해 보자!', { sec: 6 });
+  return true;
+}
 // ---------- 튜토리얼/진행 ----------
 function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
@@ -1429,6 +1442,7 @@ function buildSaveData() {
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
     returnTo: state.returnTo,
     carTold: !!state.carTold,
+    week: state.week, wk: { ...state.wk },
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -1449,14 +1463,16 @@ function doSave(manual = false) {
   if (manual) sound.click();
   return ok;
 }
-function autosave() { if (zone && player) { doSave(false); state.autosave = 90; } }
+function autosave() { if (zone && player) { checkWeek(); doSave(false); state.autosave = 90; } }
 document.getElementById('dex-save').onclick = () => { if (doSave(true)) sound.click(); }; // 저장은 도감 안에서
 
 // ---------- 클라우드 계정: 이름 + 4자리 비밀번호. 진행을 클라우드에 올려 어느 기기에서든 이어 하고, 친구의 도감을 본다 (src/cloud.js) ----------
 /** 친구에게 보이는 내 요약 (profiles 문서) */
 function cloudSummary(d) {
   const leader = d.party?.[d.leader] ? speciesById[d.party[d.leader].speciesId] : null;
-  return { name: d.name, caught: d.caught || 0, dexCount: Object.keys(d.dex || {}).filter((id) => d.dex[id] > 0 && speciesById[id]).length, conquered: Object.keys(d.conquered || {}).length, blocks: d.blocks || 0, leaderId: leader?.id || null, leaderName: leader?.name || null, zone: d.zone || 'forest' };
+  const wk = { ...emptyWeek(), ...(d.wk || {}) }, week = d.week || weekKey();
+  return { name: d.name, caught: d.caught || 0, dexCount: Object.keys(d.dex || {}).filter((id) => d.dex[id] > 0 && speciesById[id]).length, conquered: Object.keys(d.conquered || {}).length, blocks: d.blocks || 0, leaderId: leader?.id || null, leaderName: leader?.name || null, zone: d.zone || 'forest',
+    week, wk, wkScore: weekScore(wk), rank: rankEntry(d.name, wk, leader?.id) }; // week/wk/wkScore 는 친구 순위, rank 는 전체 순위(leaderboard/{주}) 항목
 }
 const acctModal = document.getElementById('account-modal'), dexLogoutBtn = document.getElementById('dex-logout');
 const titleAcct = document.getElementById('title-acct');
@@ -1473,7 +1489,7 @@ function acctShowForm(mode) {
 document.getElementById('btn-acct-choose-login').onclick = () => acctShowForm('login');
 document.getElementById('btn-acct-choose-signup').onclick = () => acctShowForm('signup');
 document.getElementById('btn-acct-back').onclick = acctShowChoice;
-const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]'), feedbackTabBtn = document.querySelector('#dex-tabs button[data-tab="feedback"]');
+const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]'), feedbackTabBtn = document.querySelector('#dex-tabs button[data-tab="feedback"]'), rankTabBtn = document.querySelector('#dex-tabs button[data-tab="rank"]');
 function acctError(msg) { acctErr.textContent = msg || ''; acctErr.classList.toggle('hidden', !msg); }
 function refreshAccountUi() {
   const u = cloud.user;
@@ -1484,6 +1500,8 @@ function refreshAccountUi() {
   if (u) document.getElementById('acct-me-name').textContent = u.name;
   friendsTabBtn.hidden = !cloud.enabled; // 친구 탭은 클라우드가 켜져 있으면 늘 보인다 (로그인 전에는 로그인 버튼)
   feedbackTabBtn.hidden = !cloud.enabled;
+  rankTabBtn.hidden = !cloud.enabled;
+  document.getElementById('btn-rank').hidden = !cloud.enabled; // 처음 화면의 이번 주 순위 (로그인 없이도 본다)
   dexLogoutBtn.hidden = !u;
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
@@ -1681,7 +1699,35 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); if (tab === 'feedback') renderFeedback(); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+// ---------- 주간 순위표: 도감 "순위" 탭과 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
+const rankModal = document.getElementById('rank-modal');
+document.getElementById('btn-rank').onclick = () => { sound.ensure(); rankModal.classList.remove('hidden'); renderRank(document.getElementById('rank-modal-body'), false); };
+document.getElementById('btn-rank-close').onclick = () => rankModal.classList.add('hidden');
+/** 순위 그리기. inGame 이면 내 이번 주 점수 카드와 친구 순위(이름 그대로)도 넣는다. 전체 TOP 20 은 이름을 가려서 보여 준다 */
+async function renderRank(el, inGame) {
+  const week = weekKey(), me = cloud.user?.uid || null;
+  const thumb = (id) => { const sp = id ? speciesById[id] : null; return sp ? dex.thumbs(sp)?.color || null : null; };
+  el.innerHTML = `<div class="rank-head">🏆 이번 주 순위 <span class="rank-how">(${weekRange(week)})</span></div>
+    <div class="rank-how">점수 = 퀴즈 정답 ×${WEIGHTS.quiz} + 포켓몬 잡기 ×${WEIGHTS.caught} + 보스 정복 ×${WEIGHTS.boss} · 월요일마다 새로 시작</div>
+    ${inGame && zone ? `<div class="rank-mine">내 이번 주 <b>${weekScore(state.wk)}</b>점 <span>퀴즈 ${state.wk.quiz || 0} · 잡기 ${state.wk.caught || 0} · 보스 ${state.wk.boss || 0}</span></div>` : ''}
+    <div class="friend-me">🌍 전체 TOP ${TOP_N}</div><div class="rank-list" id="rank-all"><div class="friend-note">불러오는 중…</div></div>
+    ${inGame && me ? '<div class="friend-me">👫 친구 순위</div><div class="rank-list" id="rank-friends"><div class="friend-note">불러오는 중…</div></div>' : ''}`;
+  const all = el.querySelector('#rank-all');
+  try {
+    const entries = (await cloud.leaderboard(week)).filter((e) => (e.s || 0) > 0 || e.uid === me).map((e) => ({ ...e, name: e.n })); // 0점은 안 보이지만 나는 보인다
+    renderRankRows(all, entries.sort((a, b) => (b.s || 0) - (a.s || 0)).slice(0, TOP_N), { myUid: me, thumb });
+  } catch (e) { all.innerHTML = `<div class="friend-note">순위를 못 읽었어: ${e.message}</div>`; }
+  const fr = el.querySelector('#rank-friends');
+  if (fr) {
+    try {
+      const friends = await cloud.listFriends();
+      const rows = friends.map((f) => ({ uid: f.uid, name: f.name, l: f.leaderId, t: f.updatedAt, ...(f.week === week ? { s: f.wkScore || weekScore(f.wk), q: f.wk?.quiz, c: f.wk?.caught, b: f.wk?.boss } : { s: 0, q: 0, c: 0, b: 0 }) }));
+      if (zone) rows.push({ uid: me, name: state.name, l: party.leader?.speciesId || null, s: weekScore(state.wk), q: state.wk.quiz, c: state.wk.caught, b: state.wk.boss, t: 0 });
+      renderRankRows(fr, rows, { myUid: me, thumb, empty: '아직 친구가 없어요. 친구 탭에서 친구를 추가해 봐요!' });
+    } catch (e) { fr.innerHTML = `<div class="friend-note">친구 순위를 못 읽었어: ${e.message}</div>`; }
+  }
+}
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
 function applySave(d) {
@@ -1698,6 +1744,7 @@ function applySave(d) {
   pendingCaught = d.caughtCreatures || {};
   state.returnTo = d.returnTo || null;
   state.carTold = !!d.carTold;
+  state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
@@ -1935,6 +1982,8 @@ function frame() {
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             const cnt = state.dex[c.data.id];
             checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
+            wkAdd('caught');
+            if (c.isBoss) wkAdd('boss');
             if (c.data.mega) { // 메가 포켓몬을 잡으면 메가블럭을 준다 (메가 진화에 쓴다)
               state.caught++;
               state.megaBlocks += MEGA_REWARD;

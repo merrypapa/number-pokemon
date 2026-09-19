@@ -3,6 +3,7 @@
 // saves(진행)·friends(친구 목록)는 본인만. requests(친구 요청)는 보낸 사람이 만들고, 받은 사람이 수락/거절한다.
 // 수락하면 받은 사람이 보낸 사람의 friends 에도 자기를 넣는데, 그 요청 문서가 남아 있을 때만 허용한다.
 // feedback(개발자에게 요청)은 로그인한 사람이 만들고, 본인과 관리자(profiles.admin == true)만 읽으며, 답장은 관리자만 쓴다.
+// leaderboard(주간 순위)는 누구나(로그인 전에도) 읽고, 로그인한 사람이 entries 안의 자기 uid 항목만 쓴다.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -31,6 +32,14 @@ service cloud.firestore {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
       allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reply', 'repliedAt']);
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+    function validEntry(e) { return e.n is string && e.n.size() <= 8 && e.s is number && e.q is number && e.c is number && e.b is number; }
+    match /leaderboard/{week} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['entries'])
+        && request.resource.data.entries.keys().hasOnly([request.auth.uid]) && validEntry(request.resource.data.entries[request.auth.uid]);
+      allow update: if signedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['entries'])
+        && request.resource.data.entries.diff(resource.data.entries).affectedKeys().hasOnly([request.auth.uid]) && validEntry(request.resource.data.entries[request.auth.uid]);
     }
     match /requests/{toUid}/list/{fromUid} {
       allow read: if mine(toUid) || (signedIn() && request.auth.uid == fromUid);

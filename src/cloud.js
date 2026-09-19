@@ -5,7 +5,8 @@ import { CLOUD_CONFIG } from './cloud-config.js';
 // 설정(src/cloud-config.js)이 비어 있으면 enabled=false 로, 게임은 이 기기 저장만 쓴다. 주소에 ?mockcloud 를 붙이면 브라우저 안에서만 도는 가짜 백엔드로 화면을 시험할 수 있다.
 //
 // Firestore 구조:
-//   profiles/{uid}   { name, nameLower, caught, dexCount, conquered, blocks, leaderId, leaderName, zone, updatedAt }  ← 로그인한 누구나 읽음 (친구 찾기·친구 목록)
+//   profiles/{uid}   { name, nameLower, caught, dexCount, conquered, blocks, leaderId, leaderName, zone, week, wk, wkScore, updatedAt }  ← 로그인한 누구나 읽음 (친구 찾기·친구 목록·친구 순위)
+//   leaderboard/{주}  { entries: { uid: { n(가린 이름), s(점수), q, c, b, l, t } } }  ← 누구나 읽음(처음 화면 순위), 각자 자기 항목만 씀
 //   saves/{uid}      { name, savedAt, data(JSON 문자열) }                                                              ← 본인만
 //   friends/{uid}/list/{friendUid} { addedAt }                                                                       ← 본인만 (수락한 쪽이 상대 목록에도 넣는다: 규칙이 요청이 있을 때만 허용)
 //   requests/{toUid}/list/{fromUid} { fromName, at }  친구 요청. 받은 사람이 수락하면 양쪽 friends 에 들어가고 요청은 지워진다
@@ -64,10 +65,15 @@ class FirebaseBackend {
   async saveGame(uid, data, summary) {
     try {
       await this.F.setDoc(this.F.doc(this.db, 'saves', uid), { name: data.name, savedAt: data.savedAt, data: JSON.stringify(data) });
-      await this.F.setDoc(this.F.doc(this.db, 'profiles', uid), { ...summary, nameLower: nameKey(summary.name), updatedAt: Date.now() }, { merge: true });
+      const { rank, ...prof } = summary;
+      await this.F.setDoc(this.F.doc(this.db, 'profiles', uid), { ...prof, nameLower: nameKey(summary.name), updatedAt: Date.now() }, { merge: true });
+      // 주간 순위: leaderboard/{주} 문서의 entries.{uid} 에 내 항목만 갱신 (규칙이 남의 항목은 못 건드리게 막는다)
+      if (rank && summary.week) await this.F.setDoc(this.F.doc(this.db, 'leaderboard', summary.week), { entries: { [uid]: rank } }, { merge: true });
     } catch (e) { throw new Error(koError(e)); }
   }
   async loadGame(uid) { const d = await this.getDoc('saves', uid); return d ? JSON.parse(d.data) : null; }
+  /** 그 주의 순위표 항목들 (로그인 없이도 읽힌다) */
+  async loadLeaderboard(week) { const d = await this.getDoc('leaderboard', week); return Object.entries(d?.entries || {}).map(([uid, e]) => ({ uid, ...e })); }
   async findProfile(name) {
     const q = this.F.query(this.F.collection(this.db, 'profiles'), this.F.where('nameLower', '==', nameKey(name)), this.F.limit(1));
     const s = await this.F.getDocs(q);
@@ -121,8 +127,15 @@ class MockBackend {
     sessionStorage.setItem('np-cloud-mock-uid', u.uid); return { uid: u.uid, name: db.profiles[u.uid].name, admin: !!db.profiles[u.uid].admin };
   }
   async signOut() { sessionStorage.removeItem('np-cloud-mock-uid'); this.onUser?.(null); }
-  async saveGame(uid, data, summary) { const db = this.read(); db.saves ||= {}; db.saves[uid] = { name: data.name, savedAt: data.savedAt, data: JSON.stringify(data) }; db.profiles[uid] = { ...db.profiles[uid], ...summary, nameLower: nameKey(summary.name), updatedAt: Date.now() }; this.write(db); }
+  async saveGame(uid, data, summary) {
+    const db = this.read(); db.saves ||= {}; db.saves[uid] = { name: data.name, savedAt: data.savedAt, data: JSON.stringify(data) };
+    const { rank, ...prof } = summary;
+    db.profiles[uid] = { ...db.profiles[uid], ...prof, nameLower: nameKey(summary.name), updatedAt: Date.now() };
+    if (rank && summary.week) { db.leaderboard ||= {}; db.leaderboard[summary.week] ||= { entries: {} }; db.leaderboard[summary.week].entries[uid] = rank; }
+    this.write(db);
+  }
   async loadGame(uid) { const d = this.read().saves?.[uid]; return d ? JSON.parse(d.data) : null; }
+  async loadLeaderboard(week) { return Object.entries(this.read().leaderboard?.[week]?.entries || {}).map(([uid, e]) => ({ uid, ...e })); }
   async findProfile(name) { const db = this.read(); const u = db.users?.[nameKey(name)]; return u ? { uid: u.uid, ...db.profiles[u.uid] } : null; }
   async listFriends(uid) { const db = this.read(); return (db.friends?.[uid] || []).map((fid) => ({ uid: fid, ...db.profiles[fid] })).filter((p) => p.name); }
   addPair(db, a, b) { db.friends ||= {}; db.friends[a] ||= []; if (!db.friends[a].includes(b)) db.friends[a].push(b); }
@@ -160,6 +173,8 @@ export const cloud = {
   /** 내 계정 이름으로 된 진행만 클라우드에 올린다 */
   async saveGame(data, summary) { if (!this.user || nameKey(data.name) !== nameKey(this.user.name)) return false; await this.backend.saveGame(this.user.uid, data, summary); return true; },
   async loadGame() { return this.user ? this.backend.loadGame(this.user.uid) : null; },
+  /** 이번 주 전체 순위 항목들 (가린 이름). 로그인 전에도 된다 */
+  async leaderboard(week) { return this.enabled ? this.backend.loadLeaderboard(week) : []; },
   async listFriends() { return this.user ? this.backend.listFriends(this.user.uid) : []; },
   /** 친구 요청: 상대가 수락해야 서로 친구가 된다 */
   async requestFriend(name) {
