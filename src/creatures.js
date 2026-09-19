@@ -114,11 +114,18 @@ export class Creature {
   get position() { return this.mesh.position; }
 
   /** 모델을 등을 대고 눕힌다 (앞 +Z 가 하늘을 보게). 발바닥 원점이라 등 두께만큼 띄운다 */
+  // 잠자는 자세: 모델을 살짝 뒤로 기대게 한다 (잠만보 모델은 이미 앉은 자세라 90° 눕히면 벌렁 뒤집힌 것처럼 보였다).
+  // 기울인 만큼 등 쪽 아랫부분이 땅 밑으로 들어가므로 그만큼 들어 올린다. 크기는 '뿅' 하고 커지는 중이어도 다 커진 크기로 계산한다.
   lieDown(model) {
     this.model = model;
+    const LEAN = -0.35;
+    const cur = model.scale.x, ts = model.userData.targetScale || 1;
+    model.scale.setScalar(ts); model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model.children[0]);
-    model.rotation.x = -Math.PI / 2;
-    model.position.y = -box.min.z * (model.userData.targetScale || 1);
+    const gs = new THREE.Vector3(); (model.parent || model).getWorldScale(gs); // 바깥 그룹의 크기(c.scale)는 position 에도 곱해지므로 나눈다
+    model.rotation.x = LEAN;
+    model.position.y = (box.min.z * Math.sin(LEAN)) / (gs.z || 1);
+    model.scale.setScalar(cur);
     if (this.zzz) this.zzz.visible = true;
   }
   /** 일어난다 (대결 시작, 잡혔을 때) */
