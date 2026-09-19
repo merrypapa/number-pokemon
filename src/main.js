@@ -1303,7 +1303,7 @@ function chooseStarter(id) {
 
 // ---------- 관리자 모드 (기능 테스트용) ----------
 // 새로하기에서 이름을 "Admin" 으로 하면 보스를 잡지 않아도 모든 지역이 열린다.
-// 화면 오른쪽 위 버튼으로 어느 지역이든 바로 갈 수 있어, 심해 헤엄 같은 걸 처음부터 확인할 수 있다.
+// 도감의 "관리자" 탭에서 어느 지역이든 바로 갈 수 있고, 모든 포켓몬이 도감에 들어 있어 대표로 고를 수 있다.
 const isAdminName = (name) => name.trim().toLowerCase() === 'admin';
 function applyAdmin() {
   for (const n of CONQUERABLE) state.conquered[n] = true; // 정복 처리 → 동굴 입구·심해 소용돌이가 열린다
@@ -1315,32 +1315,46 @@ function applyAdmin() {
 }
 function startAdmin() {
   setBlocks(30, { quiet: true }); // 너무 많으면 뒤에 쌓인 블록 더미가 주인공을 가린다 (모자라면 +블록 100 버튼)
+  adminGrantAll();
   showAdminPanel();
-  say(`관리자 모드야, ${state.name}! 모든 지역이 열렸어. 오른쪽 위 버튼으로 어디든 바로 갈 수 있어.`, { sec: 7 });
+  say(`관리자 모드야, ${state.name}! 모든 지역이 열렸고 모든 포켓몬이 도감에 있어. 도감(B)의 "관리자" 탭에서 어디든 바로 갈 수 있어.`, { sec: 8 });
 }
-/** 지역을 바로 옮기는 관리자 버튼 줄 (관리자 모드에서만 보인다) */
+/** 관리자: 모든 포켓몬을 잡은 것처럼 도감에 넣어 대표로 고를 수 있게 한다 (이미 있는 종은 건너뛴다) */
+function adminGrantAll() {
+  let added = 0;
+  for (const sp of creatureData.creatures) {
+    if (!party.members.some((m) => m.speciesId === sp.id)) { party.add(sp.id, buildDraftMesh(sp)); added++; }
+    if (!state.dex[sp.id]) state.dex[sp.id] = 1;
+  }
+  if (added) refreshHud();
+}
+/** 지역을 바로 옮기는 관리자 버튼들: 화면을 가리지 않게 도감의 "관리자" 탭 안에 넣는다 (관리자 모드에서만 탭이 보인다) */
 function showAdminPanel() {
-  if (document.getElementById('admin-panel')) return;
-  const box = document.createElement('div');
-  box.id = 'admin-panel';
-  const title = document.createElement('b');
-  title.textContent = '관리자';
-  box.appendChild(title);
+  const tab = document.querySelector('#dex-tabs button[data-tab="admin"]');
+  if (tab) tab.hidden = false;
+  const box = dex.adminEl;
+  if (!box || box.dataset.ready) return;
+  box.dataset.ready = '1';
+  const title = document.createElement('div'); title.className = 'admin-title'; title.textContent = '🛠 지역 바로 가기'; box.appendChild(title);
+  const row = document.createElement('div'); row.className = 'admin-row'; box.appendChild(row);
   for (const n of Object.keys(BUILDERS)) {
     const btn = document.createElement('button');
     btn.textContent = ZONE_INFO[n]?.name || n;
     btn.onclick = () => {
       if (!zone || zone.name === n || switching || battle.active) return;
+      dex.hide();
       const dest = getZone(n);
       switchZone(n, dest.world.spawn, { text: `${dest.label || ZONE_INFO[n]?.name || n}(으)로 왔어!`, sec: 3 });
     };
-    box.appendChild(btn);
+    row.appendChild(btn);
   }
+  const title2 = document.createElement('div'); title2.className = 'admin-title'; title2.textContent = '🧱 블록'; box.appendChild(title2);
+  const row2 = document.createElement('div'); row2.className = 'admin-row'; box.appendChild(row2);
   const more = document.createElement('button');
   more.textContent = '+블록 100';
-  more.onclick = () => setBlocks(state.blocks + 100);
-  box.appendChild(more);
-  document.body.appendChild(box);
+  more.onclick = () => { setBlocks(state.blocks + 100); dex.blocksEl.textContent = `${state.blocks}`; };
+  row2.appendChild(more);
+  const note = document.createElement('div'); note.className = 'admin-note'; note.textContent = '관리자 모드: 모든 지역이 열려 있고, 모든 포켓몬이 도감에 있어 대표로 고를 수 있어요. 메가블럭 30개, 넘버볼 각 30개로 시작해요.'; box.appendChild(note);
 }
 // 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
 const BUILD = 'v2026-09-18b';
@@ -1491,7 +1505,7 @@ function applySave(d) {
   if (leader) attachLeader(leader);
   setBlocks(d.blocks || 0, { quiet: true }); // 불러오기: 금빛 블록 축하는 새로 모았을 때만
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
-  if (state.admin) showAdminPanel();
+  if (state.admin) { adminGrantAll(); showAdminPanel(); }
   sound.fanfare();
   say(`다시 만나서 반가워, ${state.name}! ${leader ? party.name(leader) + '와 ' : ''}모험을 이어서 하자!`, { sec: 6 });
   refreshHud();

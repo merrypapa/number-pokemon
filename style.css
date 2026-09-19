@@ -479,6 +479,14 @@ body.intro #btn-save { display: none !important; }
 .ball-tip { width: 100%; font-size: 12px; font-weight: 700; color: #999; }
 /* 도감 넘버볼 탭 */
 #dex-balls { padding: 6px 2px; }
+#dex-tabs button[hidden] { display: none; }
+/* 관리자 탭: 지역 바로 가기 버튼들 (관리자 모드에서만 탭이 보인다) */
+#dex-admin { padding: 12px; overflow-y: auto; }
+#dex-admin .admin-title { font-weight: 900; color: #333; margin: 6px 0 8px; }
+#dex-admin .admin-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+#dex-admin button { font: inherit; font-size: 14px; font-weight: 800; padding: 8px 12px; border: 0; border-radius: 10px; background: #ffd93d; color: #333; cursor: pointer; box-shadow: 0 2px 0 #d4b02a; }
+#dex-admin button:active { transform: translateY(2px); box-shadow: none; }
+#dex-admin .admin-note { font-size: 13px; color: #666; }
 .shop-title { font-weight: 900; font-size: 18px; margin: 4px 0 8px; }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .shop-card { background: #fff; border-radius: 16px; padding: 12px 14px; border: 3px solid var(--ball); display: flex; flex-direction: column; gap: 6px; }
