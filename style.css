@@ -504,7 +504,9 @@ body.intro #btn-save { display: none !important; }
 #dex-friends { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 #dex-friends.hidden { display: none; }
 #dex-tabs button[data-tab="friends"][hidden] { display: none; }
-.friend-add { display: flex; gap: 8px; }
+.friend-add { display: flex; gap: 8px; align-items: center; width: 100%; box-sizing: border-box; min-width: 0; }
+.friend-add > * { min-width: 0; }
+.friend-add > button { flex-shrink: 0; }
 .friend-add input { flex: 1; min-width: 0; font: inherit; font-size: 16px; font-weight: 800; padding: 10px 12px; border-radius: 12px; border: 3px solid #ffd93d; }
 .friend-add button { font: inherit; font-size: 15px; font-weight: 900; padding: 10px 14px; border-radius: 12px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; cursor: pointer; white-space: nowrap; }
 .friend-row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 8px 10px; border: 3px solid #ffd93d; text-align: left; }
