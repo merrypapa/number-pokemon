@@ -9,6 +9,7 @@ import { CLOUD_CONFIG } from './cloud-config.js';
 //   saves/{uid}      { name, savedAt, data(JSON 문자열) }                                                              ← 본인만
 //   friends/{uid}/list/{friendUid} { addedAt }                                                                       ← 본인만 (수락한 쪽이 상대 목록에도 넣는다: 규칙이 요청이 있을 때만 허용)
 //   requests/{toUid}/list/{fromUid} { fromName, at }  친구 요청. 받은 사람이 수락하면 양쪽 friends 에 들어가고 요청은 지워진다
+//   feedback/{id}       { uid, name, text, mime, data(base64, ≤600KB 원본), at, reply, repliedAt }  ← 아이가 개발자에게 보내는 요청(글·목소리·사진). 본인과 관리자만 읽고, 답장은 관리자만
 //   profiles/{uid}.admin = true 는 Firebase 콘솔에서만 켠다(규칙이 막는다) → 그 계정은 관리자 모드(모든 지역·모든 포켓몬·관리자 탭)
 const FIREBASE_VER = '10.14.1';
 const EMAIL_DOMAIN = 'np-kids.app';
@@ -93,6 +94,11 @@ class FirebaseBackend {
     } catch (e) { throw new Error(koError(e)); }
   }
   async declineRequest(uid, fromUid) { await this.F.deleteDoc(this.F.doc(this.db, 'requests', uid, 'list', fromUid)); }
+  async sendFeedback(item) { try { const r = await this.F.addDoc(this.F.collection(this.db, 'feedback'), item); return r.id; } catch (e) { throw new Error(koError(e)); } }
+  async listMyFeedback(uid) { const s = await this.F.getDocs(this.F.query(this.F.collection(this.db, 'feedback'), this.F.where('uid', '==', uid))); return s.docs.map((d) => ({ id: d.id, ...d.data() })); }
+  async listAllFeedback() { try { const s = await this.F.getDocs(this.F.query(this.F.collection(this.db, 'feedback'), this.F.orderBy('at', 'desc'), this.F.limit(100))); return s.docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { throw new Error(koError(e)); } }
+  async replyFeedback(id, reply) { try { await this.F.updateDoc(this.F.doc(this.db, 'feedback', id), { reply, repliedAt: Date.now() }); } catch (e) { throw new Error(koError(e)); } }
+  async deleteFeedback(id) { try { await this.F.deleteDoc(this.F.doc(this.db, 'feedback', id)); } catch (e) { throw new Error(koError(e)); } }
 }
 
 /** ---------- 가짜 백엔드 (브라우저 localStorage, ?mockcloud 로 화면 시험용) ---------- */
@@ -127,6 +133,11 @@ class MockBackend {
   async listRequests(uid) { const r = this.read().requests?.[uid] || {}; return Object.entries(r).map(([k, v]) => ({ uid: k, ...v })); }
   async acceptRequest(uid, fromUid) { const db = this.read(); this.addPair(db, uid, fromUid); this.addPair(db, fromUid, uid); if (db.requests?.[uid]) delete db.requests[uid][fromUid]; this.write(db); }
   async declineRequest(uid, fromUid) { const db = this.read(); if (db.requests?.[uid]) delete db.requests[uid][fromUid]; this.write(db); }
+  async sendFeedback(item) { const db = this.read(); db.feedback ||= {}; const id = 'f' + Math.random().toString(36).slice(2, 10); db.feedback[id] = item; this.write(db); return id; }
+  async listMyFeedback(uid) { return Object.entries(this.read().feedback || {}).filter(([, v]) => v.uid === uid).map(([id, v]) => ({ id, ...v })); }
+  async listAllFeedback() { return Object.entries(this.read().feedback || {}).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.at - a.at); }
+  async replyFeedback(id, reply) { const db = this.read(); if (db.feedback?.[id]) { db.feedback[id].reply = reply; db.feedback[id].repliedAt = Date.now(); this.write(db); } }
+  async deleteFeedback(id) { const db = this.read(); if (db.feedback) delete db.feedback[id]; this.write(db); }
 }
 
 /** ---------- 게임이 쓰는 얼굴 ---------- */
@@ -162,6 +173,17 @@ export const cloud = {
     return p;
   },
   async listRequests() { return this.user ? this.backend.listRequests(this.user.uid) : []; },
+  /** 개발자에게 요청 보내기: text 와 (선택) mime+data(base64). data 는 원본 600KB 까지 */
+  async sendFeedback({ text = '', mime = null, data = null } = {}) {
+    if (!this.user) throw new Error('먼저 로그인해 주세요');
+    if (!text.trim() && !data) throw new Error('글을 적거나 목소리·사진을 붙여 주세요');
+    if (data && data.length > 820000) throw new Error('파일이 너무 커요 (사진은 더 작게, 목소리는 30초 안으로)');
+    return this.backend.sendFeedback({ uid: this.user.uid, name: this.user.name, text: text.trim().slice(0, 1000), mime, data, at: Date.now(), reply: null, repliedAt: null });
+  },
+  async listMyFeedback() { return this.user ? this.backend.listMyFeedback(this.user.uid) : []; },
+  async listAllFeedback() { return this.backend.listAllFeedback(); },
+  async replyFeedback(id, reply) { return this.backend.replyFeedback(id, reply); },
+  async deleteFeedback(id) { return this.backend.deleteFeedback(id); },
   async acceptRequest(fromUid) { if (this.user) await this.backend.acceptRequest(this.user.uid, fromUid); },
   async declineRequest(fromUid) { if (this.user) await this.backend.declineRequest(this.user.uid, fromUid); },
   async removeFriend(fid) { if (this.user) await this.backend.removeFriend(this.user.uid, fid); },

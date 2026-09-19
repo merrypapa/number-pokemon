@@ -43,6 +43,7 @@ export class Dex {
     this.countEl = document.getElementById('dex-count');
     this.adminEl = document.getElementById('dex-admin');   // 관리자 탭 (main 이 채운다)
     this.friendsEl = document.getElementById('dex-friends'); // 친구 탭 (main 이 채운다)
+    this.feedbackEl = document.getElementById('dex-feedback'); // 요청 탭 (main 이 채운다)
     this.onTab = null; // (tab) → main 이 탭이 열릴 때 할 일 (친구 목록 새로 고침)
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
@@ -117,6 +118,7 @@ export class Dex {
     this.ballsEl.classList.toggle('hidden', tab !== 'balls');
     this.adminEl.classList.toggle('hidden', tab !== 'admin');
     this.friendsEl.classList.toggle('hidden', tab !== 'friends');
+    this.feedbackEl.classList.toggle('hidden', tab !== 'feedback');
     this.onTab?.(tab);
     if (tab !== 'poke') this.stopView(); else if (this.selectedId && this.byId[this.selectedId]) this.render(this.lastCaught || {});
     if (tab === 'map') this.renderMap(this.lastCaught || {});

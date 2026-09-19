@@ -148,12 +148,12 @@ function makeZone(name, builder) {
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, hive: buildHive };
 const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
-const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·구출 퀴즈로 얻는다)
+const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
   BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: bossFor(p.zone), hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
   WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
 }
-const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 구출 친구 수 (문제를 많이 풀게)
+const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 퀴즈 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
 const zones = {};
 let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
@@ -918,8 +918,8 @@ function updateRide(dt) {
   }
 }
 
-// ---------- 숫자블록 구출 (랜덤 출몰 + 문제 풀기) ----------
-// 지역마다 가끔(45~90초) 숫자블록 친구가 랜덤한 곳에 나타나 도와달라고 한다. 가까이 가서 구출하기 버튼을 누르면 문제가 나오고,
+// ---------- 숫자블록 퀴즈 (랜덤 출몰 + 문제 풀기) ----------
+// 지역마다 가끔 숫자블록 친구가 랜덤한 곳에 나타나 퀴즈를 낸다. 가까이 가서 퀴즈 풀기 버튼을 누르면 문제가 나오고,
 // 맞히면 그 숫자만큼 블록이 내 숫자블록에 합쳐진다. 120초 안에 못 구하면 다른 곳으로 가 버린다.
 function dirWord(dx, dz) {
   const a = Math.atan2(dx, -dz); // 북(-z)=0
@@ -1103,7 +1103,7 @@ function finishUfoRide() {
   sound.fanfare(); confetti.burst(60);
   autosave();
 }
-// ----- 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차 타기·로켓 타기·구출)이 화면에 버튼으로 나타난다. E키/엔터도 같은 일을 한다 -----
+// ----- 상황 버튼: 가까이 가면 할 수 있는 일(이야기·기차 타기·로켓 타기·퀴즈)이 화면에 버튼으로 나타난다. E키/엔터도 같은 일을 한다 -----
 const ctxBtn = document.getElementById('ctx-action');
 let ctxAction = null, ctxClicked = false;
 ctxBtn.onclick = () => { ctxClicked = true; };
@@ -1201,13 +1201,14 @@ function rescueSolved(z, nb) {
   z.rescues = z.rescues.filter((o) => o !== nb);
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
-  // 구출 보상은 문제 종류·지역과 상관없이 딱 "그 친구의 숫자만큼" —
-  // 줍기·대결과 달리 구출은 자주 나오니, 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
-  const before = state.blocks, gain = n;
-  setBlocks(state.blocks + gain);
+  // 퀴즈 보상은 문제 종류·지역과 상관없이 딱 "그 친구의 숫자만큼" —
+  // 줍기·대결과 달리 퀴즈는 자주 나오니, 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
+  setBlocks(state.blocks + n);
   sound.fanfare();
   confetti.burst(100);
-  say(`${nb.data.name}: 고마워! ${before}에 ${gain}을 더해서 이제 블록 ${state.blocks}개! 내 블록이 네 숫자블록에 합쳐졌어!`, { face: String(n), sec: 6 });
+  // 말풍선은 "숫자가 얼마 더해졌다"가 아니라 정답 풀이를 한 번 더 들려준다 (블록 수는 HUD 로 보인다)
+  const why = quiz.last?.explain || quiz.last?.hint || '';
+  say(`${nb.data.name}: 정답이야, 고마워! ${why}`, { face: String(n), sec: 7 });
   refreshHud();
   autosave();
 }
@@ -1230,7 +1231,7 @@ function tutorial() {
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)를 열면 블록으로 포켓몬의 공격력이나 체력을 올릴 수 있어.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 체력이 0이 되면 지니까 도감에서 체력도 올려 두자.', { sec: 7 }); }
-  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 도와달라고 나타나면 문제를 풀어 구출해 줘!', { sec: 7 }); }
+  else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 나타나면 퀴즈를 풀어 줘. 맞히면 블록을 줘!', { sec: 7 }); }
   else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 꿈의우주의 UFO 정거장에서는 태양과 행성들까지 갈 수 있어. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
 function conquer(zoneName) {
@@ -1468,7 +1469,7 @@ function acctShowForm(mode) {
 document.getElementById('btn-acct-choose-login').onclick = () => acctShowForm('login');
 document.getElementById('btn-acct-choose-signup').onclick = () => acctShowForm('signup');
 document.getElementById('btn-acct-back').onclick = acctShowChoice;
-const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]');
+const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]'), feedbackTabBtn = document.querySelector('#dex-tabs button[data-tab="feedback"]');
 function acctError(msg) { acctErr.textContent = msg || ''; acctErr.classList.toggle('hidden', !msg); }
 function refreshAccountUi() {
   const u = cloud.user;
@@ -1478,6 +1479,7 @@ function refreshAccountUi() {
   acctSigned.classList.toggle('hidden', !u);
   if (u) document.getElementById('acct-me-name').textContent = u.name;
   friendsTabBtn.hidden = !cloud.enabled; // 친구 탭은 클라우드가 켜져 있으면 늘 보인다 (로그인 전에는 로그인 버튼)
+  feedbackTabBtn.hidden = !cloud.enabled;
   dexLogoutBtn.hidden = !u;
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
@@ -1569,7 +1571,110 @@ async function renderFriendList() {
     list.appendChild(row);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); };
+// ---------- 요청 탭: 아이가 개발자에게 글·목소리·사진으로 요청을 보낸다. 관리자는 관리자 탭에서 보고 답장한다 ----------
+const fb = { blob: null, mime: null, rec: null, recTimer: null, chunks: [] };
+/** Blob → base64 (data: 접두어 없이) */
+function blobToBase64(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); }); }
+/** 사진을 1024px 안, JPEG 로 줄인다 (Firestore 문서 1MB 한도 안에 들어가게) */
+async function shrinkImage(file) {
+  const bmp = await createImageBitmap(file).catch(() => null);
+  if (!bmp) return file;
+  const max = 1024, k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  for (const q of [0.75, 0.6, 0.45, 0.3]) { const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', q)); if (blob && blob.size <= 450000) return blob; }
+  return await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.25));
+}
+function fbSetAttachment(blob, mime) { fb.blob = blob; fb.mime = mime; renderFbPreview(); }
+function renderFbPreview() {
+  const box = dex.feedbackEl.querySelector('#fb-preview'); if (!box) return;
+  if (!fb.blob) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  box.classList.remove('hidden');
+  const url = URL.createObjectURL(fb.blob);
+  box.innerHTML = fb.mime.startsWith('image/') ? `<img src="${url}" alt=""><span>📷 사진 (${Math.round(fb.blob.size / 1024)}KB)</span>` : `<audio controls src="${url}"></audio>`;
+  const del = document.createElement('button'); del.className = 'save-del'; del.textContent = '✕'; del.title = '붙인 것 빼기'; del.onclick = () => fbSetAttachment(null, null);
+  box.appendChild(del);
+}
+async function fbToggleRecord(btn) {
+  if (fb.rec) { fb.rec.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { say('이 브라우저에서는 목소리 녹음이 안 돼요. 글이나 사진으로 보내 주세요.', { sec: 5 }); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (_) { say('마이크를 쓸 수 없어요. 브라우저에서 마이크 허용을 눌러 주세요.', { sec: 5 }); return; }
+  const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
+  const rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined);
+  fb.chunks = []; fb.rec = rec;
+  rec.ondataavailable = (e) => { if (e.data.size) fb.chunks.push(e.data); };
+  rec.onstop = () => {
+    clearTimeout(fb.recTimer); fb.rec = null; stream.getTracks().forEach((t) => t.stop());
+    btn.classList.remove('rec'); btn.textContent = '🎤 목소리 녹음';
+    const blob = new Blob(fb.chunks, { type: rec.mimeType || mime || 'audio/webm' });
+    if (blob.size > 0) fbSetAttachment(blob, blob.type.split(';')[0]);
+  };
+  rec.start(250);
+  btn.classList.add('rec'); btn.textContent = '⏹ 녹음 끝내기 (30초까지)';
+  fb.recTimer = setTimeout(() => { if (fb.rec) fb.rec.stop(); }, 30000);
+}
+async function renderFeedback() {
+  const box = dex.feedbackEl;
+  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 만든 사람에게 하고 싶은 말을 보낼 수 있어요.</div><div class="friend-add"><button id="btn-fb-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-fb-login').onclick = () => acctBtn.onclick(); return; }
+  box.innerHTML = `<div class="friend-me">📨 만든 사람에게 요청하기</div>
+    <div class="friend-note">게임에 넣고 싶은 것, 고쳤으면 하는 것을 글로 적거나, 목소리로 말하거나, 종이에 쓴 걸 사진으로 찍어 보내요.</div>
+    <textarea id="fb-text" maxlength="1000" placeholder="예: 리자몽이 하늘을 날았으면 좋겠어요"></textarea>
+    <div class="fb-tools"><button id="fb-rec">🎤 목소리 녹음</button><button id="fb-photo">📷 사진 찍기 / 고르기</button><input id="fb-file" type="file" accept="image/*" capture="environment" hidden /></div>
+    <div id="fb-preview" class="fb-preview hidden"></div>
+    <button id="fb-send" class="fb-send">📨 보내기</button>
+    <div id="fb-mine"><div class="friend-note">불러오는 중…</div></div>`;
+  const ta = box.querySelector('#fb-text');
+  ta.addEventListener('keydown', (e) => e.stopPropagation()); ta.addEventListener('keyup', (e) => e.stopPropagation());
+  box.querySelector('#fb-rec').onclick = (e) => fbToggleRecord(e.currentTarget);
+  const file = box.querySelector('#fb-file');
+  box.querySelector('#fb-photo').onclick = () => file.click();
+  file.onchange = async () => { const f = file.files?.[0]; if (!f) return; const small = await shrinkImage(f); fbSetAttachment(small, 'image/jpeg'); file.value = ''; };
+  box.querySelector('#fb-send').onclick = async (e) => {
+    const btn = e.currentTarget; btn.disabled = true;
+    try {
+      const data = fb.blob ? await blobToBase64(fb.blob) : null;
+      await cloud.sendFeedback({ text: ta.value, mime: fb.blob ? fb.mime : null, data });
+      ta.value = ''; fbSetAttachment(null, null);
+      say('📨 보냈어! 고마워, 잘 읽어 볼게!', { sec: 5 }); confetti.burst(80);
+      renderMyFeedback();
+    } catch (err) { say(`😢 ${err.message}`, { sec: 5 }); } finally { btn.disabled = false; }
+  };
+  renderFbPreview();
+  renderMyFeedback();
+}
+function fbItemHtml(f, admin) {
+  const media = f.data && f.mime ? (f.mime.startsWith('image/') ? `<img src="data:${f.mime};base64,${f.data}" alt="">` : `<audio controls src="data:${f.mime};base64,${f.data}"></audio>`) : '';
+  return `<div class="fb-meta">${admin ? `<b>${f.name}</b> · ` : ''}${formatWhen(f.at)}</div>${f.text ? `<div class="fb-body">${f.text.replace(/</g, '&lt;')}</div>` : ''}${media}${f.reply ? `<div class="fb-reply">💬 답장: ${f.reply.replace(/</g, '&lt;')}</div>` : ''}`;
+}
+async function renderMyFeedback() {
+  const list = dex.feedbackEl.querySelector('#fb-mine'); if (!list) return;
+  let mine = [];
+  try { mine = await cloud.listMyFeedback(); } catch (e) { list.innerHTML = ''; return; }
+  if (!mine.length) { list.innerHTML = ''; return; }
+  list.innerHTML = '<div class="friend-me">📬 내가 보낸 요청</div>';
+  for (const f of mine.sort((a, b) => b.at - a.at).slice(0, 20)) { const el = document.createElement('div'); el.className = 'fb-item'; el.innerHTML = fbItemHtml(f, false); list.appendChild(el); }
+}
+/** 관리자 탭: 받은 요청 모두 보기 + 답장 + 삭제 */
+async function renderAdminFeedback() {
+  const box = dex.adminEl; let sec = box.querySelector('#admin-fb');
+  if (!sec) { sec = document.createElement('div'); sec.id = 'admin-fb'; box.appendChild(sec); }
+  if (!cloud.user) { sec.innerHTML = ''; return; }
+  sec.innerHTML = '<div class="admin-title">📨 아이들이 보낸 요청</div><div class="friend-note">불러오는 중…</div>';
+  let all = [];
+  try { all = await cloud.listAllFeedback(); } catch (e) { sec.innerHTML = `<div class="admin-title">📨 아이들이 보낸 요청</div><div class="friend-note">못 읽었어: ${e.message} (관리자 계정으로 로그인했는지, 규칙을 붙였는지 확인)</div>`; return; }
+  sec.innerHTML = `<div class="admin-title">📨 아이들이 보낸 요청 ${all.length}개</div>`;
+  if (!all.length) { sec.insertAdjacentHTML('beforeend', '<div class="friend-note">아직 없어요.</div>'); return; }
+  for (const f of all) {
+    const el = document.createElement('div'); el.className = 'fb-item';
+    el.innerHTML = fbItemHtml(f, true) + `<div class="fb-admin"><input type="text" maxlength="300" placeholder="답장 쓰기" value="${(f.reply || '').replace(/"/g, '&quot;')}"><button class="fb-reply-btn">답장</button><button class="fb-del-btn">삭제</button></div>`;
+    const input = el.querySelector('input'); input.addEventListener('keydown', (e) => e.stopPropagation()); input.addEventListener('keyup', (e) => e.stopPropagation());
+    el.querySelector('.fb-reply-btn').onclick = async () => { try { await cloud.replyFeedback(f.id, input.value.trim()); say('답장했어!', { sec: 3 }); renderAdminFeedback(); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); } };
+    el.querySelector('.fb-del-btn').onclick = async () => { if (confirm('이 요청을 지울까요?')) { await cloud.deleteFeedback(f.id); renderAdminFeedback(); } };
+    sec.appendChild(el);
+  }
+}
+dex.onTab = (tab) => { if (tab === 'friends') renderFriends(); if (tab === 'feedback') renderFeedback(); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
 function applySave(d) {
@@ -1651,7 +1756,7 @@ function frame() {
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
   } else if (quiz.open) {
-    if (input.wasPressed('cancel')) quiz.finish(false);
+    if (input.wasPressed('cancel')) quiz.finish('skip'); // 답을 고른 뒤라면 그 결과로 닫힌다
   } else if (planetOpen) { // 행성 고르기 팝업이 떠 있는 동안은 멈춘다
     if (input.wasPressed('cancel')) closePlanetPopup();
   } else if (battle.active) {
@@ -1774,7 +1879,7 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 1 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·구출 퀴즈가 주 수입)
+    if (zone.respawnTimer <= 0 && zone.pickups.length < 1 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·숫자블록 퀴즈가 주 수입)
       zone.respawnTimer = 120;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
@@ -1874,10 +1979,10 @@ function frame() {
       }
     }
 
-    // ----- 숫자블록 구출: 랜덤 출몰, 가까이 가서 구출하기 버튼 → 문제 -----
+    // ----- 숫자블록 퀴즈: 랜덤 출몰, 가까이 가서 퀴즈 풀기 버튼 → 문제 -----
     zone.nbTimer -= dt;
     if (zone.rescues.length < MAX_RESCUES && zone.nbTimer <= 0 && !zone.world.indoor) spawnRescue(zone);
-    let nearNb = null; // 가장 가까운 구출 친구 (구출하기 버튼은 하나만)
+    let nearNb = null; // 가장 가까운 퀴즈 친구 (퀴즈 풀기 버튼은 하나만)
     for (const nb of [...zone.rescues]) {
       nb.t += dt;
       nb.life -= dt;
@@ -1889,7 +1994,7 @@ function frame() {
     }
     if (nearNb) {
       const nb = nearNb;
-      offer(`🧩 ${nb.data.name} 구출하기`, () => {
+      offer(`🧩 ${nb.data.name} 퀴즈 풀기`, () => {
         input.endFrame();
         quiz.ask(nb.data.number, nb.data.name, zone.name).then((res) => { // 행성에서는 그 행성 상식 퀴즈가 나온다
           if (!zone.rescues.includes(nb)) return;
@@ -1897,10 +2002,11 @@ function frame() {
           else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다
             removeRescue(zone, nb);
             sound.bounce();
-            say(`아쉬워… ${nb.data.name}이(가) 다른 곳으로 가 버렸어. 곧 다른 친구가 도와달랠 거야!`, { face: String(nb.data.number), sec: 5 });
+            const ans = quiz.last?.answer;
+            say(`${nb.data.name}: 정답은 ${ans}이었어. ${quiz.last?.explain || quiz.last?.hint || ''} 다음 퀴즈에 또 도전해 봐!`, { face: String(nb.data.number), sec: 7 });
           } else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
         });
-      }, '🧩\n구출');
+      }, '🧩\n퀴즈');
     }
     tickCar();
     if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)

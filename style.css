@@ -270,11 +270,15 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 #quiz-choices button.right { background: #57b947; color: #fff; border-color: #fff; }
 #quiz-choices button.wrong { background: #eee; color: #aaa; box-shadow: 0 4px 0 #ccc; animation: shake .3s; }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-#quiz-hint { min-height: 22px; font-size: 15px; font-weight: 800; color: #8c4fd0; }
+#quiz-hint { min-height: 22px; font-size: 15px; font-weight: 800; color: #8c4fd0; line-height: 1.4; word-break: keep-all; }
+#quiz-title.right, #quiz-hint.right { color: #1f9d55; }
+#quiz-title.wrong { color: #e8453c; }
+#quiz-hint.wrong { color: #b0443a; }
 .quiz-planet { width: 110px; height: 110px; margin: 0 auto; }
 .quiz-planet svg { width: 100%; height: 100%; display: block; border-radius: 18px; box-shadow: 0 0 18px rgba(102,224,255,.35); }
 #quiz-choices button.text { font-size: clamp(15px, 2.4vw, 19px); min-width: 0; max-width: 100%; padding: 12px 18px; white-space: normal; word-break: keep-all; line-height: 1.3; }
 #btn-quiz-skip { margin-top: 6px; font-size: 14px; font-weight: 800; padding: 8px 14px; border-radius: 12px; border: 0; background: #eee; color: #666; cursor: pointer; }
+#btn-quiz-skip.confirm { font-size: 17px; padding: 10px 26px; background: #2d7ff9; color: #fff; box-shadow: 0 4px 0 #1b56b3; } /* 답을 고른 뒤: 풀이를 읽고 닫는 파란 확인 버튼 */
 .party-type { font-size: 11px; background: #e6f4ff; color: #1f5fa8; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
 
 /* ---------- 도감 상세 (선택한 한 마리) ---------- */
@@ -512,7 +516,28 @@ body.intro #btn-save { display: none !important; }
 .friend-decline { font: inherit; font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #eee; color: #888; cursor: pointer; white-space: nowrap; }
 #dex-friends { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 #dex-friends.hidden { display: none; }
-#dex-tabs button[data-tab="friends"][hidden] { display: none; }
+#dex-tabs button[data-tab="friends"][hidden], #dex-tabs button[data-tab="feedback"][hidden] { display: none; }
+/* 요청 탭: 개발자에게 글·목소리·사진 보내기 */
+#dex-feedback { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#dex-feedback.hidden { display: none; }
+#fb-text { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; font-weight: 700; padding: 10px 12px; border-radius: 12px; border: 3px solid #ffd93d; min-height: 84px; resize: vertical; }
+.fb-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.fb-tools button, .fb-send { font: inherit; font-size: 15px; font-weight: 900; padding: 10px 14px; border-radius: 12px; border: 0; background: #eee; color: #333; cursor: pointer; box-shadow: 0 3px 0 #ccc; }
+.fb-tools button.rec { background: #e8453c; color: #fff; box-shadow: 0 3px 0 #a52a24; }
+.fb-send { background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; }
+.fb-send:disabled { opacity: .5; }
+.fb-preview { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 12px; padding: 8px 10px; border: 3px solid #ffd93d; }
+.fb-preview img { max-width: 140px; max-height: 140px; border-radius: 8px; }
+.fb-preview audio { max-width: 100%; }
+.fb-item { background: #fff; border-radius: 14px; padding: 10px 12px; border: 3px solid #f0e6c0; }
+.fb-item .fb-meta { font-size: 12px; color: #777; font-weight: 700; }
+.fb-item .fb-body { font-size: 15px; font-weight: 700; color: #333; white-space: pre-wrap; margin: 4px 0; }
+.fb-item img { max-width: 100%; max-height: 220px; border-radius: 8px; display: block; margin-top: 6px; }
+.fb-item audio { width: 100%; margin-top: 6px; }
+.fb-item .fb-reply { margin-top: 6px; background: #e9f7e6; border-radius: 10px; padding: 8px 10px; font-size: 14px; font-weight: 800; color: #2a6b1f; }
+.fb-item .fb-admin { display: flex; gap: 6px; margin-top: 6px; }
+.fb-item .fb-admin input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: 2px solid #ddd; }
+.fb-item .fb-admin button { font: inherit; font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #ffd93d; cursor: pointer; }
 .friend-add { display: flex; gap: 8px; align-items: center; width: 100%; box-sizing: border-box; min-width: 0; }
 .friend-add > * { min-width: 0; }
 .friend-add > button { flex-shrink: 0; }
