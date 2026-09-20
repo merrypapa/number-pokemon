@@ -7,6 +7,7 @@ import { swapDraftWithModel, tickModel } from './models.js';
 import { PLAYER_MODEL, PLAYER_HEIGHT } from './player.js';
 import { makePillSprite, terrainHeight } from './world.js';
 import { lerpAngle } from './util.js';
+import { buildDraftMesh, partyScale } from './creatures.js';
 
 export const EMOTES = ['👋', '🎉', '😆', '❤️'];
 const STALE_MS = 20000, EMOTE_MS = 3000;
@@ -35,10 +36,11 @@ export function makeEmoteSprite(emoji) {
 }
 
 export class Ghosts {
-  constructor() { this.map = new Map(); this.scene = null; this.zoneName = null; this.seen = new Set(); this.onAppear = () => {}; }
+  constructor(speciesById = {}) { this.speciesById = speciesById; this.map = new Map(); this.scene = null; this.zoneName = null; this.seen = new Set(); this.onAppear = () => {}; }
+  removeGhost(g) { g.mesh.parent?.remove(g.mesh); g.pet?.parent?.remove(g.pet); }
   /** 지역이 바뀌면 이전 지역의 유령을 모두 치운다 */
   setZone(scene, zoneName) {
-    for (const g of this.map.values()) g.mesh.parent?.remove(g.mesh);
+    for (const g of this.map.values()) this.removeGhost(g);
     this.map.clear(); this.seen.clear();
     this.scene = scene; this.zoneName = zoneName;
   }
@@ -64,9 +66,14 @@ export class Ghosts {
       g.vx = p.vx || 0; g.vz = p.vz || 0;
       g.facing = p.f || 0;
       g.moving = !!p.m;
+      if ((p.l || null) !== (g.leaderId || null)) { // 친구의 대표 포켓몬이 뒤를 따라온다 (바뀌면 새로)
+        g.pet?.parent?.remove(g.pet); g.pet = null; g.leaderId = p.l || null;
+        const sp = p.l ? this.speciesById[p.l] : null;
+        if (sp) { g.pet = buildDraftMesh(sp); g.pet.scale.setScalar(partyScale(sp)); g.pet.position.copy(g.mesh.position); this.scene.add(g.pet); }
+      }
       if (p.e && p.et && p.et !== g.emoteAt && now - p.et < EMOTE_MS + 5000) { g.emoteAt = p.et; g.emote = p.e; g.emoteShown = now; }
     }
-    for (const [uid, g] of this.map) if (!keep.has(uid)) { g.mesh.parent?.remove(g.mesh); this.map.delete(uid); }
+    for (const [uid, g] of this.map) if (!keep.has(uid)) { this.removeGhost(g); this.map.delete(uid); }
   }
   update(dt, now = Date.now()) {
     for (const g of this.map.values()) {
@@ -80,6 +87,16 @@ export class Ghosts {
       m.position.y += (Math.max(ground, g.target.y) - m.position.y) * k;
       m.rotation.y = lerpAngle(m.rotation.y, g.facing, 0.3);
       tickModel(m, dt, g.moving ? 'walk' : 'idle');
+      if (g.pet) { // 대표 포켓몬: 친구 뒤 1.6m 를 따라온다
+        const pet = g.pet, back = 1.6;
+        const tx = m.position.x - Math.sin(g.facing) * back, tz = m.position.z - Math.cos(g.facing) * back;
+        const kp = 1 - Math.exp(-dt * 6);
+        const ddx = tx - pet.position.x, ddz = tz - pet.position.z, dd = Math.hypot(ddx, ddz);
+        pet.position.x += ddx * kp; pet.position.z += ddz * kp;
+        pet.position.y += (terrainHeight(pet.position.x, pet.position.z) - pet.position.y) * kp;
+        if (dd > 0.2) pet.rotation.y = lerpAngle(pet.rotation.y, Math.atan2(ddx, ddz), 0.25);
+        tickModel(pet, dt, dd > 0.3 ? 'walk' : 'idle');
+      }
       // 감정 표현: 3초 동안 머리 위에
       if (g.emote && g.emoteShown && now - g.emoteShown < EMOTE_MS) {
         if (!g.emoteSprite) { g.emoteSprite = makeEmoteSprite(g.emote); m.add(g.emoteSprite); }

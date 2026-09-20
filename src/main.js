@@ -1791,7 +1791,7 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloading) return; reloading = true; location.reload(); });
 }
 // ---------- 같이 놀기 1단계: 같은 지역에 있는 친구가 보인다 (src/presence.js, Realtime Database presence/{uid}) ----------
-const ghosts = new Ghosts();
+const ghosts = new Ghosts(speciesById);
 ghosts.onAppear = (name) => say(`👫 ${name}이(가) 같은 지역에 있어! 손을 흔들어 봐 👋`, { sec: 5 });
 const presence = { t: 0, heart: 0, last: null, friends: new Map(), watches: new Map(), refreshT: 0, emote: null, emoteAt: 0, mySprite: null, myShown: 0 };
 const emoteRow = document.getElementById('hud-emote-row');
