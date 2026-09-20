@@ -10,50 +10,50 @@ import { makeNpc } from './npc.js';
 //  - 서북쪽: 보스 아레나(돌기둥 원) — 쿵쿵이
 //  - 흙길이 마을에서 각 장소로 이어진다.
 export const WORLD = {
-  size: 220,
+  size: 300, // 220 → 300 으로 넓힘 (지형지물 좌표도 같은 비율로 옮겼다)
   hills: [
-    { x: -45, z: -27, r: 15, h: 2.6 },
-    { x: 42, z: 15, r: 12, h: 2.0 },
-    { x: 15, z: -48, r: 11, h: 3.0 },
-    { x: -51, z: 39, r: 17, h: 1.8 },
-    { x: 66, z: -48, r: 16, h: 2.4 },
-    { x: -18, z: 69, r: 15, h: 2.0 },
-    { x: 72, z: 66, r: 12, h: 1.6 },
-    { x: 30, z: -78, r: 11, h: 2.2 },
-    { x: 78, z: -78, r: 14, h: 2.4 },
-    { x: -75, z: 66, r: 13, h: 2.0 },
-    { x: 60, z: 80, r: 12, h: 1.8 },
-    { x: -80, z: -3, r: 12, h: 2.2 },
-    { x: 0, z: -84, r: 10, h: 1.6 },
-    { x: -96, z: -60, r: 14, h: 2.6 },
-    { x: 96, z: 20, r: 13, h: 2.0 },
-    { x: -40, z: 96, r: 14, h: 1.8 },
-    { x: 40, z: -100, r: 12, h: 2.2 },
-    { x: -100, z: 90, r: 12, h: 1.6 },
+    { x: -61.4, z: -36.8, r: 20.5, h: 2.6 },
+    { x: 57.3, z: 20.5, r: 16.4, h: 2.0 },
+    { x: 20.5, z: -65.5, r: 15.0, h: 3.0 },
+    { x: -69.5, z: 53.2, r: 23.2, h: 1.8 },
+    { x: 90.0, z: -65.5, r: 21.8, h: 2.4 },
+    { x: -24.5, z: 94.1, r: 20.5, h: 2.0 },
+    { x: 98.2, z: 90.0, r: 16.4, h: 1.6 },
+    { x: 40.9, z: -106.4, r: 15.0, h: 2.2 },
+    { x: 106.4, z: -106.4, r: 19.1, h: 2.4 },
+    { x: -102.3, z: 90.0, r: 17.7, h: 2.0 },
+    { x: 81.8, z: 109.1, r: 16.4, h: 1.8 },
+    { x: -109.1, z: -4.1, r: 16.4, h: 2.2 },
+    { x: 0.0, z: -114.5, r: 13.6, h: 1.6 },
+    { x: -130.9, z: -81.8, r: 19.1, h: 2.6 },
+    { x: 130.9, z: 27.3, r: 17.7, h: 2.0 },
+    { x: -54.5, z: 130.9, r: 19.1, h: 1.8 },
+    { x: 54.5, z: -136.4, r: 16.4, h: 2.2 },
+    { x: -136.4, z: 122.7, r: 16.4, h: 1.6 },
   ],
-  hole: { x: 0, z: -72, r: 7 },
-  village: { x: 0, z: 45 }, // 시작 지점(0, 12) 뒤 카메라(z≈23)에 나무가 걸리지 않게 충분히 뒤로
-  pond: { x: 51, z: 45, r: 11 },
-  arena: { x: -66, z: -57, r: 12 },
-  cave: { x: -27, z: -82 },
-  volcanoGate: { x: 88, z: -70 },  // 불의산 입구 (붉은 바위산 아치)
-  station: { x: -88, z: 42 },      // 기차역 (물의길로 가는 기차)
-  rocketPad: { x: 82, z: 82 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
-  sleepSpot: { x: -96, z: -96, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
-  hiveTree: { x: -40, z: 62 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
-  lab: { x: 0, z: 64 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
-  stadium: { x: 46, z: 86, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
+  hole: { x: 0.0, z: -98.2, r: 7 },
+  village: { x: 0.0, z: 61.4 }, // 시작 지점(0, 12) 뒤 카메라(z≈23)에 나무가 걸리지 않게 충분히 뒤로
+  pond: { x: 69.5, z: 61.4, r: 15.0 },
+  arena: { x: -90.0, z: -77.7, r: 12 },
+  cave: { x: -36.8, z: -111.8 },
+  volcanoGate: { x: 120.0, z: -95.5 },  // 불의산 입구 (붉은 바위산 아치)
+  station: { x: -120.0, z: 57.3 },      // 기차역 (물의길로 가는 기차)
+  rocketPad: { x: 111.8, z: 111.8 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
+  sleepSpot: { x: -130.9, z: -130.9, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
+  hiveTree: { x: -54.5, z: 84.5 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
+  lab: { x: 0.0, z: 87.3 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
+  stadium: { x: 62.7, z: 117.3, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
-    [[0, 33], [0, -9], [-3, -39], [0, -60]],
-    [[0, 0], [21, 15], [39, 36]],
-    [[0, -9], [-24, -21], [-45, -45], [-60, -54]],
-    [[0, -60], [-14, -70], [-27, -74]],
-    [[0, -60], [40, -66], [84, -70]],
-    [[88, -46], [88, -66]], // 불의산 입구 협곡 길
-    [[-9, 45], [-50, 44], [-84, 42]],
-    [[14, 52], [50, 70], [78, 80]],
-    [[0, 50], [0, 58]], // 마을 광장 → 연구소 문
+    [[0.0, 45.0], [0.0, -12.3], [-4.1, -53.2], [0.0, -81.8]],
+    [[0.0, 0.0], [28.6, 20.5], [53.2, 49.1]],
+    [[0.0, -12.3], [-32.7, -28.6], [-61.4, -61.4], [-81.8, -73.6]],
+    [[0.0, -81.8], [-19.1, -95.5], [-36.8, -100.9]],
+    [[0.0, -81.8], [54.5, -90.0], [114.5, -95.5]],
+    [[120.0, -62.7], [120.0, -90.0]], // 불의산 입구 협곡 길
+    [[-12.3, 61.4], [-68.2, 60.0], [-114.5, 57.3]],
+    [[19.1, 70.9], [68.2, 95.5], [106.4, 109.1]],
+    [[0.0, 68.2], [0.0, 79.1]], // 마을 광장 → 연구소 문
   ],
 };
 
@@ -161,6 +161,11 @@ export function resolveObstacles(pos, r = 0.4) {
 }
 
 const MEADOW_BRIDGES = [{ x1: WORLD.pond.x - WORLD.pond.r - 2.5, z1: WORLD.pond.z, x2: WORLD.pond.x + WORLD.pond.r + 2.5, z2: WORLD.pond.z, w: 1.3, rise: 0.7 }];
+
+// 야생 포켓몬이 나타나는 자리와 블록이 떨어져 있는 자리 (맵을 300 으로 넓히며 함께 늘렸다).
+// 위로 빼 둔 이유: 나무·바위·수풀을 놓을 때 이 자리들을 피해야 포켓몬이 나무 속에 끼지 않는다.
+const WILD_SPOTS = [[-40.9, 8.2], [20.5, 61.4], [-77.7, 28.6], [81.8, -81.8], [49.1, -28.6], [-28.6, 49.1], [81.8, 24.5], [-95.5, 75.0], [28.6, -8.2], [-53.2, 0.0], [61.4, 90.0], [95.5, -27.3], [-24.5, -53.2], [69.5, -53.2], [-81.8, 98.2], [40.9, 73.6], [-90.0, 65.5], [102.3, 54.5], [12.3, -45.0], [94.1, -90.0], [-40.9, -98.2], [-129.5, -40.9], [129.5, -27.3], [-54.5, 129.5], [40.9, 129.5], [-136.4, 95.5], [136.4, 68.2], [-130.9, -115.9], [68.2, -136.4], [41.7, -118.0], [-122.0, 2.1], [-127.7, -18.3], [-20.8, 90.2], [21.3, -28.5], [131.4, -125.1], [98.9, -58.1], [-98.2, -105.5], [13.2, -120.7], [-121.6, -81.2], [-51.3, 23.6], [7.0, 103.5], [132.5, -105.4]];
+const PICKUP_SPOTS = [[0.0, 6.8], [-8.2, 12.3], [12.3, -12.3], [-17.7, -4.1], [20.5, 16.4], [-4.1, -24.5], [28.6, -28.6], [-32.7, 8.2], [4.1, 32.7], [-24.5, 28.6], [45.0, 8.2], [-49.1, -16.4], [16.4, -49.1], [-16.4, 61.4], [40.9, 36.8], [-73.6, 20.5], [73.6, -12.3], [-40.9, -61.4], [-69.5, -57.3], [-24.5, -81.8], [61.4, -61.4], [-85.9, 8.2], [24.5, 81.8], [90.0, 40.9], [-98.2, 40.9], [98.2, -40.9], [-61.4, 90.0], [0.0, 98.2], [81.8, 81.8], [-81.8, -95.5], [40.9, -95.5], [106.4, 0.0], [-122.7, 13.6], [122.7, -54.5], [-40.9, 122.7], [54.5, 122.7], [-129.5, 129.5], [129.5, 129.5], [-109.1, -129.5], [0.0, -136.4], [-22.6, 71.0], [-96.1, -3.0], [-127.2, 46.4], [73.0, 20.2], [103.6, -51.4], [53.9, 26.0], [93.8, 122.7], [-7.1, 45.3], [40.6, 136.1], [88.9, -59.5], [-31.5, 46.5], [-131.8, -10.6], [-91.6, -105.7], [-121.7, 74.0], [-30.1, 102.5], [-115.8, -14.0], [13.6, 105.8], [88.1, 100.5]];
 
 export function meadowHeight(x, z) {
   let y = 0;
@@ -382,7 +387,7 @@ export function buildWorld(scene) {
   scene.add(sun, sun.target);
 
   // ---------- 지형 + 지역별 색 ----------
-  const seg = 240;
+  const seg = 280; // 맵이 220 → 300 으로 넓어져, 땅 한 칸이 예전만큼 촘촘하도록 함께 올린다
   const geo = new THREE.PlaneGeometry(S, S, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -870,14 +875,15 @@ export function buildWorld(scene) {
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
-    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 16 || distToPath(x, z) < 2.5 + extra;
+    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 16 || distToPath(x, z) < 2.5 + extra ||
+    WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
   const treeSpots = [];
-  while (treeSpots.length < 170) {
+  while (treeSpots.length < 250) { // 넓어진 만큼 늘리되 면적 비례(316)보다 적게 — 사이가 트이게
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
-    if (avoid(x, z, 1) || treeSpots.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 6)) continue;
+    if (avoid(x, z, 1) || treeSpots.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 7.5)) continue;
     treeSpots.push([x, z]);
   }
-  // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (170그루를 따로 그리면 느리다)
+  // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (250그루를 따로 그리면 느리다)
   const leafColors = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c];
   const trunkItems = [], crownItems = [], coneItems = [], stemItems = [], capItems = [];
   for (const [x, z] of treeSpots) {
@@ -900,7 +906,7 @@ export function buildWorld(scene) {
   decor.add(makeInstanced(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }), stemItems));
   decor.add(makeInstanced(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, capItems));
   const rockItems = [];
-  for (let i = 0; i < 80; i++) { // 바위
+  for (let i = 0; i < 120; i++) { // 바위
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     const rr = rand(0.4, 1.1);
@@ -914,7 +920,7 @@ export function buildWorld(scene) {
   const bushes = [];
   const bushItems = [];
   let placed = 0;
-  while (placed < 75) {
+  while (placed < 110) {
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
     if (avoid(x, z)) continue;
     placed++;
@@ -943,7 +949,7 @@ export function buildWorld(scene) {
   const petalColors = [0xff6b9d, 0xffd93d, 0xffffff, 0xff8c42, 0xb388ff, 0x4fc3f7];
   const stemMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
   const flowerSpots = [];
-  for (let i = 0; i < 1200; i++) {
+  for (let i = 0; i < 2000; i++) {
     const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
     if (meadowInHole(x, z) || Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(x, z) < 2) continue;
     flowerSpots.push([x, meadowHeight(x, z), z]);
@@ -1049,7 +1055,7 @@ export function buildWorld(scene) {
 
   // ---------- 아이 손오공: 아레나 입구 옆에서 수련하는 대결 코치. 대결 요령을 알려 준다 ----------
   const goku = makeNpc({ outfit: 'ranger', name: '아이 손오공', model: '아이손오공.glb' });
-  const gk = { x: -53.3, z: -52 };
+  const gk = { x: -72.7, z: -70.9 };
   goku.position.set(gk.x, meadowHeight(gk.x, gk.z), gk.z);
   goku.rotation.y = 0.9; // 마을에서 오는 길 쪽을 본다
   decor.add(goku); block(gk.x, gk.z, 0.6);
@@ -1097,12 +1103,12 @@ export function buildWorld(scene) {
 
   return {
     ground, bushes, sun, boulder, boulderObstacle, animate, terrain: MEADOW_TERRAIN, decor,
-    spawn: { x: 0, z: 12 }, dark: false,
+    spawn: { x: 0, z: 12 }, dark: false, // Player 의 기본 시작 자리(0, 12)와 같게 둔다
     // 몬스터 자리 (야생·보스), 블록 자리
-    wildSpots: [[-30, 6], [15, 45], [-57, 21], [60, -60], [36, -21], [-21, 36], [60, 18], [-70, 55], [21, -6], [-39, 0], [45, 66], [70, -20], [-18, -39], [51, -39], [-60, 72], [30, 54], [-66, 48], [75, 40], [9, -33], [69, -66], [-30, -72], [-95, -30], [95, -20], [-40, 95], [30, 95], [-100, 70], [100, 50], [-96, -85], [50, -100]],
+    wildSpots: WILD_SPOTS,
     bossSpot: { x: WORLD.arena.x, z: WORLD.arena.z },
     specialSpots: { sleepSpot: { x: WORLD.sleepSpot.x, z: WORLD.sleepSpot.z } }, // creatures.json 의 special 이름 → 자리
-    pickupSpots: [[0, 5], [-6, 9], [9, -9], [-13, -3], [15, 12], [-3, -18], [21, -21], [-24, 6], [3, 24], [-18, 21], [33, 6], [-36, -12], [12, -36], [-12, 45], [30, 27], [-54, 15], [54, -9], [-30, -45], [-51, -42], [-18, -60], [45, -45], [-63, 6], [18, 60], [66, 30], [-72, 30], [72, -30], [-45, 66], [0, 72], [60, 60], [-60, -70], [30, -70], [78, 0], [-90, 10], [90, -40], [-30, 90], [40, 90], [-95, 95], [95, 95], [-80, -95], [0, -100]],
+    pickupSpots: PICKUP_SPOTS,
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
