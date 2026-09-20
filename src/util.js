@@ -58,11 +58,14 @@ export function lerpAngle(a, b, t) {
 export const rand = (a, b) => a + Math.random() * (b - a);
 
 /** 받침에 맞는 조사 붙이기: josa('미나', '이가') → '미나가', josa('인하', '과와') → '인하와', josa('태양', '으로') → '태양으로', josa('지구', '으로') → '지구로', josa('인하', '이라') → '인하라'.
- *  한글이 아닌 글자로 끝나면(숫자·영어·이모지) 두 가지를 같이 보여 준다: '???이(가)'. 종류: 이가·을를·은는·과와·으로·이라 */
+ *  숫자로 끝나면 읽는 소리로 받침을 따진다: josa(5, '을를') → '5를'(오를), josa(1, '을를') → '1을'(일을), josa(1, '으로') → '1로'(일로).
+ *  그 밖에 한글이 아닌 글자로 끝나면(영어·이모지) 두 가지를 같이 보여 준다: '???이(가)'. 종류: 이가·을를·은는·과와·으로·이라 */
 const JOSA = { '이가': ['이', '가'], '을를': ['을', '를'], '은는': ['은', '는'], '과와': ['과', '와'], '으로': ['으로', '로'], '이라': ['이라', '라'] };
+const DIGIT_SOUND = { '0': '영', '1': '일', '2': '이', '3': '삼', '4': '사', '5': '오', '6': '육', '7': '칠', '8': '팔', '9': '구' }; // 10·20·100 처럼 0 으로 끝나는 수도 십·이십·백 이라 받침이 있어 '영'과 같다
 export function josa(word, type) {
   const w = String(word ?? ''), [withJong, noJong] = JOSA[type] || ['', ''];
-  const code = w.charCodeAt(w.length - 1) - 0xac00;
+  const last = w[w.length - 1], ch = DIGIT_SOUND[last] || last; // 숫자는 그 소리의 받침을 본다 (5 → 오)
+  const code = ch ? ch.charCodeAt(0) - 0xac00 : NaN;
   if (!(code >= 0 && code <= 11171)) return `${w}${withJong}(${noJong})`;
   const jong = code % 28;
   if (type === '으로') return w + (jong === 0 || jong === 8 ? '로' : '으로'); // ㄹ 받침은 '로'
