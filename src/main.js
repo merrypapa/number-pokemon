@@ -1806,11 +1806,11 @@ function presenceTick(dt) {
   if (presence.refreshT <= 0) { presence.refreshT = 60; refreshPresenceFriends(); } // 친구 목록은 1분마다 (수락하면 바로)
   presence.t -= dt; presence.heart += dt;
   if (presence.t <= 0) {
-    presence.t = 0.3;
+    presence.t = player.moving ? 0.1 : 0.3; // 움직일 때는 초당 10번 (친구 화면에서 끊기지 않게), 가만히 있으면 0.3초
     const p = player.position;
-    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, e: presence.emote, et: presence.emoteAt };
+    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, e: presence.emote, et: presence.emoteAt };
     const L = presence.last;
-    const changed = !L || L.zone !== d.zone || Math.hypot(L.x - d.x, L.z - d.z) > 0.05 || Math.abs(L.y - d.y) > 0.05 || L.f !== d.f || L.m !== d.m || L.et !== d.et || L.l !== d.l;
+    const changed = !L || L.zone !== d.zone || Math.hypot(L.x - d.x, L.z - d.z) > 0.05 || Math.abs(L.y - d.y) > 0.05 || L.f !== d.f || L.m !== d.m || L.et !== d.et || L.l !== d.l || Math.abs(L.vx - d.vx) > 0.2 || Math.abs(L.vz - d.vz) > 0.2;
     if (changed || presence.heart > 5) { presence.last = d; presence.heart = 0; cloud.setPresence(d).catch((e) => console.warn('[presence]', e)); } // 5초마다는 그대로라도 한 번 (살아 있다는 표시)
   }
   ghosts.sync([...presence.friends.values()]);

@@ -52,13 +52,16 @@ export class Ghosts {
       keep.add(p.uid);
       let g = this.map.get(p.uid);
       if (!g) {
-        g = { mesh: makeGhost(p.name || '친구'), target: new THREE.Vector3(p.x, p.y || 0, p.z), facing: p.f || 0, moving: false, emote: null, emoteAt: 0, emoteSprite: null, name: p.name || '친구' };
+        g = { mesh: makeGhost(p.name || '친구'), target: new THREE.Vector3(p.x, p.y || 0, p.z), facing: p.f || 0, moving: false, vx: 0, vz: 0, predicted: 0, emote: null, emoteAt: 0, emoteSprite: null, name: p.name || '친구' };
         g.mesh.position.copy(g.target);
         this.scene.add(g.mesh);
         this.map.set(p.uid, g);
         if (!this.seen.has(p.uid)) { this.seen.add(p.uid); this.onAppear(g.name); }
       }
-      g.target.set(p.x, p.y || 0, p.z);
+      if (p.x !== g.lastX || p.z !== g.lastZ || p.at !== g.lastAt) { // 새 소식: 목표를 옮기고 예측을 처음부터
+        g.target.set(p.x, p.y || 0, p.z); g.predicted = 0; g.lastX = p.x; g.lastZ = p.z; g.lastAt = p.at;
+      }
+      g.vx = p.vx || 0; g.vz = p.vz || 0;
       g.facing = p.f || 0;
       g.moving = !!p.m;
       if (p.e && p.et && p.et !== g.emoteAt && now - p.et < EMOTE_MS + 5000) { g.emoteAt = p.et; g.emote = p.e; g.emoteShown = now; }
@@ -68,7 +71,9 @@ export class Ghosts {
   update(dt, now = Date.now()) {
     for (const g of this.map.values()) {
       const m = g.mesh;
-      const k = 1 - Math.exp(-dt * 8);
+      // 소식은 0.1초마다 오니 그 사이는 친구의 속도로 앞을 내다본다(최대 0.35초). 그래서 끊기지 않고 미끄러지듯 움직인다
+      if (g.moving && g.predicted < 0.35) { const step = Math.min(dt, 0.35 - g.predicted); g.target.x += g.vx * step; g.target.z += g.vz * step; g.predicted += step; }
+      const k = 1 - Math.exp(-dt * 12);
       m.position.x += (g.target.x - m.position.x) * k;
       m.position.z += (g.target.z - m.position.z) * k;
       const ground = terrainHeight(m.position.x, m.position.z);
