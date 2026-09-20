@@ -44,7 +44,8 @@ function ballOnTop(ball, on) {
   meshes.forEach((o, i) => {
     o.material.depthTest = true;
     o.renderOrder = on ? (i === 0 ? 20 : 21) : 0; // 첫 조각이 먼저(깊이 비우기), 나머지가 그 뒤
-    o.onBeforeRender = on && i === 0 ? (renderer) => renderer.clearDepth() : null;
+    if (on && i === 0) o.onBeforeRender = (renderer) => renderer.clearDepth();
+    else delete o.onBeforeRender; // null 을 넣으면 three 가 그리다 멈춘다(프로토타입의 빈 함수를 가린다) — 지워서 원래대로 돌린다
   });
 }
 export function makeBall(color, spec = null) {
