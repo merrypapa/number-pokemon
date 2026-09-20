@@ -19,7 +19,7 @@ import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { makeCar, CAR_MODEL, CAR_NAME } from './car.js';
 import { Creature, buildDraftMesh, bossZoneOf, bossOverride, partyScale } from './creatures.js';
-import { preloadModels, onModelLoaded, swapDraftWithModel } from './models.js';
+import { preloadModels, onModelLoaded, swapDraftWithModel, tickModel } from './models.js';
 import { buildIntro } from './intro.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK, SILVER_BLOCK } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
@@ -96,7 +96,7 @@ function say(text, { face = null, faceImg = null, sec = 4 } = {}) {
     msgFace.style.background = '#fff';
   } else {
     msgFace.textContent = face;
-    const col = NUMBER_COLORS[Number(face)];
+    const col = NUMBER_COLORS[Number(face)] || (Number(face) > 10 ? { base: colorForCount(Number(face)) } : null); // 열보다 큰 숫자는 열이와 같은 색
     msgFace.style.background = col ? col.base : '#fff';
     msgFace.style.color = col ? '#fff' : '#333';
   }
@@ -131,7 +131,7 @@ const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
 const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
-const CHEST_CHANCE = 0.25; // 네 개에 하나쯤. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치라서 상자로 다 바꾸지는 않는다
+const CHEST_CHANCE = 0.12; // 여덟 개에 하나쯤 — 가끔 만나야 반갑다. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치이기도 해서 상자로 다 바꾸지는 않는다
 const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
 const loadingEl = document.getElementById('title-loading');
@@ -1228,9 +1228,21 @@ function placeRescue(z, data, x, zz) {
   z.rescues.push(nb);
   return nb;
 }
-/** 수수께끼 상자를 열었을 때: 상자가 있던 자리에서 랜덤 숫자블록 친구(2~10)가 나온다 */
+// 열보다 큰 숫자블록 친구의 이름 (data/numberblocks.json 에는 열이까지만 있어서 상자에서 나올 때 그 자리에서 만든다).
+// 몸은 numberblocks.js 의 shapeFor 가 11~24 를 다섯 칸 기둥으로 쌓아 주므로 그대로 세워진다
+const BIG_NB_NAMES = { 11: '열하나', 12: '열둘', 13: '열셋', 14: '열넷', 15: '열다섯', 16: '열여섯', 17: '열일곱', 18: '열여덟', 19: '열아홉', 20: '스물' };
+const BIG_NB_CHANCE = 0.2; // 상자 다섯 개에 하나쯤. 상자 자체가 드물어서(CHEST_CHANCE) 줍는 것 100개에 2~3번꼴이다
+/** 상자에서 나올 친구를 고른다. 보통은 2~10, 가끔 11~20 (11 쪽이 더 자주 나온다) */
+function chestFriendData() {
+  if (Math.random() < BIG_NB_CHANCE) {
+    const n = 11 + Math.floor(Math.random() ** 2 * 10);
+    return { id: `nbx${n}`, number: n, name: BIG_NB_NAMES[n] };
+  }
+  return nbByNumber[2 + Math.floor(Math.random() * 9)];
+}
+/** 수수께끼 상자를 열었을 때: 상자가 있던 자리에서 랜덤 숫자블록 친구가 나온다 */
 function spawnRescueAt(z, x, zz) {
-  const nb = placeRescue(z, nbByNumber[2 + Math.floor(Math.random() * 9)], x, zz);
+  const nb = placeRescue(z, chestFriendData(), x, zz);
   z.nbTimer = Math.max(z.nbTimer, rand(10, 16)); // 상자에서 나온 친구와 평소 친구가 한꺼번에 몰리지 않게
   return nb;
 }
@@ -1254,9 +1266,9 @@ function rescueSolved(z, nb) {
   setBlocks(state.blocks + n);
   sound.fanfare();
   confetti.burst(100);
-  // 말풍선은 "숫자가 얼마 더해졌다"가 아니라 정답 풀이를 한 번 더 들려준다 (블록 수는 HUD 로 보인다)
+  // 몇 개를 받았는지는 여기서 알려 준다 (상자를 열 때는 일부러 말하지 않는다 — 친구를 보고 세어 보는 맛)
   const why = quiz.last?.explain || quiz.last?.hint || '';
-  say(`${nb.data.name}: 정답이야, 고마워! ${why}`, { face: String(n), sec: 7 });
+  say(`${nb.data.name}: 정답이야, 고마워! 블록 ${n}개를 받았어!${n > 10 ? ' 열보다 큰 숫자야!' : ''} ${why}`, { face: String(n), sec: 7 });
   refreshHud();
   autosave();
 }
@@ -2231,6 +2243,7 @@ function frame() {
     // ----- 블록 줍기 -----
     for (let i = zone.pickups.length - 1; i >= 0; i--) {
       const b = zone.pickups[i];
+      tickModel(b, dt); // 늦게 도착한 모델의 등장 연출 (이걸 안 부르면 크기 0.001 에 멈춰 안 보인다)
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
       if (b.position.distanceTo(pp) < 1.1) {
@@ -2241,7 +2254,8 @@ function frame() {
           sound.pickup();
           particles.stars(zone.scene, at.clone().add(new THREE.Vector3(0, 0.8, 0)), 22, 0xffd43b, 0.5);
           const nb = spawnRescueAt(zone, at.x, at.z);
-          say(`${CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자'}를 열었어! 숫자블록 친구 ${josa(nb.data.name, '이가')} 나왔어. 문제를 풀어 주면 블록을 ${nb.data.number}개나 준대!`, { sec: 6 });
+          const big = nb.data.number > 10; // 열보다 큰 친구는 한 번 더 놀라 준다
+          say(`${CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자'}를 열었어! ${big ? '우아, 열보다 큰 친구야! ' : ''}숫자블록 친구 ${josa(nb.data.name, '이가')} 나왔어. 퀴즈를 맞히면 블록을 준대 — 몇 개일까?`, { sec: 6 });
           continue;
         }
         if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감에서 포켓몬을 키우는 데 쓰자!`); } continue; }
