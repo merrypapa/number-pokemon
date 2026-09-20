@@ -472,7 +472,7 @@ export class Dex {
       item.onclick = () => this.select(sp.id);
       this.grid.appendChild(item);
     }
-    this.countEl.textContent = `도감 ${caughtSpecies} / ${this.species.length} 종`;
+    this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
 
   }
 

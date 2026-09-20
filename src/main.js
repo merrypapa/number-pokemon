@@ -1780,8 +1780,11 @@ async function renderRank(el, inGame) {
   el.innerHTML = `<div class="rank-head">🏆 이번 주 순위 <span class="rank-how">(${weekRange(week)})</span></div>
     <div class="rank-how">점수 = 퀴즈 정답 ×${WEIGHTS.quiz} + 포켓몬 잡기 ×${WEIGHTS.caught} + 보스 정복 ×${WEIGHTS.boss} · 월요일마다 새로 시작</div>
     ${inGame && zone ? `<div class="rank-mine">내 이번 주 <b>${weekScore(state.wk)}</b>점 <span>퀴즈 ${state.wk.quiz || 0} · 잡기 ${state.wk.caught || 0} · 보스 ${state.wk.boss || 0}</span></div>` : ''}
-    <div class="friend-me">🌍 전체 TOP ${TOP_N}</div><div class="rank-list" id="rank-all"><div class="friend-note">불러오는 중…</div></div>
-    ${inGame && me ? '<div class="friend-me">👫 친구 순위</div><div class="rank-list" id="rank-friends"><div class="friend-note">불러오는 중…</div></div>' : ''}`;
+    ${inGame && me ? `<div class="rank-switch"><button data-list="all" class="on">🌍 전체 TOP ${TOP_N}</button><button data-list="friends">👫 친구 순위</button></div>` : `<div class="friend-me">🌍 전체 TOP ${TOP_N}</div>`}
+    <div class="rank-list" id="rank-all"><div class="friend-note">불러오는 중…</div></div>
+    ${inGame && me ? '<div class="rank-list hidden" id="rank-friends"><div class="friend-note">불러오는 중…</div></div>' : ''}`;
+  // 전체 / 친구 표를 나눠 본다 (한 번에 하나만)
+  el.querySelectorAll('.rank-switch button').forEach((b) => { b.onclick = () => { el.querySelectorAll('.rank-switch button').forEach((x) => x.classList.toggle('on', x === b)); el.querySelector('#rank-all').classList.toggle('hidden', b.dataset.list !== 'all'); el.querySelector('#rank-friends')?.classList.toggle('hidden', b.dataset.list !== 'friends'); }; });
   const all = el.querySelector('#rank-all');
   try {
     const entries = (await cloud.leaderboard(week)).filter((e) => (e.s || 0) > 0 || e.uid === me).map((e) => ({ ...e, name: e.n })); // 0점은 안 보이지만 나는 보인다

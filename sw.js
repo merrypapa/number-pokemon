@@ -3,7 +3,7 @@
 //  - 모델·그림 등 나머지 같은 출처 파일 : 'np-assets-<ASSET_VERSION>' 에 처음 받을 때 넣고 다음부터는 캐시에서 (모델 파일을 바꿔 올렸으면 ASSET_VERSION 을 올린다)
 //  - 다른 출처(Firebase 등) : 건드리지 않는다 (네트워크 그대로)
 // 새 버전이 설치되면 게임이 "새 버전이 있어요 · 다시 열기" 안내를 띄우고, 누르면 이 워커에게 SKIP_WAITING 을 보내 바로 바꾼다.
-const VERSION = 'v2026-09-20-1';
+const VERSION = 'v2026-09-20-2';
 const ASSET_VERSION = '1';
 const SHELL = `np-shell-${VERSION}`, ASSETS = `np-assets-${ASSET_VERSION}`;
 const SHELL_FILES = [

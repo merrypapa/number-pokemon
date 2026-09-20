@@ -180,7 +180,8 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 #dex-card { background: #fffbe6; border-radius: 22px; width: min(960px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
 #dex-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 240px 12px 16px; border-bottom: 2px solid #f0e6c0; } /* 오른쪽 여백은 저장·닫기 버튼 자리 (절대 위치라 좁은 화면에서도 안 밀려난다) */
 #dex-title { font-size: 20px; font-weight: 900; color: #333; white-space: nowrap; }
-#dex-count { font-weight: 800; color: #777; white-space: nowrap; }
+#dex-count { font-weight: 900; color: #e8453c; white-space: nowrap; } /* 포켓몬 탭의 도감 제목 줄에만: '1 / 79 종' */
+.dex-grid-hint { font-weight: 700; color: #999; font-size: 13px; }
 #dex-blocks { font-weight: 900; color: #fff; background: #bbb; padding: 4px 12px 4px 8px; border-radius: 999px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 #dex-blocks::before { content: ''; width: 14px; height: 14px; border-radius: 3px; background: #fff; border: 2px solid #20232e; box-sizing: border-box; }
 #dex-body { flex: 1; min-height: 0; overflow-y: auto; }
@@ -426,7 +427,6 @@ body.intro #btn-save { display: none !important; }
   #dex-actions button { height: 36px; font-size: 13px; padding: 0 10px; }
   #btn-dex-close { width: 36px; font-size: 18px; }
   #dex-title { font-size: 15px; }
-  #dex-count { display: none; }
   #dex-blocks { font-size: 12px; padding: 3px 9px; }
   .hud-row { font-size: 17px; padding: 6px 12px 6px 8px; gap: 7px; }
   .hud-icon { width: 22px; height: 22px; }
@@ -497,7 +497,9 @@ body.intro #btn-save { display: none !important; }
 .ball-pct { font-size: 12px; font-weight: 800; color: #999; white-space: nowrap; margin-left: 2px; }
 .ball-tip { width: 100%; font-size: 12px; font-weight: 700; color: #999; }
 /* 도감 넘버볼 탭 */
-#dex-balls { padding: 6px 2px; }
+#dex-balls { padding: 6px 2px; overflow-y: auto; min-height: 0; } /* 아이패드에서 넘버볼 탭이 안 내려가던 것: 스크롤 허용 */
+/* 도감 안의 스크롤 판들: body 의 touch-action:none 을 풀어 손가락으로 내릴 수 있게 */
+#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 #dex-tabs button[hidden] { display: none; }
 /* 관리자 탭: 지역 바로 가기 버튼들 (관리자 모드에서만 탭이 보인다) */
 #dex-admin { padding: 12px; overflow-y: auto; }
@@ -533,6 +535,10 @@ body.intro #btn-save { display: none !important; }
 .rank-mine { background: #fff3c4; border: 3px solid #ffd93d; border-radius: 14px; padding: 8px 12px; font-size: 14px; font-weight: 900; color: #333; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
 .rank-mine b { font-size: 22px; color: #e8453c; }
 .rank-list { display: flex; flex-direction: column; gap: 6px; }
+.rank-list.hidden { display: none; }
+.rank-switch { display: flex; gap: 6px; background: #f0e6c0; border-radius: 999px; padding: 3px; align-self: flex-start; }
+.rank-switch button { font: inherit; font-size: 14px; font-weight: 900; padding: 6px 14px; border-radius: 999px; border: 0; background: transparent; color: #666; cursor: pointer; }
+.rank-switch button.on { background: #fff; color: #e8453c; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 .rank-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 6px 10px; border: 3px solid #eee; text-align: left; }
 .rank-row.top { border-color: #ffd93d; }
 .rank-row.me { background: #fff3c4; border-color: #ff9f1c; }
@@ -624,7 +630,7 @@ body.intro #btn-save { display: none !important; }
 .ball-infos { display: flex; flex-direction: column; gap: 6px; }
 .ball-info { display: flex; align-items: center; gap: 10px; background: #fafafa; border-radius: 10px; padding: 6px 10px; font-size: 14px; font-weight: 700; color: #555; }
 .ball-info b { color: #333; width: 70px; flex-shrink: 0; }
-@media (max-width: 760px) { #dex-count { display: none; } #dex-head { gap: 8px; padding: 10px 12px; } #dex-title { font-size: 17px; } }
+@media (max-width: 760px) { #dex-head { gap: 8px; padding: 10px 12px; } #dex-title { font-size: 17px; } }
 
 /* 말풍선 안 "연구실 가기" 버튼 (안내원과 이야기 중일 때만) */
 /* 연구소 가기: 안내원과 대화하는 동안 상황 버튼 바로 위에 뜬다 */
