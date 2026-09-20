@@ -105,6 +105,8 @@ export class Ghosts {
       } else if (g.emoteSprite) { m.remove(g.emoteSprite); g.emoteSprite = null; g.emote = null; }
     }
   }
+  /** 그 친구의 유령 위치 (같은 지역에 없으면 null) */
+  positionOf(uid) { return this.map.get(uid)?.mesh.position || null; }
   /** 이 자리에서 r 안에 있는 친구 이름들 */
   nearby(pos, r = 15) { const out = []; for (const g of this.map.values()) if (g.mesh.position.distanceTo(pos) < r) out.push(g.name); return out; }
   get count() { return this.map.size; }

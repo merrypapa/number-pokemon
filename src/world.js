@@ -42,6 +42,7 @@ export const WORLD = {
   sleepSpot: { x: -96, z: -96, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
   hiveTree: { x: -40, z: 62 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
   lab: { x: 0, z: 64 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
+  stadium: { x: 46, z: 86, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
     [[0, 33], [0, -9], [-3, -39], [0, -60]],
@@ -503,6 +504,26 @@ export function buildWorld(scene) {
   }
   decor.add(house(1, v.x - 13, v.z - 4, 0.5), house(2, v.x + 13, v.z - 4, -0.5), house(3, v.x - 15, v.z + 8, 0.9), house(4, v.x + 15, v.z + 8, -0.9));
   // 오박사 연구소: 마을 남쪽 가운데의 큰 흰 건물. 문(북쪽)으로 들어가면 main 이 연구소 내부(lab 지역)로 보낸다
+  // 넘버볼 아레나: 빨강·하양 줄무늬의 둥근 경기장 + 파란 지붕 + 북쪽 입구. 문 앞 칸에 들어서면 main 이 아레나 안으로 보낸다
+  const stad = WORLD.stadium;
+  {
+    const g = new THREE.Group();
+    const red = new THREE.MeshStandardMaterial({ color: 0xe8453c }), white = new THREE.MeshStandardMaterial({ color: 0xf6f3ea });
+    for (let i = 0; i < 5; i++) { const ring = new THREE.Mesh(new THREE.CylinderGeometry(stad.r - i * 0.15, stad.r - (i - 1) * 0.15, 1.3, 32, 1, false), i % 2 ? white : red); ring.position.y = 0.65 + i * 1.3; ring.castShadow = true; ring.receiveShadow = true; g.add(ring); }
+    const roof = new THREE.Mesh(new THREE.SphereGeometry(stad.r + 0.3, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, roughness: 0.5 }));
+    roof.position.y = 6.5; roof.scale.y = 0.55; roof.castShadow = true; g.add(roof);
+    const flag = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4, 6), new THREE.MeshStandardMaterial({ color: 0x9aa4b8 })); flag.position.y = 11.5; g.add(flag);
+    const pennant = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.1), new THREE.MeshStandardMaterial({ color: 0xffd93d, side: THREE.DoubleSide })); pennant.position.set(1.1, 12.8, 0); g.add(pennant);
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(5, 4.4, 2.2), new THREE.MeshStandardMaterial({ color: 0x20232e })); arch.position.set(0, 2.2, -stad.r + 0.4); g.add(arch);
+    const doorway = new THREE.Mesh(new THREE.BoxGeometry(3, 3.4, 0.4), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffd93d, emissiveIntensity: 0.4 })); doorway.position.set(0, 1.7, -stad.r - 0.75); g.add(doorway);
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏟 넘버볼 아레나', '#20232e', '#ffd93d', 56), transparent: true, depthTest: false }));
+    sign.scale.set(7, 1.7, 1); sign.position.set(0, 5.6, -stad.r - 0.6); g.add(sign);
+    for (const s of [-1, 1]) { const ball = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), red); ball.position.set(s * 3.4, 0.7, -stad.r - 1.6); const band = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.1, 6, 24), new THREE.MeshStandardMaterial({ color: 0x20232e })); band.rotation.x = Math.PI / 2; band.position.copy(ball.position); g.add(ball, band); }
+    g.position.set(stad.x, 0, stad.z);
+    decor.add(g);
+    block(stad.x, stad.z, stad.r + 0.3);
+    block(stad.x - 3.4, stad.z - stad.r - 1.6, 0.9); block(stad.x + 3.4, stad.z - stad.r - 1.6, 0.9);
+  }
   const lab = WORLD.lab;
   {
     const g = new THREE.Group();
@@ -1083,6 +1104,7 @@ export function buildWorld(scene) {
     // 다른 지역으로 가는 곳들
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
+    arenaDoor: { x: stad.x, z: stad.z - stad.r - 1.9 }, // 넘버볼 아레나 문 앞 (닿으면 main 이 아레나 안으로 보낸다)
     hiveDoor: { x: ht.x - 7.6, z: ht.z + 3.2 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [
       `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
@@ -1118,6 +1140,6 @@ export function buildWorld(scene) {
     train: { kind: 'train', mesh: train, base: train.position.clone(), obstacle: trainObstacle, boardPoint: { x: st.x - 1, z: st.z + 3.2 }, dir: -1, to: 'sea' },
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },
     // 다른 지역에서 돌아올 때 도착하는 자리
-    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI }, hive: { x: ht.x + 1, z: ht.z + 9 } }, // 연구소에서 나오면 건물을 등지고 서고, 카메라는 건물 앞(북쪽)에서 본다
+    arrivals: { cave: { x: WORLD.village.x, z: WORLD.village.z - 18 }, volcano: { x: vg.x, z: vg.z + 10 }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI }, arena: { x: stad.x, z: stad.z - stad.r - 5.5, yaw: Math.PI }, hive: { x: ht.x + 1, z: ht.z + 9 } }, // 연구소에서 나오면 건물을 등지고 서고, 카메라는 건물 앞(북쪽)에서 본다
   };
 }
