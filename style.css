@@ -536,6 +536,38 @@ body.intro #btn-save { display: none !important; }
 #rank-modal.hidden { display: none; }
 #rank-modal .menu-card { text-align: left; }
 #dex-rank { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+/* 친구 대결 탭 */
+#dex-duel { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; touch-action: pan-y; }
+#dex-duel.hidden { display: none; }
+.tab-badge { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; margin-left: 4px; padding: 0 5px; border-radius: 999px; background: #e8453c; color: #fff; font-size: 11px; font-weight: 900; text-align: center; vertical-align: middle; }
+.tab-badge[hidden] { display: none; }
+.friend-duel { font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #ffe066; color: #333; box-shadow: 0 2px 0 #c99400; cursor: pointer; white-space: nowrap; }
+.friend-duel:disabled { opacity: .45; cursor: default; box-shadow: none; }
+.duel-card { background: #fff; border: 3px solid #ffd93d; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.duel-card.pending { border-color: #66d3f4; } .duel-card.done { border-color: #ddd; background: #fafafa; }
+.duel-head { font-size: 17px; font-weight: 900; color: #333; }
+.duel-status { font-size: 14px; font-weight: 900; color: #e8453c; }
+.duel-card.done .duel-status { color: #555; }
+.duel-arena { display: flex; align-items: center; gap: 8px; }
+.duel-mon { flex: 1; min-width: 0; background: #fffbe6; border-radius: 12px; padding: 8px; text-align: center; border: 2px solid transparent; }
+.duel-mon.me { border-color: #57b947; }
+.duel-mon img { width: 72px; height: 72px; object-fit: contain; }
+.duel-mon .friend-noimg { width: 72px; height: 72px; margin: 0 auto; }
+.duel-who { font-size: 12px; color: #777; font-weight: 800; margin-bottom: 2px; }
+.duel-name { font-size: 15px; font-weight: 900; color: #333; }
+.duel-atk { font-size: 13px; font-weight: 800; color: #1f5fa8; }
+.duel-vs { font-size: 18px; font-weight: 900; color: #e8453c; }
+.duel-hp { position: relative; height: 18px; background: #eee; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+.duel-hp-fill { height: 100%; background: #57b947; transition: width .4s; } .duel-hp-fill.low { background: #e8453c; }
+.duel-hp span { position: absolute; inset: 0; font-size: 11px; font-weight: 900; color: #222; line-height: 18px; }
+.duel-skills { display: flex; gap: 6px; flex-wrap: wrap; }
+.duel-skill { font: inherit; font-size: 14px; font-weight: 900; padding: 9px 12px; border-radius: 12px; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 3px 0 #c99400; cursor: pointer; }
+.duel-skill small { font-size: 11px; color: #7a5b00; }
+.duel-skill:active { transform: translateY(2px); box-shadow: none; }
+.duel-log { font-size: 12px; color: #555; font-weight: 700; background: #f6f6f6; border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.duel-actions { display: flex; gap: 8px; }
+.duel-actions button { font: inherit; font-size: 14px; font-weight: 900; padding: 8px 14px; border-radius: 12px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; cursor: pointer; }
+.duel-actions .duel-decline { background: #eee; color: #666; box-shadow: 0 3px 0 #bbb; }
 #dex-rank.hidden { display: none; }
 .rank-head { font-size: 18px; font-weight: 900; color: #20232e; }
 .rank-how { font-size: 12px; color: #777; font-weight: 700; margin: -4px 0 4px; }
@@ -595,6 +627,10 @@ body.intro #btn-save { display: none !important; }
 .friend-row .friend-noimg { width: 56px; height: 56px; border-radius: 12px; background: #eee; }
 .friend-row .save-del { font-size: 14px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #eee; color: #888; cursor: pointer; }
 .friend-note { font-size: 13px; color: #777; font-weight: 700; }
+.friend-status { font-size: 12px; font-weight: 900; padding: 2px 8px; border-radius: 999px; vertical-align: middle; margin-left: 4px; }
+.friend-status.on { background: #e3f8e6; color: #1f9d55; }
+.friend-status.off { background: #eee; color: #888; }
+.friend-row.online { border-color: #57b947; }
 .friend-me { font-size: 14px; font-weight: 900; color: #333; }
 #dex-admin .admin-title { font-weight: 900; color: #333; margin: 6px 0 8px; }
 #dex-admin .admin-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }

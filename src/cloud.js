@@ -7,6 +7,7 @@ import { CLOUD_CONFIG } from './cloud-config.js';
 // Firestore 구조:
 //   profiles/{uid}   { name, nameLower, caught, dexCount, conquered, blocks, leaderId, leaderName, zone, week, wk, wkScore, updatedAt }  ← 로그인한 누구나 읽음 (친구 찾기·친구 목록·친구 순위)
 //   leaderboard/{주}  { entries: { uid: { n(가린 이름), s(점수), q, c, b, l, t } } }  ← 누구나 읽음(처음 화면 순위), 각자 자기 항목만 씀
+//   duels/{id}        { players:[a,b], a, b, names, mons:{a,b}, state, turn, log, winner, rewarded, createdAt, updatedAt }  ← 친구 대결(우편 대결), 두 사람만 읽고 씀 (src/duel.js)
 //   Realtime Database presence/{uid} { name, zone, x, y, z, f(방향), l(대표 id), m(움직임), e/et(감정 표현), at }  ← 같이 놀기: 같은 지역의 친구 보이기 (database.rules.json)
 //   saves/{uid}      { name, savedAt, data(JSON 문자열) }                                                              ← 본인만
 //   friends/{uid}/list/{friendUid} { addedAt }                                                                       ← 본인만 (수락한 쪽이 상대 목록에도 넣는다: 규칙이 요청이 있을 때만 허용)
@@ -84,6 +85,19 @@ class FirebaseBackend {
     await this.D.set(r, { ...data, at: this.D.serverTimestamp() });
   }
   async clearPresence(uid) { if (this.rtdb) { try { await this.D.remove(this.D.ref(this.rtdb, `presence/${uid}`)); } catch (_) {} } }
+  // ----- 친구 대결: duels/{id} (players 배열에 두 uid) -----
+  async createDuel(doc) { const r = await this.F.addDoc(this.F.collection(this.db, 'duels'), doc); return r.id; }
+  /** 내가 낀 대결 문서들을 구독한다 (목록 통째로). 돌려주는 함수로 끊는다 */
+  watchDuels(uid, cb) {
+    const q = this.F.query(this.F.collection(this.db, 'duels'), this.F.where('players', 'array-contains', uid));
+    return this.F.onSnapshot(q, (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => { console.warn('[duel]', e); cb([]); });
+  }
+  /** 문서를 읽어 fn(doc) 이 돌려준 값으로 덮어쓴다 (트랜잭션: 둘이 동시에 눌러도 한 번만). fn 이 null 이면 아무것도 안 한다 */
+  async duelTx(id, fn) {
+    const ref = this.F.doc(this.db, 'duels', id);
+    return this.F.runTransaction(this.db, async (tx) => { const s = await tx.get(ref); if (!s.exists()) return false; const patch = fn({ id, ...s.data() }); if (!patch) return false; tx.update(ref, patch); return true; });
+  }
+  async deleteDuel(id) { try { await this.F.deleteDoc(this.F.doc(this.db, 'duels', id)); } catch (_) {} }
   /** 친구 한 명의 presence 를 구독한다. 돌려주는 함수로 구독을 끊는다 */
   watchPresence(uid, cb) { if (!this.rtdb) return () => {}; return this.D.onValue(this.D.ref(this.rtdb, `presence/${uid}`), (s) => cb(s.val()), () => cb(null)); }
   /** 그 주의 순위표 항목들 (로그인 없이도 읽힌다) */
@@ -156,6 +170,10 @@ class MockBackend {
   async clearPresence(uid) { const all = this.readPresence(); delete all[uid]; localStorage.setItem('np-cloud-mock-presence', JSON.stringify(all)); }
   watchPresence(uid, cb) { let last = ''; const tick = () => { const v = this.readPresence()[uid] || null; const j = JSON.stringify(v); if (j !== last) { last = j; cb(v); } }; tick(); const id = setInterval(tick, 250); return () => clearInterval(id); }
   async loadLeaderboard(week) { return Object.entries(this.read().leaderboard?.[week]?.entries || {}).map(([uid, e]) => ({ uid, ...e })); }
+  async createDuel(doc) { const db = this.read(); db.duels ||= {}; const id = 'd' + Math.random().toString(36).slice(2, 10); db.duels[id] = doc; this.write(db); return id; }
+  watchDuels(uid, cb) { let last = ''; const tick = () => { const all = this.read().duels || {}; const list = Object.entries(all).filter(([, d]) => (d.players || []).includes(uid)).map(([id, d]) => ({ id, ...d })); const j = JSON.stringify(list); if (j !== last) { last = j; cb(list); } }; tick(); const t = setInterval(tick, 500); return () => clearInterval(t); }
+  async duelTx(id, fn) { const db = this.read(); const d = db.duels?.[id]; if (!d) return false; const patch = fn({ id, ...d }); if (!patch) return false; Object.assign(d, patch); this.write(db); return true; }
+  async deleteDuel(id) { const db = this.read(); if (db.duels) delete db.duels[id]; this.write(db); }
   async findProfile(name) { const db = this.read(); const u = db.users?.[nameKey(name)]; return u ? { uid: u.uid, ...db.profiles[u.uid] } : null; }
   async listFriends(uid) { const db = this.read(); return (db.friends?.[uid] || []).map((fid) => ({ uid: fid, ...db.profiles[fid] })).filter((p) => p.name); }
   addPair(db, a, b) { db.friends ||= {}; db.friends[a] ||= []; if (!db.friends[a].includes(b)) db.friends[a].push(b); }
@@ -203,6 +221,16 @@ export const cloud = {
   async setPresence(data) { if (this.presenceOn) await this.backend.setPresence(this.user.uid, { name: this.user.name, ...data }); },
   async clearPresence() { if (this.user && this.backend?.presenceOk) await this.backend.clearPresence(this.user.uid); },
   watchPresence(uid, cb) { return this.backend?.presenceOk ? this.backend.watchPresence(uid, cb) : () => {}; },
+  // ----- 친구 대결 -----
+  /** 친구에게 대결 신청: 내 대표 포켓몬 모습(mon)을 넣어 문서를 만든다 */
+  async createDuel(friend, mon) {
+    if (!this.user) throw new Error('먼저 로그인해 주세요');
+    const me = this.user;
+    return this.backend.createDuel({ players: [me.uid, friend.uid], a: me.uid, b: friend.uid, names: { a: me.name, b: friend.name }, mons: { a: mon, b: null }, state: 'pending', turn: 'b', log: [], winner: null, rewarded: {}, createdAt: Date.now(), updatedAt: Date.now() });
+  },
+  watchDuels(cb) { return this.user ? this.backend.watchDuels(this.user.uid, cb) : () => {}; },
+  async duelTx(id, fn) { return this.backend.duelTx(id, fn); },
+  async deleteDuel(id) { return this.backend.deleteDuel(id); },
   /** 이번 주 전체 순위 항목들 (가린 이름). 로그인 전에도 된다 */
   async leaderboard(week) { return this.enabled ? this.backend.loadLeaderboard(week) : []; },
   async listFriends() { return this.user ? this.backend.listFriends(this.user.uid) : []; },

@@ -3,10 +3,10 @@
 // 주가 바뀌면 state.wk(이번 주 기록)가 0으로 돌아간다 (main 의 checkWeek). 순위는 Firestore leaderboard/{주} 문서 하나에
 // 모두의 기록이 { entries: { uid: { n(가린 이름), s(점수), q, c, b, l(대표 id), t } } } 로 모이고, 이 문서는 로그인 없이도 읽을 수 있어서
 // 처음 화면의 "이번 주 순위" 버튼에서도 보인다. 전체 순위의 이름은 첫 글자만 보이고 나머지는 ** 로 가린다 (친구 순위는 이름 그대로).
-export const WEIGHTS = { quiz: 5, caught: 3, boss: 20 };
+export const WEIGHTS = { quiz: 5, caught: 3, boss: 20, duel: 10 }; // duel: 친구 대결 승리
 export const TOP_N = 20;
-export const emptyWeek = () => ({ quiz: 0, caught: 0, boss: 0 });
-export const weekScore = (wk) => (wk?.quiz || 0) * WEIGHTS.quiz + (wk?.caught || 0) * WEIGHTS.caught + (wk?.boss || 0) * WEIGHTS.boss;
+export const emptyWeek = () => ({ quiz: 0, caught: 0, boss: 0, duel: 0 });
+export const weekScore = (wk) => (wk?.quiz || 0) * WEIGHTS.quiz + (wk?.caught || 0) * WEIGHTS.caught + (wk?.boss || 0) * WEIGHTS.boss + (wk?.duel || 0) * WEIGHTS.duel;
 
 /** ISO 주 키 'YYYY-Www' (월요일 시작, 기기 시간) */
 export function weekKey(d = new Date()) {
@@ -31,7 +31,7 @@ export const maskName = (name) => { const s = String(name || '?').trim(); return
 
 /** 순위표에 넣을 내 항목 (leaderboard 문서의 entries[uid]) */
 export function rankEntry(name, wk, leaderId) {
-  return { n: maskName(name), s: weekScore(wk), q: wk.quiz || 0, c: wk.caught || 0, b: wk.boss || 0, l: leaderId || null, t: Date.now() };
+  return { n: maskName(name), s: weekScore(wk), q: wk.quiz || 0, c: wk.caught || 0, b: wk.boss || 0, d: wk.duel || 0, l: leaderId || null, t: Date.now() };
 }
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -49,7 +49,7 @@ export function renderRankRows(el, entries, { myUid = null, thumb = () => null, 
     const t = thumb(e.l);
     row.innerHTML = `<div class="rank-no">${MEDAL[i] || i + 1}</div>${t ? `<img src="${t}" alt="">` : '<div class="rank-noimg"></div>'}
       <div class="save-info"><div class="rank-name">${e.name}${e.uid === myUid ? ' <span class="rank-me">(나)</span>' : ''}</div>
-      <div class="save-sub">퀴즈 ${e.q || 0} · 잡기 ${e.c || 0} · 보스 ${e.b || 0}</div></div>
+      <div class="save-sub">퀴즈 ${e.q || 0} · 잡기 ${e.c || 0} · 보스 ${e.b || 0}${e.d ? ` · 대결 ${e.d}` : ''}</div></div>
       <div class="rank-score">${e.s || 0}<small>점</small></div>`;
     el.appendChild(row);
   });
