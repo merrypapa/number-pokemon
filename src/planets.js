@@ -507,7 +507,8 @@ export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, bos
       `${p.name}에는 ${wildNames.slice(0, 5).join('·')}${wildNames.length > 5 ? ' 등' : ''}이 살아. 공격 ${c.zone.atkRange || '?'}쯤 되면 편하게 이겨.`,
       p.fact,
       boss ? (c.conquered[p.zone] ? `보스 ${josa(boss.name, '을를')} 이겼구나! ${p.name}은 이제 네 거야.${hidden ? ` 그리고 ${p.name} 어딘가에 숨어 있던 ${josa(hidden.name, '이가')} 나타났대. 체력 ${hidden.baseHp}, 공격 ${hidden.baseAtk}이니 조심해!` : ''}` : `북쪽 아레나에 보스 ${josa(boss.name, '이가')} 있어. 체력 ${boss.baseHp}, 공격 ${boss.baseAtk}! 공격 ${(info.targetAtk || 10) + 3} 이상이면 도전해 봐.${hidden ? ' 보스를 잡으면 이 행성에 숨은 포켓몬이 하나 더 나타난대.' : ''}`) : p.fact,
-      '행성 열 곳의 보스를 모두 잡으면 꿈의우주에 전설의 포켓몬 뮤가 나타난다는 소문이 있어. 아주아주 세니까 메가큐브을 잔뜩 준비해!',
+      `행성마다 넘버로켓단 간부가 하나씩 버티고 있어. ${p.name} 아레나의 보스도 간부가 가짜 숫자로 앞세운 포켓몬이야.`,
+      '보스를 되돌릴 때마다 로켓단이 뺏어 간 숫자가 하나씩 세상에 돌아와. 열 개가 다 모이면 꿈의우주에 전설의 뮤가 나타난대! 아주아주 세니까 메가큐브을 잔뜩 준비해.',
       '꿈의우주로 돌아가려면 나한테 말을 걸고 빨간 버튼을, 다른 행성으로 가려면 보라 버튼을 눌러!',
     ],
   });
@@ -529,10 +530,12 @@ export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, bos
     mesh.position.set(rx, height(rx, rz), rz); mesh.rotation.y = 2.6;
     decor.add(mesh); block(rx, rz, 0.6);
     npcs.push({ x: rx, z: rz, mesh, name: rival.name, lines: (c) => [
-      `흥, ${c.name}이라고? 난 ${rival.name}다. ${p.name}에서 수련하고 있지. 저 아레나의 ${boss?.name || '보스'}는 내가 먼저 눈여겨보고 있었다.`,
+      `흥, ${josa(c.name, '이라')}고? 난 ${rival.name}다. 넘버로켓단 최고 간부였지. …지금은 아니다.`,
+      '명령으로 부린 포켓몬은 금방 바닥나. 그게 시시해서 나왔다. 네 그 시끄러운 친구들이… 솔직히 더 세더라.',
+      `${josa(p.name, '은는')} 제로 단장의 본진이다. 저 ${boss?.name || '보스'}는 단장이 직접 다루던 병기야. 머리의 붉은 숫자도 여기가 제일 크다.`,
       boss ? `${josa(boss.name, '은는')} 체력 ${boss.baseHp}에 공격 ${boss.baseAtk}. 공격 ${(info.targetAtk || 10) + 3} 은 넘겨야 상대가 된다. 불 포켓몬에겐 물 포켓몬을 내보내라!` : p.fact,
       '대결에서 기술을 고를 땐 상대 속성을 봐라. 상성이 맞으면 1.5배, 틀리면 절반이다. 그리고 볼은 넉넉히 만들어 와라. 도망가면 끝이니까.',
-      c.conquered[p.zone] ? `${boss?.name || '보스'}를 잡았다고? …제법이군. 다음엔 다른 행성에서 보자. 행성 열 곳의 보스를 다 잡으면 전설의 뮤가 나타난다는 소문이 있다.` : '보스를 잡으면 이 행성은 네 것이 된다. 어서 강해져서 도전해 봐라.',
+      c.conquered[p.zone] ? `${boss?.name || '보스'}의 붉은 숫자를 깨뜨렸다고? …제법이군. 열 개의 숫자가 다 돌아오면 전설의 뮤가 나타난다. 거기까지 가 봐라.` : '저 붉은 숫자를 0으로 만들면 이 별의 숫자가 돌아온다. 어서 강해져서 도전해 봐라.',
     ] });
   }
   const wildSpots = WILD_TEMPLATE.map(([x, z]) => freeSpot(x, z, ok));
