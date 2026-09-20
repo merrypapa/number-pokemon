@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
-import { buildMegaShrine, shrineName } from './mega.js';
+import { buildMegaShrine, shrineName, shrineHeightAt, SHRINE_PILLARS } from './mega.js';
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -282,11 +282,22 @@ function buildShrine(z) {
   if (!spot) return;
   const baseY = z.world.waterY != null ? z.world.waterY - 1.2 : terrainHeight(spot.x, spot.z);
   z.shrine = buildMegaShrine(z.name, spot.x, baseY, spot.z);
-  z.shrine.megaSpot = { x: spot.x, z: spot.z + 18 };        // 메가 포켓몬은 성역 앞에 선다
   z.scene.add(z.shrine.group);
-  z.terrain.obstacles.push({ x: spot.x, z: spot.z, r: 15.5, shrine: true }); // 정복 전엔 꺼 둔다
-  z.shrineObstacle = z.terrain.obstacles[z.terrain.obstacles.length - 1];
-  z.shrineObstacle.r = 0;                                   // 숨어 있는 동안은 막지 않는다
+  if (z.world.waterY != null) { // 바다 위 성역(물의길): 배로는 계단을 못 오르니 메가 포켓몬은 성역 앞 물 위에서 만난다. 성역 자체는 못 지나간다
+    z.shrine.megaSpot = { x: spot.x, z: spot.z + 18 };
+    z.terrain.obstacles.push({ x: spot.x, z: spot.z, r: 15.5, shrine: true }); // 정복 전엔 꺼 둔다
+    z.shrineObstacle = z.terrain.obstacles[z.terrain.obstacles.length - 1];
+    z.shrineObstacle.r = 0;                                 // 숨어 있는 동안은 막지 않는다
+  } else { // 땅 위 성역: 메가 포켓몬은 성역 가운데 제단 위에 있고, 지우가 계단(단)을 걸어 올라가 대결한다
+    z.shrine.megaSpot = { x: spot.x, z: spot.z };
+    const orig = z.terrain.height;
+    if (!z.terrain.shrineWrapped) { // 지형 높이에 성역의 단을 얹는다 (성역이 드러난 뒤에만)
+      z.terrain.height = (x, zz) => { const h = orig(x, zz); if (!z.shrine?.shown) return h; const s = shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
+      z.terrain.shrineWrapped = true;
+    }
+    z.shrinePillars = SHRINE_PILLARS.map((p) => ({ x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥은 못 지나간다 (드러난 뒤에)
+    z.terrain.obstacles.push(...z.shrinePillars);
+  }
   if (state.conquered[z.name]) revealShrine(z, true);
 }
 /** 성역을 드러내고 메가 포켓몬을 불러낸다 */
@@ -323,11 +334,13 @@ function revealShrine(z, silent = false) {
   z.shrine.shown = true;
   z.shrine.reveal();
   if (z.shrineObstacle) z.shrineObstacle.r = 15.5;
+  for (const p of z.shrinePillars || []) p.r = p.pillarR;
   const mega = creatureData.creatures.find((c) => c.zone === z.name && c.shrine);
   if (mega && !(state.caughtCreatures[z.name] || []).includes(z.creatures.length)) {
     setActiveTerrain(z.terrain); // Creature 는 지형 높이를 쓰므로 잠시 전환
     const c = spawnCreature(z, mega.id, z.shrine.megaSpot.x, z.shrine.megaSpot.z);
     c.isMega = true;
+    if (z.shrinePillars) { c.leash = 2.5; c.approachRange = 8; } // 제단 위를 벗어나지 않는다 (지우가 올라오면 마중은 나온다)
     if (zone) setActiveTerrain(zone.terrain);
   }
   if (!silent) {
@@ -1137,18 +1150,23 @@ function talkTo(npc) {
     if (healed) { sound.fanfare(); particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5); refreshHud(); }
   }
   if (!healed) sound.click();
-  const text = `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
-  say(text, { sec: 6, faceImg: npcFace(npc) });
+  // 꿈의우주에서 행성으로 가는 UFO 는 별의 문을 지키는 메가팬텀을 잡아야 띄울 수 있다 (관리자 모드는 예외)
+  const spaceMega = creatureData.creatures.find((c) => c.zone === 'space' && c.shrine);
+  const ufoLocked = !!(npc.ufo && zone.world.ufo && !zone.world.ufo.to && spaceMega && !(state.dex[spaceMega.id] > 0) && !state.admin);
+  const text = ufoLocked
+    ? `${npc.name}: UFO 는 별의 문의 힘으로 나는 거야. ${state.conquered.space ? `별의 문을 지키는 ${spaceMega.name}을(를) 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 별의 문을 열고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
+    : `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
+  say(text, { sec: ufoLocked ? 8 : 6, faceImg: npcFace(npc) });
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
-  if (npc.ufo && zone.world.ufo) { // 손오공: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
+  if (npc.ufo && zone.world.ufo && !ufoLocked) { // 손오공: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
     const v = zone.world.ufo;
     boardNpc = npc;
     boardBtn.textContent = v.to ? '🛸 꿈의우주로 돌아가기' : '🛸 다른 행성으로 가기';
     boardBtn.classList.remove('hidden');
     if (v.to) { ufoNpc = npc; ufoBtn.classList.remove('hidden'); }
-  } else if (npc.boards && zone.world[npc.boards]) { // 차장과 이야기하는 동안 "기차 타기" 버튼이 켜진다
+  } else if (npc.boards && zone.world[npc.boards] && !ufoLocked) { // 차장과 이야기하는 동안 "기차 타기" 버튼이 켜진다 (손오공은 boards 도 'ufo' 라 잠겨 있으면 여기도 건너뛴다)
     boardNpc = npc;
     const dest = ZONE_INFO[zone.world[npc.boards].to]?.name || '';
     boardBtn.textContent = `${npc.boards === 'train' ? '🚂' : '🚀'} ${dest}(으)로 출발!`;

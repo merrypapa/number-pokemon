@@ -117,5 +117,20 @@ export function buildMegaShrine(zoneName, x, groundY, z) {
   return { group: g, reveal, animate, spot: { x, z }, label: T.name, radius: 15.5 };
 }
 
+/** 성역 가운데에서 d 만큼 떨어진 곳의 단 높이(성역 바닥 기준, m). 단 가장자리 0.6m 는 경사로 이어서 지우가 걸어 올라간다.
+ *  바깥 단 r15(0.9) → r12(1.8) → r9(2.7) → 제단 r5.2(3.3). 성역 밖(15.6 넘게)이면 0 */
+export const SHRINE_TIERS = [[15, 0.9], [12, 1.8], [9, 2.7], [5.2, 3.3]];
+export function shrineHeightAt(d) {
+  let below = 0, h = 0;
+  for (const [r, top] of SHRINE_TIERS) {
+    if (d <= r) { h = top; below = top; continue; }
+    if (d <= r + 0.6) return below + (top - below) * (1 - (d - r) / 0.6);
+    return h;
+  }
+  return h;
+}
+/** 기둥 여섯의 자리 (성역 기준 좌표) */
+export const SHRINE_PILLARS = Array.from({ length: 6 }, (_, i) => { const a = (i / 6) * Math.PI * 2; return { x: Math.cos(a) * 10.5, z: Math.sin(a) * 10.5, r: 1.15 }; });
+
 /** 이 지역 메가 성역의 이름 */
 export function shrineName(zoneName) { return (THEMES[zoneName] || THEMES.forest).name; }
