@@ -1816,7 +1816,10 @@ function presenceTick(dt) {
   ghosts.sync([...presence.friends.values()]);
   ghosts.update(dt);
   emoteRow.hidden = ghosts.count === 0; // 같은 지역에 친구가 있을 때만 감정 표현 버튼
-  if (presence.emote && Date.now() - presence.myShown < 3000) { if (!presence.mySprite) { presence.mySprite = makeEmoteSprite(presence.emote); player.group.add(presence.mySprite); } }
+  if (presence.emote && Date.now() - presence.myShown < 3000) {
+    if (presence.mySprite && presence.mySprite.userData.emote !== presence.emote) { player.group.remove(presence.mySprite); presence.mySprite = null; } // 다른 표현을 누르면 바로 바뀐다
+    if (!presence.mySprite) { presence.mySprite = makeEmoteSprite(presence.emote); presence.mySprite.userData.emote = presence.emote; player.group.add(presence.mySprite); }
+  }
   else if (presence.mySprite) { player.group.remove(presence.mySprite); presence.mySprite = null; }
 }
 async function refreshPresenceFriends() {

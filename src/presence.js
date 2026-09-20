@@ -99,7 +99,8 @@ export class Ghosts {
       }
       // 감정 표현: 3초 동안 머리 위에
       if (g.emote && g.emoteShown && now - g.emoteShown < EMOTE_MS) {
-        if (!g.emoteSprite) { g.emoteSprite = makeEmoteSprite(g.emote); m.add(g.emoteSprite); }
+        if (g.emoteSprite && g.emoteSprite.userData.emote !== g.emote) { m.remove(g.emoteSprite); g.emoteSprite = null; } // 보이는 중에 다른 표현으로 바꾸면 바로 바뀐다
+        if (!g.emoteSprite) { g.emoteSprite = makeEmoteSprite(g.emote); g.emoteSprite.userData.emote = g.emote; m.add(g.emoteSprite); }
         g.emoteSprite.position.y = PLAYER_HEIGHT + 1.2 + Math.sin(now / 150) * 0.08;
       } else if (g.emoteSprite) { m.remove(g.emoteSprite); g.emoteSprite = null; g.emote = null; }
     }
