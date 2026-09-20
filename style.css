@@ -228,6 +228,8 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 .party-up { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 800; color: #666; }
 .party-up button, .party-side button { font-size: 13px; font-weight: 900; padding: 7px 10px; border-radius: 10px; border: 0; background: #fff3c4; color: #333; box-shadow: 0 2px 0 #d9c56e; cursor: pointer; }
 .party-up button:disabled { opacity: .4; cursor: default; }
+.party-up button.capped, .member-actions button.capped { opacity: .75; background: #e6e6e6; color: #777; box-shadow: 0 2px 0 #bbb; } /* 키우기 한계에 닿은 스탯 */
+.member-head .cap { font-size: 10px; color: #999; margin-left: 3px; font-weight: 800; }
 .party-up button:active:not(:disabled), .party-side button:active { transform: translateY(2px); box-shadow: none; }
 .party-side { display: flex; gap: 6px; flex-wrap: wrap; }
 .party-side .btn-leader { background: #d9f2ff; box-shadow: 0 2px 0 #8cc6e6; }

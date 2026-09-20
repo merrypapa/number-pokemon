@@ -610,6 +610,7 @@ dex.bindParty({
   getConquered: () => state.conquered,
   getZoneName: () => zone?.name,
   onUpgrade: (m, stat) => {
+    if (party.atCap(m, stat)) { const e = party.species(m).evolution; say(e ? `${party.name(m)}의 ${stat === 'atk' ? '공격' : '체력'}은 여기까지야! 진화하면 더 키울 수 있어.` : `${party.name(m)}의 ${stat === 'atk' ? '공격' : '체력'}은 최대치야! 더는 안 올라가.`, { sec: 5 }); return; }
     const cost = party.upgradeCost(m, stat);
     if (state.blocks < cost) { say(`블록이 ${cost}개 필요해! 블록을 줍거나 대결에서 이겨서 모으자.`); return; }
     const n = 1;

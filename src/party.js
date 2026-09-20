@@ -1,7 +1,7 @@
 import { evoTargets, pickEvolution } from './creatures.js';
 // 내 포켓몬(파티). 잡은 몬스터는 여기에 들어오고, 그중 한 마리가 "대표"로 주인공 뒤를 따라다니며 대결에 나간다.
 //  - 스탯: atk(공격력), maxHp(체력), hp(지금 체력). 야생을 잡으면 그 종의 baseAtk/baseHp, 시작 포켓몬은 starterAtk/starterHp.
-//  - 키우기: 숫자블록으로 공격력 +1 또는 체력 +1. 비용은 4단위마다 3개씩 오른다 (0~3: 4개, 4~7: 7개, 8~11: 10개 …).
+//  - 키우기: 숫자블록으로 공격력 +1 또는 체력 +1. 비용은 4단위마다 3개씩 오른다 (0~3: 4개, 4~7: 7개, 8~11: 10개 …). 종마다 한계(statCap)가 있어 그 위로는 진화해야 오른다.
 //  - 기술: 종의 skills 중 atk 가 문턱(skill.atk) 이상인 것만 쓸 수 있다. 피해 = atk × skill.power × 속성 상성.
 //  - 진화: 공격·체력 조건 + wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면. 진화하면 다음 종이 되고 스탯 보너스를 받는다.
 //  - 대결에서 지면 그 포켓몬은 기절(hp 0)해서 대결에 못 나간다. 올린 스탯은 그대로. 오박사에게 치료받으면 낫는다.
@@ -57,7 +57,21 @@ export class Party {
    *  퀴즈로 블록이 금방 모여서 예전(5칸마다 1개, 2부터)의 세 배쯤으로 올렸다: 공격 4 → 20 에 184개, 체력 13 → 30 에 317개쯤 든다. */
   upgradeCost(m, stat) { return 4 + Math.floor((stat === 'atk' ? m.atk : m.maxHp) / 4) * 3; }
   /** 블록으로 공격력/체력 +1. 체력을 올리면 지금 체력도 같이 오른다(기절 중이면 그대로). 드는 블록 수를 돌려준다. */
+  /** 이 포켓몬이 블록으로 올릴 수 있는 스탯의 한계. 그 위로는 진화해야 올릴 수 있다.
+   *   - 진화가 있는 종: 진화 조건(공격·체력)까지 (이미 그보다 높게 들어왔으면 지금 값까지) → 한계에 닿으면 진화 조건이 채워진다
+   *   - 최종·메가 종: 친구 보너스 기본값 + (공격 10 + 등급×4, 체력 20 + 등급×8). 종 데이터의 statCap {atk,hp} 이 있으면 그 값 */
+  statCap(m) {
+    const sp = this.species(m);
+    if (sp.statCap) return { atk: sp.statCap.atk, hp: sp.statCap.hp };
+    const base = friendStats(sp.baseHp, sp.baseAtk);
+    const e = sp.evolution;
+    if (e && evoTargets(e).some((t) => this.speciesById[t.id])) return { atk: Math.max(e.atk, base.atk, m.atk), hp: Math.max(e.hp, base.hp, m.maxHp) };
+    const g = sp.grade || 1;
+    return { atk: Math.max(base.atk + 10 + g * 4, m.atk), hp: Math.max(base.hp + 20 + g * 8, m.maxHp) };
+  }
+  atCap(m, stat) { const c = this.statCap(m); return stat === 'atk' ? m.atk >= c.atk : m.maxHp >= c.hp; }
   upgrade(m, stat) {
+    if (this.atCap(m, stat)) return 0; // 한계: 진화해야 더 오른다
     const cost = this.upgradeCost(m, stat);
     if (stat === 'atk') m.atk += 1;
     else { m.maxHp += 1; if (m.hp > 0) m.hp += 1; }

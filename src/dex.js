@@ -402,15 +402,17 @@ export class Dex {
         const zoneBlocked = need && party.readyExceptZone(m) && !canEvolve;
         const fainted = party.isFainted(m);
         const costHp = party.upgradeCost(m, 'hp'), costAtk = party.upgradeCost(m, 'atk');
+        const cap = party.statCap(m), capHp = party.atCap(m, 'hp'), capAtk = party.atCap(m, 'atk'); // 종마다 키우기 한계: 그 위로는 진화해야
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
           <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님께 치료</span>' : ''}
-            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}</div>
+            <span class="hp">❤ ${m.hp}/${m.maxHp}<small class="cap">최대 ${cap.hp}</small></span> <span class="atk">⚔ ${m.atk}<small class="cap">최대 ${cap.atk}</small></span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}</div>
           <div class="member-actions">
             <span>🌱 키우기</span>
-            <button data-act="hp1" ${blocks < costHp ? 'disabled' : ''}>❤ +1 <small>🧱${costHp}</small></button>
-            <button data-act="atk1" ${blocks < costAtk ? 'disabled' : ''}>⚔ +1 <small>🧱${costAtk}</small></button>
+            <button data-act="hp1" ${capHp || blocks < costHp ? 'disabled' : ''} class="${capHp ? 'capped' : ''}" title="${capHp ? (evo ? '진화하면 더 올릴 수 있어' : '최대치') : ''}">❤ ${capHp ? 'MAX' : `+1 <small>🧱${costHp}</small>`}</button>
+            <button data-act="atk1" ${capAtk || blocks < costAtk ? 'disabled' : ''} class="${capAtk ? 'capped' : ''}" title="${capAtk ? (evo ? '진화하면 더 올릴 수 있어' : '최대치') : ''}">⚔ ${capAtk ? 'MAX' : `+1 <small>🧱${costAtk}</small>`}</button>
+            ${capHp && capAtk ? `<span class="shop-for">${evo ? '✨ 진화해야 더 커져!' : '최대치까지 다 컸어!'}</span>` : ''}
             ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
             ${evo ? `<button data-act="evolve" class="btn-evolve${evo.mega ? ' mega' : ''}" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.mega ? `메가블럭 ${evo.mega}개 필요` : evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">${evo.mega ? '💠 메가 진화!' : '✨ 진화!'}</button>` : ''}
             ${evo?.mega ? `<span class="mega-need${(need?.megaNow || 0) >= evo.mega ? ' ok' : ''}">💠 메가블럭 ${need?.megaNow || 0}/${evo.mega}</span>` : ''}
