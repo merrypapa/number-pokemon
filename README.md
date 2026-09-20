@@ -126,7 +126,7 @@ python3 -m http.server 8000
 | 문서 | 내용 |
 |------|------|
 | [docs/01_game_overview.md](docs/01_game_overview.md) | 게임 구성: 장르, 핵심 루프, 조작, 화면 흐름 |
-| [docs/02_storyline.md](docs/02_storyline.md) | 스토리라인: 세계관, 챕터별 이야기, 엔딩 |
+| [docs/02_storyline.md](docs/02_storyline.md) | **스토리라인(최신)**: 넘버로켓단과 진짜 숫자 — 세계관, 인물, 챕터, 엔딩, 게임에 붙이는 방법 |
 | [docs/03_world_and_levels.md](docs/03_world_and_levels.md) | 컨텐츠: 4개 지역(구멍 들판, 괴물 동굴, 얼음 궁전 등)과 레벨 구성 |
 | [docs/04_characters.md](docs/04_characters.md) | 캐릭터: 주인공, 숫자블록 친구들, 드래프트 몬스터, 괴물(적) |
 | [docs/05_minigames.md](docs/05_minigames.md) | 잡은 몬스터 + 숫자블록으로 하는 미니게임 모음 |
