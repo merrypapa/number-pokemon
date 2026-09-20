@@ -1,3 +1,4 @@
+import { josa } from './util.js';
 import * as THREE from 'three';
 import { colorForCount } from './palette.js';
 import { terrainHeight, waterLevel } from './world.js';
@@ -429,7 +430,7 @@ export class Battle {
     this.switched = true;
     this.mineFrom = this.mineTo.clone();
     this.particles.stars(this.scene, this.minePoint(), 14, new THREE.Color(this.party.color(x)).getHex(), 0.4);
-    this.msgEl.textContent = `가라, ${this.party.name(x)}! 바꾸는 사이에 ${this.creature.data.name}이(가) 공격해 온다!`;
+    this.msgEl.textContent = `가라, ${this.party.name(x)}! 바꾸는 사이에 ${josa(this.creature.data.name, '이가')} 공격해 온다!`;
     this.sound.throw_();
     this.phase = 'enemyWind';
     this.phaseStart = this.timer;
@@ -515,7 +516,7 @@ export class Battle {
     this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `${c.data.name}이(가) 어질어질! 넘버볼을 던지자!`;
+      this.msgEl.textContent = `${josa(c.data.name, '이가')} 어질어질! 넘버볼을 던지자!`;
       this.showBanner('쓰러뜨렸다!');
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
@@ -550,7 +551,7 @@ export class Battle {
       this.phase = 'lost';
       this.phaseStart = this.timer;
       this.showBanner('앗, 졌다…');
-      this.msgEl.textContent = `${this.party.name(m)}이(가) 기절했어… 오박사님께 치료받아야 해. 올린 공격력과 체력은 그대로야!`;
+      this.msgEl.textContent = `${josa(this.party.name(m), '이가')} 기절했어… 오박사님께 치료받아야 해. 올린 공격력과 체력은 그대로야!`;
       this.runBtn.textContent = '돌아가기 ▶';
       this.runBtn.classList.add('primary');
       this.sound.bounce();
@@ -922,7 +923,7 @@ export class Battle {
     this.sound.bounce();
     c.catchBonus = (c.catchBonus || 0) + RETRY_BONUS;
     this.showBanner('앗, 도망쳤다!');
-    this.msgEl.textContent = `${c.data.name}이(가) ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
     this.runBtn.textContent = '돌아가기 ▶';
   }
   showCatchPopup() {
@@ -948,7 +949,7 @@ export class Battle {
     this.confetti.burst(160);
     this.sound.fanfare();
     this.showBanner(`잡았다! ${c.data.name}!`);
-    this.msgEl.textContent = `${c.data.name}이(가) 친구가 되었어요! 도감에서 대표로 고를 수 있어.`;
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} 친구가 되었어요! 도감에서 대표로 고를 수 있어.`;
     this.runBtn.textContent = '계속하기 ▶';
     this.runBtn.classList.add('primary');
   }

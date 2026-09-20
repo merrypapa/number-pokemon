@@ -33,7 +33,7 @@ import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
-import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
+import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
 
 // ---------- 기본 세팅 ----------
 const canvas = document.getElementById('game');
@@ -329,7 +329,7 @@ function checkUnlocked(caughtId) {
     const z = zones[sp.zone];
     if (z && !spawnUnlocked(z, sp)) continue; // 아직 안 만든 지역이면 처음 갈 때 getZone 이 세운다
     const many = unlockNeeds(sp).length > 1; // 뮤: 행성 보스를 모두 잡았을 때
-    setTimeout(() => say(`✨ ${many ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : ''}${sp.name}이(가) ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
+    setTimeout(() => say(`✨ ${many ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : ''}${josa(sp.name, '이가')} ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
   }
 }
 function revealShrine(z, silent = false) {
@@ -348,7 +348,7 @@ function revealShrine(z, silent = false) {
   }
   if (!silent) {
     showZoneBanner(`✨ ${shrineName(z.name)} 출현!`);
-    setTimeout(() => say(`숨어 있던 ${shrineName(z.name)}이(가) 솟아올랐어! ${mega ? `그곳을 지키는 ${mega.name}이(가) 나타났어. 메가큐브을 준비해서 도전해 봐!` : ''}`, { sec: 10 }), 1800);
+    setTimeout(() => say(`숨어 있던 ${josa(shrineName(z.name), '이가')} 솟아올랐어! ${mega ? `그곳을 지키는 ${josa(mega.name, '이가')} 나타났어. 메가큐브을 준비해서 도전해 봐!` : ''}`, { sec: 10 }), 1800);
   }
 }
 /** 지역을 만들고(없으면) 몬스터·보스·블록을 채운다. 저장에서 이미 잡은 몬스터는 빼 둔다. */
@@ -362,15 +362,18 @@ function getZone(name) {
   //  심해에는 수면이 없으므로 swim 을 꺼서 해저 바닥을 걸어 다니게 한다).
   const zi = ZONE_INFO[name] || {};
   const wildExtra = zi.wildOverride || {};
+  const ws = zi.wildScale; // 심해: 물의길 종이 내려와 살지만 기본 능력치 1.5배 (잡으면 그 능력치로 들어온다)
+  const scaled = (c) => (ws ? { ...c, baseHp: Math.round(c.baseHp * (ws.hp || 1)), baseAtk: Math.round(c.baseAtk * (ws.atk || 1)) } : c);
   const wild = zi.wild
-    ? zi.wild.map((id) => speciesById[id]).filter(Boolean).map((c) => ({ ...c, ...wildExtra }))
+    ? zi.wild.map((id) => speciesById[id]).filter(Boolean).map((c) => scaled({ ...c, ...wildExtra }))
     : creatureData.creatures.filter((c) => c.zone === z.name && !(c.boss && bossZoneOf(c) === z.name) && !c.special && !c.mega && c.catchable); // 이 지역의 보스는 야생으로 안 나온다 (다른 지역 보스인 종은 여기선 야생)
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
   const wildOnly = { ...wildExtra, boss: false }; // 야생으로 나올 땐 보스 표시를 뗀다 (꼬마돌은 수성에서만 보스)
-  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) spawnCreature(z, land[i % land.length].id, x, zz, wildOnly); });
+  const extraFor = (c) => (ws ? { ...wildOnly, baseHp: c.baseHp, baseAtk: c.baseAtk } : wildOnly); // wildScale 로 키운 능력치를 그대로 넘긴다
+  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) { const c = land[i % land.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
-  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) spawnCreature(z, swimmers[i % swimmers.length].id, x, zz, wildOnly); });
-  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) spawnCreature(z, deep[i % deep.length].id, x, zz, wildOnly); });
+  (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) { const c = swimmers[i % swimmers.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
+  (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) { const c = deep[i % deep.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
   const boss = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === z.name);
   if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z, bossOverride(boss)); c.mesh.userData.bossZone = z.name; }
   // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
@@ -488,7 +491,7 @@ document.getElementById('hud-leader-row').onclick = () => {
     const cand = ms[(i + k) % ms.length];
     if (party.isFainted(cand)) continue;
     attachLeader(cand); sound.click(); refreshHud();
-    say(`${party.name(cand)}이(가) 대표 포켓몬이 됐어!`, { sec: 3, faceImg: dex.thumbs(party.species(cand))?.color || null });
+    say(`${josa(party.name(cand), '이가')} 대표 포켓몬이 됐어!`, { sec: 3, faceImg: dex.thumbs(party.species(cand))?.color || null });
     return;
   }
   say('다른 포켓몬은 모두 기절했어. 오박사님께 치료받자!', { sec: 3 });
@@ -561,7 +564,7 @@ function evolveMember(m) {
   newMesh.visible = false; newMesh.position.copy(stage); newMesh.rotation.copy(oldMesh.rotation); newMesh.scale.setScalar(0.001);
   zone.scene.add(newMesh);
   evo = { t: 0, m, oldSp, sp, oldMesh, newMesh, wasLeader, stage, flashed: false };
-  evoBanner.innerHTML = `${oldSp.name}이(가) 진화한다…!`;
+  evoBanner.innerHTML = `${josa(oldSp.name, '이가')} 진화한다…!`;
   evoBanner.classList.remove('hidden');
   sound.click();
 }
@@ -585,7 +588,7 @@ function updateEvolution(dt) {
     e.oldMesh.visible = false; zone.scene.remove(e.oldMesh);
     e.newMesh.visible = true;
     sound.fanfare();
-    evoBanner.innerHTML = `✨ ${e.sp.name}(으)로 진화했다! ✨<small>공격 ${e.m.atk} · 체력 ${e.m.maxHp}</small>`;
+    evoBanner.innerHTML = `✨ ${josa(e.sp.name, '으로')} 진화했다! ✨<small>공격 ${e.m.atk} · 체력 ${e.m.maxHp}</small>`;
   } else if (T < 4.2) { // 3) 새 모습이 커지며 등장, 색종이
     const k = Math.min(1, (T - 2.2) / 0.8);
     const back = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
@@ -599,7 +602,7 @@ function updateEvolution(dt) {
     evoBanner.classList.add('hidden');
     e.newMesh.scale.setScalar(partyScale(e.sp));
     if (e.wasLeader) attachLeader(e.m); else zone.scene.remove(e.newMesh);
-    say(`축하해! ${e.oldSp.name}이(가) ${e.sp.name}(으)로 진화했어! 공격 ${e.m.atk}, 체력 ${e.m.maxHp}!`, { sec: 7 });
+    say(`축하해! ${josa(e.oldSp.name, '이가')} ${josa(e.sp.name, '으로')} 진화했어! 공격 ${e.m.atk}, 체력 ${e.m.maxHp}!`, { sec: 7 });
     refreshHud(); autosave();
     snapCam = true;
     evo = null;
@@ -622,8 +625,8 @@ dex.bindParty({
     sound.pickup();
     const next = party.nextSkill(m);
     const just = stat === 'atk' && party.skills(m).length && party.skills(m)[party.skills(m).length - 1].atk > m.atk - n;
-    if (just && party.skills(m).length > 1) { const s = party.skills(m)[party.skills(m).length - 1]; sound.fanfare(); say(`${party.name(m)}이(가) 새 기술 ${s.name}을(를) 배웠어!`, { sec: 5 }); }
-    else if (party.canEvolve(m) && !m.evolveTold) { m.evolveTold = true; say(`${party.name(m)}이(가) 진화할 수 있어! ✨ 진화! 버튼을 눌러봐.`, { sec: 6 }); }
+    if (just && party.skills(m).length > 1) { const s = party.skills(m)[party.skills(m).length - 1]; sound.fanfare(); say(`${josa(party.name(m), '이가')} 새 기술 ${josa(s.name, '을를')} 배웠어!`, { sec: 5 }); }
+    else if (party.canEvolve(m) && !m.evolveTold) { m.evolveTold = true; say(`${josa(party.name(m), '이가')} 진화할 수 있어! ✨ 진화! 버튼을 눌러봐.`, { sec: 6 }); }
     else say(stat === 'atk' ? `${party.name(m)} 공격 ${m.atk}!` : `${party.name(m)} 체력 ${m.maxHp}!`, { sec: 2, faceImg: dex.thumbs(party.species(m))?.color || null });
     refreshHud();
   },
@@ -641,7 +644,7 @@ dex.bindParty({
     refreshHud();
     autosave();
   },
-  onLeader: (m) => { if (party.isFainted(m)) { say(`${party.name(m)}은(는) 기절했어. 오박사님께 치료받아야 대표가 될 수 있어.`); return; } attachLeader(m); sound.click(); say(`${party.name(m)}이(가) 대표 포켓몬이 됐어! 이제 ${party.name(m)}이(가) 싸워.`, { sec: 4, faceImg: dex.thumbs(party.species(m))?.color || null }); },
+  onLeader: (m) => { if (party.isFainted(m)) { say(`${josa(party.name(m), '은는')} 기절했어. 오박사님께 치료받아야 대표가 될 수 있어.`); return; } attachLeader(m); sound.click(); say(`${josa(party.name(m), '이가')} 대표 포켓몬이 됐어! 이제 ${josa(party.name(m), '이가')} 싸워.`, { sec: 4, faceImg: dex.thumbs(party.species(m))?.color || null }); },
   onEvolve: (m) => evolveMember(m),
 });
 
@@ -887,7 +890,7 @@ function startRide(v) {
   if (v.flame) v.flame.visible = true;
   sound.portal();
   const dest = ZONE_INFO[v.to]?.name || v.to;
-  say(v.kind === 'train' ? `칙칙폭폭! ${dest}(으)로 출발!` : `3, 2, 1, 발사! ${dest}(으)로!`, { sec: 4 });
+  say(v.kind === 'train' ? `칙칙폭폭! ${josa(dest, '으로')} 출발!` : `3, 2, 1, 발사! ${josa(dest, '으로')}!`, { sec: 4 });
 }
 function updateRide(dt) {
   if (ride.kind === 'ufo') return updateUfoRide(dt);
@@ -966,7 +969,7 @@ warpBtn.onclick = () => {
   const npc = warpNpc; if (!npc) return;
   warpBtn.classList.add('hidden'); npc.talking = false; warpNpc = null;
   state.returnTo = { zone: zone.name, spawn: { x: npc.x + 1.5, z: npc.z + 1.5 } };
-  goToLab(`${npc.name}이(가) 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
+  goToLab(`${josa(npc.name, '이가')} 연구소로 데려다줬어! 오박사님께 치료받고, 워프 패드로 돌아가자.`, npcFace(npc));
 };
 // ----- UFO (손오공): 행성 고르기 팝업과 비행접시 타기 -----
 // 꿈의우주 UFO 정거장의 손오공에게 말을 걸면 "다른 행성으로 가기" 버튼이 켜지고, 누르면 화면 가운데 팝업에서
@@ -975,7 +978,7 @@ warpBtn.onclick = () => {
 const ufoBtn = document.getElementById('btn-ufo');
 let ufoNpc = null;
 /** 행성 이름 뒤에 붙는 '로/으로' (받침이 없거나 ㄹ 받침이면 '로': 지구로, 태양으로, 수성으로) */
-function ro(word) { const code = word.charCodeAt(word.length - 1) - 0xac00; if (code < 0 || code > 11171) return `${word}(으)로`; const jong = code % 28; return word + (jong === 0 || jong === 8 ? '로' : '으로'); }
+function ro(word) { const code = word.charCodeAt(word.length - 1) - 0xac00; if (code < 0 || code > 11171) return `${josa(word, '으로')}`; const jong = code % 28; return word + (jong === 0 || jong === 8 ? '로' : '으로'); }
 ufoBtn.onclick = () => { ufoBtn.classList.add('hidden'); boardBtn.classList.add('hidden'); if (ufoNpc) ufoNpc.talking = false; ufoNpc = null; boardNpc = null; openPlanetPopup(); };
 const planetEl = document.getElementById('planet-modal');
 const planetArt = document.getElementById('planet-art'), planetName = document.getElementById('planet-name'), planetSub = document.getElementById('planet-sub'), planetPos = document.getElementById('planet-pos'), planetDesc = document.getElementById('planet-desc'), planetPokes = document.getElementById('planet-pokes'), planetGo = document.getElementById('btn-planet-go');
@@ -1004,7 +1007,7 @@ function renderPlanet() {
   }).join('')}</div>`;
   const here = zone.name === p.zone;
   planetGo.disabled = here;
-  planetGo.textContent = here ? '📍 지금 여기 있어' : `🛸 ${ro(p.name)} 출발!`;
+  planetGo.textContent = here ? '📍 지금 여기 있어' : `🛸 ${josa(p.name)} 출발!`;
 }
 document.getElementById('planet-prev').onclick = () => { planetIdx = (planetIdx + PLANETS.length - 1) % PLANETS.length; renderPlanet(); sound.click(); };
 document.getElementById('planet-next').onclick = () => { planetIdx = (planetIdx + 1) % PLANETS.length; renderPlanet(); sound.click(); };
@@ -1030,7 +1033,7 @@ function startUfoRide(to) {
   if (v.beam) v.beam.visible = true;
   sound.portal();
   const dest = PLANET_BY_ZONE[to];
-  say(dest ? `🛸 ${ro(dest.name)} 출발! 꽉 잡아!` : '🛸 꿈의우주로 돌아가자! 꽉 잡아!', { sec: 3 });
+  say(dest ? `🛸 ${josa(dest.name)} 출발! 꽉 잡아!` : '🛸 꿈의우주로 돌아가자! 꽉 잡아!', { sec: 3 });
 }
 const UFO_COLORS = [0xff5c8a, 0xffd93d, 0x6cff8a, 0x66e0ff];
 function updateUfoRide(dt) {
@@ -1058,7 +1061,7 @@ function updateUfoRide(dt) {
       m.scale.set(Math.max(0.2, 1 - st * 0.8), 1 + st * 2.2, Math.max(0.2, 1 - st * 0.8));
       m.userData.glow.intensity = 2.5 + u * 4;
       if (Math.random() < 0.8) particles.stars(zone.scene, m.position.clone().add(new THREE.Vector3(rand(-1.5, 1.5), -0.5, rand(-1.5, 1.5))), 2, UFO_COLORS[Math.floor(Math.random() * 4)], 0.45);
-      if (u > 1.2 && !warp.on) { const d = PLANET_BY_ZONE[r.to]; warp.start(`🛸 ${ro(d ? d.name : (ZONE_INFO[r.to]?.name || '꿈의우주'))} 이동 중…`, d?.tint || '#c38bff'); }
+      if (u > 1.2 && !warp.on) { const d = PLANET_BY_ZONE[r.to]; warp.start(`🛸 ${josa(d ? d.name : (ZONE_INFO[r.to]?.name || '꿈의우주'), '으로')} 이동 중…`, d?.tint || '#c38bff'); }
     }
     camera.position.lerp(m.position.clone().add(camOffset()), 0.12);
     camera.lookAt(m.position.x, m.position.y + 1, m.position.z);
@@ -1158,7 +1161,7 @@ function talkTo(npc) {
   const spaceMega = creatureData.creatures.find((c) => c.zone === 'space' && c.shrine);
   const ufoLocked = !!(npc.ufo && zone.world.ufo && !zone.world.ufo.to && spaceMega && !(state.dex[spaceMega.id] > 0) && !state.admin);
   const text = ufoLocked
-    ? `${npc.name}: UFO 는 별의 문의 힘으로 나는 거야. ${state.conquered.space ? `별의 문을 지키는 ${spaceMega.name}을(를) 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 별의 문을 열고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
+    ? `${npc.name}: UFO 는 별의 문의 힘으로 나는 거야. ${state.conquered.space ? `별의 문을 지키는 ${josa(spaceMega.name, '을를')} 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 별의 문을 열고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
     : `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
   say(text, { sec: ufoLocked ? 8 : 6, faceImg: npcFace(npc) });
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
@@ -1173,7 +1176,7 @@ function talkTo(npc) {
   } else if (npc.boards && zone.world[npc.boards] && !ufoLocked) { // 차장과 이야기하는 동안 "기차 타기" 버튼이 켜진다 (손오공은 boards 도 'ufo' 라 잠겨 있으면 여기도 건너뛴다)
     boardNpc = npc;
     const dest = ZONE_INFO[zone.world[npc.boards].to]?.name || '';
-    boardBtn.textContent = `${npc.boards === 'train' ? '🚂' : '🚀'} ${dest}(으)로 출발!`;
+    boardBtn.textContent = `${npc.boards === 'train' ? '🚂' : '🚀'} ${josa(dest, '으로')} 출발!`;
     boardBtn.classList.remove('hidden');
   }
   if (npc.sails && boatHere() && !returning && !goingHome) { // 뱃사공과 이야기하는 동안 "배 타기"·"선착장으로 돌아가기" 버튼이 켜진다
@@ -1382,7 +1385,7 @@ function showAdminPanel() {
       if (!zone || zone.name === n || switching || battle.active) return;
       dex.hide();
       const dest = getZone(n);
-      switchZone(n, dest.world.spawn, { text: `${dest.label || ZONE_INFO[n]?.name || n}(으)로 왔어!`, sec: 3 });
+      switchZone(n, dest.world.spawn, { text: `${josa(dest.label || ZONE_INFO[n]?.name || n, '으로')} 왔어!`, sec: 3 });
     };
     row.appendChild(btn);
   }
@@ -1612,7 +1615,7 @@ async function renderFriendList() {
       const row = document.createElement('div'); row.className = 'friend-row';
       row.innerHTML = `<div class="save-info"><div class="save-name">${r.fromName || '?'}</div><div class="save-sub">친구가 되고 싶대요${r.at ? ` · ${formatWhen(r.at)}` : ''}</div></div>
         <button class="friend-accept">✅ 수락</button><button class="friend-decline">거절</button>`;
-      row.querySelector('.friend-accept').onclick = async () => { try { await cloud.acceptRequest(r.uid); presence.refreshT = 0; say(`👫 ${r.fromName}과(와) 친구가 됐어!`, { sec: 4 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); } renderFriendList(); };
+      row.querySelector('.friend-accept').onclick = async () => { try { await cloud.acceptRequest(r.uid); presence.refreshT = 0; say(`👫 ${josa(r.fromName, '과와')} 친구가 됐어!`, { sec: 4 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); } renderFriendList(); };
       row.querySelector('.friend-decline').onclick = async () => { await cloud.declineRequest(r.uid); renderFriendList(); };
       reqBox.appendChild(row);
     }
@@ -1630,7 +1633,7 @@ async function renderFriendList() {
       <button class="friend-duel" ${duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid)) ? 'disabled title="이미 대결 중"' : 'title="내 대표 포켓몬으로 대결 신청"'}>⚔ 대결</button>
       <button class="save-del" title="친구 삭제">✕</button>`;
     row.querySelector('.friend-duel').onclick = () => challengeFriend(f);
-    row.querySelector('.save-del').onclick = async () => { if (confirm(`${f.name}을(를) 친구 목록에서 뺄까요?`)) { await cloud.removeFriend(f.uid); renderFriendList(); } };
+    row.querySelector('.save-del').onclick = async () => { if (confirm(`${josa(f.name, '을를')} 친구 목록에서 뺄까요?`)) { await cloud.removeFriend(f.uid); renderFriendList(); } };
     list.appendChild(row);
   }
 }
@@ -1799,7 +1802,7 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
 }
 // ---------- 같이 놀기 1단계: 같은 지역에 있는 친구가 보인다 (src/presence.js, Realtime Database presence/{uid}) ----------
 const ghosts = new Ghosts(speciesById);
-ghosts.onAppear = (name) => say(`👫 ${name}이(가) 같은 지역에 있어! 손을 흔들어 봐 👋`, { sec: 5 });
+ghosts.onAppear = (name) => say(`👫 ${josa(name, '이가')} 같은 지역에 있어! 손을 흔들어 봐 👋`, { sec: 5 });
 const presence = { t: 0, heart: 0, last: null, friends: new Map(), watches: new Map(), refreshT: 0, emote: null, emoteAt: 0, mySprite: null, myShown: 0 };
 const emoteRow = document.getElementById('hud-emote-row');
 emoteRow.querySelectorAll('button').forEach((b) => { b.onclick = () => sendEmote(b.textContent.trim()); });
@@ -1841,9 +1844,9 @@ async function refreshPresenceFriends() {
       if (v) presence.friends.set(f.uid, { ...v, uid: f.uid, name }); else presence.friends.delete(f.uid);
       // 접속 알림: 처음 볼 때 이미 접속 중이면 "접속 중", 나중에 들어오면 "접속했어", 나가면 "나갔어"
       const now = !!v && (!v.at || Date.now() - v.at < 60000);
-      if (first) { first = false; if (now) { say(`👫 ${name}이(가) 지금 접속해 있어! (${where})`, { sec: 5 }); } }
-      else if (now && !online) { sound.pickup(); say(`👫 ${name}이(가) 접속했어! ${where}에 있어. 만나러 가 볼까?`, { sec: 6 }); }
-      else if (!now && online) say(`👋 ${name}이(가) 나갔어.`, { sec: 4 });
+      if (first) { first = false; if (now) { say(`👫 ${josa(name, '이가')} 지금 접속해 있어! (${where})`, { sec: 5 }); } }
+      else if (now && !online) { sound.pickup(); say(`👫 ${josa(name, '이가')} 접속했어! ${where}에 있어. 만나러 가 볼까?`, { sec: 6 }); }
+      else if (!now && online) say(`👋 ${josa(name, '이가')} 나갔어.`, { sec: 4 });
       online = now;
     }));
   }
@@ -1879,8 +1882,8 @@ function renderDuelModal() {
   let html;
   if (d.state === 'pending' && d.b === me) { // 받은 신청
     const mon = d.mons.a;
-    html = `<div class="duel-invite"><div class="menu-title">⚔ ${name}이(가) 대결을 신청했어!</div>
-      <div class="menu-sub">${name}의 대표 ${mon?.name || '?'} (⚔ ${mon?.atk} · ❤ ${mon?.maxHp}) 이(가) 기다리고 있어. 수락하면 내 대표 ${party.leader ? party.name(party.leader) : '포켓몬'}이(가) 나가고, 넘버볼 아레나로 이동해!</div>
+    html = `<div class="duel-invite"><div class="menu-title">⚔ ${josa(name, '이가')} 대결을 신청했어!</div>
+      <div class="menu-sub">${name}의 대표 ${mon?.name || '?'} (⚔ ${mon?.atk} · ❤ ${mon?.maxHp}) 이(가) 기다리고 있어. 수락하면 내 대표 ${josa(party.leader ? party.name(party.leader) : '포켓몬', '이가')} 나가고, 넘버볼 아레나로 이동해!</div>
       ${mon ? `<div class="duel-mon"><div class="duel-who">${name}</div>${duelThumb(mon.speciesId) ? `<img src="${duelThumb(mon.speciesId)}" alt="">` : ''}<div class="duel-name">${mon.name} <span class="party-type">${mon.type}</span></div></div>` : ''}
       <div class="duel-actions"><button class="duel-accept">✅ 수락 → 아레나로!</button><button class="duel-decline">거절</button></div>
       <div class="friend-note">닫기(✕)를 누르면 나중에 도감 → 대결 탭에서 다시 볼 수 있어.</div></div>`;
@@ -1899,10 +1902,10 @@ function bindDuelCard(box, d, { onAccept = null } = {}) {
   box.querySelector('.duel-accept')?.addEventListener('click', async () => {
     const L = party.leader;
     if (!L) { say('대표 포켓몬이 있어야 대결할 수 있어!', { sec: 4 }); return; }
-    if (party.isFainted(L)) { say(`${party.name(L)}은(는) 기절했어. 오박사님이나 아레나의 조이에게 치료받고 수락하자.`, { sec: 5 }); return; }
+    if (party.isFainted(L)) { say(`${josa(party.name(L), '은는')} 기절했어. 오박사님이나 아레나의 조이에게 치료받고 수락하자.`, { sec: 5 }); return; }
     const mon = snapshotMon(party, L);
     const ok = await cloud.duelTx(id, (cur) => acceptPatch(cur, me, mon)).catch(() => false);
-    if (ok) { sound.fanfare(); say(`⚔ 대결 시작! ${d.names.a}이(가) 먼저 공격해.`, { sec: 5 }); onAccept?.(); }
+    if (ok) { sound.fanfare(); say(`⚔ 대결 시작! ${josa(d.names.a, '이가')} 먼저 공격해.`, { sec: 5 }); onAccept?.(); }
   });
   box.querySelector('.duel-decline')?.addEventListener('click', async () => { await cloud.deleteDuel(id); closeDuelModal(); });
   box.querySelector('.duel-go')?.addEventListener('click', goToArena);
@@ -1920,9 +1923,9 @@ function onDuelsChanged() {
     const key = duelKey(d), prev = duels.seen.get(d.id);
     if (prev !== key) {
       duels.seen.set(d.id, key);
-      if (d.state === 'pending' && d.b === me && prev === undefined) { sound.pickup(); say(`⚔ ${name}이(가) 대결을 신청했어!`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
-      else if (d.state === 'active' && d.a === me && (prev?.startsWith('pending') || (prev === undefined && duels.created.has(d.id)))) { duels.created.delete(d.id); sound.fanfare(); say(`⚔ ${name}이(가) 수락했어! 아레나로 가서 만나자.`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
-      else if (d.state === 'active' && d.turn === side && prev !== undefined) { sound.pickup(); if (duelModalId !== d.id) say(`⚔ ${name}과(와)의 대결, 내 차례야! ${zone?.name === 'arena' ? '친구 가까이서 대결! 버튼을' : '도감 → 대결 탭을'} 눌러.`, { sec: 6 }); }
+      if (d.state === 'pending' && d.b === me && prev === undefined) { sound.pickup(); say(`⚔ ${josa(name, '이가')} 대결을 신청했어!`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
+      else if (d.state === 'active' && d.a === me && (prev?.startsWith('pending') || (prev === undefined && duels.created.has(d.id)))) { duels.created.delete(d.id); sound.fanfare(); say(`⚔ ${josa(name, '이가')} 수락했어! 아레나로 가서 만나자.`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
+      else if (d.state === 'active' && d.turn === side && prev !== undefined) { sound.pickup(); if (duelModalId !== d.id) say(`⚔ ${josa(name, '과와')}의 대결, 내 차례야! ${zone?.name === 'arena' ? '친구 가까이서 대결! 버튼을' : '도감 → 대결 탭을'} 눌러.`, { sec: 6 }); }
     }
     if (d.state === 'done' && !d.rewarded?.[me] && !d.rewarding) { // 결과 보상은 각자 한 번씩 (문서에 표시)
       d.rewarding = true;
@@ -1930,7 +1933,7 @@ function onDuelsChanged() {
       cloud.duelTx(d.id, (cur) => (cur.rewarded?.[me] ? null : { rewarded: { ...(cur.rewarded || {}), [me]: true } })).then((ok) => {
         if (!ok) return;
         setBlocks(state.blocks + gain); if (won) { wkAdd('duel'); sound.fanfare(); confetti.burst(120); }
-        say(won ? `🏆 ${name}과(와)의 대결에서 이겼어! 블록 ${gain}개!` : `😢 ${name}과(와)의 대결에서 졌어… 그래도 블록 ${gain}개! 포켓몬을 더 키워서 다시 도전하자.`, { sec: 7 });
+        say(won ? `🏆 ${josa(name, '과와')}의 대결에서 이겼어! 블록 ${gain}개!` : `😢 ${josa(name, '과와')}의 대결에서 졌어… 그래도 블록 ${gain}개! 포켓몬을 더 키워서 다시 도전하자.`, { sec: 7 });
         refreshHud(); autosave();
       }).catch(() => {});
     }
@@ -1946,9 +1949,9 @@ function onDuelsChanged() {
 async function challengeFriend(f) {
   const L = party.leader;
   if (!L) { say('대표 포켓몬이 있어야 대결할 수 있어!', { sec: 4 }); return; }
-  if (party.isFainted(L)) { say(`${party.name(L)}은(는) 기절했어. 오박사님께 치료받고 신청하자.`, { sec: 5 }); return; }
-  if (duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid))) { say(`${f.name}과(와)는 이미 대결 중이야! 도감 → 대결 탭을 봐.`, { sec: 5 }); return; }
-  try { const id = await cloud.createDuel(f, snapshotMon(party, L)); duels.created.add(id); sound.click(); say(`⚔ ${f.name}에게 ${party.name(L)}(으)로 대결을 신청했어! 수락하면 알려 줄게.`, { sec: 6 }); }
+  if (party.isFainted(L)) { say(`${josa(party.name(L), '은는')} 기절했어. 오박사님께 치료받고 신청하자.`, { sec: 5 }); return; }
+  if (duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid))) { say(`${josa(f.name, '과와')}는 이미 대결 중이야! 도감 → 대결 탭을 봐.`, { sec: 5 }); return; }
+  try { const id = await cloud.createDuel(f, snapshotMon(party, L)); duels.created.add(id); sound.click(); say(`⚔ ${f.name}에게 ${josa(party.name(L), '으로')} 대결을 신청했어! 수락하면 알려 줄게.`, { sec: 6 }); }
   catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
 }
 function renderDuels() {
@@ -2135,7 +2138,7 @@ function frame() {
       const toName = zone.world.portalTo || 'forest'; // 보통은 푸른숲으로, 심해의 해류는 물의길로
       const dest = getZone(toName);
       const back = dest.world.arrivals?.[zone.name] || dest.world.spawn;
-      switchZone(toName, back, { text: `${dest.label}(으)로 돌아왔어!`, sec: 4 });
+      switchZone(toName, back, { text: `${josa(dest.label, '으로')} 돌아왔어!`, sec: 4 });
     }
     if (!moved && zone.name === 'forest' && state.prompt <= 0 && near(zone.world.hiveDoor, 7)) { state.prompt = 8; say('🐝 꿀벌집이야! 매달린 벌집 바로 아래로 걸어가면 안으로 들어가.', { sec: 4 }); }
     // 배 위에서 뭍이 가까우면 "내리기"를 먼저 준다 (루피 대화는 트인 바다에서)
@@ -2157,7 +2160,7 @@ function frame() {
       for (const d of duels.list) {
         if (d.state !== 'active') continue;
         const otherUid = d.a === cloud.user.uid ? d.b : d.a, pos = ghosts.positionOf(otherUid);
-        if (pos && pos.distanceTo(pp) < 7) { const nm = d.names?.[d.a === cloud.user.uid ? 'b' : 'a'] || '친구'; offer(`⚔ ${nm}과(와) 대결!`, () => openDuelModal(d.id), '⚔\n대결'); break; }
+        if (pos && pos.distanceTo(pp) < 7) { const nm = d.names?.[d.a === cloud.user.uid ? 'b' : 'a'] || '친구'; offer(`⚔ ${josa(nm, '과와')} 대결!`, () => openDuelModal(d.id), '⚔\n대결'); break; }
       }
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
@@ -2165,7 +2168,7 @@ function frame() {
       if (state.returnTo && BUILDERS[state.returnTo.zone]) {
         moved = true;
         const r = state.returnTo; state.returnTo = null;
-        switchZone(r.zone, r.spawn, { text: `${ZONE_INFO[r.zone]?.name || r.zone}(으)로 돌아왔어!`, sec: 4 });
+        switchZone(r.zone, r.spawn, { text: `${josa(ZONE_INFO[r.zone]?.name || r.zone, '으로')} 돌아왔어!`, sec: 4 });
       } else if (state.prompt <= 0) { state.prompt = 8; say('워프 패드야. 다른 지역의 안내원이 데려다줬을 때 그 지역으로 돌아갈 수 있어.', { sec: 4 }); }
     }
     if (returning) updateReturn(dt); // 루피가 배를 몰아 선착장으로 (조작 잠금)
@@ -2232,11 +2235,11 @@ function frame() {
         if (!L) { c.becomeShy(); say('대표 포켓몬이 없어!'); break; }
         if (party.isFainted(L)) {
           const other = party.healthy()[0];
-          if (other) { attachLeader(other); L = other; say(`${party.name(L)}이(가) 대신 나서!`, { sec: 3 }); }
+          if (other) { attachLeader(other); L = other; say(`${josa(party.name(L), '이가')} 대신 나서!`, { sec: 3 }); }
           else { c.becomeShy(); say('포켓몬이 모두 기절했어… 오박사 연구소에서 치료받자!', { sec: 5 }); break; }
         }
         const hp = c.hp ?? c.data.baseHp;
-        say(c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${c.data.name}이(가) 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
+        say(c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${josa(c.data.name, '이가')} 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
         battle.start({
           creature: c, player, scene: zone.scene, member: L, onWater: !!c.swim,
           hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
@@ -2268,24 +2271,24 @@ function frame() {
               state.caught++;
               state.megaBlocks += MEGA_REWARD;
               confetti.burst(200); sound.fanfare();
-              say(`✨ ${c.data.name}이(가) 친구가 됐어! 메가블럭 ${MEGA_REWARD}개를 얻었어! 도감에서 최종 진화한 포켓몬을 메가 진화시킬 수 있어!`, { sec: 10 });
+              say(`✨ ${josa(c.data.name, '이가')} 친구가 됐어! 메가블럭 ${MEGA_REWARD}개를 얻었어! 도감에서 최종 진화한 포켓몬을 메가 진화시킬 수 있어!`, { sec: 10 });
               refreshHud();
             } else if (c.isBoss) {
               conquer(zone.name);
               if (zone.name === 'forest') {
                 removeBoulder();
-                say(`${c.data.name}이(가) 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
-              } else say(`${c.data.name}이(가) 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${c.data.name}이(가) 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
+                say(`${josa(c.data.name, '이가')} 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
+              } else say(`${josa(c.data.name, '이가')} 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${josa(c.data.name, '이가')} 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
             } else {
               state.caught++;
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
-              const winNote = party.canEvolve(L) ? ` ${party.name(L)}이(가) 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
-              if (already) say(`${sp.name}은(는) 이미 내 친구야! 이긴 보상으로 블록 ${reward}개 획득! (누적 ${cnt}마리)${winNote}`, { sec: 6 });
-              else say(`${c.data.name}이(가) 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
+              const winNote = party.canEvolve(L) ? ` ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
+              if (already) say(`${josa(sp.name, '은는')} 이미 내 친구야! 이긴 보상으로 블록 ${reward}개 획득! (누적 ${cnt}마리)${winNote}`, { sec: 6 });
+              else say(`${josa(c.data.name, '이가')} 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
             }
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
-            if (!already && party.members.length === 2) say(`${party.name(member)}은(는) 볼 안에서 쉬고 있어. 도감에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
+            if (!already && party.members.length === 2) say(`${josa(party.name(member), '은는')} 볼 안에서 쉬고 있어. 도감에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
             autosave();
           },
@@ -2297,7 +2300,7 @@ function frame() {
             const other = party.healthy()[0];
             if (other) {
               attachLeader(other);
-              say(`${party.name(L)}이(가) 기절했어… ${party.name(other)}이(가) 대표로 나서! 오박사님께 가면 치료해 줘.`, { sec: 7 });
+              say(`${josa(party.name(L), '이가')} 기절했어… ${josa(party.name(other), '이가')} 대표로 나서! 오박사님께 가면 치료해 줘.`, { sec: 7 });
             } else {
               say('포켓몬이 모두 기절했어… 눈앞이 캄캄해…', { sec: 3 });
               setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 대화 버튼을 누르면 치료해 줘!'), 900);
@@ -2306,7 +2309,7 @@ function frame() {
           },
           onEscaped: () => { // 넘버볼에서 튀어나와 도망: 승리 아님, 블록·승수 없음. 한동안 사라졌다가 돌아온다
             c.flee();
-            say(`${c.data.name}이(가) 도망쳤어… 등급이 높은 포켓몬은 더 좋은 넘버볼이 필요해. 도감 넘버볼 탭에서 블록으로 바꾸자!`, { sec: 7 });
+            say(`${josa(c.data.name, '이가')} 도망쳤어… 등급이 높은 포켓몬은 더 좋은 넘버볼이 필요해. 도감 넘버볼 탭에서 블록으로 바꾸자!`, { sec: 7 });
             refreshHud();
           },
           onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 모아서 더 강해진 다음 다시 오자!'); refreshHud(); },

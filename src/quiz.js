@@ -1,3 +1,4 @@
+import { josa } from './util.js';
 // 숫자블록 퀴즈. 숫자블록 친구가 낸 문제를 포켓몬 마리 수로 풀고, 맞히면 친구가 고마워하며 블록을 준다.
 // 답을 고르면 정답이든 오답이든 "왜 그런지" 한 줄 풀이(explain)를 보여 준다.
 // 지역마다 문제 종류가 다르다 (퀴즈를 낸 숫자블록의 숫자가 7 이상이면 조금 더 어렵게):
@@ -24,18 +25,18 @@ export function makeProblem(number, species, zone = 'forest') {
   if (kind === 'add') {
     if (!hard) {
       const a = ri(1, 5), b = ri(1, 5);
-      return { tier: 2, text: `${A.name} ${a}마리와 ${B.name} ${b}마리가 모였어. 모두 몇 마리?`, groups: [{ sp: A, count: a }, { sp: B, count: b }], answer: a + b, hint: `${a}에서 ${b}만큼 더 세어 봐!`, explain: `${a} + ${b} = ${a + b}. ${a}에서 ${b}만큼 더 세면 ${a + b}이(가) 돼!` };
+      return { tier: 2, text: `${A.name} ${a}마리와 ${B.name} ${b}마리가 모였어. 모두 몇 마리?`, groups: [{ sp: A, count: a }, { sp: B, count: b }], answer: a + b, hint: `${a}에서 ${b}만큼 더 세어 봐!`, explain: `${a} + ${b} = ${a + b}. ${a}에서 ${b}만큼 더 세면 ${josa(a + b, '이가')} 돼!` };
     }
     const a = ri(1, 5), b = ri(1, 5), c = ri(1, 5);
-    return { tier: 5, text: `${A.name} ${a}마리, ${B.name} ${b}마리, ${C.name} ${c}마리. 모두 몇 마리?`, groups: [{ sp: A, count: a }, { sp: B, count: b }, { sp: C, count: c }], answer: a + b + c, hint: `먼저 ${a}과(와) ${b}을(를) 더하고, 거기에 ${c}을(를) 더해 봐!`, explain: `${a} + ${b} = ${a + b}, 거기에 ${c}을(를) 더하면 ${a + b + c}!` };
+    return { tier: 5, text: `${A.name} ${a}마리, ${B.name} ${b}마리, ${C.name} ${c}마리. 모두 몇 마리?`, groups: [{ sp: A, count: a }, { sp: B, count: b }, { sp: C, count: c }], answer: a + b + c, hint: `먼저 ${josa(a, '과와')} ${josa(b, '을를')} 더하고, 거기에 ${josa(c, '을를')} 더해 봐!`, explain: `${a} + ${b} = ${a + b}, 거기에 ${josa(c, '을를')} 더하면 ${a + b + c}!` };
   }
   if (kind === 'ten') {
     if (number <= 4) {
       const k = ri(3, 8);
-      return { tier: 1, text: `${A.name}이(가) 모두 몇 마리일까?`, groups: [{ sp: A, count: k }], answer: k, hint: '손가락으로 하나씩 세어 봐: 1, 2, 3…', explain: `하나씩 세면 ${Array.from({ length: k }, (_, i) => i + 1).join(', ')} — 모두 ${k}마리야!` };
+      return { tier: 1, text: `${josa(A.name, '이가')} 모두 몇 마리일까?`, groups: [{ sp: A, count: k }], answer: k, hint: '손가락으로 하나씩 세어 봐: 1, 2, 3…', explain: `하나씩 세면 ${Array.from({ length: k }, (_, i) => i + 1).join(', ')} — 모두 ${k}마리야!` };
     }
     const a = ri(2, 8);
-    return { tier: 4, text: `${A.name} ${a}마리가 있어. ${B.name}이(가) 몇 마리 더 오면 10마리가 될까?`, groups: [{ sp: A, count: a }, { sp: B, count: 10 - a, ghost: true }], answer: 10 - a, hint: `${a}에서 10까지 몇 칸 남았는지 세어 봐!`, explain: `${a} + ${10 - a} = 10. ${a}에서 ${10 - a}만큼 더 가면 10이 돼!` };
+    return { tier: 4, text: `${A.name} ${a}마리가 있어. ${josa(B.name, '이가')} 몇 마리 더 오면 10마리가 될까?`, groups: [{ sp: A, count: a }, { sp: B, count: 10 - a, ghost: true }], answer: 10 - a, hint: `${a}에서 10까지 몇 칸 남았는지 세어 봐!`, explain: `${a} + ${10 - a} = 10. ${a}에서 ${10 - a}만큼 더 가면 10이 돼!` };
   }
   if (kind === 'sub' && Math.random() < 0.5) { // 물의길: 절반은 나누기
     const groups = ri(2, hard ? 4 : 3), each = ri(2, hard ? 5 : 4), total = groups * each;
@@ -43,15 +44,15 @@ export function makeProblem(number, species, zone = 'forest') {
   }
   if (kind === 'sub') {
     const a = hard ? ri(7, 12) : ri(4, 9), b = ri(1, a - 1);
-    return { tier: 3, text: `${A.name} ${a}마리 중 ${b}마리가 숨었어. 남은 ${A.name}은(는) 몇 마리?`, groups: [{ sp: A, count: a, faded: b }], answer: a - b, hint: '흐려진 친구는 빼고 남은 친구만 세어 봐!', explain: `${a} - ${b} = ${a - b}. ${a}마리에서 숨은 ${b}마리를 빼면 ${a - b}마리가 남아!` };
+    return { tier: 3, text: `${A.name} ${a}마리 중 ${b}마리가 숨었어. 남은 ${josa(A.name, '은는')} 몇 마리?`, groups: [{ sp: A, count: a, faded: b }], answer: a - b, hint: '흐려진 친구는 빼고 남은 친구만 세어 봐!', explain: `${a} - ${b} = ${a - b}. ${a}마리에서 숨은 ${b}마리를 빼면 ${a - b}마리가 남아!` };
   }
   if (kind === 'mul') {
     const a = ri(2, hard ? 5 : 4), b = ri(2, hard ? 4 : 3);
-    return { tier: 6, text: `${A.name}이(가) ${a}마리씩 ${b}무리 있어. 모두 몇 마리? (${a}×${b})`, groups: Array.from({ length: b }, () => ({ sp: A, count: a })), answer: a * b, choices: [a * b + a, a * b - a > 0 ? a * b - a : a + b], hint: `${a}를 ${b}번 더해 봐: ${Array(b).fill(a).join('+')}`, explain: `${a} × ${b} = ${a * b}. ${a}를 ${b}번 더하면 ${Array(b).fill(a).join('+')} = ${a * b}!` };
+    return { tier: 6, text: `${josa(A.name, '이가')} ${a}마리씩 ${b}무리 있어. 모두 몇 마리? (${a}×${b})`, groups: Array.from({ length: b }, () => ({ sp: A, count: a })), answer: a * b, choices: [a * b + a, a * b - a > 0 ? a * b - a : a + b], hint: `${a}를 ${b}번 더해 봐: ${Array(b).fill(a).join('+')}`, explain: `${a} × ${b} = ${a * b}. ${a}를 ${b}번 더하면 ${Array(b).fill(a).join('+')} = ${a * b}!` };
   }
   // cube: n×n×n
   const n = number <= 4 ? 2 : number <= 8 ? 3 : 4;
-  return { tier: 7, text: `${A.name}이(가) ${n}마리씩 ${n}줄로 서 있고, 그런 층이 ${n}층이야. 모두 몇 마리? (${n}×${n}×${n})`, groups: [...Array.from({ length: n }, () => ({ sp: A, count: n })), { sp: A, count: 0, note: `⬆ 이런 층이 ${n}층!` }], answer: n ** 3, choices: [n * n, n * n * (n - 1) || n * n + n], hint: `한 층은 ${n}×${n}=${n * n}마리. 그걸 ${n}번 더해 봐: ${Array(n).fill(n * n).join('+')}`, explain: `${n} × ${n} × ${n} = ${n ** 3}. 한 층이 ${n * n}마리, 그런 층이 ${n}층이니 ${Array(n).fill(n * n).join('+')} = ${n ** 3}!` };
+  return { tier: 7, text: `${josa(A.name, '이가')} ${n}마리씩 ${n}줄로 서 있고, 그런 층이 ${n}층이야. 모두 몇 마리? (${n}×${n}×${n})`, groups: [...Array.from({ length: n }, () => ({ sp: A, count: n })), { sp: A, count: 0, note: `⬆ 이런 층이 ${n}층!` }], answer: n ** 3, choices: [n * n, n * n * (n - 1) || n * n + n], hint: `한 층은 ${n}×${n}=${n * n}마리. 그걸 ${n}번 더해 봐: ${Array(n).fill(n * n).join('+')}`, explain: `${n} × ${n} × ${n} = ${n ** 3}. 한 층이 ${n * n}마리, 그런 층이 ${n}층이니 ${Array(n).fill(n * n).join('+')} = ${n ** 3}!` };
 }
 
 function choicesFor(answer, extra = []) {

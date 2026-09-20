@@ -1,4 +1,5 @@
 import { CLOUD_CONFIG } from './cloud-config.js';
+import { josa } from './util.js';
 
 // 클라우드 계정: 이름 + 6자리 비밀번호로 계정을 만들고, 진행을 클라우드에 저장해 어느 기기에서든 이어 한다. 친구를 이름으로 추가하면 친구의 도감·정복 상황이 보인다.
 // 뒤에서는 Firebase(Authentication 이메일/비밀번호 + Firestore)를 쓴다. 이름은 `<이름>@np-kids.app` 이라는 가짜 이메일로 바뀐다(아이들은 이메일이 없으니까).
@@ -240,7 +241,7 @@ export const cloud = {
     const p = await this.backend.findProfile(name);
     if (!p) throw new Error('그 이름의 친구를 찾지 못했어요. 이름을 정확히 적어 주세요.');
     if (p.uid === this.user.uid) throw new Error('나 자신은 친구로 추가할 수 없어요.');
-    if (await this.backend.isFriend(this.user.uid, p.uid)) throw new Error(`${p.name}은(는) 이미 친구예요.`);
+    if (await this.backend.isFriend(this.user.uid, p.uid)) throw new Error(`${josa(p.name, '은는')} 이미 친구예요.`);
     if (await this.backend.hasRequest(this.user, p.uid)) throw new Error(`${p.name}에게 이미 요청을 보냈어요. 수락을 기다려 주세요.`);
     await this.backend.sendRequest(this.user, p.uid);
     return p;

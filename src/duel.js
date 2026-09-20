@@ -1,3 +1,4 @@
+import { josa } from './util.js';
 // 같이 놀기 2단계: 친구와 포켓몬 대결 (턴제, 우편 대결).
 // 친구 탭에서 "⚔ 대결"을 누르면 내 대표 포켓몬의 지금 모습(공격·체력·기술)을 찍어 Firestore duels/{id} 문서를 만들고,
 // 상대가 도감 "대결" 탭에서 수락하면 자기 대표를 찍어 넣는다. 그 뒤로는 서로 번갈아 기술을 하나씩 고른다(내 차례일 때만 버튼이 켜진다).
@@ -53,7 +54,7 @@ export function duelCardHtml(d, me, thumb) {
     ? `<div class="duel-mon${who === side ? ' me' : ''}"><div class="duel-who">${label}</div>${thumb(mon.speciesId) ? `<img src="${thumb(mon.speciesId)}" alt="">` : '<div class="friend-noimg"></div>'}<div class="duel-name">${mon.name} <span class="party-type">${mon.type}</span></div><div class="duel-atk">⚔ ${mon.atk}</div>${hpBar(mon)}</div>`
     : `<div class="duel-mon"><div class="duel-who">${label}</div><div class="friend-noimg"></div><div class="duel-name">아직 안 골랐어</div></div>`;
   const status = d.state === 'pending' ? (d.b === me ? '📨 대결 신청이 왔어! 수락하면 내 대표 포켓몬이 나가.' : `⏳ ${theirName}의 수락을 기다리는 중`)
-    : d.state === 'done' ? (d.winner === side ? '🏆 내가 이겼어!' : `😢 ${theirName}이(가) 이겼어. 다음엔 꼭!`)
+    : d.state === 'done' ? (d.winner === side ? '🏆 내가 이겼어!' : `😢 ${josa(theirName, '이가')} 이겼어. 다음엔 꼭!`)
     : d.turn === side ? '👉 내 차례야! 기술을 골라' : `⏳ ${theirName}의 차례 (기다리면 알려 줄게)`;
   const skills = d.state === 'active' && d.turn === side && mine
     ? `<div class="duel-skills">${mine.skills.map((s, i) => `<button class="duel-skill" data-skill="${i}">${skillIcon(s)} ${s.name} <small>⚔ ${duelDamage(mine, s, theirs).dmg}</small></button>`).join('')}</div>` : '';

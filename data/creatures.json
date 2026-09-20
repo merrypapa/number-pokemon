@@ -1,5 +1,5 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤). boss 가 객체({zone,hp,atk,scale,grade})면 그 종은 평소 모습(baseHp/baseAtk, 진화형)과 보스 모습을 함께 가진 하나의 항목: 그 지역에서는 보스 능력치로 나타나고, 보스를 잡으면 내 같은 종이 보스 능력치로 올라간다. modelTilt 는 모델을 뒤로 젖히는 각도(라디안, 필요한 모델에만). evolution.to 가 배열([{id,p}])이면 확률(p, 합이 1)로 그중 하나로 진화한다(이브이 → 샤미드·부스터·쥬피썬더 30%씩, 엄브레온 10%).",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤). boss 가 객체({zone,hp,atk,scale,grade})면 그 종은 평소 모습(baseHp/baseAtk, 진화형)과 보스 모습을 함께 가진 하나의 항목: 그 지역에서는 보스 능력치로 나타나고, 보스를 잡으면 내 같은 종이 보스 능력치로 올라간다. modelTilt 는 모델을 뒤로 젖히는 각도(라디안, 필요한 모델에만). evolution.to 가 배열([{id,p}])이면 확률(p, 합이 1)로 그중 하나로 진화한다(이브이 → 샤미드·부스터·쥬피썬더 30%씩, 엄브레온 10%). zones[].wildScale {hp,atk} 은 그 지역 야생의 기본 능력치 배율(심해 1.5).",
  "zones": {
   "forest": {
    "name": "푸른숲",
@@ -69,6 +69,10 @@
    "wildOverride": {
     "swim": false,
     "deepSea": false
+   },
+   "wildScale": {
+    "hp": 1.5,
+    "atk": 1.5
    }
   },
   "space": {
@@ -143,7 +147,6 @@
    "planet": true,
    "wild": [
     "m48",
-    "m03",
     "m11",
     "m05",
     "m01",
@@ -189,8 +192,7 @@
     "m03",
     "m03e",
     "m41",
-    "m09",
-    "m17"
+    "m11j"
    ],
    "wildOverride": {
     "swim": false,
@@ -208,8 +210,6 @@
     "m49",
     "m15",
     "m24",
-    "m39",
-    "m11",
     "m10"
    ],
    "wildOverride": {
@@ -353,7 +353,7 @@
    "id": "m03",
    "name": "피카츄",
    "type": "전기",
-   "zone": "space",
+   "zone": "p_jupiter",
    "catchable": true,
    "model": "피카츄.glb",
    "scale": 1.0,
@@ -2182,8 +2182,8 @@
    ],
    "evolution": {
     "to": "m24e",
-    "atk": 15,
-    "hp": 20,
+    "atk": 20,
+    "hp": 90,
     "wins": 5
    },
    "favoriteNumber": 9,
@@ -2250,7 +2250,7 @@
    "id": "m41",
    "name": "코일",
    "type": "전기",
-   "zone": "space",
+   "zone": "p_jupiter",
    "catchable": true,
    "model": "코일.glb",
    "scale": 0.9,
@@ -2853,7 +2853,7 @@
    "evolvedFrom": "m02",
    "personality": "용감함",
    "story": "파이리가 진화한 모습. 성질이 사나워지고 발톱이 날카로워. 뜨거운 불을 뿜어 상대를 놀라게 해.",
-   "grade": 5
+   "grade": 3
   },
   {
    "id": "m02ee",
@@ -3024,7 +3024,7 @@
    "evolvedFrom": "m05",
    "personality": "믿음직함",
    "story": "꼬부기가 진화한 모습. 꼬리와 귀에 보송한 털이 있어. 물살을 가르며 헤엄치고 등딱지로 몸을 지켜.",
-   "grade": 4
+   "grade": 3
   },
   {
    "id": "m05ee",

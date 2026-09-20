@@ -56,3 +56,15 @@ export function lerpAngle(a, b, t) {
 }
 
 export const rand = (a, b) => a + Math.random() * (b - a);
+
+/** 받침에 맞는 조사 붙이기: josa('미나', '이가') → '미나가', josa('인하', '과와') → '인하와', josa('태양', '으로') → '태양으로', josa('지구', '으로') → '지구로'.
+ *  한글이 아닌 글자로 끝나면(숫자·영어·이모지) 두 가지를 같이 보여 준다: '???이(가)'. 종류: 이가·을를·은는·과와·으로 */
+const JOSA = { '이가': ['이', '가'], '을를': ['을', '를'], '은는': ['은', '는'], '과와': ['과', '와'], '으로': ['으로', '로'] };
+export function josa(word, type) {
+  const w = String(word ?? ''), [withJong, noJong] = JOSA[type] || ['', ''];
+  const code = w.charCodeAt(w.length - 1) - 0xac00;
+  if (!(code >= 0 && code <= 11171)) return `${w}${withJong}(${noJong})`;
+  const jong = code % 28;
+  if (type === '으로') return w + (jong === 0 || jong === 8 ? '로' : '으로'); // ㄹ 받침은 '로'
+  return w + (jong ? withJong : noJong);
+}
