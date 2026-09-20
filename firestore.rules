@@ -18,7 +18,9 @@ service cloud.firestore {
       allow delete: if mine(uid);
     }
     match /saves/{uid} {
-      allow read, write: if mine(uid) && (!("data" in request.resource.data) || request.resource.data.data.size() < 900000);
+      // 읽기·삭제에는 request.resource 가 없어서 한 줄에 같이 쓰면 읽기가 막힌다 (그래서 클라우드 저장을 못 읽고 새 게임이 시작됐다)
+      allow read, delete: if mine(uid);
+      allow create, update: if mine(uid) && (!("data" in request.resource.data) || request.resource.data.data.size() < 900000);
     }
     match /friends/{uid}/list/{friendUid} {
       allow read, delete: if mine(uid);

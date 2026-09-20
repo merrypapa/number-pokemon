@@ -1380,9 +1380,15 @@ const newgameEl = document.getElementById('newgame');
 const continueEl = document.getElementById('continue');
 const nameInput = document.getElementById('name-input');
 /** 시작하기: 클라우드가 켜져 있으면 계정 모달(로그인/새 계정)로, 아니면 예전처럼 이름을 적는 화면으로 */
-document.getElementById('btn-new').onclick = () => {
+document.getElementById('btn-new').onclick = async () => {
   sound.ensure();
   if (cloud.enabled) {
+    if (!cloud.ready) { // Firebase 가 아직 로그인 상태를 복원하는 중이면 잠깐 기다린다 (자동 로그인)
+      const btn = document.getElementById('btn-new');
+      btn.disabled = true; btn.textContent = '☁️ 계정 확인 중…';
+      await cloud.waitReady(8000);
+      btn.disabled = false; btn.textContent = '▶ 시작하기';
+    }
     if (cloud.user) { startWithAccount(cloud.user); return; } // 이미 로그인돼 있으면 바로
     acctShowChoice(); acctModal.classList.remove('hidden');
     return;
@@ -1524,7 +1530,11 @@ async function startWithAccount(u) {
   acctModal.classList.add('hidden');
   if (zone) { say(`☁️ ${u.name}로 로그인했어!`, { sec: 4 }); return; } // 게임 중 로그인: 그대로 계속
   let remote = null;
-  try { remote = await cloud.loadGame(); } catch (e) { say(`☁️ 클라우드 저장을 못 읽었어: ${e.message}`, { sec: 6 }); }
+  try { remote = await cloud.loadGame(); }
+  catch (e) { // 못 읽었으면 새로 시작하지 않는다: 새 게임의 자동 저장이 클라우드의 진짜 진행을 덮어쓰면 안 된다
+    say(`☁️ 클라우드 저장을 못 읽었어 (${e.message}). 인터넷을 확인하고 시작하기를 다시 눌러 줘!`, { sec: 8 });
+    return;
+  }
   const local = loadSave(u.name);
   let d = null;
   if (remote && (!local || (remote.savedAt || 0) >= (local.savedAt || 0))) { d = remote; saveGame(remote); }

@@ -167,6 +167,11 @@ export const cloud = {
     catch (e) { console.warn('[cloud] 초기화 실패', e); this.enabled = false; return false; }
     return true;
   },
+  /** 로그인 상태가 복원될 때까지(처음 onAuthStateChanged) 기다린다. 처음 화면이 Firebase 보다 먼저 떠서, 시작하기를 바로 누르면 로그인돼 있어도 모를 수 있다 */
+  waitReady(ms = 8000) {
+    if (!this.enabled || this.ready) return Promise.resolve(this.ready);
+    return new Promise((res) => { const t0 = Date.now(); const tick = () => { if (this.ready) res(true); else if (Date.now() - t0 > ms) res(false); else setTimeout(tick, 100); }; tick(); });
+  },
   async signUp(name, pin) { const u = await this.backend.signUp(name, pin); this.user = u; this.onUser(u); return u; },
   async signIn(name, pin) { const u = await this.backend.signIn(name, pin); this.user = u; this.onUser(u); return u; },
   async signOut() { await this.backend.signOut(); this.user = null; this.onUser(null); },
