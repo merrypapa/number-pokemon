@@ -1813,7 +1813,7 @@ function presenceTick(dt) {
   if (!zone || !player || !cloud.presenceOn) { if (ghosts.count) ghosts.setZone(null, null); emoteRow.hidden = true; return; }
   if (ghosts.zoneName !== zone.name) ghosts.setZone(zone.scene, zone.name);
   presence.refreshT -= dt;
-  if (presence.refreshT <= 0) { presence.refreshT = 60; refreshPresenceFriends(); } // 친구 목록은 1분마다 (수락하면 바로)
+  if (presence.refreshT <= 0) { presence.refreshT = 300; refreshPresenceFriends(); } // 친구 목록은 5분마다 (친구 탭을 열거나 수락하면 바로) — Firestore 읽기 절약
   presence.t -= dt; presence.heart += dt;
   if (presence.t <= 0) {
     presence.t = player.moving ? 0.1 : 0.3; // 움직일 때는 초당 10번 (친구 화면에서 끊기지 않게), 가만히 있으면 0.3초
