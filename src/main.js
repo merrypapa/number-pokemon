@@ -1845,13 +1845,17 @@ document.getElementById('btn-install-close').onclick = () => installModal.classL
 if ('serviceWorker' in navigator && !location.search.includes('nosw') && location.protocol !== 'file:') {
   const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
   const updateBar = document.getElementById('update-bar');
+  const applyUpdate = (worker) => { updateBar.textContent = '새 버전으로 바꾸는 중…'; worker.postMessage('SKIP_WAITING'); }; // 바뀌면 아래 controllerchange 가 새로고침한다
   const offerUpdate = (worker) => {
-    updateBar.hidden = false;
-    document.getElementById('btn-update').onclick = () => { if (zone && player) doSave(false); updateBar.textContent = '새 버전으로 바꾸는 중…'; worker.postMessage('SKIP_WAITING'); };
+    if (!zone || !player) { applyUpdate(worker); return; } // 아직 게임을 시작하지 않았으면(타이틀 화면) 묻지 않고 바로 새 버전으로 — 아이가 막대를 못 눌러 옛 버전에 머무르지 않게
+    updateBar.hidden = false; // 게임 중에는 묻는다 (갑자기 새로고침되면 곤란하니까)
+    document.getElementById('btn-update').onclick = () => { if (zone && player) doSave(false); applyUpdate(worker); };
   };
   navigator.serviceWorker.register('./sw.js').then((reg) => {
     if (reg.waiting && hadController) offerUpdate(reg.waiting);
     reg.addEventListener('updatefound', () => { const w = reg.installing; w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); }); });
+    reg.update().catch(() => {}); // 열 때마다 새 버전 확인 (이게 없으면 새 버전을 올려도 한 시간 뒤에야 알아챘다)
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); }); // 홈 화면 앱을 다시 켤 때도 확인
     setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000); // 오래 켜 두어도 한 시간마다 새 버전을 확인
   }).catch((e) => console.warn('[sw] 등록 실패', e));
   let reloading = false;
