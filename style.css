@@ -410,6 +410,8 @@ body.intro #btn-save { display: none !important; }
 .map-poke .nm { font-size: 13px; font-weight: 900; color: #333; margin-top: 2px; }
 .map-poke .sub { font-size: 11px; color: #777; font-weight: 700; }
 .map-poke .bossmark { position: absolute; top: 4px; left: 4px; font-size: 10px; background: #e8453c; color: #fff; border-radius: 999px; padding: 1px 6px; font-weight: 900; }
+.map-poke .bossmark.mega { left: auto; right: 4px; background: linear-gradient(90deg, #7c4dff, #3fb8e8); } /* 메가 딱지는 오른쪽 위 (보스 딱지와 같이 붙을 수 있다) */
+.map-poke.mega { background: #f1ebff; }
 
 #dex-map-nav { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 #dex-map-nav button { font-size: 15px; font-weight: 900; padding: 10px 16px; border-radius: 12px; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 3px 0 #c99400; cursor: pointer; }

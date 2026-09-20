@@ -294,8 +294,8 @@ export class Dex {
     for (const sp of list.sort((a, b) => (isBossHere(b) ? 1 : 0) - (isBossHere(a) ? 1 : 0))) {
       const n = caughtById[sp.id] || 0;
       const t = this.thumbs(sp);
-      html += `<div class="map-poke ${n ? 'caught' : 'unknown'}${isBossHere(sp) ? ' boss' : ''}" data-id="${sp.id}">
-        ${isBossHere(sp) ? '<span class="bossmark">보스</span>' : ''}
+      html += `<div class="map-poke ${n ? 'caught' : 'unknown'}${isBossHere(sp) ? ' boss' : ''}${sp.mega ? ' mega' : ''}" data-id="${sp.id}">
+        ${isBossHere(sp) ? '<span class="bossmark">보스</span>' : ''}${sp.mega ? '<span class="bossmark mega">✨메가</span>' : ''}
         ${t ? `<img src="${n ? t.color : t.silhouette}" alt="">` : ''}
         <div class="nm">${n ? sp.name : '???'}</div>
         <div class="sub">${n ? `${sp.type} · ${n}마리 잡음` : '아직 못 잡음'}</div>
