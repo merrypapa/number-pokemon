@@ -544,8 +544,19 @@ body.intro #btn-save { display: none !important; }
 #rank-modal .menu-card { text-align: left; }
 #dex-rank { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 /* 친구 대결 탭 */
-#dex-duel { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; touch-action: pan-y; }
-#dex-duel.hidden { display: none; }
+/* 친구 탭: 접힌 줄(이름·상태·대결 버튼) → 누르면 자세히 펼침 */
+.friend-row { flex-wrap: wrap; cursor: pointer; }
+.friend-row .friend-toggle { font-size: 14px; color: #999; padding: 0 4px; }
+.friend-row.open .friend-toggle { transform: rotate(180deg); }
+.friend-detail { flex-basis: 100%; display: none; font-size: 13px; color: #555; font-weight: 700; line-height: 1.6; padding: 6px 4px 2px; border-top: 2px dashed #f0e6c0; margin-top: 4px; }
+.friend-row.open .friend-detail { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.friend-detail .save-del { flex-shrink: 0; }
+.duel-line { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 14px; padding: 8px 10px; border: 3px solid #66d3f4; }
+.duel-line.mine { border-color: #e8453c; background: #fff3f0; } .duel-line.done { border-color: #ddd; background: #fafafa; }
+.duel-line .save-info { flex: 1; min-width: 0; }
+.duel-line .save-name { font-size: 16px; } .duel-line .save-sub { font-size: 12px; }
+.duel-line button { font: inherit; font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #57b947; color: #fff; box-shadow: 0 2px 0 #3d8c30; cursor: pointer; white-space: nowrap; }
+.duel-line button.secondary { background: #eee; color: #666; box-shadow: 0 2px 0 #bbb; }
 .tab-badge { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; margin-left: 4px; padding: 0 5px; border-radius: 999px; background: #e8453c; color: #fff; font-size: 11px; font-weight: 900; text-align: center; vertical-align: middle; }
 .tab-badge[hidden] { display: none; }
 .friend-duel { font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #ffe066; color: #333; box-shadow: 0 2px 0 #c99400; cursor: pointer; white-space: nowrap; }

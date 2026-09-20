@@ -1532,7 +1532,6 @@ function refreshAccountUi() {
   friendsTabBtn.hidden = !cloud.enabled; // 친구 탭은 클라우드가 켜져 있으면 늘 보인다 (로그인 전에는 로그인 버튼)
   feedbackTabBtn.hidden = !cloud.enabled;
   rankTabBtn.hidden = !cloud.enabled;
-  duelTabBtn.hidden = !cloud.enabled;
   document.getElementById('btn-rank').hidden = !cloud.enabled; // 처음 화면의 이번 주 순위 (로그인 없이도 본다)
   dexLogoutBtn.hidden = !u;
   if (dex.open && dex.tab === 'friends') renderFriends();
@@ -1595,7 +1594,7 @@ async function renderFriends() {
   box.innerHTML = `<div class="friend-me">☁️ 나: ${cloud.user.name}</div>
     <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 요청</button></div>
     <div class="friend-note">친구가 만든 계정 이름을 적어 요청을 보내면, 친구가 수락한 뒤부터 서로의 도감·정복 상황이 보여요.</div>
-    <div id="friend-requests"></div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
+    <div id="friend-requests"></div><div id="friend-duels"></div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
   const input = box.querySelector('#friend-name');
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') box.querySelector('#btn-friend-add').click(); e.stopPropagation(); }); input.addEventListener('keyup', (e) => e.stopPropagation());
   box.querySelector('#btn-friend-add').onclick = async () => {
@@ -1604,8 +1603,10 @@ async function renderFriends() {
   };
   renderFriendList();
 }
+const friendsOpen = new Set(); // 펼쳐 둔 친구 (다시 그려도 유지)
+/** 친구 탭의 목록: 받은 친구 요청 → ⚔ 대결(받은 신청·진행 중·보낸 신청·결과) → 내 친구(접힌 줄, 누르면 자세히) */
 async function renderFriendList() {
-  const box = dex.friendsEl, list = box.querySelector('#friend-list'), reqBox = box.querySelector('#friend-requests'); if (!list) return;
+  const box = dex.friendsEl, list = box.querySelector('#friend-list'), reqBox = box.querySelector('#friend-requests'), duelBox = box.querySelector('#friend-duels'); if (!list) return;
   let friends = [], requests = [];
   try { [friends, requests] = await Promise.all([cloud.listFriends(), cloud.listRequests()]); } catch (e) { list.innerHTML = `<div class="friend-note">친구 목록을 못 읽었어: ${e.message}</div>`; return; }
   reqBox.innerHTML = '';
@@ -1620,21 +1621,44 @@ async function renderFriendList() {
       reqBox.appendChild(row);
     }
   }
+  renderFriendDuels(duelBox);
   if (!friends.length) { list.innerHTML = '<div class="friend-note">아직 친구가 없어요. 위에 친구 이름을 적어 요청을 보내 봐요!</div>'; return; }
-  list.innerHTML = '<div class="friend-me">👫 내 친구</div>';
+  list.innerHTML = '<div class="friend-me">👫 내 친구 <small class="friend-note">(이름을 누르면 자세히)</small></div>';
   const isOn = (f) => { const p = presence.friends.get(f.uid); return p && (!p.at || Date.now() - p.at < 60000) ? p : null; }; // 접속 중이면 presence (지역 포함)
   for (const f of friends.sort((a, b) => (isOn(b) ? 1 : 0) - (isOn(a) ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0))) { // 접속 중인 친구 먼저
     const sp = f.leaderId ? speciesById[f.leaderId] : null, t = sp ? dex.thumbs(sp) : null;
-    const on = isOn(f);
-    const row = document.createElement('div'); row.className = 'friend-row' + (on ? ' online' : '');
+    const on = isOn(f), busy = duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid));
+    const row = document.createElement('div'); row.className = 'friend-row' + (on ? ' online' : '') + (friendsOpen.has(f.uid) ? ' open' : '');
     row.innerHTML = `${t ? `<img src="${t.color}" alt="">` : '<div class="friend-noimg"></div>'}
-      <div class="save-info"><div class="save-name">${f.name} <span class="friend-status ${on ? 'on' : 'off'}">${on ? `🟢 접속 중 · ${ZONE_INFO[on.zone]?.name || ''}` : '⚪ 로그오프'}</span></div>
-      <div class="save-sub">${ZONE_INFO[f.zone]?.name || ''} · 친구 ${f.caught || 0}마리 · 도감 ${f.dexCount || 0}종 · 정복 ${f.conquered || 0}/${ZONE_COUNT} · 블록 ${f.blocks || 0}개${sp ? ` · 대표 ${sp.name}` : ''}${f.updatedAt ? ` · ${formatWhen(f.updatedAt)}` : ''}</div></div>
-      <button class="friend-duel" ${duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid)) ? 'disabled title="이미 대결 중"' : 'title="내 대표 포켓몬으로 대결 신청"'}>⚔ 대결</button>
-      <button class="save-del" title="친구 삭제">✕</button>`;
+      <div class="save-info"><div class="save-name">${f.name} <span class="friend-status ${on ? 'on' : 'off'}">${on ? `🟢 접속 중 · ${ZONE_INFO[on.zone]?.name || ''}` : '⚪ 로그오프'}</span></div></div>
+      <button class="friend-duel" ${busy ? 'disabled title="이미 대결 중"' : 'title="내 대표 포켓몬으로 대결 신청"'}>⚔ 대결</button><span class="friend-toggle">▾</span>
+      <div class="friend-detail"><div>📍 ${ZONE_INFO[f.zone]?.name || '?'} · 친구 ${f.caught || 0}마리 · 도감 ${f.dexCount || 0}종 · 정복 ${f.conquered || 0}/${ZONE_COUNT} · 블록 ${f.blocks || 0}개${sp ? ` · 대표 ${sp.name}` : ''}${f.updatedAt ? `<br>🕒 마지막 저장 ${formatWhen(f.updatedAt)}` : ''}</div><button class="save-del" title="친구 삭제">✕ 친구 삭제</button></div>`;
+    row.onclick = (e) => { if (e.target.closest('button')) return; row.classList.toggle('open'); if (row.classList.contains('open')) friendsOpen.add(f.uid); else friendsOpen.delete(f.uid); };
     row.querySelector('.friend-duel').onclick = () => challengeFriend(f);
-    row.querySelector('.save-del').onclick = async () => { if (confirm(`${josa(f.name, '을를')} 친구 목록에서 뺄까요?`)) { await cloud.removeFriend(f.uid); renderFriendList(); } };
+    row.querySelector('.save-del').onclick = async () => { if (confirm(`${josa(f.name, '을를')} 친구 목록에서 뺄까요?`)) { await cloud.removeFriend(f.uid); friendsOpen.delete(f.uid); renderFriendList(); } };
     list.appendChild(row);
+  }
+}
+/** 친구 탭의 ⚔ 대결 묶음: 받은 신청(수락/거절) · 진행 중(대결판 열기·아레나) · 보낸 신청(취소) · 끝난 결과(지우기) */
+function renderFriendDuels(box) {
+  if (!box) return;
+  const me = cloud.user?.uid; box.innerHTML = '';
+  const list = [...duels.list].sort((a, b) => (duelNeedsMe(b) ? 1 : 0) - (duelNeedsMe(a) ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0));
+  if (!me || !list.length) return;
+  box.innerHTML = '<div class="friend-me">⚔ 친구 대결</div>';
+  for (const d of list) {
+    const side = myDuelSide(d), other = side === 'a' ? 'b' : 'a', name = d.names?.[other] || '친구', mine = duelNeedsMe(d);
+    const line = document.createElement('div'); line.className = 'duel-line' + (mine ? ' mine' : '') + (d.state === 'done' ? ' done' : '');
+    let sub, btns;
+    if (d.state === 'pending' && d.b === me) { sub = `📨 ${josa(name, '이가')} 대결을 신청했어 (${d.mons.a?.name || '?'} ⚔ ${d.mons.a?.atk})`; btns = '<button class="duel-open">보기 · 수락</button><button class="duel-decline secondary">거절</button>'; }
+    else if (d.state === 'pending') { sub = `⏳ ${name}의 수락을 기다리는 중`; btns = '<button class="duel-go">🏟 아레나</button><button class="duel-decline secondary">취소</button>'; }
+    else if (d.state === 'active') { sub = d.turn === side ? '👉 내 차례야!' : `⏳ ${name}의 차례`; btns = `<button class="duel-open">${d.turn === side ? '⚔ 대결판 열기' : '대결판 보기'}</button>${zone?.name !== 'arena' ? '<button class="duel-go secondary">🏟 아레나</button>' : ''}`; }
+    else { sub = d.winner === side ? '🏆 내가 이겼어!' : `😢 ${josa(name, '이가')} 이겼어`; btns = '<button class="duel-decline secondary">지우기</button>'; }
+    line.innerHTML = `<div class="save-info"><div class="save-name">⚔ ${name}</div><div class="save-sub">${sub}</div></div>${btns}`;
+    line.querySelector('.duel-open')?.addEventListener('click', () => openDuelModal(d.id));
+    line.querySelector('.duel-go')?.addEventListener('click', () => { dex.hide(); goToArena(); });
+    line.querySelector('.duel-decline')?.addEventListener('click', async () => { await cloud.deleteDuel(d.id); });
+    box.appendChild(line);
   }
 }
 // ---------- 요청 탭: 아이가 개발자에게 글·목소리·사진으로 요청을 보낸다. 관리자는 관리자 탭에서 보고 답장한다 ----------
@@ -1740,7 +1764,7 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'duel') renderDuels(); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 // ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
@@ -1854,7 +1878,7 @@ async function refreshPresenceFriends() {
 function stopPresence() { for (const off of presence.watches.values()) off(); presence.watches.clear(); presence.friends.clear(); presence.last = null; }
 window.addEventListener('pagehide', () => { cloud.clearPresence(); });
 // ---------- 같이 놀기 2단계: 친구 대결 (src/duel.js, Firestore duels/{id}) ----------
-const duelTabBtn = document.querySelector('#dex-tabs button[data-tab="duel"]'), duelBadge = document.getElementById('duel-badge');
+const duelBadge = document.getElementById('duel-badge'); // 친구 탭 배지: 내가 할 일(받은 신청·내 차례) 수
 const duels = { list: [], off: null, seen: new Map(), created: new Set() }; // seen: id → 마지막으로 본 상태 (알림은 바뀔 때만), created: 이번에 내가 신청한 대결 (수락되면 팝업)
 const duelKey = (d) => `${d.state}:${d.turn}:${(d.log || []).length}`;
 const myDuelSide = (d) => sideOf(d, cloud.user?.uid);
@@ -1894,7 +1918,7 @@ function renderDuelModal() {
     html = duelCardHtml(d, me, duelThumb) + (d.state === 'active' && zone?.name !== 'arena' ? '<div class="duel-actions"><button class="duel-go">🏟 아레나로 가기</button></div>' : '');
   }
   duelModalBody.innerHTML = html;
-  bindDuelCard(duelModalBody, d, { onAccept: () => setTimeout(goToArena, 600) });
+  bindDuelCard(duelModalBody, d, { onAccept: () => { if (dex.open) dex.hide(); setTimeout(goToArena, 600); } });
 }
 /** 카드 안의 버튼들 (도감 대결 탭과 팝업이 같이 쓴다) */
 function bindDuelCard(box, d, { onAccept = null } = {}) {
@@ -1902,7 +1926,7 @@ function bindDuelCard(box, d, { onAccept = null } = {}) {
   box.querySelector('.duel-accept')?.addEventListener('click', async () => {
     const L = party.leader;
     if (!L) { say('대표 포켓몬이 있어야 대결할 수 있어!', { sec: 4 }); return; }
-    if (party.isFainted(L)) { say(`${josa(party.name(L), '은는')} 기절했어. 오박사님이나 아레나의 조이에게 치료받고 수락하자.`, { sec: 5 }); return; }
+    if (party.isFainted(L)) { say(`${josa(party.name(L), '은는')} 기절했어. 오박사님이나 아레나의 봄이에게 치료받고 수락하자.`, { sec: 5 }); return; }
     const mon = snapshotMon(party, L);
     const ok = await cloud.duelTx(id, (cur) => acceptPatch(cur, me, mon)).catch(() => false);
     if (ok) { sound.fanfare(); say(`⚔ 대결 시작! ${josa(d.names.a, '이가')} 먼저 공격해.`, { sec: 5 }); onAccept?.(); }
@@ -1941,7 +1965,6 @@ function onDuelsChanged() {
   }
   const n = duels.list.filter(duelNeedsMe).length;
   duelBadge.textContent = n; duelBadge.hidden = n === 0;
-  if (dex.open && dex.tab === 'duel') renderDuels();
   if (dex.open && dex.tab === 'friends') renderFriendList();
   if (duelModalId) renderDuelModal();
 }
@@ -1953,19 +1976,6 @@ async function challengeFriend(f) {
   if (duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid))) { say(`${josa(f.name, '과와')}는 이미 대결 중이야! 도감 → 대결 탭을 봐.`, { sec: 5 }); return; }
   try { const id = await cloud.createDuel(f, snapshotMon(party, L)); duels.created.add(id); sound.click(); say(`⚔ ${f.name}에게 ${josa(party.name(L), '으로')} 대결을 신청했어! 수락하면 알려 줄게.`, { sec: 6 }); }
   catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
-}
-function renderDuels() {
-  const box = dex.duelEl, me = cloud.user?.uid;
-  if (!me) { box.innerHTML = '<div class="friend-note">☁️ 로그인하면 친구와 대결할 수 있어요.</div><div class="friend-add"><button id="btn-duel-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-duel-login').onclick = openAccount; return; }
-  const thumb = (id) => { const sp = speciesById[id]; return sp ? dex.thumbs(sp)?.color || null : null; };
-  const list = [...duels.list].sort((a, b) => (duelNeedsMe(b) ? 1 : 0) - (duelNeedsMe(a) ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0));
-  box.innerHTML = `<div class="friend-me">⚔ 친구 대결</div><div class="friend-note">친구 탭에서 친구 옆 ⚔ 대결 버튼으로 신청해. 서로 번갈아 기술을 하나씩 골라 싸우고, 상대가 접속해 있지 않아도 나중에 이어서 할 수 있어. 이기면 블록 ${DUEL_REWARD.win}개(주간 순위 점수도!), 져도 ${DUEL_REWARD.lose}개.</div>`
-    + (list.length ? list.map((d) => duelCardHtml(d, me, thumb)).join('') : '<div class="friend-note">아직 대결이 없어. 친구 탭에서 신청해 봐!</div>');
-  box.querySelectorAll('.duel-card').forEach((card) => {
-    const d = duels.list.find((x) => x.id === card.dataset.id); if (!d) return;
-    if (d.state === 'active' && zone?.name !== 'arena') { const a = document.createElement('div'); a.className = 'duel-actions'; a.innerHTML = '<button class="duel-go">🏟 아레나로 가기</button>'; card.appendChild(a); }
-    bindDuelCard(card, d, { onAccept: () => { dex.hide(); setTimeout(goToArena, 600); } });
-  });
 }
 // ---------- 주간 순위표: 도감 "순위" 탭과 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
 const rankModal = document.getElementById('rank-modal');
@@ -2119,7 +2129,7 @@ function frame() {
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
       } else if (w.arenaDoor && Math.abs(pp.x - w.arenaDoor.x) < 1.8 && pp.z > w.arenaDoor.z - 1.4 && pp.z < w.arenaDoor.z + 0.9) { // 넘버볼 아레나 문 앞 칸
         moved = true;
-        switchZone('arena', getZone('arena').world.spawn, { text: '🏟 넘버볼 아레나에 들어왔어! 친구와 대결하는 경기장이야. 치료 데스크의 조이가 포켓몬을 치료해 줘. 남쪽 문으로 나가면 푸른숲이야.', sec: 7 });
+        switchZone('arena', getZone('arena').world.spawn, { text: '🏟 넘버볼 아레나에 들어왔어! 친구와 대결하는 경기장이야. 치료 데스크의 봄이가 포켓몬을 치료해 줘. 남쪽 문으로 나가면 푸른숲이야.', sec: 7 });
       } else if (Math.abs(pp.x - w.labDoor.x) < 1.6 && pp.z > w.labDoor.z - 0.6 && pp.z < w.labDoor.z + 1.6) { // 문 앞 네모 칸 (문 틈으로 들어서면 바로)
         moved = true;
         switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 대화 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });

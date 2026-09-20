@@ -3,7 +3,7 @@ import { makeNpc } from './npc.js';
 import { makeLabelTexture, makePillSprite } from './world.js';
 
 // 넘버볼 아레나 내부: 푸른숲 마을 동남쪽의 둥근 경기장 건물로 들어오면 오는 큰 실내 지역.
-// 가운데 포켓몬 경기장(둥근 무대, 1P·2P 자리), 삼면의 관중석, 전광판, 조명탑, 치료 데스크의 간호사 조이(치료), 심판.
+// 가운데 포켓몬 경기장(둥근 무대, 1P·2P 자리), 삼면의 관중석, 전광판, 조명탑, 치료 데스크의 봄이(치료), 심판 웅이 (올려 준 NPC 모델을 쓴다).
 // 몬스터·블록·퀴즈는 없다. 친구 대결(src/duel.js)을 수락하면 여기로 오고, 친구가 가까이 있으면 "대결!" 버튼이 켜진다. 남쪽 문으로 나가면 푸른숲.
 export const ARENA = { size: 90, room: { w: 72, d: 58 }, spawn: { x: 0, z: 22 }, door: { x: 0, z: 28.4 }, ring: { x: 0, z: -3, r: 12 }, spots: { a: { x: -7, z: -3 }, b: { x: 7, z: -3 } } };
 const R = ARENA.room;
@@ -115,9 +115,9 @@ export function buildArena(scene) {
   const crossV = crossH.clone(); crossV.rotation.z = PI2; decor.add(crossV);
   const deskSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏥 치료 데스크', '#ffffff', '#e8453c', 44), transparent: true, depthTest: false }));
   deskSign.scale.set(3.6, 0.9, 1); deskSign.position.set(-16, 3.5, 20); decor.add(deskSign);
-  const nurse = makeNpc({ outfit: 'professor', name: '조이', skin: 0xffe0bd, model: null });
+  const nurse = makeNpc({ outfit: 'professor', name: '봄이', model: '봄이.glb' }); // 불의산 안내원 봄이가 아레나 치료 데스크도 본다
   nurse.position.set(-16, 0, 17.2); nurse.rotation.y = Math.PI; decor.add(nurse);
-  const referee = makeNpc({ outfit: 'ranger', name: '심판', model: null });
+  const referee = makeNpc({ outfit: 'ranger', name: '웅이', model: '웅이.glb' }); // 지하동굴 안내원 웅이가 심판
   referee.position.set(0, 0, 10.5); referee.rotation.y = Math.PI; decor.add(referee);
 
   function animate(t) { lights.forEach((l, i) => { l.intensity = 2.0 + Math.sin(t * 1.3 + i) * 0.3; }); edge.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.2; }
@@ -127,14 +127,14 @@ export function buildArena(scene) {
     wildSpots: [], pickupSpots: [],
     duelSpots: ARENA.spots,
     npcs: [
-      { x: nurse.position.x, z: nurse.position.z, mesh: nurse, name: '조이', heal: true, lines: (c) => [
-        `어서 와, ${c.name}! 여긴 넘버볼 아레나의 치료 데스크야. 대결로 지친 포켓몬은 언제든 여기서 낫게 해 줄게.`,
+      { x: nurse.position.x, z: nurse.position.z, mesh: nurse, name: '봄이', heal: true, lines: (c) => [
+        `어서 와, ${c.name}! 나 봄이야, 오늘은 아레나 치료 데스크를 맡았어. 대결로 지친 포켓몬은 언제든 여기서 낫게 해 줄게.`,
         '친구와 대결하려면 도감 친구 탭에서 ⚔ 대결을 눌러 신청해. 친구가 수락하면 둘 다 여기 아레나로 오게 돼.',
         '아레나에서 친구 가까이 가면 "대결!" 버튼이 켜져. 서로 번갈아 기술을 하나씩 고르는 거야.',
         '대결에서 이기면 블록 30개, 져도 10개! 주간 순위에도 대결 승리 점수가 들어간단다.',
       ] },
-      { x: referee.position.x, z: referee.position.z, mesh: referee, name: '심판', lines: (c) => [
-        `${c.name} 선수, 무대에 오르렴! 파란 1P 자리는 신청한 사람, 빨간 2P 자리는 받은 사람이야.`,
+      { x: referee.position.x, z: referee.position.z, mesh: referee, name: '웅이', lines: (c) => [
+        `${c.name} 선수, 심판 웅이다! 무대에 오르렴! 파란 1P 자리는 신청한 사람, 빨간 2P 자리는 받은 사람이야.`,
         '피해는 공격력 × 기술 배수 × 속성 상성이야. 불은 풀에, 물은 불에, 풀은 물에 세단다. 상대 대표를 보고 기술을 고르렴!',
         '상대가 자리에 없으면 기다려도 돼. 차례는 남아 있으니 나중에 도감 대결 탭에서 이어서 할 수 있어.',
         '먼저 상대 포켓몬의 체력을 0으로 만드는 쪽이 이겨! 정정당당하게!',
