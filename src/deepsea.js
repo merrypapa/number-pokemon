@@ -242,7 +242,7 @@ export function buildDeepSea(scene) {
   scene.add(drop);
 
   // ---------- 항해사 나미 (지역 안내 NPC) ----------
-  // 바다를 제일 잘 아는 사람이라 푸른숲 안내원이면서 심해에도 내려와 있다 (리리·코리·도토로처럼 두 곳에 나온다)
+  // 바다를 제일 잘 아는 항해사라 심해를 맡는다 (예전 푸른숲 안내원 자리는 벅스버니가 이어받았다)
   const diverAt = { x: DEEP.spawn.x + 4, z: DEEP.spawn.z - 3 };
   const diver = makeNpc({ outfit: 'astronaut', name: '나미', model: '나미.glb' }); // 모델이 없으면 동그란 잠수 헬멧 드래프트
   diver.position.set(diverAt.x, deepHeight(diverAt.x, diverAt.z), diverAt.z);
