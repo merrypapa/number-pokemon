@@ -127,9 +127,12 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb'];
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb'];
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
-const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL)];
+// 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
+const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
+const CHEST_CHANCE = 0.25; // 네 개에 하나쯤. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치라서 상자로 다 바꾸지는 않는다
+const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
 const loadingEl = document.getElementById('title-loading');
 preloadModels(modelFiles, (done, total) => {
@@ -172,7 +175,14 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
 }
 function spawnPickup(z, x, zz) {
   let m;
-  if (PICKUP_MODEL[z.name]) { // 태양·천왕성·꿈의우주: 흰 블록 대신 햇님·보석·황금 별 모델 (없으면 흰 블록)
+  const chest = CHEST_MODEL[z.name] && Math.random() < CHEST_CHANCE ? CHEST_MODEL[z.name] : null;
+  if (chest) { // 수수께끼 상자 (푸른숲·지하동굴·불의산·꿀벌집) / 바다 보물상자 (물의길·심해)
+    m = new THREE.Group();
+    const draft = new THREE.Group(); draft.add(makeBlockMesh(0xffd43b)); m.add(draft); m.userData.draft = draft;
+    swapDraftWithModel(m, chest, { scale: 1.1, onSwap: (mm) => { mm.position.y = -0.55; } });
+    m.userData.chest = true;
+    if (z.world.dark) m.userData.glow = true;
+  } else if (PICKUP_MODEL[z.name]) { // 태양·천왕성·꿈의우주: 흰 블록 대신 햇님·보석·황금 별 모델 (없으면 흰 블록)
     m = new THREE.Group();
     const draft = new THREE.Group(); draft.add(makeBlockMesh(0xffffff)); m.add(draft); m.userData.draft = draft;
     swapDraftWithModel(m, PICKUP_MODEL[z.name], { scale: 1.1, onSwap: (mm) => { mm.position.y = -0.55; } }); // 높이 1.1m, 가운데가 원점 (블록처럼 떠서 돈다)
@@ -366,7 +376,7 @@ function getZone(name) {
   const scaled = (c) => (ws ? { ...c, baseHp: Math.round(c.baseHp * (ws.hp || 1)), baseAtk: Math.round(c.baseAtk * (ws.atk || 1)) } : c);
   const wild = zi.wild
     ? zi.wild.map((id) => speciesById[id]).filter((c) => c && !(c.boss && bossZoneOf(c) === z.name)).map((c) => scaled({ ...c, ...wildExtra })) // 이 지역의 보스인 종은 야생으로는 안 나온다 (화성 이상해불·명왕성 윤겔라·수성 꼬마돌)
-    : creatureData.creatures.filter((c) => c.zone === z.name && !(c.boss && bossZoneOf(c) === z.name) && !c.special && !c.mega && c.catchable); // 이 지역의 보스는 야생으로 안 나온다 (다른 지역 보스인 종은 여기선 야생)
+    : creatureData.creatures.filter((c) => c.zone === z.name && !(c.boss && bossZoneOf(c) === z.name) && !c.special && !c.mega && !c.unlockedBy && c.catchable); // 이 지역의 보스는 야생으로 안 나온다 (다른 지역 보스인 종은 여기선 야생). unlockedBy 종(힙합리자몽·루기아)도 조건을 채우기 전에는 야생으로 안 나온다
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
   const wildOnly = { ...wildExtra, boss: false }; // 야생으로 나올 땐 보스 표시를 뗀다 (꼬마돌은 수성에서만 보스)
   const extraFor = (c) => (ws ? { ...wildOnly, baseHp: c.baseHp, baseAtk: c.baseAtk } : wildOnly); // wildScale 로 키운 능력치를 그대로 넘긴다
@@ -1200,18 +1210,29 @@ function spawnRescue(z) {
     const d = Math.hypot(x - player.position.x, zz - player.position.z);
     if (Math.abs(x) > half || Math.abs(zz) > half || d < 10 || inHole(x, zz) || isBlocked(x, zz) || insideObstacle(x, zz, 1.4)) continue;
     if (z.rescues.some((o) => o.position.distanceTo(new THREE.Vector3(x, 0, zz)) < 8)) continue; // 친구들끼리 너무 붙지 않게
-    const nb = new Numberblock(z.scene, data, { x, z: zz });
-    nb.life = 150;
-    nb.help = makeNumberSprite('!', '#e8453c');
-    nb.help.position.y = new THREE.Box3().setFromObject(nb.mesh).max.y - nb.mesh.position.y + 0.7; // 머리 위
-    nb.help.scale.set(0.8, 0.8, 1);
-    nb.mesh.add(nb.help);
-    z.rescues.push(nb);
+    placeRescue(z, data, x, zz);
     // 나타났다는 말풍선은 띄우지 않는다 (자주 나와서 시끄럽다). 머리 위 빨간 ! 로만 알린다
     z.nbTimer = rand(6, 13); // 다음 친구는 잠시 뒤에
     return;
   }
   z.nbTimer = 6; // 자리를 못 찾으면 잠시 뒤 다시
+}
+/** 숫자블록 친구를 그 자리에 세운다 (머리 위 빨간 ! 로 알린다). 말을 걸면 quiz 가 나온다 */
+function placeRescue(z, data, x, zz) {
+  const nb = new Numberblock(z.scene, data, { x, z: zz });
+  nb.life = 150;
+  nb.help = makeNumberSprite('!', '#e8453c');
+  nb.help.position.y = new THREE.Box3().setFromObject(nb.mesh).max.y - nb.mesh.position.y + 0.7; // 머리 위
+  nb.help.scale.set(0.8, 0.8, 1);
+  nb.mesh.add(nb.help);
+  z.rescues.push(nb);
+  return nb;
+}
+/** 수수께끼 상자를 열었을 때: 상자가 있던 자리에서 랜덤 숫자블록 친구(2~10)가 나온다 */
+function spawnRescueAt(z, x, zz) {
+  const nb = placeRescue(z, nbByNumber[2 + Math.floor(Math.random() * 9)], x, zz);
+  z.nbTimer = Math.max(z.nbTimer, rand(10, 16)); // 상자에서 나온 친구와 평소 친구가 한꺼번에 몰리지 않게
+  return nb;
 }
 function removeRescue(z, nb, escaped) {
   if (!nb || !z.rescues.includes(nb)) return;
@@ -2213,6 +2234,16 @@ function frame() {
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
       if (b.position.distanceTo(pp) < 1.1) {
+        if (b.userData.chest) { // 수수께끼 상자·바다 보물상자: 블록 대신 숫자블록 친구가 튀어나온다 (문제를 풀면 그 숫자만큼 블록)
+          const at = b.position.clone();
+          zone.scene.remove(b);
+          zone.pickups.splice(i, 1);
+          sound.pickup();
+          particles.stars(zone.scene, at.clone().add(new THREE.Vector3(0, 0.8, 0)), 22, 0xffd43b, 0.5);
+          const nb = spawnRescueAt(zone, at.x, at.z);
+          say(`${CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자'}를 열었어! 숫자블록 친구 ${josa(nb.data.name, '이가')} 나왔어. 문제를 풀어 주면 블록을 ${nb.data.number}개나 준대!`, { sec: 6 });
+          continue;
+        }
         if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감에서 포켓몬을 키우는 데 쓰자!`); } continue; }
         zone.scene.remove(b);
         zone.pickups.splice(i, 1);
