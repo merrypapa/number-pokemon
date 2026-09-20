@@ -524,11 +524,13 @@ export class Battle {
     this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `${josa(c.data.name, '이가')} 어질어질! 넘버볼을 던지자!`;
-      this.showBanner('쓰러뜨렸다!');
+      this.msgEl.textContent = `${c.data.name}의 가짜 숫자가 깨졌어! 넘버볼을 던져 친구가 되자!`;
+      this.showBanner('가짜 숫자가 깨졌다!');
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
+      // 머리 위에 씌워져 있던 붉은 숫자가 조각나 흩어진다 (넘버로켓단의 가짜 숫자, docs/02_storyline.md)
+      this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
     } else {
       this.phase = 'enemyWind';
       this.phaseStart = this.timer;
@@ -941,7 +943,7 @@ export class Battle {
     const imgEl = document.getElementById('catch-img');
     if (img) { imgEl.src = img; imgEl.hidden = false; } else imgEl.hidden = true;
     document.getElementById('catch-name').textContent = `${d.boss ? '보스 ' : ''}${d.name}`;
-    document.getElementById('catch-sub').textContent = `${d.type} 속성 · ❤ ${d.baseHp} · ⚔ ${d.baseAtk} · 친구가 됐어!`;
+    document.getElementById('catch-sub').textContent = `${d.type} 속성 · ❤ ${d.baseHp} · ⚔ ${d.baseAtk} · 좋아하는 숫자 ${d.favoriteNumber} · 친구가 됐어!`;
     this.catchEl.classList.remove('hidden');
   }
   startSuccess() {
@@ -957,7 +959,7 @@ export class Battle {
     this.confetti.burst(160);
     this.sound.fanfare();
     this.showBanner(`잡았다! ${c.data.name}!`);
-    this.msgEl.textContent = `${josa(c.data.name, '이가')} 친구가 되었어요! 도감에서 대표로 고를 수 있어.`;
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} 제 숫자를 기억했어 — ${c.data.favoriteNumber}! 이제 친구야. 도감에서 대표로 고를 수 있어.`;
     this.runBtn.textContent = '계속하기 ▶';
     this.runBtn.classList.add('primary');
   }
