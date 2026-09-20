@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+const _to = new THREE.Vector3(), _dir = new THREE.Vector3(), _UP = new THREE.Vector3(0, 1, 0); // 팔 흔들기에서 매 프레임 쓰는 임시 벡터 (새로 만들지 않는다)
 import { NUMBER_COLORS, RAINBOW, OUTLINE, colorForCount } from './palette.js';
 import { terrainHeight } from './world.js';
 import { tickModel } from './models.js';
@@ -238,10 +239,10 @@ export function animateNumberblock(mesh, dt, moving) {
   a.t += dt;
   const swing = moving ? Math.sin(a.t * 12) * 0.5 : Math.sin(a.t * 2) * 0.08;
   for (const { arm, hand, side, from } of a.arms) {
-    const to = new THREE.Vector3(from.x + side * BLOCK * 0.45, from.y - BLOCK * 0.25 + swing * side * BLOCK * 0.5, swing * BLOCK * 0.4);
-    const dir = new THREE.Vector3().subVectors(to, from);
+    const to = _to.set(from.x + side * BLOCK * 0.45, from.y - BLOCK * 0.25 + swing * side * BLOCK * 0.5, swing * BLOCK * 0.4);
+    const dir = _dir.subVectors(to, from);
     arm.position.copy(from).addScaledVector(dir, 0.5);
-    arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+    arm.quaternion.setFromUnitVectors(_UP, dir.normalize());
     hand.position.copy(to);
   }
   for (const { leg, foot, side } of a.legs) {

@@ -36,9 +36,16 @@ function tintRed(root, color) {
     o.material.needsUpdate = true;
   });
 }
-export /** 볼을 다른 것보다 위에 그린다 (상대가 볼 위로 겹쳐도 볼이 안 사라지게). on=false 면 원래대로 */
+export /** 볼을 다른 것보다 위에 그린다 (상대가 볼 위로 겹쳐도 볼이 안 사라지게). on=false 면 원래대로.
+ *  예전엔 깊이 검사를 껐는데(depthTest=false) 그러면 볼 자기 자신의 앞뒤도 뒤섞여 뒷면·단추·띠가 겹쳐 보여 그래픽이 깨졌다.
+ *  지금은 깊이 검사는 켠 채로, 볼의 첫 조각을 그리기 직전에 깊이 버퍼만 비운다(clearDepth) → 볼은 다른 것 위에 그려지고 볼 안의 앞뒤는 맞는다 */
 function ballOnTop(ball, on) {
-  ball.traverse((o) => { if (o.isMesh) { o.material.depthTest = !on; o.renderOrder = on ? 20 : 0; } });
+  const meshes = []; ball.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  meshes.forEach((o, i) => {
+    o.material.depthTest = true;
+    o.renderOrder = on ? (i === 0 ? 20 : 21) : 0; // 첫 조각이 먼저(깊이 비우기), 나머지가 그 뒤
+    o.onBeforeRender = on && i === 0 ? (renderer) => renderer.clearDepth() : null;
+  });
 }
 export function makeBall(color, spec = null) {
   const file = spec?.shape === 'cube' ? CUBE_MODEL : BALL_MODEL;

@@ -59,7 +59,8 @@ function normalize(root) {
   root.position.x -= c.x;
   root.position.z -= c.z;
   root.position.y -= box.min.y;
-  root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false; } });
+  // 화면 밖 모델은 그리지 않는다(frustum culling). 뼈로 움직이는 모델(지우·뮤)만 경계 상자가 안 맞을 수 있어 항상 그린다 — 예전엔 모든 모델을 항상 그려서 지역에 모델이 많아질수록 끊겼다
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; o.frustumCulled = !o.isSkinnedMesh; if (!o.isSkinnedMesh && o.geometry && !o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); } });
 }
 
 /** 받아 둔 모델의 복제본. 애니메이션이 있으면 group.userData.anim 으로 재생기를 붙인다. */
