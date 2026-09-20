@@ -103,8 +103,11 @@ export class Player {
     this.vx += (wx * top - this.vx) * k;
     this.vz += (wz * top - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
-    const moving = speed > 0.4;
-    this.running = !this.boat && !this.car && moving && speed > SPEED * 1.15; // 배 위에서는 뛰지 않는다 (배가 달리는 것이지 내가 뛰는 게 아니다)
+    // 걷기/서기, 걷기/달리기 판정에 여유(히스테리시스)를 둔다: 조이스틱을 반쯤 기울이면 속도가 문턱 근처에서 오르내려
+    // 매 프레임 걷기↔달리기 클립이 바뀌며 서로 섞여 동작이 깨져 보였다. 달리기는 속도가 아니라 달리기 버튼을 누르고 있는지로 정한다
+    const moving = this.moving ? speed > 0.3 : speed > 0.6;
+    this.moving = moving;
+    this.running = !this.boat && !this.car && moving && input.isHeld('run'); // 배 위에서는 뛰지 않는다 (배가 달리는 것이지 내가 뛰는 게 아니다)
     // 물(연못·호수)은 못 들어간다. 배를 타면 반대로 물 위만 갈 수 있다.
     // 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
     // 턱: 지형이 정한 높이(ledgeStep)보다 높은 곳으로는 걸어 올라갈 수 없고 뛰어서 발이 그 높이 가까이 올라와야 올라선다 (꿀벌집 육각 계단)
