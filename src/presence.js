@@ -1,0 +1,88 @@
+// 같이 놀기 1단계: 같은 지역에 있는 친구가 보인다.
+// 내 위치(지역·x·z·y·바라보는 방향·대표 포켓몬·움직이는 중인지·감정 표현)를 Firebase Realtime Database 의 presence/{uid} 에 0.3초마다 올리고
+// (main.js), 친구들의 presence 를 구독해서 같은 지역에 있는 친구를 이 모듈이 "유령 지우"(반투명 아님, 이름표 달린 지우 모델)로 그린다.
+// 서로 부딪히거나 싸우지 않고, 감정 표현(👋 🎉 😆 ❤️)만 머리 위에 잠깐 뜬다. 20초 넘게 소식이 없으면 사라진다.
+import * as THREE from 'three';
+import { swapDraftWithModel, tickModel } from './models.js';
+import { PLAYER_MODEL, PLAYER_HEIGHT } from './player.js';
+import { makePillSprite, terrainHeight } from './world.js';
+import { lerpAngle } from './util.js';
+
+export const EMOTES = ['👋', '🎉', '😆', '❤️'];
+const STALE_MS = 20000, EMOTE_MS = 3000;
+
+function makeGhost(name) {
+  const g = new THREE.Group();
+  const draft = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.4, 6, 12), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }));
+  body.position.y = 0.55;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 14), new THREE.MeshStandardMaterial({ color: 0xffe0bd }));
+  head.position.y = 1.2;
+  draft.add(body, head);
+  g.add(draft);
+  g.userData.draft = draft;
+  swapDraftWithModel(g, PLAYER_MODEL, { scale: PLAYER_HEIGHT, onSwap: (m) => { m.userData.popT = 1; m.scale.setScalar(PLAYER_HEIGHT); } });
+  const tag = makePillSprite(`👫 ${name}`, { bg: '#20232e', fg: '#ffffff', border: '#57b947' }, 0.5);
+  tag.position.y = PLAYER_HEIGHT + 0.5;
+  g.add(tag);
+  return g;
+}
+/** 감정 표현 말풍선 스프라이트 (내 머리 위·친구 머리 위에 같은 모양) */
+export function makeEmoteSprite(emoji) {
+  const s = makePillSprite(emoji, { bg: '#ffffff', fg: '#20232e', border: '#ffd93d' }, 0.8);
+  s.position.y = PLAYER_HEIGHT + 1.2;
+  return s;
+}
+
+export class Ghosts {
+  constructor() { this.map = new Map(); this.scene = null; this.zoneName = null; this.seen = new Set(); this.onAppear = () => {}; }
+  /** 지역이 바뀌면 이전 지역의 유령을 모두 치운다 */
+  setZone(scene, zoneName) {
+    for (const g of this.map.values()) g.mesh.parent?.remove(g.mesh);
+    this.map.clear(); this.seen.clear();
+    this.scene = scene; this.zoneName = zoneName;
+  }
+  /** 친구들의 최신 presence 목록으로 유령을 맞춘다. list: [{uid,name,zone,x,z,y,f,l,m,e,et,at}] */
+  sync(list, now = Date.now()) {
+    if (!this.scene) return;
+    const keep = new Set();
+    for (const p of list) {
+      if (!p || p.zone !== this.zoneName || typeof p.x !== 'number' || typeof p.z !== 'number') continue;
+      if (p.at && now - p.at > STALE_MS) continue;
+      keep.add(p.uid);
+      let g = this.map.get(p.uid);
+      if (!g) {
+        g = { mesh: makeGhost(p.name || '친구'), target: new THREE.Vector3(p.x, p.y || 0, p.z), facing: p.f || 0, moving: false, emote: null, emoteAt: 0, emoteSprite: null, name: p.name || '친구' };
+        g.mesh.position.copy(g.target);
+        this.scene.add(g.mesh);
+        this.map.set(p.uid, g);
+        if (!this.seen.has(p.uid)) { this.seen.add(p.uid); this.onAppear(g.name); }
+      }
+      g.target.set(p.x, p.y || 0, p.z);
+      g.facing = p.f || 0;
+      g.moving = !!p.m;
+      if (p.e && p.et && p.et !== g.emoteAt && now - p.et < EMOTE_MS + 5000) { g.emoteAt = p.et; g.emote = p.e; g.emoteShown = now; }
+    }
+    for (const [uid, g] of this.map) if (!keep.has(uid)) { g.mesh.parent?.remove(g.mesh); this.map.delete(uid); }
+  }
+  update(dt, now = Date.now()) {
+    for (const g of this.map.values()) {
+      const m = g.mesh;
+      const k = 1 - Math.exp(-dt * 8);
+      m.position.x += (g.target.x - m.position.x) * k;
+      m.position.z += (g.target.z - m.position.z) * k;
+      const ground = terrainHeight(m.position.x, m.position.z);
+      m.position.y += (Math.max(ground, g.target.y) - m.position.y) * k;
+      m.rotation.y = lerpAngle(m.rotation.y, g.facing, 0.3);
+      tickModel(m, dt, g.moving ? 'walk' : 'idle');
+      // 감정 표현: 3초 동안 머리 위에
+      if (g.emote && g.emoteShown && now - g.emoteShown < EMOTE_MS) {
+        if (!g.emoteSprite) { g.emoteSprite = makeEmoteSprite(g.emote); m.add(g.emoteSprite); }
+        g.emoteSprite.position.y = PLAYER_HEIGHT + 1.2 + Math.sin(now / 150) * 0.08;
+      } else if (g.emoteSprite) { m.remove(g.emoteSprite); g.emoteSprite = null; g.emote = null; }
+    }
+  }
+  /** 이 자리에서 r 안에 있는 친구 이름들 */
+  nearby(pos, r = 15) { const out = []; for (const g of this.map.values()) if (g.mesh.position.distanceTo(pos) < r) out.push(g.name); return out; }
+  get count() { return this.map.size; }
+}

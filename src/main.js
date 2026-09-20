@@ -30,6 +30,7 @@ import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
+import { Ghosts, makeEmoteSprite } from './presence.js';
 import { makeBlockMesh, makeNumberSprite, rand } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -1530,7 +1531,7 @@ function refreshAccountUi() {
   dexLogoutBtn.hidden = !u;
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
-cloud.onUser = () => { refreshAccountUi(); };
+cloud.onUser = () => { refreshAccountUi(); if (cloud.user) presence.refreshT = 0; else stopPresence(); };
 /** 계정 창 열기: 로그인 전이면 로그인/새 계정 고르기, 로그인 뒤면 내 계정(로그아웃) */
 function openAccount() { acctError(''); if (!cloud.user) acctShowChoice(); acctModal.classList.remove('hidden'); }
 /** 처음 화면의 "다른 계정으로": 물어보지 않고 로그아웃하고 로그인/새 계정 고르기로 (아직 게임을 시작하기 전이라 저장할 것이 없다) */
@@ -1574,6 +1575,7 @@ async function logoutAndRestart() {
   if (!confirm(`정말 로그아웃할까요?${zone ? ' 지금까지 한 것은 저장돼요.' : ''}`)) return;
   try {
     if (zone && player && !battle.active) { const data = buildSaveData(); saveGame(data); await cloud.saveGame(data, cloudSummary(data)); }
+    await cloud.clearPresence();
     await cloud.signOut();
   } catch (e) { console.warn('[cloud] 로그아웃', e); }
   location.reload();
@@ -1607,7 +1609,7 @@ async function renderFriendList() {
       const row = document.createElement('div'); row.className = 'friend-row';
       row.innerHTML = `<div class="save-info"><div class="save-name">${r.fromName || '?'}</div><div class="save-sub">친구가 되고 싶대요${r.at ? ` · ${formatWhen(r.at)}` : ''}</div></div>
         <button class="friend-accept">✅ 수락</button><button class="friend-decline">거절</button>`;
-      row.querySelector('.friend-accept').onclick = async () => { try { await cloud.acceptRequest(r.uid); say(`👫 ${r.fromName}과(와) 친구가 됐어!`, { sec: 4 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); } renderFriendList(); };
+      row.querySelector('.friend-accept').onclick = async () => { try { await cloud.acceptRequest(r.uid); presence.refreshT = 0; say(`👫 ${r.fromName}과(와) 친구가 됐어!`, { sec: 4 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); } renderFriendList(); };
       row.querySelector('.friend-decline').onclick = async () => { await cloud.declineRequest(r.uid); renderFriendList(); };
       reqBox.appendChild(row);
     }
@@ -1788,6 +1790,44 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloading) return; reloading = true; location.reload(); });
 }
+// ---------- 같이 놀기 1단계: 같은 지역에 있는 친구가 보인다 (src/presence.js, Realtime Database presence/{uid}) ----------
+const ghosts = new Ghosts();
+ghosts.onAppear = (name) => say(`👫 ${name}이(가) 같은 지역에 있어! 손을 흔들어 봐 👋`, { sec: 5 });
+const presence = { t: 0, heart: 0, last: null, friends: new Map(), watches: new Map(), refreshT: 0, emote: null, emoteAt: 0, mySprite: null, myShown: 0 };
+const emoteRow = document.getElementById('hud-emote-row');
+emoteRow.querySelectorAll('button').forEach((b) => { b.onclick = () => sendEmote(b.textContent.trim()); });
+/** 감정 표현: 내 머리 위에 3초 + 친구들에게 보낸다 */
+function sendEmote(e) { presence.emote = e; presence.emoteAt = Date.now(); presence.myShown = presence.emoteAt; presence.t = 0; sound.click(); }
+/** 매 프레임: 내 위치 올리기(0.3초마다, 움직였을 때) + 친구 유령 맞추기 */
+function presenceTick(dt) {
+  if (!zone || !player || !cloud.presenceOn) { if (ghosts.count) ghosts.setZone(null, null); emoteRow.hidden = true; return; }
+  if (ghosts.zoneName !== zone.name) ghosts.setZone(zone.scene, zone.name);
+  presence.refreshT -= dt;
+  if (presence.refreshT <= 0) { presence.refreshT = 60; refreshPresenceFriends(); } // 친구 목록은 1분마다 (수락하면 바로)
+  presence.t -= dt; presence.heart += dt;
+  if (presence.t <= 0) {
+    presence.t = 0.3;
+    const p = player.position;
+    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, e: presence.emote, et: presence.emoteAt };
+    const L = presence.last;
+    const changed = !L || L.zone !== d.zone || Math.hypot(L.x - d.x, L.z - d.z) > 0.05 || Math.abs(L.y - d.y) > 0.05 || L.f !== d.f || L.m !== d.m || L.et !== d.et || L.l !== d.l;
+    if (changed || presence.heart > 5) { presence.last = d; presence.heart = 0; cloud.setPresence(d).catch((e) => console.warn('[presence]', e)); } // 5초마다는 그대로라도 한 번 (살아 있다는 표시)
+  }
+  ghosts.sync([...presence.friends.values()]);
+  ghosts.update(dt);
+  emoteRow.hidden = ghosts.count === 0; // 같은 지역에 친구가 있을 때만 감정 표현 버튼
+  if (presence.emote && Date.now() - presence.myShown < 3000) { if (!presence.mySprite) { presence.mySprite = makeEmoteSprite(presence.emote); player.group.add(presence.mySprite); } }
+  else if (presence.mySprite) { player.group.remove(presence.mySprite); presence.mySprite = null; }
+}
+async function refreshPresenceFriends() {
+  let friends = [];
+  try { friends = await cloud.listFriends(); } catch (_) { return; }
+  const ids = new Set(friends.map((f) => f.uid));
+  for (const [uid, off] of presence.watches) if (!ids.has(uid)) { off(); presence.watches.delete(uid); presence.friends.delete(uid); }
+  for (const f of friends) if (!presence.watches.has(f.uid)) presence.watches.set(f.uid, cloud.watchPresence(f.uid, (v) => { if (v) presence.friends.set(f.uid, { ...v, uid: f.uid, name: v.name || f.name }); else presence.friends.delete(f.uid); }));
+}
+function stopPresence() { for (const off of presence.watches.values()) off(); presence.watches.clear(); presence.friends.clear(); presence.last = null; }
+window.addEventListener('pagehide', () => { cloud.clearPresence(); });
 // ---------- 주간 순위표: 도감 "순위" 탭과 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
 const rankModal = document.getElementById('rank-modal');
 document.getElementById('btn-rank').onclick = () => { sound.ensure(); rankModal.classList.remove('hidden'); renderRank(document.getElementById('rank-modal-body'), false); };
@@ -1862,7 +1902,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
@@ -1882,6 +1922,7 @@ function frame() {
     return;
   }
   if (saveToastTimer > 0) { saveToastTimer -= dt; if (saveToastTimer <= 0) saveToastEl.classList.add('hidden'); }
+  presenceTick(dt); // 같이 놀기: 내 위치 올리기 + 같은 지역 친구 유령 (진화 연출·대결 중에도 친구는 보인다)
 
   if (evo) { // 진화 연출 중에는 그것만 그린다
     updateEvolution(dt);

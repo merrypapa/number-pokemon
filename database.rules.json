@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "presence": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "newData.hasChildren(['name', 'zone', 'x', 'z']) && newData.child('name').isString() && newData.child('name').val().length <= 8 && newData.child('zone').isString() && newData.child('x').isNumber() && newData.child('z').isNumber()"
+      }
+    }
+  }
+}

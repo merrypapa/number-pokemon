@@ -9,5 +9,8 @@ export const CLOUD_CONFIG = {
     storageBucket: 'number-pokemon.firebasestorage.app',
     messagingSenderId: '952434235167',
     appId: '1:952434235167:web:f3fc2b1b5b1fd319fa022a',
+    // 같이 놀기(같은 지역의 친구 보이기)에 쓰는 Realtime Database 주소. 콘솔 → 빌드 → Realtime Database 화면 위에 보이는 주소로 바꾼다
+    // (지역이 싱가포르(asia-southeast1)면 아래 그대로, 미국이면 https://number-pokemon-default-rtdb.firebaseio.com)
+    databaseURL: 'https://number-pokemon-default-rtdb.asia-southeast1.firebasedatabase.app',
   },
 };

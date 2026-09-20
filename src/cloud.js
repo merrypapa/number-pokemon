@@ -7,6 +7,7 @@ import { CLOUD_CONFIG } from './cloud-config.js';
 // Firestore 구조:
 //   profiles/{uid}   { name, nameLower, caught, dexCount, conquered, blocks, leaderId, leaderName, zone, week, wk, wkScore, updatedAt }  ← 로그인한 누구나 읽음 (친구 찾기·친구 목록·친구 순위)
 //   leaderboard/{주}  { entries: { uid: { n(가린 이름), s(점수), q, c, b, l, t } } }  ← 누구나 읽음(처음 화면 순위), 각자 자기 항목만 씀
+//   Realtime Database presence/{uid} { name, zone, x, y, z, f(방향), l(대표 id), m(움직임), e/et(감정 표현), at }  ← 같이 놀기: 같은 지역의 친구 보이기 (database.rules.json)
 //   saves/{uid}      { name, savedAt, data(JSON 문자열) }                                                              ← 본인만
 //   friends/{uid}/list/{friendUid} { addedAt }                                                                       ← 본인만 (수락한 쪽이 상대 목록에도 넣는다: 규칙이 요청이 있을 때만 허용)
 //   requests/{toUid}/list/{fromUid} { fromName, at }  친구 요청. 받은 사람이 수락하면 양쪽 friends 에 들어가고 요청은 지워진다
@@ -37,11 +38,13 @@ class FirebaseBackend {
   constructor(cfg) { this.cfg = cfg; }
   async init(onUser) {
     const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VER}`;
-    const [app, auth, fs] = await Promise.all([import(`${base}/firebase-app.js`), import(`${base}/firebase-auth.js`), import(`${base}/firebase-firestore.js`)]);
-    this.A = auth; this.F = fs;
+    const [app, auth, fs, rt] = await Promise.all([import(`${base}/firebase-app.js`), import(`${base}/firebase-auth.js`), import(`${base}/firebase-firestore.js`), import(`${base}/firebase-database.js`).catch(() => null)]);
+    this.A = auth; this.F = fs; this.D = rt;
     this.app = app.initializeApp(this.cfg);
     this.auth = auth.getAuth(this.app);
     this.db = fs.getFirestore(this.app);
+    // 같이 놀기: Realtime Database (databaseURL 이 있을 때만). 못 열면 presence 없이 논다
+    try { this.rtdb = rt && this.cfg.databaseURL ? rt.getDatabase(this.app) : null; } catch (e) { console.warn('[cloud] Realtime Database 없음', e); this.rtdb = null; }
     auth.onAuthStateChanged(this.auth, async (u) => {
       if (!u) return onUser(null);
       const prof = await this.getDoc('profiles', u.uid);
@@ -72,6 +75,17 @@ class FirebaseBackend {
     } catch (e) { throw new Error(koError(e)); }
   }
   async loadGame(uid) { const d = await this.getDoc('saves', uid); return d ? JSON.parse(d.data) : null; }
+  // ----- 같이 놀기: presence/{uid} -----
+  get presenceOk() { return !!this.rtdb; }
+  async setPresence(uid, data) {
+    if (!this.rtdb) return;
+    const r = this.D.ref(this.rtdb, `presence/${uid}`);
+    if (!this.presenceArmed) { this.presenceArmed = true; try { await this.D.onDisconnect(r).remove(); } catch (_) {} } // 접속이 끊기면 서버가 지운다
+    await this.D.set(r, { ...data, at: this.D.serverTimestamp() });
+  }
+  async clearPresence(uid) { if (this.rtdb) { try { await this.D.remove(this.D.ref(this.rtdb, `presence/${uid}`)); } catch (_) {} } }
+  /** 친구 한 명의 presence 를 구독한다. 돌려주는 함수로 구독을 끊는다 */
+  watchPresence(uid, cb) { if (!this.rtdb) return () => {}; return this.D.onValue(this.D.ref(this.rtdb, `presence/${uid}`), (s) => cb(s.val()), () => cb(null)); }
   /** 그 주의 순위표 항목들 (로그인 없이도 읽힌다) */
   async loadLeaderboard(week) { const d = await this.getDoc('leaderboard', week); return Object.entries(d?.entries || {}).map(([uid, e]) => ({ uid, ...e })); }
   async findProfile(name) {
@@ -135,6 +149,12 @@ class MockBackend {
     this.write(db);
   }
   async loadGame(uid) { const d = this.read().saves?.[uid]; return d ? JSON.parse(d.data) : null; }
+  // presence: localStorage 의 다른 키에 (같은 브라우저의 다른 탭끼리 보인다)
+  get presenceOk() { return true; }
+  readPresence() { try { return JSON.parse(localStorage.getItem('np-cloud-mock-presence') || '{}'); } catch (_) { return {}; } }
+  async setPresence(uid, data) { const all = this.readPresence(); all[uid] = { ...data, at: Date.now() }; localStorage.setItem('np-cloud-mock-presence', JSON.stringify(all)); }
+  async clearPresence(uid) { const all = this.readPresence(); delete all[uid]; localStorage.setItem('np-cloud-mock-presence', JSON.stringify(all)); }
+  watchPresence(uid, cb) { let last = ''; const tick = () => { const v = this.readPresence()[uid] || null; const j = JSON.stringify(v); if (j !== last) { last = j; cb(v); } }; tick(); const id = setInterval(tick, 250); return () => clearInterval(id); }
   async loadLeaderboard(week) { return Object.entries(this.read().leaderboard?.[week]?.entries || {}).map(([uid, e]) => ({ uid, ...e })); }
   async findProfile(name) { const db = this.read(); const u = db.users?.[nameKey(name)]; return u ? { uid: u.uid, ...db.profiles[u.uid] } : null; }
   async listFriends(uid) { const db = this.read(); return (db.friends?.[uid] || []).map((fid) => ({ uid: fid, ...db.profiles[fid] })).filter((p) => p.name); }
@@ -178,6 +198,11 @@ export const cloud = {
   /** 내 계정 이름으로 된 진행만 클라우드에 올린다 */
   async saveGame(data, summary) { if (!this.user || nameKey(data.name) !== nameKey(this.user.name)) return false; await this.backend.saveGame(this.user.uid, data, summary); return true; },
   async loadGame() { return this.user ? this.backend.loadGame(this.user.uid) : null; },
+  // ----- 같이 놀기 (presence) -----
+  get presenceOn() { return !!(this.user && this.backend?.presenceOk); },
+  async setPresence(data) { if (this.presenceOn) await this.backend.setPresence(this.user.uid, { name: this.user.name, ...data }); },
+  async clearPresence() { if (this.user && this.backend?.presenceOk) await this.backend.clearPresence(this.user.uid); },
+  watchPresence(uid, cb) { return this.backend?.presenceOk ? this.backend.watchPresence(uid, cb) : () => {}; },
   /** 이번 주 전체 순위 항목들 (가린 이름). 로그인 전에도 된다 */
   async leaderboard(week) { return this.enabled ? this.backend.loadLeaderboard(week) : []; },
   async listFriends() { return this.user ? this.backend.listFriends(this.user.uid) : []; },

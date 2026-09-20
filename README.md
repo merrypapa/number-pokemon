@@ -86,6 +86,7 @@ python3 -m http.server 8000
 | `src/dex.js` | 도감 + 내 포켓몬 패널(대표 고르기, 블록으로 공격/체력 올리기, 진화) |
 | `src/effects.js` | 색종이, 별/조각 파티클, 합성 효과음 |
 | `src/models.js` | glb 모델 받기·정규화(발 y=0, 높이 1m)·복제·애니메이션(idle/walk/run/swim 별명 찾기, 제자리 걷기 고정). idle 클립이 없는 모델(뮤: Running·Walking 뿐)은 가만히 있을 때 걷기 클립을 0.12배 속도로 돌린다(제자리 달리기처럼 보이지 않게). 종 데이터의 `modelTilt`(라디안)가 있으면 모델을 뒤로 젖힌다(지금 쓰는 모델은 없다 — 뮤에 넣어 봤더니 옆에서 보면 뒤로 누웠다). 애니메이션 클립 별명에 `jump`(공중에 떠 있을 때, 1.6배속)가 있고, 클립의 위아래 이동도 x/z 처럼 20% 넘게 움직이면 첫 프레임에 고정한다(점프 클립이 게임의 점프와 겹쳐 두 번 뜨지 않게) |
+| `src/presence.js`, `database.rules.json` | 같이 놀기 1단계: 같은 지역의 친구를 이름표 달린 지우로 보여 주고 감정 표현을 주고받는다 (Realtime Database presence) |
 | `src/portrait.js` | 말풍선 얼굴 그림: 본체 렌더러로 선형 렌더 타깃에 그려 픽셀을 읽고 sRGB 로 바꾼다(iOS 는 sRGB 타깃의 readPixels 를 거부해 얼굴이 비었다). 못 읽으면 예비 렌더러로 |
 | `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 + GLTFLoader/SkeletonUtils 애드온 |
 | `tools/viewer.html` | 모델 확인용 개발 페이지(로컬 서버에서 `tools/viewer.html?f=파일.glb,…&clip=jump&t=0.8`): 앞·옆·위 세 방향 그림과 애니메이션 클립 이름. 빨간 화살표가 게임의 앞 방향 |
@@ -112,7 +113,9 @@ python3 -m http.server 8000
 - Firestore: `profiles/{uid}`(친구에게 보이는 요약 + admin), `saves/{uid}`(진행 전체), `friends/{uid}/list/{friendUid}`, `requests/{받는 uid}/list/{보낸 uid}`, `feedback/{id}`(요청: uid·name·text·mime·data·createdAt, 답장 reply·repliedAt 는 관리자만 씀), `leaderboard/{주}`(주간 순위: entries.{uid} = 가린 이름·점수).
 - **규칙을 바꿨으면 다시 게시**: `firestore.rules` 에 친구 요청(`requests`)·요청하기(`feedback`)·주간 순위(`leaderboard`) 규칙이 늘었고, `saves` 읽기 규칙을 고쳤다(읽기에 `request.resource` 를 쓰면 읽기가 막혀 클라우드 저장을 못 불러왔다). Firebase 콘솔 → Firestore → 규칙 탭에 파일 내용을 다시 붙여넣고 게시해야 그 기능이 실제로 동작한다.
 
-**켜는 방법 (한 번만)**: Firebase 프로젝트 → 웹 앱 추가 → `firebaseConfig` 를 `src/cloud-config.js` 에 → Authentication 에서 이메일/비밀번호 켜기 + 승인된 도메인에 `merrypapa.github.io` → Firestore 만들기(서울, 프로덕션) → 규칙 탭에 `firestore.rules` 붙여넣고 게시.
+- **같이 놀기 1단계 — 같은 지역의 친구 보이기**(`src/presence.js`): 로그인해서 놀면 내 위치(지역·x·y·z·방향·대표·움직임·감정 표현)를 **Realtime Database** `presence/{uid}` 에 0.3초마다(움직였을 때, 가만히 있어도 5초마다) 올리고, 친구들의 presence 를 구독해 **같은 지역에 있는 친구를 이름표 달린 지우로** 보여 준다(부드럽게 따라 움직이고 걷기 동작, 부딪히지 않음). 친구가 나타나면 말풍선으로 알리고, HUD 에 감정 표현 버튼(👋 🎉 😆 ❤️)이 켜져 누르면 내 머리 위와 친구 화면에 3초 동안 뜬다. 글자 채팅은 없다. 접속이 끊기면 서버가 presence 를 지우고(`onDisconnect`), 20초 넘게 소식이 없으면 사라진다. 규칙은 `database.rules.json`(로그인한 사람은 읽고, 자기 항목만 씀). `?mockcloud` 에서는 같은 브라우저의 다른 탭끼리 보인다.
+
+**켜는 방법 (한 번만)**: Firebase 프로젝트 → 웹 앱 추가 → `firebaseConfig` 를 `src/cloud-config.js` 에 → Authentication 에서 이메일/비밀번호 켜기 + 승인된 도메인에 `merrypapa.github.io` → Firestore 만들기(서울, 프로덕션) → 규칙 탭에 `firestore.rules` 붙여넣고 게시 → (같이 놀기) 빌드 → **Realtime Database 만들기**(싱가포르, 잠금 모드) → 규칙 탭에 `database.rules.json` 붙여넣고 게시 → 화면 위에 보이는 데이터베이스 주소가 `src/cloud-config.js` 의 `databaseURL` 과 다르면 바꾼다.
 
 ## 문서 목차
 
