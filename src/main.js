@@ -1240,9 +1240,16 @@ function chestFriendData() {
   }
   return nbByNumber[2 + Math.floor(Math.random() * 9)];
 }
+/** 상자 속에 몇 개가 들어 있었나: 문제를 다 풀고 나서야 굴린다 (주울 때는 아무도 모른다).
+ *  분포는 예전에 "나온 친구의 숫자"를 그대로 주던 때와 같다 — 보통 2~10, 다섯 번에 한 번쯤 11~20. */
+function chestReward() {
+  if (Math.random() < BIG_NB_CHANCE) return 11 + Math.floor(Math.random() ** 2 * 10);
+  return 2 + Math.floor(Math.random() * 9);
+}
 /** 수수께끼 상자를 열었을 때: 상자가 있던 자리에서 랜덤 숫자블록 친구가 나온다 */
 function spawnRescueAt(z, x, zz) {
   const nb = placeRescue(z, chestFriendData(), x, zz);
+  nb.fromChest = true; // 이 친구의 보상은 제 숫자가 아니라, 문제를 푼 뒤에 굴리는 상자 속 블록이다
   z.nbTimer = Math.max(z.nbTimer, rand(10, 16)); // 상자에서 나온 친구와 평소 친구가 한꺼번에 몰리지 않게
   return nb;
 }
@@ -1261,16 +1268,35 @@ function rescueSolved(z, nb) {
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
   wkAdd('quiz');
-  // 퀴즈 보상은 문제 종류·지역과 상관없이 딱 "그 친구의 숫자만큼" —
-  // 줍기·대결과 달리 퀴즈는 자주 나오니, 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
-  setBlocks(state.blocks + n);
+  // 길에서 만난 친구는 딱 "그 친구의 숫자만큼" 준다 — 줍기·대결과 달리 퀴즈는 자주 나오니
+  // 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
+  // 수수께끼 상자에서 나온 친구는 다르다: 상자 속에 몇 개가 들었는지 지금 굴려서 알려 준다.
+  const reward = nb.fromChest ? chestReward() : n;
+  setBlocks(state.blocks + reward);
   sound.fanfare();
   confetti.burst(100);
-  // 몇 개를 받았는지는 여기서 알려 준다 (상자를 열 때는 일부러 말하지 않는다 — 친구를 보고 세어 보는 맛)
   const why = quiz.last?.explain || quiz.last?.hint || '';
-  say(`${nb.data.name}: 정답이야, 고마워! 블록 ${n}개를 받았어!${n > 10 ? ' 열보다 큰 숫자야!' : ''} ${why}`, { face: String(n), sec: 7 });
+  say(nb.fromChest
+    ? `${nb.data.name}: 정답이야! 상자 속에는… 블록 ${reward}개가 들어 있었어!${reward > 10 ? ' 열보다 많아!' : ''} ${why}`
+    : `${nb.data.name}: 정답이야, 고마워! 블록 ${reward}개를 받았어!${reward > 10 ? ' 열보다 큰 숫자야!' : ''} ${why}`,
+    { face: String(reward), sec: 7 });
   refreshHud();
   autosave();
+}
+
+/** 숫자블록 친구에게 문제를 받아 푼다. 가까이 가서 퀴즈 버튼을 눌렀을 때와, 수수께끼 상자를 열었을 때 모두 이걸 쓴다.
+ *  맞히면 블록을 주고(rescueSolved), 틀리면 그 친구는 가 버린다. */
+function askRescueQuiz(z, nb) {
+  return quiz.ask(nb.data.number, nb.data.name, z.name).then((res) => { // 행성에서는 그 행성 상식 퀴즈가 나온다
+    if (!z.rescues.includes(nb)) return res;
+    if (res === 'ok') rescueSolved(z, nb);
+    else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다
+      removeRescue(z, nb);
+      sound.bounce();
+      say(`${nb.data.name}: 정답은 ${quiz.last?.answer}이었어. ${quiz.last?.explain || quiz.last?.hint || ''} 다음 퀴즈에 또 도전해 봐!`, { face: String(nb.data.number), sec: 7 });
+    } else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
+    return res;
+  });
 }
 
 /** 대결에서 이기면 받는 블록: 상대 공격력 × 지역 블록 가치 (보스는 2배).
@@ -2251,15 +2277,16 @@ function frame() {
       b.rotation.y = t + b.userData.t;
       b.position.y = terrainHeight(b.position.x, b.position.z) + 0.6 + Math.sin(t * 2 + b.userData.t) * 0.1;
       if (b.position.distanceTo(pp) < 1.1) {
-        if (b.userData.chest) { // 수수께끼 상자·바다 보물상자: 블록 대신 숫자블록 친구가 튀어나온다 (문제를 풀면 그 숫자만큼 블록)
+        if (b.userData.chest) { // 수수께끼 상자·바다 보물상자: 숫자블록 친구가 튀어나와 문제를 낸다 (상자 속 블록 수는 풀고 나서 정해진다)
           const at = b.position.clone();
           zone.scene.remove(b);
           zone.pickups.splice(i, 1);
           sound.pickup();
           particles.stars(zone.scene, at.clone().add(new THREE.Vector3(0, 0.8, 0)), 22, 0xffd43b, 0.5);
           const nb = spawnRescueAt(zone, at.x, at.z);
-          const big = nb.data.number > 10; // 열보다 큰 친구는 한 번 더 놀라 준다
-          say(`${CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자'}를 열었어! ${big ? '우아, 열보다 큰 친구야! ' : ''}숫자블록 친구 ${josa(nb.data.name, '이가')} 나왔어. 퀴즈를 맞히면 블록을 준대 — 몇 개일까?`, { sec: 6 });
+          say(`${CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자'}를 열었어! 숫자블록 친구 ${josa(nb.data.name, '이가')} 나와서 문제를 내! 맞히면 상자 속 블록을 준대 — 몇 개가 들었을까?`, { sec: 6 });
+          input.endFrame();
+          setTimeout(() => { if (zone.rescues.includes(nb) && !quiz.open && !battle.active && !dex.open) askRescueQuiz(zone, nb); }, 900); // 튀어나오는 연출을 잠깐 보여 준 뒤 문제
           continue;
         }
         if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감에서 포켓몬을 키우는 데 쓰자!`); } continue; }
@@ -2393,19 +2420,7 @@ function frame() {
     }
     if (nearNb) {
       const nb = nearNb;
-      offer(`🧩 ${nb.data.name} 퀴즈 풀기`, () => {
-        input.endFrame();
-        quiz.ask(nb.data.number, nb.data.name, zone.name).then((res) => { // 행성에서는 그 행성 상식 퀴즈가 나온다
-          if (!zone.rescues.includes(nb)) return;
-          if (res === 'ok') rescueSolved(zone, nb);
-          else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다
-            removeRescue(zone, nb);
-            sound.bounce();
-            const ans = quiz.last?.answer;
-            say(`${nb.data.name}: 정답은 ${ans}이었어. ${quiz.last?.explain || quiz.last?.hint || ''} 다음 퀴즈에 또 도전해 봐!`, { face: String(nb.data.number), sec: 7 });
-          } else say('괜찮아, 다시 와서 도전하자!', { face: String(nb.data.number) });
-        });
-      }, '🧩\n퀴즈');
+      offer(`🧩 ${nb.data.name} 퀴즈 풀기`, () => { input.endFrame(); askRescueQuiz(zone, nb); }, '🧩\n퀴즈');
     }
     tickCar();
     if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)
