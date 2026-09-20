@@ -65,7 +65,7 @@ export class Party {
     if (sp.statCap) return { atk: sp.statCap.atk, hp: sp.statCap.hp };
     const base = friendStats(sp.baseHp, sp.baseAtk);
     const e = sp.evolution;
-    if (e && evoTargets(e).some((t) => this.speciesById[t.id])) return { atk: Math.max(e.atk, base.atk, m.atk), hp: Math.max(e.hp, base.hp, m.maxHp) };
+    if (e && evoTargets(e).some((t) => this.speciesById[t.id])) return { atk: Math.max(e.atk, m.atk), hp: Math.max(e.hp, m.maxHp) }; // 야생 기본값은 안 본다: 시작 피카츄(체10·공3)도 이상해씨와 같은 한계
     const g = sp.grade || 1;
     return { atk: Math.max(base.atk + 10 + g * 4, m.atk), hp: Math.max(base.hp + 20 + g * 8, m.maxHp) };
   }

@@ -365,7 +365,7 @@ function getZone(name) {
   const ws = zi.wildScale; // 심해: 물의길 종이 내려와 살지만 기본 능력치 1.5배 (잡으면 그 능력치로 들어온다)
   const scaled = (c) => (ws ? { ...c, baseHp: Math.round(c.baseHp * (ws.hp || 1)), baseAtk: Math.round(c.baseAtk * (ws.atk || 1)) } : c);
   const wild = zi.wild
-    ? zi.wild.map((id) => speciesById[id]).filter(Boolean).map((c) => scaled({ ...c, ...wildExtra }))
+    ? zi.wild.map((id) => speciesById[id]).filter((c) => c && !(c.boss && bossZoneOf(c) === z.name)).map((c) => scaled({ ...c, ...wildExtra })) // 이 지역의 보스인 종은 야생으로는 안 나온다 (화성 이상해불·명왕성 윤겔라·수성 꼬마돌)
     : creatureData.creatures.filter((c) => c.zone === z.name && !(c.boss && bossZoneOf(c) === z.name) && !c.special && !c.mega && c.catchable); // 이 지역의 보스는 야생으로 안 나온다 (다른 지역 보스인 종은 여기선 야생)
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
   const wildOnly = { ...wildExtra, boss: false }; // 야생으로 나올 땐 보스 표시를 뗀다 (꼬마돌은 수성에서만 보스)
@@ -2283,13 +2283,14 @@ function frame() {
               confetti.burst(200); sound.fanfare();
               say(`✨ ${josa(c.data.name, '이가')} 친구가 됐어! 메가블럭 ${MEGA_REWARD}개를 얻었어! 도감에서 최종 진화한 포켓몬을 메가 진화시킬 수 있어!`, { sec: 10 });
               refreshHud();
-            } else if (c.isBoss) {
+            }
+            if (c.isBoss) { // 보스이면서 메가(태양의 메가리자몽X)면 위의 메가블럭에 더해 정복도
               conquer(zone.name);
               if (zone.name === 'forest') {
                 removeBoulder();
                 say(`${josa(c.data.name, '이가')} 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
               } else say(`${josa(c.data.name, '이가')} 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${josa(c.data.name, '이가')} 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
-            } else {
+            } else if (!c.data.mega) {
               state.caught++;
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
