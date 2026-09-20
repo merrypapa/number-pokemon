@@ -241,9 +241,10 @@ export function buildDeepSea(scene) {
   drop.position.set(DEEP.spawn.x, deepHeight(DEEP.spawn.x, DEEP.spawn.z) + 0.03, DEEP.spawn.z);
   scene.add(drop);
 
-  // ---------- 잠수부 도리 (지역 안내 NPC) ----------
+  // ---------- 항해사 나미 (지역 안내 NPC) ----------
+  // 바다를 제일 잘 아는 항해사라 심해를 맡는다 (예전 푸른숲 안내원 자리는 벅스버니가 이어받았다)
   const diverAt = { x: DEEP.spawn.x + 4, z: DEEP.spawn.z - 3 };
-  const diver = makeNpc({ outfit: 'astronaut', name: '도리' }); // 동그란 잠수 헬멧
+  const diver = makeNpc({ outfit: 'astronaut', name: '나미', model: '나미.glb' }); // 모델이 없으면 동그란 잠수 헬멧 드래프트
   diver.position.set(diverAt.x, deepHeight(diverAt.x, diverAt.z), diverAt.z);
   diver.rotation.y = -0.6;
   decor.add(diver); block(diverAt.x, diverAt.z, 0.6);
@@ -294,11 +295,13 @@ export function buildDeepSea(scene) {
     // clear 만큼 바닥에서 떠오르면 바위·다시마·가라앉은 배 위로 헤엄쳐 지나갈 수 있다.
     swim: { ceiling: DEEP.surfaceY - 1.2, up: 26, rise: 6.5, sink: 4.5, clear: 3.0 },
     noShrine: true,         // 심해에는 메가 성역이 없다 (심해 전용 메가 포켓몬이 아직 없다)
-    npcs: [{ x: diverAt.x, z: diverAt.z, mesh: diver, name: '도리', warp: true, lines: (c) => [
-      `여긴 심해야, ${c.name}! 난 잠수부 도리. 소용돌이를 타고 내려왔구나!`,
+    npcs: [{ x: diverAt.x, z: diverAt.z, mesh: diver, name: '나미', warp: true, lines: (c) => [
+      `여긴 심해야, ${c.name}! 항해사 나미야. 바다 일이라면 숲보다 여기가 내 자리지!`,
+      '소용돌이를 타고 내려왔구나. 나도 배를 잃고 여기까지 떠내려온 적이 있어.',
       '여기선 헤엄을 칠 수 있어! 점프 버튼(스페이스)을 꾹 누르고 있으면 쑥쑥 올라가고, 놓으면 천천히 가라앉아.',
       '위로 올라가면 바위와 다시마 숲을 넘어서 지나갈 수 있어. 저 위 수면까지 올라가 빛줄기도 구경해 봐!',
       `여기 포켓몬은 물 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 전기나 풀 포켓몬이 물에 세!`,
+      '심해 친구들이 유난히 센 건 자기 힘이 아니야. 로켓단이 여기 잠수정 기지에서 숫자를 억지로 부풀린 거란다.',
       c.conquered.deepsea ? '보스 갸라도스를 이겼구나! 심해의 챔피언이야!' : `남쪽 해구에 보스 갸라도스가 있어. 체력 150, 공격 12! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 전기 포켓몬이 있으면 제일 좋아!`,
       '서쪽에 오래전에 가라앉은 배가 있어. 구경하고 가렴.',
       '돌아갈 땐 북쪽의 빛나는 해류를 타. 물의길 선착장까지 올려다 준단다.',

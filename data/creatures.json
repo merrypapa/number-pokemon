@@ -193,7 +193,8 @@
     "m03",
     "m03e",
     "m41",
-    "m11j"
+    "m11j",
+    "m56"
    ],
    "wildOverride": {
     "swim": false,
@@ -231,7 +232,8 @@
     "m39",
     "m20",
     "m24",
-    "m37"
+    "m37",
+    "m57"
    ],
    "wildOverride": {
     "swim": false,
@@ -272,7 +274,8 @@
     "m24",
     "m15",
     "m41",
-    "m24e"
+    "m24e",
+    "m55"
    ],
    "wildOverride": {
     "swim": false,
@@ -4093,6 +4096,448 @@
     }
    ],
    "story": "등에 불꽃을 지고 다니는 불의산의 포켓몬. 평소엔 수줍어서 불을 끄고 있다가 놀라면 등이 확 타올라. 태양에도 놀러 가."
+  },
+  {
+   "id": "m11b",
+   "name": "아기브레온",
+   "type": "고스트",
+   "zone": "space",
+   "catchable": true,
+   "model": "아기브레온.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#3A3A46",
+    "ears": 2,
+    "glow": true
+   },
+   "baseHp": 34,
+   "baseAtk": 8,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "깨물기",
+     "atk": 8,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "달빛",
+     "atk": 16,
+     "power": 1.4,
+     "kind": "ghost"
+    }
+   ],
+   "evolution": {
+    "to": [
+     {
+      "id": "m11e",
+      "p": 1
+     }
+    ],
+    "atk": 15,
+    "hp": 50,
+    "wins": 4
+   },
+   "favoriteNumber": 12,
+   "personality": "졸림",
+   "grade": 3,
+   "story": "엄브레온의 아기. 아직 고리가 흐릿해서 달빛을 받으면 겨우 반짝여. 별하늘 아래서 동그랗게 말고 자다가, 많이 자라면 엄브레온이 된대."
+  },
+  {
+   "id": "m53",
+   "name": "힙합리자몽",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "unlockedBy": "x03",
+   "model": "힙합리자몽.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FF8C42",
+    "dots": 8,
+    "glow": true
+   },
+   "baseHp": 120,
+   "baseAtk": 26,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "불꽃펀치",
+     "atk": 1,
+     "power": 1,
+     "kind": "punch"
+    },
+    {
+     "name": "리듬발차기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "punch"
+    },
+    {
+     "name": "비트브레스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "파이어스텝",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "흥이 넘침",
+   "story": "불의산 메가리자몽Y를 이긴 트레이너 앞에만 나타나는 리자몽. 용암이 보글보글 끓는 소리에 맞춰 박자를 타며 춤을 춰. 불꽃도 비트에 맞춰 터뜨린대."
+  },
+  {
+   "id": "m54",
+   "name": "용암냥이",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "model": "용암냥이.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FF5A1F",
+    "ears": 2,
+    "paws": 4,
+    "glow": true
+   },
+   "baseHp": 48,
+   "baseAtk": 12,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "할퀴기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch"
+    },
+    {
+     "name": "불꽃손톱",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "용암구르기",
+     "atk": 18,
+     "power": 1.5,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "장난꾸러기",
+   "story": "불의산 용암 웅덩이 옆에서 사는 고양이. 발바닥이 뜨거워서 한 자리에 오래 못 있고 폴짝폴짝 뛰어다녀. 네 발에 작은 불꽃이 하나씩 붙어 있어."
+  },
+  {
+   "id": "m55",
+   "name": "앱솔",
+   "type": "고스트",
+   "zone": "p_pluto",
+   "catchable": true,
+   "model": "앱솔.glb",
+   "scale": 1.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#E8E8F0",
+    "curls": 6
+   },
+   "baseHp": 72,
+   "baseAtk": 18,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "할퀴기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch"
+    },
+    {
+     "name": "그림자베기",
+     "atk": 12,
+     "power": 1.3,
+     "kind": "ghost"
+    },
+    {
+     "name": "재앙의뿔",
+     "atk": 22,
+     "power": 1.6,
+     "kind": "ghost"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "조용함",
+   "story": "명왕성의 얼음 벌판을 혼자 걷는 하얀 포켓몬. 큰일이 일어나기 전에 미리 알고 알려 주러 온대. 무서워 보이지만 사실은 아주 착해."
+  },
+  {
+   "id": "m56",
+   "name": "닌자피카츄",
+   "type": "전기",
+   "zone": "p_jupiter",
+   "catchable": true,
+   "model": "닌자피카츄.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFD43B",
+    "ears": 2,
+    "dots": 9,
+    "glow": true
+   },
+   "baseHp": 78,
+   "baseAtk": 18,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "수리검던지기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "번개그림자",
+     "atk": 12,
+     "power": 1.3,
+     "kind": "bolt"
+    },
+    {
+     "name": "천둥닌자술",
+     "atk": 22,
+     "power": 1.6,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "재빠름",
+   "story": "피카츄의 고향 목성에서 몰래 수련한 피카츄. 번개처럼 사라졌다 나타나. 꼬리로 수리검을 던지는데, 맞으면 찌릿찌릿해."
+  },
+  {
+   "id": "m57",
+   "name": "얼음토끼",
+   "type": "물",
+   "zone": "p_uranus",
+   "catchable": true,
+   "model": "얼음토끼.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#A5D8FF",
+    "ears": 2,
+    "dots": 7
+   },
+   "baseHp": 60,
+   "baseAtk": 14,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "눈뭉치",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "얼음발차기",
+     "atk": 10,
+     "power": 1.3,
+     "kind": "water"
+    },
+    {
+     "name": "눈보라",
+     "atk": 20,
+     "power": 1.6,
+     "kind": "wind"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "깡충깡충",
+   "story": "천왕성의 파란 얼음 들판에 사는 토끼. 귀 끝이 고드름처럼 반짝여. 깡충 뛸 때마다 발자국이 얼어붙어 길이 생긴대."
+  },
+  {
+   "id": "b06",
+   "name": "루기아",
+   "type": "물",
+   "zone": "deepsea",
+   "catchable": true,
+   "unlockedBy": "m21e",
+   "model": "루기아.glb",
+   "scale": 3.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#DFE8F5",
+    "curls": 10,
+    "glow": true
+   },
+   "baseHp": 160,
+   "baseAtk": 28,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "바다의바람",
+     "atk": 15,
+     "power": 1.4,
+     "kind": "wind"
+    },
+    {
+     "name": "에어로블래스트",
+     "atk": 28,
+     "power": 1.8,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 10,
+   "personality": "조용하고 커다람",
+   "story": "심해 보스 갸라도스를 이긴 트레이너 앞에 소용돌이 저 아래에서 천천히 떠오르는 전설의 포켓몬. 바다의 신이라 불리며, 날개를 한 번 치면 파도가 산처럼 솟아."
+  },
+  {
+   "id": "px07",
+   "name": "피카자몽",
+   "type": "전기",
+   "zone": "p_jupiter",
+   "catchable": true,
+   "unlockedBy": "px05",
+   "model": "피카자몽.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FFB703",
+    "dots": 11,
+    "glow": true
+   },
+   "baseHp": 120,
+   "baseAtk": 26,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "번개날개",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "불꽃번개",
+     "atk": 15,
+     "power": 1.4,
+     "kind": "fire"
+    },
+    {
+     "name": "피카블라스트",
+     "atk": 28,
+     "power": 1.8,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 11,
+   "personality": "우당탕탕",
+   "story": "목성 보스 거북왕트론을 이기면 나타나는 합체 포켓몬. 피카츄의 번개 꼬리에 리자몽의 날개가 돋았어. 번개를 타고 날면서 불꽃을 뿜어."
+  },
+  {
+   "id": "x10",
+   "name": "은빛뮤",
+   "type": "에스퍼",
+   "zone": "p_neptune",
+   "catchable": true,
+   "mega": true,
+   "unlockedBy": "px03",
+   "model": "은빛뮤.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#DCD6FF",
+    "glow": true
+   },
+   "baseHp": 210,
+   "baseAtk": 40,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "사이코키네시스",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "은빛파동",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "달빛브레이크",
+     "atk": 35,
+     "power": 1.9,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 10,
+   "personality": "신비로움",
+   "story": "해왕성 보스 보라거북왕을 이긴 트레이너 앞에만 나타나는 은빛 뮤. 꿈의우주의 분홍 뮤와 형제라고도 하고, 물빛 바다 행성이 만든 그림자라고도 해. 메가큐브를 꼭 준비하자."
+  },
+  {
+   "id": "x11",
+   "name": "불사조",
+   "type": "불",
+   "zone": "p_mars",
+   "catchable": true,
+   "mega": true,
+   "unlockedBy": "m46",
+   "model": "불사조.glb",
+   "scale": 3.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#FF6B1A",
+    "glow": true
+   },
+   "baseHp": 175,
+   "baseAtk": 32,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "불꽃날개",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "화염폭풍",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "부활의불꽃",
+     "atk": 35,
+     "power": 1.9,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 10,
+   "personality": "당당함",
+   "story": "화성 보스 이상해불을 이기면 붉은 하늘을 가르며 내려오는 불의 새. 재가 되어도 다시 타오르기 때문에 아무도 쓰러뜨린 적이 없대. 메가큐브를 꼭 준비하자."
   }
  ]
 }

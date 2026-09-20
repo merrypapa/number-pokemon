@@ -177,7 +177,11 @@ export class Player {
     // 내리막을 달릴 때는 중력보다 땅이 더 빨리 낮아져 매 프레임 살짝 떠 버린다 → 점프 동작이 깜빡이며 버벅였다.
     // 점프 중이 아니고 땅과의 틈이 작으면(0.6m 안) 땅에 붙인다. 그보다 높은 턱에서 떨어지는 건 진짜 낙하.
     const gap = p.y - floor;
-    if (p.y <= floor || (!this.jumping && !sw && this.vy <= 0 && gap < 0.6)) {
+    // 물속(심해)에서도 바닥 가까이 있으면 땅에 붙인다. 예전에는 물속이면(!sw) 붙이지 않아,
+    // 내리막을 걷는 동안 매 프레임 살짝 떠서 걷기↔헤엄이 번갈아 바뀌며 버벅였다.
+    const swimUp = !!sw && input.isHeld('jump'); // 헤엄쳐 올라가는 중에는 당연히 붙이지 않는다
+    const snapGap = sw ? 0.35 : 0.6;             // 물속에서는 조금 더 낮게 (천천히 가라앉는 느낌을 남긴다)
+    if (p.y <= floor || (!this.jumping && !swimUp && this.vy <= 0 && gap < snapGap)) {
       p.y = floor;
       this.vy = 0;
       this.onGround = true;
@@ -188,7 +192,7 @@ export class Player {
       this.airT = (this.airT || 0) + dt;
     }
     if (sw && p.y >= sw.ceiling) { p.y = sw.ceiling; this.vy = Math.min(this.vy, 0); } // 수면 바로 아래까지
-    this.swimming = !!sw && !this.onGround;
+    this.swimming = !!sw && !this.onGround && (this.airT || 0) > 0.12; // 잠깐 뜬 것으로는 헤엄 동작으로 바꾸지 않는다 (동작이 깜빡이지 않게)
     if (this.body) this.body.rotation.x = this.swimming && !anim ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다 (헤엄 애니가 있으면 애니에 맡긴다)
 
     // 구멍에 떨어지면 main 이 지역을 바꾼다 (초원 → 동굴)

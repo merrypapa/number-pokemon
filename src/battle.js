@@ -1,7 +1,7 @@
 import { josa } from './util.js';
 import * as THREE from 'three';
 import { colorForCount } from './palette.js';
-import { terrainHeight, waterLevel } from './world.js';
+import { terrainHeight, waterLevel, insideObstacle, isBlocked } from './world.js';
 import { effectiveness, effectWord, skillIcon } from './types.js';
 import { tickModel, instantiate, hasModel } from './models.js';
 import { partyScale } from './creatures.js';
@@ -39,12 +39,42 @@ function tintRed(root, color) {
 export /** 볼을 다른 것보다 위에 그린다 (상대가 볼 위로 겹쳐도 볼이 안 사라지게). on=false 면 원래대로.
  *  예전엔 깊이 검사를 껐는데(depthTest=false) 그러면 볼 자기 자신의 앞뒤도 뒤섞여 뒷면·단추·띠가 겹쳐 보여 그래픽이 깨졌다.
  *  지금은 깊이 검사는 켠 채로, 볼의 첫 조각을 그리기 직전에 깊이 버퍼만 비운다(clearDepth) → 볼은 다른 것 위에 그려지고 볼 안의 앞뒤는 맞는다 */
+const UP = new THREE.Vector3(0, 1, 0);
+/** 점 p 에서 선분 a-b 까지의 거리 */
+const _seg = new THREE.Vector3(), _ap = new THREE.Vector3(), _cl = new THREE.Vector3();
+function distToSegment(p, a, b) {
+  _seg.subVectors(b, a);
+  const len2 = _seg.lengthSq() || 1;
+  const t = Math.max(0, Math.min(1, _ap.subVectors(p, a).dot(_seg) / len2));
+  return _cl.copy(a).addScaledVector(_seg, t).distanceTo(p);
+}
+// 나무·바위·수풀은 한 덩어리 InstancedMesh 라 o.visible 로는 한 그루만 숨길 수 없다.
+// 그래서 시야를 가리는 그루만 크기를 0 으로 눌러 두었다가 대결이 끝나면 되돌린다.
+const _im = new THREE.Matrix4(), _ip = new THREE.Vector3(), _iq = new THREE.Quaternion(), _is = new THREE.Vector3(), _zero = new THREE.Vector3(0, 0, 0);
+function hideBlockingInstances(mesh, segs, out) {
+  if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+  const baseR = mesh.geometry.boundingSphere?.radius || 1;
+  for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, _im);
+    _im.decompose(_ip, _iq, _is);
+    if (_is.x === 0) continue; // 이미 눌러 둔 그루
+    const rad = baseR * Math.max(_is.x, _is.z) + 0.3;
+    if (!segs.some(([a, b]) => distToSegment(_ip, a, b) < rad)) continue;
+    out.push({ mesh, i, matrix: _im.clone() });
+    mesh.setMatrixAt(i, _im.compose(_ip, _iq, _zero));
+    mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+function restoreInstances(list) {
+  for (const h of list) { h.mesh.setMatrixAt(h.i, h.matrix); h.mesh.instanceMatrix.needsUpdate = true; }
+}
 function ballOnTop(ball, on) {
   const meshes = []; ball.traverse((o) => { if (o.isMesh) meshes.push(o); });
   meshes.forEach((o, i) => {
     o.material.depthTest = true;
     o.renderOrder = on ? (i === 0 ? 20 : 21) : 0; // 첫 조각이 먼저(깊이 비우기), 나머지가 그 뒤
-    o.onBeforeRender = on && i === 0 ? (renderer) => renderer.clearDepth() : null;
+    if (on && i === 0) o.onBeforeRender = (renderer) => renderer.clearDepth();
+    else delete o.onBeforeRender; // null 을 넣으면 three 가 그리다 멈춘다(프로토타입의 빈 함수를 가린다) — 지워서 원래대로 돌린다
   });
 }
 export function makeBall(color, spec = null) {
@@ -203,7 +233,19 @@ export class Battle {
     const dir = new THREE.Vector3(m.x - p.x, 0, m.z - p.z);
     if (dir.lengthSq() < 0.01) dir.set(0, 0, -1);
     dir.normalize();
-    const dist = 5.2 + (creature.data.scale || 1) * 0.8;
+    let dist = 5.2 + (creature.data.scale || 1) * 0.8;
+    // 상대가 나무·바위·벽 속에 서면 화면에서 가려진다. 막히면 옆으로 조금씩 돌려(그다음엔 가까이) 빈 자리를 찾는다.
+    const clear = (x, z) => !insideObstacle(x, z, 0.9 + (creature.data.scale || 1) * 0.35) && !isBlocked(x, z);
+    const spun = new THREE.Vector3();
+    found: for (const dd of [dist, dist - 1.3, dist - 2.4, dist + 1.3]) {
+      if (dd < 2.4) continue;
+      for (const ang of [0, 0.3, -0.3, 0.6, -0.6, 0.95, -0.95, 1.3, -1.3]) {
+        spun.copy(dir).applyAxisAngle(UP, ang);
+        if (!clear(p.x + spun.x * dd, p.z + spun.z * dd)) continue;
+        dir.copy(spun); dist = dd;
+        break found;
+      }
+    }
     this.stageFrom = m.clone();
     this.stageTo = new THREE.Vector3(p.x + dir.x * dist, 0, p.z + dir.z * dist);
     this.stageTo.y = this.groundY(this.stageTo.x, this.stageTo.z);
@@ -252,18 +294,19 @@ export class Battle {
       for (const l of this.lights) scene.add(l);
       if (scene.fog) { this.fogFar = scene.fog.far; scene.fog.far = Math.max(scene.fog.far, 120); }
     }
-    // 카메라와 상대 사이 통로에 있는 나무·바위·풀숲 숨기기
+    // 카메라와 두 포켓몬 사이를 가리는 나무·바위·풀숲 숨기기 (상대 쪽과 내 포켓몬 쪽 둘 다)
+    restoreInstances(this.hiddenInstances || []); // 앞 대결에서 눌러 둔 게 남아 있으면 먼저 되돌린다
+    this.hiddenInstances = [];
     if (decor) {
       const a = this.camPos, b = this.stageTo;
-      const ab = new THREE.Vector3().subVectors(b, a);
-      const len2 = ab.lengthSq();
-      const tmp = new THREE.Vector3();
+      const segs = [[a, b], [a, this.mineTo]];
       for (const o of decor.children) {
-        if (!o.visible || o.isInstancedMesh) continue;
-        const t = Math.max(0, Math.min(1, tmp.subVectors(o.position, a).dot(ab) / len2));
-        const d = tmp.copy(a).addScaledVector(ab, t).distanceTo(o.position);
-        const rad = o.userData.radius || 3.2;
-        if (d < rad + 0.5 && Math.hypot(o.position.x - b.x, o.position.z - b.z) < 30) { o.visible = false; this.hidden.push(o); }
+        if (!o.visible) continue;
+        if (o.isInstancedMesh) { hideBlockingInstances(o, segs, this.hiddenInstances); continue; } // 나무 한 그루만 골라 눌러 둔다
+        const rad = (o.userData.radius || 3.2) + 0.5;
+        if (!segs.some(([sa, sb]) => distToSegment(o.position, sa, sb) < rad)) continue;
+        if (Math.hypot(o.position.x - b.x, o.position.z - b.z) > 30 && Math.hypot(o.position.x - this.mineTo.x, o.position.z - this.mineTo.z) > 30) continue;
+        o.visible = false; this.hidden.push(o);
       }
     }
 
@@ -523,11 +566,13 @@ export class Battle {
     this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `${josa(c.data.name, '이가')} 어질어질! 넘버볼을 던지자!`;
-      this.showBanner('쓰러뜨렸다!');
+      this.msgEl.textContent = `${c.data.name}의 가짜 숫자가 깨졌어! 넘버볼을 던져 친구가 되자!`;
+      this.showBanner('가짜 숫자가 깨졌다!');
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
+      // 머리 위에 씌워져 있던 붉은 숫자가 조각나 흩어진다 (넘버로켓단의 가짜 숫자, docs/02_storyline.md)
+      this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
     } else {
       this.phase = 'enemyWind';
       this.phaseStart = this.timer;
@@ -685,6 +730,8 @@ export class Battle {
     mine.visible = true;
     for (const m of this.hidden || []) m.visible = true;
     this.hidden = [];
+    restoreInstances(this.hiddenInstances || []); // 잠시 눌러 두었던 나무·바위 그루 되돌리기
+    this.hiddenInstances = [];
     for (const l of this.lights || []) this.scene.remove(l);
     this.lights = [];
     if (this.fogFar != null) { this.scene.fog.far = this.fogFar; this.fogFar = null; }
@@ -940,7 +987,7 @@ export class Battle {
     const imgEl = document.getElementById('catch-img');
     if (img) { imgEl.src = img; imgEl.hidden = false; } else imgEl.hidden = true;
     document.getElementById('catch-name').textContent = `${d.boss ? '보스 ' : ''}${d.name}`;
-    document.getElementById('catch-sub').textContent = `${d.type} 속성 · ❤ ${d.baseHp} · ⚔ ${d.baseAtk} · 친구가 됐어!`;
+    document.getElementById('catch-sub').textContent = `${d.type} 속성 · ❤ ${d.baseHp} · ⚔ ${d.baseAtk} · 좋아하는 숫자 ${d.favoriteNumber} · 친구가 됐어!`;
     this.catchEl.classList.remove('hidden');
   }
   startSuccess() {
@@ -956,7 +1003,7 @@ export class Battle {
     this.confetti.burst(160);
     this.sound.fanfare();
     this.showBanner(`잡았다! ${c.data.name}!`);
-    this.msgEl.textContent = `${josa(c.data.name, '이가')} 친구가 되었어요! 도감에서 대표로 고를 수 있어.`;
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} 제 숫자를 기억했어 — ${c.data.favoriteNumber}! 이제 친구야. 도감에서 대표로 고를 수 있어.`;
     this.runBtn.textContent = '계속하기 ▶';
     this.runBtn.classList.add('primary');
   }

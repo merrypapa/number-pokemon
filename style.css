@@ -140,7 +140,7 @@ body.battle #btn-dex, body.battle #hud { display: none !important; }
 #joy-knob { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
 #touch-actions { position: absolute; right: 16px; bottom: 90px; display: flex; gap: 10px; pointer-events: auto; }
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
-#touch-actions button { width: 72px; height: 72px; }
+#touch-actions button { width: 72px; height: 72px; white-space: nowrap; } /* 점프·헤엄·달리기·가속은 한 줄로 (줄이 바뀌면 둥근 버튼 안에서 글자가 깨져 보인다) */
 #touch-actions button.run { background: rgba(255,217,61,.85); }
 #touch-actions button.boost { background: rgba(63,184,232,.92); color: #fff; } /* 배 위: 가속 */
 /* 점프 버튼이 '대화'·'타기'·'구출' 버튼으로 바뀌었을 때: 파란색 + 살짝 커짐 */
