@@ -135,7 +135,7 @@ export class Player {
     if (this.car) this.car.rotation.z = -Math.max(-0.18, Math.min(0.18, this.lean || 0)); // 차는 꺾을 때 살짝 기운다
     tickModel(this.group, dt, this.boat ? 'idle'
       : this.swimming ? (moving ? 'swim' : 'swimidle')   // 심해에서 떠 있을 때는 헤엄 동작 (클립이 없으면 walk/idle 로 대신)
-      : !this.onGround && !this.car ? 'jump'             // 공중에 떠 있으면 점프 동작 (클립이 없으면 서 있는 모습)
+      : !this.onGround && !this.car && (this.jumping || (this.airT || 0) > 0.15) ? 'jump' // 점프했거나 0.15초 넘게 떠 있으면 점프 동작 (한 프레임 뜬 건 무시)
       : moving ? (this.running ? 'run' : 'walk') : 'idle');
 
     // 경계
@@ -164,18 +164,25 @@ export class Player {
         this.vy = JUMP;
         this.onGround = false;
         this.jumped = true;
+        this.jumping = true; // 진짜 점프 중 (내리막에서 잠깐 뜨는 것과 구분)
       }
       this.vy += GRAVITY * this.gravityScale * dt;
     }
     p.y += this.vy * dt;
 
     const floor = inHole(p.x, p.z) ? -20 : terrainHeight(p.x, p.z);
-    if (p.y <= floor) {
+    // 내리막을 달릴 때는 중력보다 땅이 더 빨리 낮아져 매 프레임 살짝 떠 버린다 → 점프 동작이 깜빡이며 버벅였다.
+    // 점프 중이 아니고 땅과의 틈이 작으면(0.6m 안) 땅에 붙인다. 그보다 높은 턱에서 떨어지는 건 진짜 낙하.
+    const gap = p.y - floor;
+    if (p.y <= floor || (!this.jumping && !sw && this.vy <= 0 && gap < 0.6)) {
       p.y = floor;
       this.vy = 0;
       this.onGround = true;
+      this.jumping = false;
+      this.airT = 0;
     } else {
       this.onGround = false;
+      this.airT = (this.airT || 0) + dt;
     }
     if (sw && p.y >= sw.ceiling) { p.y = sw.ceiling; this.vy = Math.min(this.vy, 0); } // 수면 바로 아래까지
     this.swimming = !!sw && !this.onGround;

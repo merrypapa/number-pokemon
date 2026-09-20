@@ -92,12 +92,14 @@ const MATCH = [(n, c) => n === c, (n, c) => n.startsWith(c), (n, c) => n.include
 // 뼈의 x/z 가 그 뼈 높이의 20% 넘게 움직이면 걸음의 흔들림이 아니라 "이동"이므로 첫 프레임 값으로 고정한다.
 // (걷기·달리기의 자연스러운 좌우 흔들림은 그대로 둔다. 같은 클립에 두 번 해도 결과는 같다)
 function stripRootMotion(clip) {
-  for (const track of clip.tracks) {
-    if (!track.name.endsWith('.position')) continue;
+  const posTracks = clip.tracks.filter((t) => t.name.endsWith('.position') && t.values.length >= 6);
+  const root = posTracks.reduce((best, t) => (!best || Math.abs(t.values[1]) > Math.abs(best.values[1]) ? t : best), null); // 첫 프레임 높이가 가장 큰 트랙 = 뿌리(Hips)
+  for (const track of posTracks) {
     const v = track.values, n = v.length / 3;
-    if (n < 2) continue;
     const ref = Math.abs(v[1]) || 1; // 첫 프레임 높이를 이 모델의 크기 기준으로 삼는다
-    for (const axis of [0, 1, 2]) { // y 도 본다: 점프 클립은 몸 전체가 솟는데, 게임이 이미 주인공을 띄우므로 두 번 뜨지 않게 고정한다 (걷기의 작은 들썩임은 20% 안이라 그대로)
+    // y 는 뿌리 뼈만 본다: 점프 클립은 몸 전체가 솟는데 게임이 이미 주인공을 띄우므로 두 번 뜨지 않게 고정한다 (걷기의 작은 들썩임은 20% 안이라 그대로).
+    // 다른 뼈의 y 까지 고정하면 팔다리 애니메이션이 망가진다
+    for (const axis of track === root ? [0, 1, 2] : [0, 2]) {
       let lo = Infinity, hi = -Infinity;
       for (let i = 0; i < n; i++) { const x = v[i * 3 + axis]; if (x < lo) lo = x; if (x > hi) hi = x; }
       if (hi - lo <= ref * 0.2) continue;
