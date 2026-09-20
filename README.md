@@ -88,6 +88,7 @@ python3 -m http.server 8000
 | `src/models.js` | glb 모델 받기·정규화(발 y=0, 높이 1m)·복제·애니메이션(idle/walk/run/swim 별명 찾기, 제자리 걷기 고정). idle 클립이 없는 모델(뮤: Running·Walking 뿐)은 가만히 있을 때 걷기 클립을 0.12배 속도로 돌린다(제자리 달리기처럼 보이지 않게). 종 데이터의 `modelTilt`(라디안)는 모델을 뒤로 젖힌다(뮤: 걷기 애니가 35° 앞으로 숙여져 위에서 보면 엎드려 기는 듯 보였다) |
 | `src/portrait.js` | 말풍선 얼굴 그림: 본체 렌더러로 선형 렌더 타깃에 그려 픽셀을 읽고 sRGB 로 바꾼다(iOS 는 sRGB 타깃의 readPixels 를 거부해 얼굴이 비었다). 못 읽으면 예비 렌더러로 |
 | `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 + GLTFLoader/SkeletonUtils 애드온 |
+| `tools/viewer.html` | 모델 확인용 개발 페이지(로컬 서버에서 `tools/viewer.html?f=파일.glb,…&clip=jump&t=0.8`): 앞·옆·위 세 방향 그림과 애니메이션 클립 이름. 빨간 화살표가 게임의 앞 방향 |
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
 | `manifest.webmanifest`, `sw.js`, `assets/icons/` | 홈 화면 앱(PWA): 설치 정보, 오프라인·모델 캐시 서비스 워커, 아이콘 |
 

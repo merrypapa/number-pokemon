@@ -1,5 +1,6 @@
 <!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff">
-<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/"}}</script>
+<!-- 모델 확인용 개발 페이지: python3 -m http.server 8765 를 켜고 http://localhost:8765/tools/viewer.html?f=뮤.glb,지우.glb&clip=jump&t=0.8 처럼 연다. 줄마다 앞(+Z)·옆(+X)·위 세 방향으로 그리고, 빨간 화살표가 게임의 앞 방향(+Z). window.__done 에 클립 이름·크기가 남는다 -->
+<script type="importmap">{"imports":{"three":"../vendor/three/three.module.js","three/addons/":"../vendor/three/"}}</script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -10,7 +11,7 @@ r.setScissorTest(true);
 for (let k = 0; k < files.length; k++) {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0xffffff);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.6)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); scene.add(sun);
-  const g = await new GLTFLoader().loadAsync('assets/models/' + files[k]); const root = g.scene;
+  const g = await new GLTFLoader().loadAsync('../assets/models/' + files[k]); const root = g.scene;
   root.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(root); const size = box.getSize(new THREE.Vector3()); root.scale.multiplyScalar(1 / size.y); root.updateMatrixWorld(true); box.setFromObject(root); const c = box.getCenter(new THREE.Vector3()); root.position.x -= c.x; root.position.z -= c.z; root.position.y -= box.min.y; scene.add(root);
   info[files[k]] = { clips: g.animations.map((a) => a.name + ' ' + a.duration.toFixed(2) + 's'), size: size.toArray().map((v) => +v.toFixed(2)) };
   if (clipName && g.animations.length) { const clip = g.animations.find((a) => a.name.toLowerCase().includes(clipName.toLowerCase())) || g.animations[0]; const mixer = new THREE.AnimationMixer(root); mixer.clipAction(clip).play(); mixer.update(t); root.updateMatrixWorld(true); }
