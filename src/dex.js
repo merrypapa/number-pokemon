@@ -372,7 +372,7 @@ export class Dex {
       <div class="detail-top">
         <div class="detail-view"><div class="view-wrap"><canvas id="dex-view" width="440" height="440"></canvas>${star}</div><div class="view-hint">${rep0 ? '★ 별을 누르면 대표 · ' : ''}끌어서 돌려 보기</div></div>
         <div class="detail-info">
-          <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}</div>
+          <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}${sp.mega ? ' <span class="party-badge mega">✨ 메가</span>' : ''}</div>
           <div class="detail-chips">
             <span class="chip">🏠 ${from ? `${from.name}의 진화형` : zone}</span>
             <span class="chip hp">❤ ${sp.baseHp}</span><span class="chip atk">⚔ ${sp.baseAtk}</span>
@@ -461,9 +461,10 @@ export class Dex {
       const zone = this.zoneName[sp.zone] || '???';
       const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
+      const megaTag = sp.mega ? ' · ✨메가' : '';
       const sub = (known
-        ? (from ? `${from.name}의 진화형 · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}`)) + ` · ${gradeStars(sp.grade || 1)}`;
+        ? (from ? `${from.name}의 진화형${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형${megaTag}` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag}`)) + ` · ${gradeStars(sp.grade || 1)}`;
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}

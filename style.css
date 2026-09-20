@@ -306,6 +306,7 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 .detail-skills small { color: #999; font-weight: 700; }
 .detail-evo { font-size: 13px; color: #8c4fd0; font-weight: 800; margin-top: 6px; }
 .party-badge.boss { background: #e8453c; color: #fff; }
+.party-badge.mega { background: linear-gradient(90deg, #7c4dff, #3fb8e8); color: #fff; } /* 메가 포켓몬 딱지 */
 .detail-members { display: flex; flex-direction: column; gap: 8px; border-top: 2px dashed #eee; padding-top: 8px; }
 .member-row { background: #fffbe6; border-radius: 12px; padding: 8px 10px; border: 2px solid transparent; }
 .member-row.leader { border-color: #ffd93d; }
