@@ -131,14 +131,22 @@ class ModelAnim {
       }
       if (hit) break;
     }
-    return (this.found[name] = hit || this.first);
+    return (this.found[name] = hit || null); // null: 이 동작의 클립이 없다
   }
   play(name) {
-    const key = this.find(name);
-    if (!key || key === this.current) return;
+    let key = this.find(name), speed = 1;
+    if (!key) {
+      // 가만히 서 있는 동작(idle)이 없는 모델(뮤: Running·Walking 뿐)은 걷기 클립을 아주 천천히 돌린다 —
+      // 첫 클립을 그대로 틀면 서 있는데도 제자리에서 달리는 것처럼 보였다(엉뚱한 쪽을 보며 달리는 것 같았다)
+      if (name === 'idle' || name === 'swimidle') { key = this.find('walk') || this.first; speed = 0.12; }
+      else key = this.first;
+    }
+    if (!key) return;
+    if (key === this.current) { this.actions[key].timeScale = speed; return; } // 같은 클립을 속도만 바꿔 쓴다 (idle ↔ walk)
     const next = this.actions[key];
     if (this.current) this.actions[this.current].fadeOut(0.2);
     next.reset().fadeIn(0.2).play();
+    next.timeScale = speed;
     this.current = key;
   }
   update(dt) { this.mixer.update(dt); }

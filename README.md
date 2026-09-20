@@ -85,6 +85,7 @@ python3 -m http.server 8000
 | `src/battle.js` | 대결 장면(어깨 뒤 시점, 턴제: 내 포켓몬 기술 → 상대 반격, 체력 0이면 넘버볼 캡처, 승리/패배 연출) |
 | `src/dex.js` | 도감 + 내 포켓몬 패널(대표 고르기, 블록으로 공격/체력 올리기, 진화) |
 | `src/effects.js` | 색종이, 별/조각 파티클, 합성 효과음 |
+| `src/models.js` | glb 모델 받기·정규화(발 y=0, 높이 1m)·복제·애니메이션(idle/walk/run/swim 별명 찾기, 제자리 걷기 고정). idle 클립이 없는 모델(뮤: Running·Walking 뿐)은 가만히 있을 때 걷기 클립을 0.12배 속도로 돌린다(제자리 달리기처럼 보이지 않게). 종 데이터의 `modelTilt`(라디안)는 모델을 뒤로 젖힌다(뮤: 걷기 애니가 35° 앞으로 숙여져 위에서 보면 엎드려 기는 듯 보였다) |
 | `src/portrait.js` | 말풍선 얼굴 그림: 본체 렌더러로 선형 렌더 타깃에 그려 픽셀을 읽고 sRGB 로 바꾼다(iOS 는 sRGB 타깃의 readPixels 를 거부해 얼굴이 비었다). 못 읽으면 예비 렌더러로 |
 | `vendor/three/` | Three.js 0.170 (MIT) 로컬 복사본 + GLTFLoader/SkeletonUtils 애드온 |
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |

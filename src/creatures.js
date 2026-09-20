@@ -66,7 +66,9 @@ export function buildDraftMesh(c, opts = {}) {
     }
   }
   if (glows && c.boss) { const light = new THREE.PointLight(color, 3, 9); light.position.y = 0.8; g.add(light); } // 점광원은 보스만 (야생 여럿이 빛을 켜면 느려진다)
-  if (c.model) swapDraftWithModel(g, c.model, { onSwap: opts.onSwap }); // 진짜 모델이 있으면 드래프트 도형 대신 사용
+  // 진짜 모델이 있으면 드래프트 도형 대신 사용. modelTilt(라디안)가 있으면 그만큼 뒤로 젖힌다:
+  // 뮤의 걷기 애니메이션은 몸이 35° 쯤 앞으로 숙여져서, 위에서 내려다보는 게임 카메라로는 엎드려 기어가는 것처럼 보였다
+  if (c.model) swapDraftWithModel(g, c.model, { onSwap: (m) => { if (c.modelTilt) m.rotation.x = -c.modelTilt; opts.onSwap?.(m); } });
   g.scale.setScalar(c.scale || 1);
   return g;
 }
