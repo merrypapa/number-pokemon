@@ -88,7 +88,6 @@
    "wild": [
     "m02",
     "m10",
-    "m19",
     "m25",
     "m07",
     "m19b"
@@ -128,7 +127,6 @@
     "m34",
     "m17",
     "m36",
-    "m19",
     "m40"
    ],
    "wildOverride": {
@@ -209,7 +207,6 @@
    "wild": [
     "m49",
     "m15",
-    "m23",
     "m24",
     "m39",
     "m11",
@@ -273,7 +270,6 @@
     "m45",
     "m24",
     "m15",
-    "m23",
     "m41",
     "m24e"
    ],
@@ -1622,47 +1618,6 @@
    "grade": 4
   },
   {
-   "id": "m19",
-   "name": "마그마",
-   "type": "불",
-   "zone": "volcano",
-   "catchable": true,
-   "model": null,
-   "scale": 0.8,
-   "draftShape": {
-    "body": "drop",
-    "color": "#E0442D",
-    "glow": true
-   },
-   "baseHp": 45,
-   "baseAtk": 11,
-   "skills": [
-    {
-     "name": "불꽃세례",
-     "atk": 1,
-     "power": 1,
-     "kind": "fire"
-    },
-    {
-     "name": "불꽃",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "fire"
-    },
-    {
-     "name": "용암덩이",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "fire"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 5,
-   "personality": "느릿느릿",
-   "story": "용암 속에서 태어난 불 포켓몬. 몸이 아주 뜨거워서 가까이 가면 땀이 나. 뜨거운 곳을 찾아다녀.",
-   "grade": 4
-  },
-  {
    "id": "m25",
    "name": "가디",
    "type": "불",
@@ -2189,47 +2144,6 @@
    "favoriteNumber": 20,
    "personality": "신비로움",
    "story": "노래를 불러 상대를 재우는 풍선 포켓몬. 크게 부풀어 오를 수 있어. 꿈의우주에서 별에게 노래를 불러 줘.",
-   "grade": 5
-  },
-  {
-   "id": "m23",
-   "name": "삐삐",
-   "type": "페어리",
-   "zone": "space",
-   "catchable": true,
-   "model": null,
-   "scale": 0.8,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#F7B7C6",
-    "ears": 2
-   },
-   "baseHp": 72,
-   "baseAtk": 17,
-   "skills": [
-    {
-     "name": "손가락흔들기",
-     "atk": 1,
-     "power": 1,
-     "kind": "sing"
-    },
-    {
-     "name": "자장가",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "sing"
-    },
-    {
-     "name": "달빛",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "sing"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 5,
-   "personality": "달에서 온 아이",
-   "story": "달빛을 좋아하는 페어리 포켓몬. 보름달 밤에 춤을 춰. 손가락을 흔들면 신기한 일이 일어나.",
    "grade": 5
   },
   {
