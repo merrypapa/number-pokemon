@@ -1,5 +1,5 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤). boss 가 객체({zone,hp,atk,scale,grade})면 그 종은 평소 모습(baseHp/baseAtk, 진화형)과 보스 모습을 함께 가진 하나의 항목: 그 지역에서는 보스 능력치로 나타나고, 보스를 잡으면 내 같은 종이 보스 능력치로 올라간다. modelTilt 는 모델을 뒤로 젖히는 각도(라디안, 뮤: 걷기 애니가 앞으로 숙여져 있어서).",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤). boss 가 객체({zone,hp,atk,scale,grade})면 그 종은 평소 모습(baseHp/baseAtk, 진화형)과 보스 모습을 함께 가진 하나의 항목: 그 지역에서는 보스 능력치로 나타나고, 보스를 잡으면 내 같은 종이 보스 능력치로 올라간다. modelTilt 는 모델을 뒤로 젖히는 각도(라디안, 필요한 모델에만). evolution.to 가 배열([{id,p}])이면 확률(p, 합이 1)로 그중 하나로 진화한다(이브이 → 샤미드·부스터·쥬피썬더 30%씩, 엄브레온 10%).",
  "zones": {
   "forest": {
    "name": "푸른숲",
@@ -90,7 +90,8 @@
     "m10",
     "m19",
     "m25",
-    "m07"
+    "m07",
+    "m19b"
    ],
    "wildOverride": {
     "swim": false,
@@ -273,7 +274,8 @@
     "m24",
     "m15",
     "m23",
-    "m41"
+    "m41",
+    "m24e"
    ],
    "wildOverride": {
     "swim": false,
@@ -511,7 +513,24 @@
     }
    ],
    "evolution": {
-    "to": "m11e",
+    "to": [
+     {
+      "id": "m11v",
+      "p": 0.3
+     },
+     {
+      "id": "m11f",
+      "p": 0.3
+     },
+     {
+      "id": "m11j",
+      "p": 0.3
+     },
+     {
+      "id": "m11e",
+      "p": 0.1
+     }
+    ],
     "atk": 10,
     "hp": 15,
     "wins": 5
@@ -1394,7 +1413,12 @@
      "kind": "punch"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "b02",
+    "atk": 12,
+    "hp": 20,
+    "wins": 5
+   },
    "favoriteNumber": 8,
    "personality": "근성",
    "story": "힘 기르기를 좋아하는 격투 포켓몬. 커다란 바위를 들어 올리며 매일 운동해. 절대 지치지 않아.",
@@ -1446,15 +1470,15 @@
    "type": "바위",
    "zone": "cave",
    "catchable": true,
-   "model": null,
-   "scale": 2.6,
+   "model": "롱스톤.glb",
+   "scale": 1.6,
    "draftShape": {
     "body": "capsule",
     "color": "#8F8F8F",
     "dots": 6
    },
-   "baseHp": 56,
-   "baseAtk": 6,
+   "baseHp": 40,
+   "baseAtk": 11,
    "skills": [
     {
      "name": "바위떨구기",
@@ -1488,10 +1512,17 @@
     "mega": 1
    },
    "favoriteNumber": 10,
-   "boss": true,
+   "boss": {
+    "zone": "cave",
+    "hp": 56,
+    "atk": 6,
+    "scale": 2.6,
+    "grade": 6
+   },
    "personality": "동굴의 지킴이",
    "story": "바위가 길게 이어진 커다란 뱀 포켓몬. 땅속을 빠르게 파고 다니며 지하동굴을 지켜. 몸이 아주 단단해.",
-   "grade": 6
+   "grade": 4,
+   "evolvedFrom": "m35"
   },
   {
    "id": "m02",
@@ -2228,7 +2259,12 @@
      "kind": "psychic"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m24e",
+    "atk": 15,
+    "hp": 20,
+    "wins": 5
+   },
    "favoriteNumber": 9,
    "personality": "잠꾸러기",
    "story": "하루에 열여덟 시간을 자는 에스퍼 포켓몬. 위험하면 자면서도 순간이동으로 도망가.",
@@ -3907,7 +3943,6 @@
    ],
    "model": "뮤.glb",
    "scale": 2.6,
-   "modelTilt": 0.45,
    "draftShape": {
     "body": "capsule",
     "color": "#F7B7D4",
@@ -3946,6 +3981,190 @@
    "favoriteNumber": 10,
    "personality": "신비로움",
    "story": "태양계 열 곳의 보스를 모두 잡은 트레이너 앞에만 나타나는 전설의 포켓몬. 모든 포켓몬의 조상이라고 전해지며, 꿈의우주 어딘가에서 장난스럽게 숨바꼭질을 해. 넘버랜드에서 가장 강한 포켓몬이니 메가큐브을 꼭 준비하자."
+  },
+  {
+   "id": "m11v",
+   "name": "샤미드",
+   "type": "물",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "샤미드.glb",
+   "scale": 1.15,
+   "baseHp": 70,
+   "baseAtk": 15,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 12,
+   "evolvedFrom": "m11",
+   "personality": "시원함",
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "물의파동",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    }
+   ],
+   "story": "이브이가 물의 힘으로 진화한 모습. 몸이 물처럼 투명해질 수 있어서 물속에 숨으면 아무도 못 찾아. 물의길에서 헤엄치는 걸 제일 좋아해."
+  },
+  {
+   "id": "m11f",
+   "name": "부스터",
+   "type": "불",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "부스터.glb",
+   "scale": 1.15,
+   "baseHp": 68,
+   "baseAtk": 17,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 12,
+   "evolvedFrom": "m11",
+   "personality": "뜨거움",
+   "skills": [
+    {
+     "name": "불꽃세례",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "화염방사",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "불대문자",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    }
+   ],
+   "story": "이브이가 불의 힘으로 진화한 모습. 폭신한 갈기 속에 뜨거운 불꽃을 품고 있어서 안으면 따뜻해. 화가 나면 갈기가 활활 타올라."
+  },
+  {
+   "id": "m11j",
+   "name": "쥬피썬더",
+   "type": "전기",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "쥬피썬더.glb",
+   "scale": 1.15,
+   "baseHp": 64,
+   "baseAtk": 18,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 12,
+   "evolvedFrom": "m11",
+   "personality": "재빠름",
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "10만볼트",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bolt"
+    },
+    {
+     "name": "번개",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    }
+   ],
+   "story": "이브이가 번개의 힘으로 진화한 모습. 뾰족한 털 하나하나가 바늘처럼 서서 찌릿찌릿 전기를 튀겨. 넘버랜드에서 제일 빨리 달려."
+  },
+  {
+   "id": "m24e",
+   "name": "윤겔라",
+   "type": "에스퍼",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "윤겔라.glb",
+   "scale": 1.25,
+   "baseHp": 92,
+   "baseAtk": 20,
+   "grade": 5,
+   "evolution": null,
+   "favoriteNumber": 9,
+   "evolvedFrom": "m24",
+   "personality": "똑똑함",
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "psychic"
+    },
+    {
+     "name": "미래예지",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    }
+   ],
+   "story": "케이시가 진화한 모습. 숟가락을 들고 초능력으로 숫자를 휘게 만들어. 명왕성의 어둠 속에서 아주 드물게 혼자 떠돌기도 해."
+  },
+  {
+   "id": "m19b",
+   "name": "블레이범",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "model": "블레이범.glb",
+   "scale": 1.0,
+   "baseHp": 32,
+   "baseAtk": 10,
+   "grade": 3,
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "수줍음",
+   "skills": [
+    {
+     "name": "불꽃",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "화염방사",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃폭풍",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    }
+   ],
+   "story": "등에 불꽃을 지고 다니는 불의산의 포켓몬. 평소엔 수줍어서 불을 끄고 있다가 놀라면 등이 확 타올라. 태양에도 놀러 가."
   }
  ]
 }

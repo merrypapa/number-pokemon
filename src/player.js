@@ -5,7 +5,7 @@ import { swapDraftWithModel, tickModel } from './models.js';
 import { CAR_SPEED, CAR_BOOST } from './car.js';
 
 export const PLAYER_NAME = '인하';
-export const PLAYER_MODEL = '인하.glb'; // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
+export const PLAYER_MODEL = '지우.glb'; // 지우: 서기(restpose)·걷기·달리기·점프(Regular_Jump)·수영(Swim_Forward/Swim_Idle) 애니메이션이 들어 있다 // assets/models/ 안의 이 파일이 있으면 주인공이 이 모델로 바뀐다
 export const PLAYER_HEIGHT = 1.9;      // 주인공 모델 키(m). 몬스터(1m 기준)보다 크게
 
 const SPEED = 6.5, RUN = 1.7, JUMP = 7, GRAVITY = -20, ACCEL = 14; // RUN: 달리기 배속 (Shift/Ctrl 또는 달리기 버튼), ACCEL: 조이스틱처럼 부드럽게 가속/감속
@@ -135,6 +135,7 @@ export class Player {
     if (this.car) this.car.rotation.z = -Math.max(-0.18, Math.min(0.18, this.lean || 0)); // 차는 꺾을 때 살짝 기운다
     tickModel(this.group, dt, this.boat ? 'idle'
       : this.swimming ? (moving ? 'swim' : 'swimidle')   // 심해에서 떠 있을 때는 헤엄 동작 (클립이 없으면 walk/idle 로 대신)
+      : !this.onGround && !this.car ? 'jump'             // 공중에 떠 있으면 점프 동작 (클립이 없으면 서 있는 모습)
       : moving ? (this.running ? 'run' : 'walk') : 'idle');
 
     // 경계

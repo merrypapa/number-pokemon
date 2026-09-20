@@ -83,7 +83,9 @@ const ALIAS = {
   run: ['run', 'running', 'jog', 'walk'],
   swim: ['swim_forward', 'swimming', 'swim'],      // 물속에서 앞으로 나아갈 때
   swimidle: ['swim_idle', 'tread', 'float', 'swim'], // 물속에서 가만히 떠 있을 때
+  jump: ['jump'],                                    // 공중에 떠 있을 때 (지우: Regular_Jump)
 };
+const CLIP_SPEED = { jump: 1.6 }; // 점프 클립(2초)은 게임의 점프(0.7초)보다 길어서 빨리 돌린다
 const MATCH = [(n, c) => n === c, (n, c) => n.startsWith(c), (n, c) => n.includes(c)]; // 딱 맞는 이름 → 앞부분이 같은 이름 → 포함하는 이름 순
 
 // 제자리(In Place) 애니가 아니면 캐릭터가 게임 좌표와 따로 앞으로 밀려나가 보인다.
@@ -95,7 +97,7 @@ function stripRootMotion(clip) {
     const v = track.values, n = v.length / 3;
     if (n < 2) continue;
     const ref = Math.abs(v[1]) || 1; // 첫 프레임 높이를 이 모델의 크기 기준으로 삼는다
-    for (const axis of [0, 2]) {
+    for (const axis of [0, 1, 2]) { // y 도 본다: 점프 클립은 몸 전체가 솟는데, 게임이 이미 주인공을 띄우므로 두 번 뜨지 않게 고정한다 (걷기의 작은 들썩임은 20% 안이라 그대로)
       let lo = Infinity, hi = -Infinity;
       for (let i = 0; i < n; i++) { const x = v[i * 3 + axis]; if (x < lo) lo = x; if (x > hi) hi = x; }
       if (hi - lo <= ref * 0.2) continue;
@@ -139,8 +141,9 @@ class ModelAnim {
       // 가만히 서 있는 동작(idle)이 없는 모델(뮤: Running·Walking 뿐)은 걷기 클립을 아주 천천히 돌린다 —
       // 첫 클립을 그대로 틀면 서 있는데도 제자리에서 달리는 것처럼 보였다(엉뚱한 쪽을 보며 달리는 것 같았다)
       if (name === 'idle' || name === 'swimidle') { key = this.find('walk') || this.first; speed = 0.12; }
+      else if (name === 'jump') { key = this.find('idle') || this.first; } // 점프 클립이 없으면 서 있는 모습
       else key = this.first;
-    }
+    } else speed = CLIP_SPEED[name] || 1;
     if (!key) return;
     if (key === this.current) { this.actions[key].timeScale = speed; return; } // 같은 클립을 속도만 바꿔 쓴다 (idle ↔ walk)
     const next = this.actions[key];

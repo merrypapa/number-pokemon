@@ -616,7 +616,7 @@ export class Battle {
     const d = this.creature.data;
     const strong = strongAgainst(d.type || '노말'), weak = weakTo(d.type || '노말');
     const skills = (d.skills || []).map((s) => `<span>${skillIcon(s)} ${s.name} <small>(공격 ${s.atk}↑ ×${s.power})</small></span>`).join('');
-    const evo = d.evolution ? `<div class="row">✨ 진화: 공격 ${d.evolution.atk} · 체력 ${d.evolution.hp} · ${d.evolution.wins ? `대표로 ${d.evolution.wins}번 이기면` : `지역 보스 ${d.evolution.boss}명 이기면`} → <b>${this.speciesName?.(d.evolution.to) || '?'}</b></div>` : '';
+    const evo = d.evolution ? `<div class="row">✨ 진화: 공격 ${d.evolution.atk} · 체력 ${d.evolution.hp} · ${d.evolution.wins ? `대표로 ${d.evolution.wins}번 이기면` : `지역 보스 ${d.evolution.boss}명 이기면`} → <b>${(Array.isArray(d.evolution.to) ? d.evolution.to.map((t) => this.speciesName?.(t.id)).filter(Boolean).join(' / ') : this.speciesName?.(d.evolution.to)) || '?'}</b></div>` : '';
     const img = this.thumb ? this.thumb(d) : null;
     this.infoBodyEl.innerHTML = `
       <h2>${img ? `<img src="${img}" alt="">` : ''}<span>${d.isBoss || d.boss ? '보스 ' : ''}${d.name} <small style="font-size:14px;color:#777">${d.type} 속성</small></span></h2>

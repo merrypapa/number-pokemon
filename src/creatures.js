@@ -74,6 +74,22 @@ export function buildDraftMesh(c, opts = {}) {
 }
 
 /** 보스 모습이 있는 종의 보스 지역 (boss 가 객체면 그 zone, true 면 사는 지역) */
+/** 진화 대상 목록 [{id,p}] — to 가 문자열이면 하나(p 1), 배열이면 확률대로 (이브이 → 샤미드·부스터·쥬피썬더·엄브레온) */
+export function evoTargets(e) {
+  if (!e) return [];
+  if (Array.isArray(e.to)) return e.to.filter((t) => t && t.id);
+  const out = e.to ? [{ id: e.to, p: 1 - (e.altTo ? (e.altChance ?? 0.5) : 0) }] : [];
+  if (e.altTo) out.push({ id: e.altTo, p: e.altChance ?? 0.5 }); // 리자몽 → 메가리자몽Y 또는 X
+  return out;
+}
+/** 확률대로 진화 대상 하나를 고른다 (없는 종은 건너뛴다) */
+export function pickEvolution(e, byId) {
+  const list = evoTargets(e).filter((t) => byId[t.id]);
+  if (!list.length) return null;
+  let r = Math.random() * list.reduce((s, t) => s + (t.p ?? 1), 0);
+  for (const t of list) { r -= t.p ?? 1; if (r <= 0) return byId[t.id]; }
+  return byId[list[list.length - 1].id];
+}
 export function bossZoneOf(sp) { return sp.boss && typeof sp.boss === 'object' && sp.boss.zone ? sp.boss.zone : sp.zone; }
 /** 그 지역에 보스로 세울 때 덮어쓸 값 (boss 객체의 hp·atk·scale·grade). true 인 보스는 종 값 그대로 */
 export function bossOverride(sp) {

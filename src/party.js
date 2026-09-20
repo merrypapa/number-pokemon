@@ -1,3 +1,4 @@
+import { evoTargets, pickEvolution } from './creatures.js';
 // 내 포켓몬(파티). 잡은 몬스터는 여기에 들어오고, 그중 한 마리가 "대표"로 주인공 뒤를 따라다니며 대결에 나간다.
 //  - 스탯: atk(공격력), maxHp(체력), hp(지금 체력). 야생을 잡으면 그 종의 baseAtk/baseHp, 시작 포켓몬은 starterAtk/starterHp.
 //  - 키우기: 숫자블록으로 공격력 +1 또는 체력 +1. 비용은 10단위마다 오른다 (0~9: 1개, 10~19: 2개, 20~29: 3개 …).
@@ -66,7 +67,7 @@ export class Party {
   /** 진화 조건 */
   evolveNeed(m) {
     const e = this.species(m).evolution;
-    if (!e || !this.speciesById[e.to]) return null;
+    if (!e || !evoTargets(e).some((t) => this.speciesById[t.id])) return null;
     return { ...e, winsNow: m.wins || 0, bossNow: this.conqueredCount(), megaNow: this.megaBlocks(), zone: evolveZoneOf(this.type(m)), here: this.zoneOf() };
   }
   /** 지역만 빼고 조건을 다 채웠나 (도감 안내용) */
@@ -86,9 +87,8 @@ export class Party {
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
   evolve(m) {
     const e = this.species(m).evolution;
-    // altTo 가 있으면 altChance 확률로 그쪽으로 진화한다 (리자몽 → 메가리자몽Y 또는 메가리자몽X)
-    const alt = e.altTo && this.speciesById[e.altTo] && Math.random() < (e.altChance ?? 0.5) ? e.altTo : e.to;
-    const next = this.speciesById[alt];
+    // 진화 대상이 여럿이면 확률대로 고른다 (이브이 → 샤미드·부스터·쥬피썬더·엄브레온, 리자몽 → 메가리자몽Y 또는 X)
+    const next = pickEvolution(e, this.speciesById);
     if (e.mega) this.onUseMega(e.mega); // 메가블럭을 쓴다
     m.speciesId = next.id;
     const bonus = e.mega ? MEGA_BONUS : EVOLVE_BONUS; // 메가 진화는 더 크게 오른다
