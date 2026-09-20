@@ -25,7 +25,7 @@ import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle, BALL_MODEL, CUBE_MODEL } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
 import { Dex } from './dex.js';
-import { Party } from './party.js';
+import { Party, friendStats } from './party.js';
 import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
 import { cloud, validName, validPin } from './cloud.js';
@@ -1279,7 +1279,7 @@ function renderStarter() {
     item.innerHTML = `
       ${t ? `<img src="${t.color}" alt="">` : ''}
       <div class="starter-name">${sp.name}</div>
-      <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${sp.starterHp ?? sp.baseHp} · ⚔ 공격 ${sp.starterAtk ?? sp.baseAtk}</div>
+      <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).hp} · ⚔ 공격 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).atk}</div>
       <div class="starter-skill">기술: ${first ? `${skillIcon(first)} ${first.name}` : '-'}${sp.skills?.[1] ? ` → ${skillIcon(sp.skills[1])} ${sp.skills[1].name}` : ''}</div>`;
     item.onclick = () => chooseStarter(sp.id);
     starterGrid.appendChild(item);
@@ -2040,7 +2040,8 @@ function frame() {
             const member = already || party.add(c.data.id, c.mesh, { hp: c.data.baseHp, atk: c.data.baseAtk }); // 보스로 잡으면 보스 능력치로 들어온다
             let upgraded = false;
             if (already && c.isBoss) { // 이미 있는 같은 종은 보스 능력치로 올라간다 (낮아지지는 않는다)
-              const hp = Math.max(already.maxHp, c.data.baseHp), atk = Math.max(already.atk, c.data.baseAtk);
+              const fs = friendStats(c.data.baseHp, c.data.baseAtk); // 보스 능력치에도 친구 보너스
+              const hp = Math.max(already.maxHp, fs.hp), atk = Math.max(already.atk, fs.atk);
               upgraded = hp > already.maxHp || atk > already.atk;
               already.maxHp = hp; already.hp = hp; already.atk = atk;
             }
