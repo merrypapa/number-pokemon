@@ -38,11 +38,11 @@ export const WORLD = {
   cave: { x: -36.8, z: -111.8 },
   volcanoGate: { x: 120.0, z: -95.5 },  // 불의산 입구 (붉은 바위산 아치)
   station: { x: -120.0, z: 57.3 },      // 기차역 (물의길로 가는 기차)
-  rocketPad: { x: 111.8, z: 111.8 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
+  rocketPad: { x: 128, z: 95 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
   sleepSpot: { x: -130.9, z: -130.9, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
-  hiveTree: { x: -54.5, z: 84.5 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
-  lab: { x: 0.0, z: 87.3 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
-  stadium: { x: 62.7, z: 117.3, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
+  hiveTree: { x: -72, z: 96 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
+  lab: { x: 0, z: 115 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
+  stadium: { x: 68, z: 134, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
     [[0.0, 45.0], [0.0, -12.3], [-4.1, -53.2], [0.0, -81.8]],
@@ -52,8 +52,9 @@ export const WORLD = {
     [[0.0, -81.8], [54.5, -90.0], [114.5, -95.5]],
     [[120.0, -62.7], [120.0, -90.0]], // 불의산 입구 협곡 길
     [[-12.3, 61.4], [-68.2, 60.0], [-114.5, 57.3]],
-    [[19.1, 70.9], [68.2, 95.5], [106.4, 109.1]],
-    [[0.0, 68.2], [0.0, 79.1]], // 마을 광장 → 연구소 문
+    [[19.1, 70.9], [70.0, 88.0], [122.0, 93.0]],
+    [[0.0, 68.2], [0.0, 108.0]], // 마을 광장 → 연구소 문 (연구소가 남쪽으로 더 내려갔다)
+    [[12.0, 74.0], [42.0, 104.0], [66.0, 122.0]], // 마을 → 넘버볼 아레나 문
   ],
 };
 
@@ -873,9 +874,10 @@ export function buildWorld(scene) {
   const leafMats = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c].map((c) => new THREE.MeshStandardMaterial({ color: c }));
   const avoid = (x, z, extra = 0) =>
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
-    Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 3 ||
+    Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 8 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
-    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 16 || distToPath(x, z) < 2.5 + extra ||
+    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 16 ||
+    Math.hypot(x - WORLD.lab.x, z - WORLD.lab.z) < 20 || Math.hypot(x - WORLD.stadium.x, z - WORLD.stadium.z) < WORLD.stadium.r + 10 || distToPath(x, z) < 2.5 + extra ||
     WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
   const treeSpots = [];
   while (treeSpots.length < 250) { // 넓어진 만큼 늘리되 면적 비례(316)보다 적게 — 사이가 트이게
