@@ -1827,7 +1827,19 @@ async function refreshPresenceFriends() {
   try { friends = await cloud.listFriends(); } catch (_) { return; }
   const ids = new Set(friends.map((f) => f.uid));
   for (const [uid, off] of presence.watches) if (!ids.has(uid)) { off(); presence.watches.delete(uid); presence.friends.delete(uid); }
-  for (const f of friends) if (!presence.watches.has(f.uid)) presence.watches.set(f.uid, cloud.watchPresence(f.uid, (v) => { if (v) presence.friends.set(f.uid, { ...v, uid: f.uid, name: v.name || f.name }); else presence.friends.delete(f.uid); }));
+  for (const f of friends) if (!presence.watches.has(f.uid)) {
+    let first = true, online = false;
+    presence.watches.set(f.uid, cloud.watchPresence(f.uid, (v) => {
+      const name = v?.name || f.name, where = v?.zone ? (ZONE_INFO[v.zone]?.name || v.zone) : '';
+      if (v) presence.friends.set(f.uid, { ...v, uid: f.uid, name }); else presence.friends.delete(f.uid);
+      // 접속 알림: 처음 볼 때 이미 접속 중이면 "접속 중", 나중에 들어오면 "접속했어", 나가면 "나갔어"
+      const now = !!v && (!v.at || Date.now() - v.at < 60000);
+      if (first) { first = false; if (now) { say(`👫 ${name}이(가) 지금 접속해 있어! (${where})`, { sec: 5 }); } }
+      else if (now && !online) { sound.pickup(); say(`👫 ${name}이(가) 접속했어! ${where}에 있어. 만나러 가 볼까?`, { sec: 6 }); }
+      else if (!now && online) say(`👋 ${name}이(가) 나갔어.`, { sec: 4 });
+      online = now;
+    }));
+  }
 }
 function stopPresence() { for (const off of presence.watches.values()) off(); presence.watches.clear(); presence.friends.clear(); presence.last = null; }
 window.addEventListener('pagehide', () => { cloud.clearPresence(); });
