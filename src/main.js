@@ -131,7 +131,7 @@ const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
 const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
-const CHEST_CHANCE = 0.25; // 네 개에 하나쯤. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치라서 상자로 다 바꾸지는 않는다
+const CHEST_CHANCE = 0.12; // 여덟 개에 하나쯤 — 가끔 만나야 반갑다. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치이기도 해서 상자로 다 바꾸지는 않는다
 const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
 const loadingEl = document.getElementById('title-loading');
@@ -1231,7 +1231,7 @@ function placeRescue(z, data, x, zz) {
 // 열보다 큰 숫자블록 친구의 이름 (data/numberblocks.json 에는 열이까지만 있어서 상자에서 나올 때 그 자리에서 만든다).
 // 몸은 numberblocks.js 의 shapeFor 가 11~24 를 다섯 칸 기둥으로 쌓아 주므로 그대로 세워진다
 const BIG_NB_NAMES = { 11: '열하나', 12: '열둘', 13: '열셋', 14: '열넷', 15: '열다섯', 16: '열여섯', 17: '열일곱', 18: '열여덟', 19: '열아홉', 20: '스물' };
-const BIG_NB_CHANCE = 0.15; // 상자 일곱 개에 하나쯤
+const BIG_NB_CHANCE = 0.2; // 상자 다섯 개에 하나쯤. 상자 자체가 드물어서(CHEST_CHANCE) 줍는 것 100개에 2~3번꼴이다
 /** 상자에서 나올 친구를 고른다. 보통은 2~10, 가끔 11~20 (11 쪽이 더 자주 나온다) */
 function chestFriendData() {
   if (Math.random() < BIG_NB_CHANCE) {
