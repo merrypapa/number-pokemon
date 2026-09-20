@@ -1145,10 +1145,10 @@ function updateCtxButton() {
   const show = ctxAction && !battle.active && !dex.open && !quiz.open && !planetOpen && !ride && !switching && !evo;
   if (document.body.classList.contains('touch')) { // 터치 화면: 점프 버튼이 그 일을 하는 버튼으로 바뀐다 (색도 바뀜)
     ctxBtn.classList.add('hidden');
-    const label = show ? ctxAction.short : (player.swim ? '🫧\n헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼
+    const label = show ? ctxAction.short : (player.swim ? '헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼 (둥근 버튼 안에 한 줄로 들어가게 한 단어)
     if (jumpBtn.textContent !== label) { jumpBtn.textContent = label; jumpBtn.classList.toggle('ctx', !!show); jumpBtn.dataset.key = show ? 'action' : 'jump'; }
     jumpBtn.hidden = (sailing || driving) && !show;             // 배 위·차 안에서는 점프 버튼을 숨긴다 (할 일이 있을 때만 보인다)
-    const runLabel = sailing || driving ? '⚡ 가속' : '달리기'; // 배 위·차 안에서는 달리기 대신 가속
+    const runLabel = sailing || driving ? '가속' : '달리기'; // 배 위·차 안에서는 달리기 대신 가속 (역시 한 줄로)
     if (runBtn.textContent !== runLabel) { runBtn.textContent = runLabel; runBtn.classList.toggle('boost', sailing || driving); }
     return;
   }
