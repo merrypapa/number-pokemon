@@ -42,7 +42,7 @@ export const WORLD = {
   sleepSpot: { x: -130.9, z: -130.9, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
   hiveTree: { x: -118, z: 124 },  // 남서쪽 바깥의 아주 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로). 마을에서 '꿀의 길'을 따라간다
   // 꿀의 길: 마을 남서쪽에서 꿀벌집 나무까지 이어지는 황금빛 길 (흙길과 달리 꿀 색이고 더 넓다)
-  honeyPath: [[-44, 82], [-70, 96], [-95, 110], [-112, 119]],
+  honeyPath: [[-44, 82], [-70, 96], [-92, 108], [-107, 117.5]], // 길 끝이 매달린 벌집 바로 아래
   lab: { x: 0, z: 115 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
   stadium: { x: 68, z: 134, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
@@ -998,7 +998,8 @@ export function buildWorld(scene) {
     const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 6.4, 8), trunkMat); branch.position.set(ht.x - 2.6, y0 + 9.2, ht.z + 1.8); branch.rotation.z = 1.1; branch.rotation.y = 0.4;
     decor.add(trunk, root, crown, crown2, crown3, branch); block(ht.x, ht.z, 2.2);
     // 벌집: 가지에 매달린 호박색 덩어리 (고리 여러 겹) + 어두운 입구 + 꿀 방울
-    const hx = ht.x - 10.5, hz = ht.z + 4.4, HIVE_SCALE = 3.2, hy = y0 + 1.6 * HIVE_SCALE + 1.0; // 벌집은 나뭇잎에 안 가리게 가지 끝(나무 밖)에 크게 매달린다. 아래쪽이 땅에서 1m 떠 있다
+    // 벌집은 꿀의 길이 들어오는 쪽(나무의 북동쪽) 가지 끝에 매단다 — 길을 따라오면 나무에 가리지 않고 벌집이 먼저 보인다
+    const hx = ht.x + 11, hz = ht.z - 6, HIVE_SCALE = 3.2, hy = y0 + 1.6 * HIVE_SCALE + 1.0; // 아래쪽이 땅에서 1m 떠 있다
     const bigBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.46, 12.4, 8), trunkMat); bigBranch.position.set((ht.x + hx) / 2, hy + 1.47 * HIVE_SCALE + 1.5, (ht.z + hz) / 2); bigBranch.rotation.z = Math.PI / 2 - 0.22; bigBranch.rotation.y = -Math.atan2(hz - ht.z, hx - ht.x); bigBranch.castShadow = true; decor.add(bigBranch); // 나무에서 벌집까지 뻗은 긴 가지
     const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.6, 6), trunkMat); rope.position.set(hx, hy + 1.47 * HIVE_SCALE + 0.8, hz);
     const hive = new THREE.Group();
@@ -1010,6 +1011,7 @@ export function buildWorld(scene) {
     const hole = new THREE.Mesh(new THREE.CircleGeometry(0.32, 16), new THREE.MeshBasicMaterial({ color: 0x3a2206 })); hole.position.set(0, -0.6, 1.02); hive.add(hole);
     const honeyDrip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffa020, emissive: 0xff7a00, emissiveIntensity: 0.5 })); honeyDrip.position.set(0.5, -1.55, 0.4); hive.add(honeyDrip);
     hive.position.set(hx, hy, hz);
+    hive.rotation.y = Math.atan2(hx - ht.x, hz - ht.z); // 입구가 길(나무 바깥쪽)을 향하게
     decor.add(rope, hive);
     // 벌집 둘레를 도는 꿀벌 (노란 몸 + 검은 줄)
     for (let i = 0; i < 7; i++) {
@@ -1021,8 +1023,8 @@ export function buildWorld(scene) {
       bee.userData = { r: rand(1.6, 3.2), h: rand(-0.8, 1.4), speed: rand(0.8, 1.6) * (i % 2 ? 1 : -1), phase: rand(0, 6) };
       hive.add(bee); hiveBees.push(bee);
     }
-    decor.add(makeSignAt('🐝 꿀벌집 · 벌집에 닿으면 안으로!', ht.x + 6, y0, ht.z + 6.5, -0.6, { bg: '#ffe08a', fg: '#5a3a08', board: 0xf4b400 }));
-    block(ht.x + 6, ht.z + 6.5, 0.3);
+    decor.add(makeSignAt('🐝 꿀벌집 · 벌집에 닿으면 안으로!', ht.x + 15, y0, ht.z - 2.5, 2.1, { bg: '#ffe08a', fg: '#5a3a08', board: 0xf4b400 })); // 길에서 오는 사람이 읽도록 벌집 앞 길가에
+    block(ht.x + 15, ht.z - 2.5, 0.3);
   }
   // ---------- 꿀의 길: 마을 남서쪽에서 꿀벌집 나무까지 이어지는 황금빛 길 ----------
   // 땅 색은 지형에서 칠하고(honey/honeyEdge), 여기서는 길목의 아치·꿀단지·꿀 웅덩이·가로등 벌집을 세운다.
@@ -1098,7 +1100,7 @@ export function buildWorld(scene) {
   }
 
   // 도토로: 벌집 나무 옆에 서서 꿀벌집을 소개한다 (꿀벌집 안에서도 만난다)
-  const totoroAt = { x: ht.x + 2.5, z: ht.z + 10 };
+  const totoroAt = { x: ht.x + 6, z: ht.z + 7 }; // 나무 옆 (벌집 아래로 가는 길을 막지 않게)
   const totoro = makeNpc({ outfit: 'miner', name: '도토로', model: '도토로.glb' });
   totoro.position.set(totoroAt.x, meadowHeight(totoroAt.x, totoroAt.z), totoroAt.z);
   totoro.rotation.y = 2.4;
@@ -1209,7 +1211,7 @@ export function buildWorld(scene) {
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
     arenaDoor: { x: stad.x, z: stad.z - stad.r - 1.9 }, // 넘버볼 아레나 문 앞 (닿으면 main 이 아레나 안으로 보낸다)
-    hiveDoor: { x: ht.x - 10.5, z: ht.z + 4.4 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
+    hiveDoor: { x: ht.x + 11, z: ht.z - 6 }, // 매달린 벌집의 바로 아래 (꿀의 길 끝. 어느 쪽에서 와도 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [
       `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 꿀의 길을 따라 여기까지 왔구나. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
       '벌집 바로 아래로 걸어가면 벌집 속으로 들어갈 수 있어. 안에는 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해!',
