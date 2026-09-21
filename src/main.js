@@ -33,7 +33,7 @@ import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
-import { GRUNTS, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
+import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
 import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -176,7 +176,9 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
 }
 /** 넘버로켓단 대원을 그 지역에 세운다 (src/rocket.js).
  *  서려던 자리가 바위·물·장식으로 막혀 있으면 둘레를 넓혀 가며 빈자리를 찾는다 (맵이 넓어져도 안 파묻히게). */
+const SHOW_ROCKETS = ROCKETS_ON || location.search.includes('rockets'); // 캐릭터 그림이 정해질 때까지는 꺼 둔다 (src/rocket.js)
 function placeGrunt(z) {
+  if (!SHOW_ROCKETS) return;
   const g = GRUNTS[z.name];
   if (!g) return;
   const clear = (x, zz) => Math.abs(x) < z.terrain.size / 2 - 4 && Math.abs(zz) < z.terrain.size / 2 - 4 && !inHole(x, zz) && !isBlocked(x, zz) && !insideObstacle(x, zz, 1.4);
