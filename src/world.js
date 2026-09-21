@@ -388,7 +388,7 @@ export function buildWorld(scene) {
 
   // 하늘/안개/빛
   scene.background = new THREE.Color(0x8fd3ff);
-  scene.fog = new THREE.Fog(0x8fd3ff, 90, 240);
+  scene.fog = new THREE.Fog(0x8fd3ff, 120, 330);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa55, 1.4));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(20, 30, 10);

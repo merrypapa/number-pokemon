@@ -68,7 +68,7 @@ export function buildDeepSea(scene) {
     PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < r);
 
   scene.background = new THREE.Color(0x02243c);
-  scene.fog = new THREE.Fog(0x04365a, 26, 130);
+  scene.fog = new THREE.Fog(0x04365a, 35, 175);
   scene.add(new THREE.HemisphereLight(0x6fd7ff, 0x02121f, 1.5)); // 위는 수면빛, 아래는 캄캄한 바닥
   const sun = new THREE.DirectionalLight(0xbfefff, 0.9);         // 수면에서 비껴 드는 빛
   sun.position.set(12, 40, 16);

@@ -61,7 +61,7 @@ export function buildSpace(scene) {
   const block = (x, z, r) => obstacles.push({ x, z, r });
 
   scene.background = new THREE.Color(0x070516);
-  scene.fog = new THREE.Fog(0x070516, 50, 160);
+  scene.fog = new THREE.Fog(0x070516, 68, 220);
   scene.add(new THREE.HemisphereLight(0xb9a6ff, 0x2a1d4d, 1.5));
   const sun = new THREE.DirectionalLight(0xcfc4ff, 0.6);
   sun.position.set(20, 30, 10);

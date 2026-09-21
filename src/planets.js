@@ -157,7 +157,7 @@ const keepClear = (x, z) => near(x, z, SPAWN, 9) || near(x, z, STATION, 9) || ne
 // 행성별 테마: 하늘·안개·빛·바닥색·지형·못 가는 곳·장식
 const THEMES = {
   sun: {
-    sky: 0xff9a2a, fog: [0xffb060, 45, 150], hemi: [0xfff1b5, 0xff6a00, 1.6], sun: [0xfff4c0, 1.2], dark: false,
+    sky: 0xff9a2a, fog: [0xffb060, 60, 200], hemi: [0xfff1b5, 0xff6a00, 1.6], sun: [0xfff4c0, 1.2], dark: false,
     bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.4 }, { x: 60.0, z: 26.7, r: 18.7, h: 2.0 }, { x: 13.3, z: -80.0, r: 24.0, h: 3.0 }, { x: -80.0, z: 66.7, r: 17.3, h: 1.8 }, { x: 80.0, z: -80.0, r: 20.0, h: 2.6 }],
     pools: [{ x: -40.0, z: 13.3, r: 9.3 }, { x: 48.0, z: -40.0, r: 10.7 }, { x: -77.3, z: -77.3, r: 8.0 }, { x: 82.7, z: 80.0, r: 8.0 }, { x: 0.0, z: -29.3, r: 6.7 }, { x: -93.3, z: 13.3, r: 6.7 }, { x: 32.0, z: 40.0, r: 6.0 }],
     colors: { a: 0xffc93a, b: 0xff9a1f, pool: 0x7a2a10, rim: 0xffe08a },
@@ -192,7 +192,7 @@ const THEMES = {
     },
   },
   mercury: {
-    sky: 0x050308, fog: [0x0a0810, 70, 190], hemi: [0xd8d8e8, 0x2a2a30, 1.0], sun: [0xfff6d0, 1.9], dark: false, stars: true,
+    sky: 0x050308, fog: [0x0a0810, 93, 253], hemi: [0xd8d8e8, 0x2a2a30, 1.0], sun: [0xfff6d0, 1.9], dark: false, stars: true,
     bumps: [{ x: -60.0, z: -46.7, r: 21.3, h: 3.2 }, { x: 66.7, z: 40.0, r: 18.7, h: 2.6 }, { x: 20.0, z: -86.7, r: 21.3, h: 3.6 }, { x: -86.7, z: 60.0, r: 17.3, h: 2.2 }, { x: 93.3, z: -80.0, r: 20.0, h: 3.0 }, { x: -26.7, z: 26.7, r: 13.3, h: 1.4 }],
     craters: [{ x: -30, z: -5, r: 12, d: 2.4 }, { x: 40, z: -30, r: 10, d: 2.0 }, { x: -60, z: -65, r: 13, d: 2.6 }, { x: 60, z: 62, r: 9, d: 1.6 }, { x: 0, z: -35, r: 8, d: 1.5 }, { x: -72, z: 5, r: 9, d: 1.8 }, { x: 30, z: 20, r: 6, d: 1.2 }, { x: 72, z: -5, r: 10, d: 1.9 }],
     pools: [],
@@ -214,7 +214,7 @@ const THEMES = {
     },
   },
   venus: {
-    sky: 0xe0b060, fog: [0xe8c070, 28, 105], hemi: [0xfff0c0, 0x8a5a20, 1.2], sun: [0xffe8b0, 0.7], dark: false,
+    sky: 0xe0b060, fog: [0xe8c070, 37, 140], hemi: [0xfff0c0, 0x8a5a20, 1.2], sun: [0xffe8b0, 0.7], dark: false,
     bumps: [{ x: -53.3, z: -40.0, r: 18.7, h: 2.2 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.0 }, { x: 0.0, z: -88.0, r: 18.7, h: 5 }, { x: -85.3, z: 61.3, r: 16.0, h: 1.8 }, { x: 85.3, z: -77.3, r: 18.7, h: 4.4 }, { x: -93.3, z: -80.0, r: 16.0, h: 3.6 }],
     pools: [{ x: -37.3, z: 18.7, r: 9.3 }, { x: 45.3, z: -34.7, r: 10.7 }, { x: -74.7, z: -26.7, r: 8.0 }, { x: 77.3, z: 77.3, r: 7.3 }, { x: 8.0, z: -40.0, r: 6.7 }, { x: -26.7, z: -93.3, r: 8.0 }, { x: 98.7, z: 5.3, r: 6.7 }],
     colors: { a: 0xb8862e, b: 0x9c6f22, rock: 0x5a3a22, pool: 0x8a9a20, rim: 0xd8c060 },
@@ -241,7 +241,7 @@ const THEMES = {
     },
   },
   earth: {
-    sky: 0x8fd3ff, fog: [0xbfe6ff, 90, 220], hemi: [0xdff4ff, 0x4f7f3f, 1.0], sun: [0xfff4e0, 1.2], dark: false,
+    sky: 0x8fd3ff, fog: [0xbfe6ff, 120, 293], hemi: [0xdff4ff, 0x4f7f3f, 1.0], sun: [0xfff4e0, 1.2], dark: false,
     bumps: [{ x: -53.3, z: -46.7, r: 20.0, h: 2.6 }, { x: 58.7, z: 32.0, r: 17.3, h: 2.0 }, { x: 13.3, z: -88.0, r: 21.3, h: 6 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.8 }, { x: 88.0, z: -80.0, r: 20.0, h: 5 }, { x: -96.0, z: -82.7, r: 18.7, h: 5.5 }],
     pools: [{ x: -40.0, z: 8.0, r: 14.7 }, { x: 66.7, z: -26.7, r: 10.7 }],
     colors: { a: 0x6fc95a, b: 0x5fb64c, pool: 0x3f9fe8, rim: 0xe8d9a0, snow: 0xf4f8ff },
@@ -270,7 +270,7 @@ const THEMES = {
     },
   },
   mars: {
-    sky: 0xe0a070, fog: [0xe8b088, 60, 190], hemi: [0xffd0b0, 0x7a3a20, 1.1], sun: [0xffe0c0, 1.1], dark: false,
+    sky: 0xe0a070, fog: [0xe8b088, 80, 253], hemi: [0xffd0b0, 0x7a3a20, 1.1], sun: [0xffe0c0, 1.1], dark: false,
     bumps: [{ x: -56.0, z: -40.0, r: 21.3, h: 3.0 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.4 }, { x: 10.7, z: -80.0, r: 29.3, h: 9 }, { x: -85.3, z: 58.7, r: 17.3, h: 2.0 }, { x: 88.0, z: -80.0, r: 18.7, h: 3.4 }, { x: -93.3, z: -80.0, r: 18.7, h: 3.0 }, { x: 40.0, z: 80.0, r: 16.0, h: 1.6 }],
     canyon: { x1: -106.7, z1: 26.7, x2: 93.3, z2: -13.3, w: 5, d: 2.6 },
     pools: [],
@@ -301,7 +301,7 @@ const THEMES = {
     },
   },
   jupiter: {
-    sky: 0xd8a56a, fog: [0xe0b080, 50, 160], hemi: [0xfff0d0, 0x8a5a3a, 1.2], sun: [0xfff4e0, 0.9], dark: false,
+    sky: 0xd8a56a, fog: [0xe0b080, 67, 213], hemi: [0xfff0d0, 0x8a5a3a, 1.2], sun: [0xfff4e0, 0.9], dark: false,
     bumps: [{ x: -53.3, z: -40.0, r: 26.7, h: 1.6 }, { x: 61.3, z: 34.7, r: 24.0, h: 1.4 }, { x: 0.0, z: -80.0, r: 29.3, h: 1.8 }, { x: -85.3, z: 58.7, r: 21.3, h: 1.2 }, { x: 88.0, z: -80.0, r: 24.0, h: 1.6 }],
     spot: { x: 40, z: -22, rx: 24, rz: 15 },
     pools: [{ x: -66.7, z: 13.3, r: 8.0 }, { x: 13.3, z: 26.7, r: 6.7 }, { x: -26.7, z: -82.7, r: 8.0 }, { x: 82.7, z: 80.0, r: 6.7 }],
@@ -335,7 +335,7 @@ const THEMES = {
     },
   },
   saturn: {
-    sky: 0xf3e2b8, fog: [0xf6ead0, 70, 200], hemi: [0xfff8e0, 0x9a8a5a, 1.1], sun: [0xfff4e0, 1.0], dark: false,
+    sky: 0xf3e2b8, fog: [0xf6ead0, 93, 267], hemi: [0xfff8e0, 0x9a8a5a, 1.1], sun: [0xfff4e0, 1.0], dark: false,
     bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.0 }, { x: 61.3, z: 34.7, r: 18.7, h: 1.8 }, { x: 13.3, z: -82.7, r: 21.3, h: 2.4 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.6 }, { x: 88.0, z: -80.0, r: 18.7, h: 2.2 }],
     hex: { x: 0, z: -72, r: 13 },
     pools: [{ x: 0.0, z: -96.0, r: 16.0 }],
@@ -363,7 +363,7 @@ const THEMES = {
     },
   },
   uranus: {
-    sky: 0x8fd8e8, fog: [0xa8e4ee, 50, 160], hemi: [0xe0fbff, 0x3a7a8a, 1.1], sun: [0xe0f8ff, 0.9], dark: false,
+    sky: 0x8fd8e8, fog: [0xa8e4ee, 67, 213], hemi: [0xe0fbff, 0x3a7a8a, 1.1], sun: [0xe0f8ff, 0.9], dark: false,
     bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.4 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.0 }, { x: 13.3, z: -82.7, r: 21.3, h: 3.0 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.8 }, { x: 88.0, z: -80.0, r: 18.7, h: 2.6 }, { x: -93.3, z: -80.0, r: 18.7, h: 2.8 }],
     pools: [{ x: -40.0, z: 10.7, r: 12.0 }, { x: 53.3, z: -40.0, r: 10.7 }, { x: -80.0, z: -66.7, r: 8.0 }, { x: 80.0, z: 82.7, r: 8.0 }, { x: 10.7, z: -40.0, r: 6.7 }],
     colors: { a: 0xa8e8f0, b: 0x8ad0dc, dark: 0x5aa8b8, pool: 0x3a8a9a, rim: 0xdff6ff },
@@ -384,7 +384,7 @@ const THEMES = {
     },
   },
   neptune: {
-    sky: 0x2b4ad8, fog: [0x3050d0, 45, 150], hemi: [0x9fb8ff, 0x101a60, 1.2], sun: [0xcfe0ff, 1.0], dark: false,
+    sky: 0x2b4ad8, fog: [0x3050d0, 60, 200], hemi: [0x9fb8ff, 0x101a60, 1.2], sun: [0xcfe0ff, 1.0], dark: false,
     bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.4 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.0 }, { x: 13.3, z: -82.7, r: 21.3, h: 3.0 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.8 }, { x: 88.0, z: -80.0, r: 18.7, h: 2.6 }],
     spot: { x: -44, z: -40, r: 16 },
     pools: [{ x: 40.0, z: 8.0, r: 10.7 }, { x: -26.7, z: 40.0, r: 8.0 }, { x: 74.7, z: -53.3, r: 9.3 }, { x: -93.3, z: 80.0, r: 8.0 }, { x: 16.0, z: -45.3, r: 6.7 }],
@@ -412,7 +412,7 @@ const THEMES = {
     },
   },
   pluto: {
-    sky: 0x030210, fog: [0x06041a, 60, 170], hemi: [0x9a8ab0, 0x1a1020, 0.9], sun: [0xd8d0ff, 0.9], dark: true, stars: true,
+    sky: 0x030210, fog: [0x06041a, 80, 227], hemi: [0x9a8ab0, 0x1a1020, 0.9], sun: [0xd8d0ff, 0.9], dark: true, stars: true,
     bumps: [{ x: -73.3, z: -53.3, r: 21.3, h: 5 }, { x: 80.0, z: -66.7, r: 20.0, h: 5.5 }, { x: -93.3, z: 53.3, r: 17.3, h: 3.6 }, { x: 93.3, z: 60.0, r: 17.3, h: 3.2 }, { x: 0.0, z: -104.0, r: 18.7, h: 4.5 }, { x: 53.3, z: 13.3, r: 13.3, h: 1.8 }, { x: -53.3, z: 13.3, r: 13.3, h: 1.6 }],
     pools: [],
     colors: { a: 0x9a8a80, b: 0x7a5a50, heart: 0xf4f0f0, heart2: 0xffe8f0 },

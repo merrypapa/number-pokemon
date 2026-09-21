@@ -73,7 +73,7 @@ export function buildSea(scene) {
   const block = (x, z, r) => obstacles.push({ x, z, r });
 
   scene.background = new THREE.Color(0x9fe3ff);
-  scene.fog = new THREE.Fog(0x9fe3ff, 80, 220);
+  scene.fog = new THREE.Fog(0x9fe3ff, 110, 300);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x4fa3c7, 1.5));
   const sun = new THREE.DirectionalLight(0xffffff, 1.8);
   sun.position.set(20, 30, 10);
