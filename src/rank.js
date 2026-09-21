@@ -1,4 +1,4 @@
-// 주간 순위표. 한 주(월요일~일요일, 기기 시간 기준 ISO 주) 동안 한 일을 점수로 섞어 매긴다.
+// 주간 순위표. 한 주(월요일~일요일, 한국 시간 기준 ISO 주) 동안 한 일을 점수로 섞어 매긴다.
 //   점수 = 퀴즈 정답 × 5 + 포켓몬 잡기 × 3 + 보스 정복 × 20
 // 주가 바뀌면 state.wk(이번 주 기록)가 0으로 돌아간다 (main 의 checkWeek). 순위는 Firestore leaderboard/{주} 문서 하나에
 // 모두의 기록이 { entries: { uid: { n(가린 이름), s(점수), q, c, b, l(대표 id), t } } } 로 모이고, 이 문서는 로그인 없이도 읽을 수 있어서
@@ -8,9 +8,13 @@ export const TOP_N = 20;
 export const emptyWeek = () => ({ quiz: 0, caught: 0, boss: 0, duel: 0 });
 export const weekScore = (wk) => (wk?.quiz || 0) * WEIGHTS.quiz + (wk?.caught || 0) * WEIGHTS.caught + (wk?.boss || 0) * WEIGHTS.boss + (wk?.duel || 0) * WEIGHTS.duel;
 
-/** ISO 주 키 'YYYY-Www' (월요일 시작, 기기 시간) */
+// 주는 한국 시간(UTC+9)으로 나눈다. 기기 시계가 어느 나라에 맞춰져 있든 모두 같은 월요일 0시에 새 주가 시작해야
+// 순위표(leaderboard/{주}) 문서 하나를 같이 쓸 수 있다. 예전에는 기기의 지역 시간을 썼는데, 그러면 시차가 있는 기기끼리
+// 월요일 앞뒤로 하루 동안 서로 다른 주 문서에 기록해 순위가 갈라졌다.
+const TZ = 9 * 3600000;
+/** ISO 주 키 'YYYY-Www' (한국 시간 월요일 시작) */
 export function weekKey(d = new Date()) {
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const t = new Date(Math.floor((d.getTime() + TZ) / 86400000) * 86400000); // 한국 날짜의 0시를 UTC 0시로 옮겨 놓고 센다
   const day = t.getUTCDay() || 7; // 월 1 … 일 7
   t.setUTCDate(t.getUTCDate() + 4 - day); // 그 주의 목요일로 (ISO 주의 해는 목요일이 속한 해)
   const y = t.getUTCFullYear();

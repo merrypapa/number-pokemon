@@ -596,6 +596,7 @@ body.intro #btn-save { display: none !important; }
 .rank-how { font-size: 12px; color: #777; font-weight: 700; margin: -4px 0 4px; }
 .rank-mine { background: #fff3c4; border: 3px solid #ffd93d; border-radius: 14px; padding: 8px 12px; font-size: 14px; font-weight: 900; color: #333; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
 .rank-mine b { font-size: 22px; color: #e8453c; }
+.rank-mine .rank-last { font-weight: 800; color: #8a7a4a; font-size: 13px; } /* 지난주 점수 — 이번 주와 견줘 본다 */
 .rank-list { display: flex; flex-direction: column; gap: 6px; }
 .rank-list.hidden { display: none; }
 .rank-switch { display: flex; gap: 6px; background: #f0e6c0; border-radius: 999px; padding: 3px; align-self: flex-start; }

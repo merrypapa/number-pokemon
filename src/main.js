@@ -474,7 +474,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -1426,12 +1426,13 @@ function beatGrunt(c, won) {
 // ---------- 주간 순위 기록 (src/rank.js) ----------
 /** 이번 주 기록 +1 (quiz | caught | boss). 주가 바뀌었으면 먼저 0으로 돌린다 */
 function wkAdd(key) { checkWeek(); state.wk[key] = (state.wk[key] || 0) + 1; }
-/** 주가 바뀌었으면 이번 주 기록을 0으로. announce 면 말풍선으로 알린다 */
+/** 주가 바뀌었으면 이번 주 기록을 0으로 (지난주 기록은 순위 화면에 보여 주려고 남긴다). announce 면 말풍선으로 알린다 */
 function checkWeek(announce = true) {
   const now = weekKey();
   if (state.week === now) return false;
+  if (state.week && weekScore(state.wk) > 0) { state.lastWeek = state.week; state.lastWk = { ...state.wk }; } // 0점짜리 주는 남기지 않는다
   state.week = now; state.wk = emptyWeek();
-  if (announce && zone) say('🏆 새로운 한 주가 시작됐어! 이번 주 순위에 다시 도전해 보자!', { sec: 6 });
+  if (announce && zone) say(`🏆 새로운 한 주가 시작됐어! ${state.lastWeek ? `지난주엔 ${weekScore(state.lastWk)}점이었어. ` : ''}이번 주 순위에 다시 도전해 보자!`, { sec: 7 });
   return true;
 }
 // ---------- 튜토리얼/진행 ----------
@@ -1644,7 +1645,7 @@ function buildSaveData() {
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
     returnTo: state.returnTo,
     carTold: !!state.carTold,
-    week: state.week, wk: { ...state.wk },
+    week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -1705,6 +1706,9 @@ function refreshAccountUi() {
   rankTabBtn.hidden = !cloud.enabled;
   document.getElementById('btn-rank').hidden = !cloud.enabled; // 처음 화면의 이번 주 순위 (로그인 없이도 본다)
   dexLogoutBtn.hidden = !u;
+  // 로그인해 있으면 "시작하기" 하나가 이어서 해 준다. 로그인 전(클라우드가 꺼진 오프라인 포함)에는
+  // 이 기기 저장으로 이어 갈 길이 있어야 한다 — 없으면 새로 시작하는 수밖에 없어 진행이 통째로 사라진다.
+  document.getElementById('btn-continue').hidden = !!u || !listSaves().length;
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
 cloud.onUser = () => { refreshAccountUi(); if (cloud.user) { presence.refreshT = 0; startDuelWatch(); } else { stopPresence(); stopDuelWatch(); } };
@@ -2165,11 +2169,12 @@ document.getElementById('btn-rank').onclick = () => { sound.ensure(); rankModal.
 document.getElementById('btn-rank-close').onclick = () => rankModal.classList.add('hidden');
 /** 순위 그리기. inGame 이면 내 이번 주 점수 카드와 친구 순위(이름 그대로)도 넣는다. 전체 TOP 20 은 이름을 가려서 보여 준다 */
 async function renderRank(el, inGame) {
+  checkWeek(false); // 게임을 켜 둔 채 월요일을 넘겼을 수 있다 — 표와 내 점수가 서로 다른 주를 가리키지 않게 먼저 맞춘다
   const week = weekKey(), me = cloud.user?.uid || null;
   const thumb = (id) => { const sp = id ? speciesById[id] : null; return sp ? dex.thumbs(sp)?.color || null : null; };
   el.innerHTML = `<div class="rank-head">🏆 이번 주 순위 <span class="rank-how">(${weekRange(week)})</span></div>
     <div class="rank-how">점수 = 퀴즈 정답 ×${WEIGHTS.quiz} + 포켓몬 잡기 ×${WEIGHTS.caught} + 보스 정복 ×${WEIGHTS.boss} + 친구 대결 승리 ×${WEIGHTS.duel} · 월요일마다 새로 시작</div>
-    ${inGame && zone ? `<div class="rank-mine">내 이번 주 <b>${weekScore(state.wk)}</b>점 <span>퀴즈 ${state.wk.quiz || 0} · 잡기 ${state.wk.caught || 0} · 보스 ${state.wk.boss || 0}</span></div>` : ''}
+    ${inGame && zone ? `<div class="rank-mine">내 이번 주 <b>${weekScore(state.wk)}</b>점 <span>퀴즈 ${state.wk.quiz || 0} · 잡기 ${state.wk.caught || 0} · 보스 ${state.wk.boss || 0}</span>${state.lastWk ? `<span class="rank-last">지난주(${weekRange(state.lastWeek)}) ${weekScore(state.lastWk)}점</span>` : ''}</div>` : ''}
     ${inGame && me ? `<div class="rank-switch"><button data-list="all" class="on">🌍 전체 TOP ${TOP_N}</button><button data-list="friends">👫 친구 순위</button></div>` : `<div class="friend-me">🌍 전체 TOP ${TOP_N}</div>`}
     <div class="rank-list" id="rank-all"><div class="friend-note">불러오는 중…</div></div>
     ${inGame && me ? '<div class="rank-list hidden" id="rank-friends"><div class="friend-note">불러오는 중…</div></div>' : ''}`;
@@ -2206,7 +2211,8 @@ function applySave(d) {
   pendingCaught = d.caughtCreatures || {};
   state.returnTo = d.returnTo || null;
   state.carTold = !!d.carTold;
-  state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터
+  state.lastWeek = d.lastWeek || null; state.lastWk = d.lastWk ? { ...emptyWeek(), ...d.lastWk } : null;
+  state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   state.rockets = { ...(d.rockets || {}) };
