@@ -44,6 +44,7 @@ export const WORLD = {
   // 꿀의 길: 마을 남서쪽에서 꿀벌집 나무까지 이어지는 황금빛 길 (흙길과 달리 꿀 색이고 더 넓다)
   honeyPath: [[-44, 82], [-70, 96], [-92, 108], [-107, 117.5]], // 길 끝이 매달린 벌집 바로 아래
   lab: { x: 0, z: 115 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
+  shrineSpot: { x: 85, z: -85 },  // 메가 성역(이상해꽃 성역)이 드러날 자리. main.js 의 SHRINE_HINT.forest 가 이 값을 쓴다 — 여기엔 나무·바위를 놓지 않는다
   stadium: { x: 68, z: 134, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
   paths: [
@@ -888,7 +889,7 @@ export function buildWorld(scene) {
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 8 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
     Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 24 || distToHoney(x, z) < 4.5 ||
-    Math.hypot(x - WORLD.lab.x, z - WORLD.lab.z) < 20 || Math.hypot(x - WORLD.stadium.x, z - WORLD.stadium.z) < WORLD.stadium.r + 10 || distToPath(x, z) < 2.5 + extra ||
+    Math.hypot(x - WORLD.lab.x, z - WORLD.lab.z) < 20 || Math.hypot(x - WORLD.shrineSpot.x, z - WORLD.shrineSpot.z) < 18 || Math.hypot(x - WORLD.stadium.x, z - WORLD.stadium.z) < WORLD.stadium.r + 10 || distToPath(x, z) < 2.5 + extra ||
     WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
   const treeSpots = [];
   while (treeSpots.length < 250) { // 넓어진 만큼 늘리되 면적 비례(316)보다 적게 — 사이가 트이게

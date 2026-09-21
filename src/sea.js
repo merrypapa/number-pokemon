@@ -4,26 +4,28 @@ import { buildShip } from './boat.js';
 import { rand } from './util.js';
 import { buildGround, makeSignAt, makePillSprite, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
-// 물의길 (240x240). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
+// 물의길 (330x330). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
 // 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 걸어서는 바다에 못 들어가고 다리로만 건너지만,
 // 도착 섬 선착장에서 뱃사공에게 배를 빌리면 바다를 자유롭게 돌아다니며 헤엄치는 포켓몬(잉어킹 등)을 만날 수 있다.
 export const SEA = {
-  size: 240,
+  size: 330,
   base: -1.6,     // 바다 밑바닥
   waterY: -0.35,  // 수면
   islands: [
-    { x: 0, z: 58, r: 20, h: 4.4 },     // 도착 섬 (기차역·포탈)
-    { x: 34, z: 20, r: 15, h: 4.2 },
-    { x: -34, z: 14, r: 15, h: 4.2 },
-    { x: 8, z: -22, r: 16, h: 4.4 },
-    { x: 50, z: -26, r: 13, h: 4.0 },
-    { x: -48, z: -34, r: 14, h: 4.0 },
-    { x: 4, z: -66, r: 18, h: 4.6 },    // 보스 섬 (거북왕)
+    { x: 0.0, z: 79.8, r: 27.5, h: 4.4 },     // 도착 섬 (기차역·포탈)
+    { x: 46.8, z: 27.5, r: 20.6, h: 4.2 },
+    { x: -46.8, z: 19.2, r: 20.6, h: 4.2 },
+    { x: 11.0, z: -30.2, r: 22.0, h: 4.4 },
+    { x: 68.8, z: -35.8, r: 17.9, h: 4.0 },
+    { x: -66.0, z: -46.8, r: 19.2, h: 4.0 },
+    { x: 5.5, z: -90.8, r: 24.8, h: 4.6 },    // 보스 섬 (거북왕)
+    { x: 104, z: 36, r: 18, h: 4.0 },   // 동쪽 바깥 섬 (새로)
+    { x: -96, z: 62, r: 18, h: 4.0 },   // 서북쪽 바깥 섬 (새로)
   ],
-  spawn: { x: 0, z: 62 },
-  dock: { x1: 12, z1: 70, x2: 29, z2: 70, w: 1.7, rise: 0 }, // 선착장: 기차역에서 조금 걸어가는 섬 북동쪽 물가에서 바다로 뻗은 잔교
-  lighthouse: { x: 86, z: 26 },      // 먼바다 등대 바위
-  whirl: { x: -66, z: 10, r: 6 },    // 서쪽 먼바다의 소용돌이: 배를 타고 들어가면 심해로 내려간다 (거북왕을 이긴 뒤부터)
+  spawn: { x: 0, z: 85.2 },
+  dock: { x1: 16.5, z1: 96.2, x2: 39.9, z2: 96.2, w: 1.7, rise: 0 }, // 선착장: 기차역에서 조금 걸어가는 섬 북동쪽 물가에서 바다로 뻗은 잔교
+  lighthouse: { x: 138, z: -18 },        // 먼바다 등대 바위
+  whirl: { x: -90.8, z: 13.8, r: 7 },    // 서쪽 먼바다의 소용돌이: 배를 타고 들어가면 심해로 내려간다 (거북왕을 이긴 뒤부터)
 };
 /** 배를 탄 채 갈 수 있는 곳: 물 위이고 맵 안. (섬·다리 위는 배가 못 간다) */
 export function seaSailable(x, z) {
@@ -44,7 +46,7 @@ function link(a, b) {
   const ux = dx / d, uz = dz / d;
   return { x1: A.x + ux * (A.r - 5), z1: A.z + uz * (A.r - 5), x2: B.x - ux * (B.r - 5), z2: B.z - uz * (B.r - 5), w: 1.3, rise: 0.8 };
 }
-const SEA_BRIDGES = [link(0, 1), link(0, 2), link(1, 3), link(2, 3), link(1, 4), link(2, 5), link(3, 6), link(4, 6), link(5, 6), SEA.dock];
+const SEA_BRIDGES = [link(0, 1), link(0, 2), link(1, 3), link(2, 3), link(1, 4), link(2, 5), link(3, 6), link(4, 6), link(5, 6), link(1, 7), link(2, 8), SEA.dock]; // 7·8 은 바깥의 새 섬 (각각 긴 다리 하나로 이어진다)
 
 function seaHeight(x, z) {
   let y = SEA.base;
@@ -100,7 +102,7 @@ export function buildSea(scene) {
   const onLand = (x, z, margin = 0.9) => seaHeight(x, z) > margin && !SEA_BRIDGES.some((b) => onBridge(b, x, z));
   const trunkItems = [], leafItems = [], nutItems = [];
   let palms = 0;
-  while (palms < 60) {
+  while (palms < 95) {
     const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
     const a = rand(0, Math.PI * 2), r = rand(3, isl.r - 3);
     const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
@@ -117,7 +119,7 @@ export function buildSea(scene) {
   decor.add(makeInstanced(leafGeo, leafMat, leafItems));
   decor.add(makeInstanced(new THREE.SphereGeometry(0.2, 8, 6), new THREE.MeshStandardMaterial({ color: 0x6b4a2b }), nutItems));
   const rockItems = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 80; i++) {
     const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
     const a = rand(0, Math.PI * 2), r = rand(2, isl.r - 2);
     const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
@@ -129,7 +131,7 @@ export function buildSea(scene) {
   decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x8d97a3, roughness: 1 }), rockItems, { shadow: true }));
   const shellColors = [0xffffff, 0xffd1dc, 0xffe4b5, 0xe0ffff];
   const shellItems = [];
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 150; i++) {
     const isl = SEA.islands[Math.floor(Math.random() * SEA.islands.length)];
     const a = rand(0, Math.PI * 2), r = rand(isl.r - 8, isl.r - 2);
     const x = isl.x + Math.cos(a) * r, z = isl.z + Math.sin(a) * r;
@@ -232,8 +234,8 @@ export function buildSea(scene) {
   }
   const reefMat = new THREE.MeshStandardMaterial({ color: 0x7d8a97, roughness: 1 });
   const reefItems = [];
-  for (let i = 0; i < 70; i++) {
-    const x = rand(-110, 110), z = rand(-110, 110);
+  for (let i = 0; i < 110; i++) {
+    const x = rand(-158, 158), z = rand(-158, 158);
     if (!seaSailable(x, z) || Math.hypot(x - SEA.whirl.x, z - SEA.whirl.z) < SEA.whirl.r + 4) continue; // 소용돌이 둘레는 비워 둔다
     const r = rand(0.5, 1.6);
     reefItems.push({ x, y: SEA.waterY - r * 0.35, z, s: r, rx: rand(0, 3), ry: rand(0, 3) });
@@ -398,11 +400,11 @@ export function buildSea(scene) {
         : '서쪽 먼바다에는 아무도 못 들어가는 소용돌이가 있어. 거북왕을 이겨서 바다가 자네를 인정해야 열린다는군.',
     ] }],
     train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
-    wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4]],
+    wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4], [I[7].x - 5, I[7].z + 4], [I[7].x + 6, I[7].z - 3], [I[8].x + 5, I[8].z + 4], [I[8].x - 6, I[8].z - 3]],
     bossSpot: { x: I[6].x, z: I[6].z - 3 },
     // 배를 타야 만나는 헤엄치는 포켓몬 자리 (물 위). 뒤쪽 네 자리는 아주 먼바다 = 라프라스 같은 깊은바다 포켓몬
-    waterSpots: [[26, 46], [44, 40], [56, 12], [50, -8], [30, -46], [-18, 40], [-26, 66], [-56, 30], [-66, -6], [-40, -60], [14, -84], [62, -62], [76, 44], [-78, -44]],
-    deepSpots: [[100, 12], [-102, 96], [104, -92], [-8, 106]],
-    pickupSpots: [[I[0].x - 6, I[0].z + 2], [I[0].x + 4, I[0].z - 10], [I[1].x, I[1].z + 6], [I[1].x - 6, I[1].z - 2], [I[2].x, I[2].z + 6], [I[2].x + 6, I[2].z - 2], [I[3].x, I[3].z + 7], [I[3].x - 7, I[3].z - 2], [I[3].x + 7, I[3].z], [I[4].x + 4, I[4].z], [I[5].x - 3, I[5].z + 5], [I[6].x - 6, I[6].z - 6], [I[6].x + 7, I[6].z - 4], [I[6].x, I[6].z + 9], [I[0].x + 12, I[0].z - 4], [I[0].x - 12, I[0].z + 6]],
+    waterSpots: [[35.8, 63.2], [60.5, 55.0], [77.0, 16.5], [68.8, -11.0], [41.2, -63.2], [-24.8, 55.0], [-35.8, 90.8], [-77.0, 41.2], [-90.8, -8.2], [-55.0, -82.5], [19.2, -115.5], [85.2, -85.2], [104.5, 60.5], [-107.2, -60.5], [120, 92], [-120, 100], [132, -66], [-128, -92], [40, 128], [-52, 132]],
+    deepSpots: [[137.5, 16.5], [-140.2, 132.0], [143.0, -126.5], [-11.0, 145.8], [150, -120], [-150, -40]],
+    pickupSpots: [[I[0].x - 6, I[0].z + 2], [I[0].x + 4, I[0].z - 10], [I[1].x, I[1].z + 6], [I[1].x - 6, I[1].z - 2], [I[2].x, I[2].z + 6], [I[2].x + 6, I[2].z - 2], [I[3].x, I[3].z + 7], [I[3].x - 7, I[3].z - 2], [I[3].x + 7, I[3].z], [I[4].x + 4, I[4].z], [I[5].x - 3, I[5].z + 5], [I[6].x - 6, I[6].z - 6], [I[6].x + 7, I[6].z - 4], [I[6].x, I[6].z + 9], [I[0].x + 12, I[0].z - 4], [I[0].x - 12, I[0].z + 6], [I[7].x, I[7].z + 7], [I[7].x - 7, I[7].z - 4], [I[8].x, I[8].z + 7], [I[8].x + 7, I[8].z - 4]],
   };
 }

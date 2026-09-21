@@ -273,7 +273,7 @@ function toggleCar() { driving ? dismountCar() : mountCar(); }
 carBtn.onclick = toggleCar;
 
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
-const SHRINE_HINT = { forest: { x: 62, z: -62 }, cave: { x: -44, z: 34 }, volcano: { x: -68, z: 62 }, sea: { x: -34, z: 18 }, space: { x: 62, z: 58 } };
+const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -44, z: 34 }, volcano: { x: -68, z: 62 }, sea: { x: 110, z: 114 }, space: { x: 62, z: 58 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
 /** 성역을 놓을 만한 넓고 평평한 자리를 찾는다 (바다 지역은 탁 트인 물 위) */
 function findShrineSpot(z) {
   const onWater = !!z.world.waterY;
