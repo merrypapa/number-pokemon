@@ -288,9 +288,22 @@ export function buildSea(scene) {
     whirl.add(f);
     foam.push({ mesh: f, a: (i / 14) * Math.PI * 2, r: rand(1.6, W.r), speed: rand(0.9, 1.7) });
   }
-  const whirlTag = makePillSprite('🌀 소용돌이', { bg: '#062a40', fg: '#ffffff', border: '#7fe3ff' }, 1.2);
-  whirlTag.position.y = 4.2;
-  whirl.add(whirlTag);
+  // 이름표는 두 개를 만들어 두고 상태에 따라 하나만 보인다 (거북왕을 이기기 전에는 잠겨 있다는 걸 멀리서도 알게)
+  const whirlTagLocked = makePillSprite('🌀 소용돌이 🔒 거북왕을 이겨야 열려', { bg: '#3a3f4a', fg: '#ffffff', border: '#9aa3b0' }, 1.2);
+  const whirlTagOpen = makePillSprite('🌀 소용돌이 ⬇ 배로 들어가면 심해!', { bg: '#062a40', fg: '#ffffff', border: '#7fe3ff' }, 1.2);
+  whirlTagLocked.position.y = whirlTagOpen.position.y = 4.2;
+  whirlTagOpen.visible = false; // main 이 정복 여부를 보고 켠다 (setWhirlOpen)
+  whirl.add(whirlTagLocked, whirlTagOpen);
+  let whirlOpen = false;
+  /** 거북왕을 이겼나에 따라 소용돌이 모습을 바꾼다 (이름표 + 물살 색·속도) */
+  function setWhirlOpen(open) {
+    if (whirlOpen === open) return;
+    whirlOpen = open;
+    whirlTagLocked.visible = !open;
+    whirlTagOpen.visible = open;
+    funnel.material.color.set(open ? 0x14618c : 0x2f4a5a); // 열리면 물이 파랗게 빨려 든다
+    funnel.material.needsUpdate = true;
+  }
   for (let i = 0; i < 4; i++) { // 멀리서도 보이도록 둘레에 부표 넷
     const a = (i / 4) * Math.PI * 2 + 0.4;
     const bx = W.x + Math.cos(a) * (W.r + 4), bz = W.z + Math.sin(a) * (W.r + 4);
@@ -343,7 +356,7 @@ export function buildSea(scene) {
     }
     // 소용돌이: 고리와 물보라가 빙글빙글 돌며 가운데로 빨려 들어간다
     whirl.position.y = SEA.waterY + Math.sin(t * 1.2) * 0.06;
-    for (const r of whirlRings) r.ring.rotation.z = t * r.speed;
+    for (const r of whirlRings) r.ring.rotation.z = t * r.speed * (whirlOpen ? 1 : 0.45); // 잠겨 있을 때는 천천히 돈다
     for (const f of foam) {
       const a = f.a - t * f.speed;
       const u = (t * 0.35 + f.a) % 1;              // 바깥에서 가운데로 빨려 들어갔다 다시 바깥에서
@@ -351,7 +364,7 @@ export function buildSea(scene) {
       f.mesh.position.set(Math.cos(a) * rr, -0.1 - (1 - u) * 0.1 - u * 0.7, Math.sin(a) * rr);
       f.mesh.material.opacity = 0.85 * (1 - u * 0.8);
     }
-    whirlTag.position.y = 4.2 + Math.sin(t * 1.4) * 0.25;
+    whirlTagLocked.position.y = whirlTagOpen.position.y = 4.2 + Math.sin(t * 1.4) * 0.25;
     ship.animate(t, !!boat.userData.sailing); // 돛·깃발이 바람에 물결친다
     if (!boat.userData.sailing) { // 묶여 있는 동안에도 물결에 흔들린다
       boat.position.y = SEA.waterY + Math.sin(t * 1.4) * 0.12;
@@ -372,7 +385,8 @@ export function buildSea(scene) {
     sun, animate, terrain: SEA_TERRAIN, decor, spawn: SEA.spawn, dark: false,
     waterY: SEA.waterY,
     sailable: seaSailable,
-    dive: { x: SEA.whirl.x, z: SEA.whirl.z, r: SEA.whirl.r - 1.5 },    // 배로 여기 들어가면 심해로 내려간다
+    dive: { x: SEA.whirl.x, z: SEA.whirl.z, r: SEA.whirl.r },          // 배로 여기 들어가면 심해로 내려간다 (눈에 보이는 물살 끝까지)
+    setWhirlOpen,                                                      // 거북왕을 이겼는지에 따라 소용돌이 모습이 바뀐다
     arrivals: { deepsea: { x: 24, z: SEA.dock.z2 } },                  // 심해에서 해류를 타고 올라오면 잔교 위에 선다
     dock: { x: dockEnd.x, z: dockEnd.z, deckY },                       // 배를 타고 내리는 곳 (잔교 끝)
     sailorHome: { x: sailorAt.x, y: deckY, z: sailorAt.z },            // 배에서 내리면 루피가 돌아가 서는 자리

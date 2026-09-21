@@ -772,6 +772,7 @@ let switching = false;
 let snapCam = true; // 다음 프레임에 카메라를 주인공 뒤 제자리로 바로 옮긴다 (시작 직후, 대결 직후)
 function partyMeshes() { return [player.group, ...chain.followers.map((f) => f.mesh)]; }
 function applyZoneEnv() {
+  zone.world.setWhirlOpen?.(!!state.conquered[zone.name]); // 물의길 소용돌이: 거북왕을 이겼으면 열린 모습으로 (src/sea.js)
   player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
   player.gravityScale = zone.world.gravity || 1;
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
@@ -1462,6 +1463,7 @@ function tutorial() {
 }
 function conquer(zoneName) {
   state.conquered[zoneName] = true;
+  zones[zoneName]?.world.setWhirlOpen?.(true); // 거북왕을 이긴 그 순간 소용돌이가 열린 모습으로 바뀐다
   const n = Object.keys(state.conquered).length;
   showZoneBanner(`${ZONE_INFO[zoneName].name} 정복!`);
   confetti.burst(220);
@@ -2263,6 +2265,7 @@ if (location.search.includes('debug')) {
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
 let prevBattle = false;
+let whirlToldAt = 0; // 잠긴 소용돌이를 마지막으로 알려 준 때 (다른 안내에 막히지 않게 따로 센다)
 let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대결 → 대결곡/보스곡, 끝나면 지역 곡)
 function frame() {
   state.frames++;
@@ -2347,9 +2350,11 @@ function frame() {
       if (state.conquered.sea) {
         moved = true;
         switchZone('deepsea', getZone('deepsea').world.spawn, { text: '소용돌이에 빨려 들어갔어… 여긴 심해야! 점프 버튼(스페이스)을 꾹 누르면 헤엄쳐 올라갈 수 있어. 북쪽 해류를 타면 돌아갈 수 있어!', sec: 9 });
-      } else if (state.prompt <= 0) {
-        state.prompt = 8;
-        say('무시무시한 소용돌이야! 아직은 빨려 들어가지 않아… 보스 거북왕을 이겨서 바다를 정복하면 열린대!', { sec: 6 });
+      } else if (Date.now() - whirlToldAt > 7000) {
+        // 잠긴 이유는 반드시 알려 준다. 예전에는 여러 안내가 나눠 쓰는 state.prompt 를 봤는데, 배를 타면
+        // 그 값이 8로 차 있어서 안내가 통째로 막혔다 — 소용돌이 한가운데에 들어가도 아무 일도 안 일어나 보였다.
+        whirlToldAt = Date.now();
+        say('🔒 소용돌이가 아직 잠겨 있어! 남쪽 섬의 보스 거북왕을 이겨서 물의길을 정복하면 열려. 그때 다시 오자!', { sec: 7 });
       }
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
       moved = true;
