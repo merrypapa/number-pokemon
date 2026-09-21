@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>넘버 몬스터 어드벤처 · 앱으로 설치하기</title>
+<meta name="description" content="폰 홈 화면에 넘버 몬스터 어드벤처를 설치하는 방법 — 내 폰에 맞는 방법만 보여 줍니다." />
+<meta name="theme-color" content="#8fd3ff" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+<link rel="icon" href="assets/icons/icon-192.png" />
+<meta property="og:title" content="넘버 몬스터 어드벤처" />
+<meta property="og:description" content="폰에 설치하고 포켓몬과 숫자 모험을 떠나요!" />
+<meta property="og:image" content="assets/icons/icon-512.png" />
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; padding: 0 16px 40px; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+         color: #20232e; background: linear-gradient(#8fd3ff, #d7f0ff 60%, #eafbe7); min-height: 100vh; }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  header { text-align: center; padding: 28px 0 12px; }
+  .icon { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 8px 20px rgba(0,0,0,.2); display: block; margin: 0 auto 14px; }
+  h1 { margin: 0 0 6px; font-size: clamp(24px, 6vw, 34px); font-weight: 900; }
+  .sub { margin: 0; font-size: clamp(14px, 3.6vw, 17px); font-weight: 700; color: #3a4a5a; }
+  .card { background: #fff; border-radius: 20px; padding: 20px; margin: 16px 0; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .card h2 { margin: 0 0 12px; font-size: clamp(18px, 4.6vw, 22px); font-weight: 900; display: flex; align-items: center; gap: 8px; }
+  ol { margin: 0; padding-left: 0; list-style: none; counter-reset: step; }
+  ol li { counter-increment: step; position: relative; padding: 12px 0 12px 46px; font-size: clamp(15px, 3.8vw, 17px); line-height: 1.5; border-top: 2px dashed #e6ecf2; }
+  ol li:first-child { border-top: 0; }
+  ol li::before { content: counter(step); position: absolute; left: 0; top: 10px; width: 32px; height: 32px; border-radius: 50%;
+                  background: #ffd93d; color: #20232e; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  b { color: #0f6fa8; }
+  .share-ico { display: inline-flex; vertical-align: -5px; width: 22px; height: 22px; }
+  .btn { display: block; width: 100%; padding: 16px; margin-top: 14px; border: 0; border-radius: 999px; font-size: clamp(17px, 4.4vw, 20px);
+         font-weight: 900; cursor: pointer; background: linear-gradient(#ffe066, #ffc300); color: #20232e; box-shadow: 0 5px 0 #c99400;
+         text-align: center; text-decoration: none; font-family: inherit; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #c99400; }
+  .btn.blue { background: linear-gradient(#5ec8f0, #3fb8e8); color: #fff; box-shadow: 0 5px 0 #2280a5; }
+  .btn.ghost { background: #fff; color: #20232e; border: 3px solid #c8d6e2; box-shadow: none; font-size: 16px; padding: 13px; }
+  .warn { background: #fff4d6; border: 3px solid #ffd93d; }
+  .note { font-size: 14px; color: #5b6b7b; line-height: 1.5; margin: 10px 0 0; }
+  .why { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .why div { background: #f3f8fc; border-radius: 14px; padding: 12px; font-size: 14px; font-weight: 700; text-align: center; }
+  .why span { display: block; font-size: 26px; margin-bottom: 4px; }
+  .qr { text-align: center; }
+  .qr svg { width: 190px; height: 190px; border-radius: 12px; }
+  .addr { font-size: 14px; word-break: break-all; background: #f3f8fc; border-radius: 10px; padding: 10px; margin-top: 10px; font-weight: 700; }
+  footer { text-align: center; font-size: 13px; color: #4a5a68; margin-top: 18px; line-height: 1.6; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="icon" src="assets/icons/icon-192.png" alt="넘버 몬스터 어드벤처 아이콘" />
+    <h1>넘버 몬스터 어드벤처</h1>
+    <p class="sub">폰 홈 화면에 앱으로 담아 두고, 아이콘만 누르면 바로 시작!</p>
+  </header>
+
+  <!-- 이미 설치한 경우 -->
+  <section id="done" class="card hidden">
+    <h2>🎉 이미 설치돼 있어요!</h2>
+    <p class="note">홈 화면의 넘버몬스터 아이콘을 누르면 언제든 열려요.</p>
+    <a class="btn" href="./">▶ 지금 바로 놀기</a>
+  </section>
+
+  <!-- 카카오톡·인스타 등 앱 안 브라우저 -->
+  <section id="inapp" class="card warn hidden">
+    <h2>⚠️ 이 창에서는 설치가 안 돼요</h2>
+    <p class="note" id="inapp-how"></p>
+    <button class="btn blue" id="btn-open">🌐 브라우저로 열기</button>
+    <button class="btn ghost" id="btn-copy">🔗 주소 복사하기</button>
+  </section>
+
+  <!-- 아이폰·아이패드 -->
+  <section id="ios" class="card hidden">
+    <h2>📱 아이폰·아이패드에 설치하기</h2>
+    <ol>
+      <li>화면 아래(아이패드는 위)의 <b>공유 버튼</b>
+        <svg class="share-ico" viewBox="0 0 24 24" fill="none" stroke="#0f6fa8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+        를 눌러요.</li>
+      <li>목록을 조금 내려서 <b>“홈 화면에 추가”</b>를 눌러요.</li>
+      <li>오른쪽 위 <b>추가</b>를 누르면 끝! 홈 화면에 아이콘이 생겨요.</li>
+    </ol>
+    <a class="btn ghost" href="./">설치 없이 그냥 하기</a>
+  </section>
+
+  <!-- 안드로이드 -->
+  <section id="android" class="card hidden">
+    <h2>📱 안드로이드에 설치하기</h2>
+    <button class="btn" id="btn-install">⬇ 앱 설치하기</button>
+    <p class="note" id="android-note">위 버튼을 누르면 설치 창이 떠요. 버튼이 안 눌리면 아래 방법으로 하세요.</p>
+    <ol>
+      <li>오른쪽 위 <b>⋮ 메뉴</b>를 눌러요.</li>
+      <li><b>“앱 설치”</b> 또는 <b>“홈 화면에 추가”</b>를 눌러요.</li>
+      <li><b>설치</b>를 누르면 끝!</li>
+    </ol>
+    <a class="btn ghost" href="./">설치 없이 그냥 하기</a>
+  </section>
+
+  <!-- 컴퓨터 -->
+  <section id="desktop" class="card hidden">
+    <h2>💻 폰으로 설치하려면</h2>
+    <p class="note">폰 카메라로 아래 QR 코드를 비추면 이 페이지가 폰에서 열려요.</p>
+    <div class="qr"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 37 37" shape-rendering="crispEdges" role="img" aria-label="설치 링크 QR 코드"><rect x="-2" y="-2" width="37" height="37" fill="#fff"/><path d="M0 0h7v1h-7zM9 0h2v1h-2zM12 0h2v1h-2zM15 0h1v1h-1zM18 0h2v1h-2zM21 0h1v1h-1zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM11 1h1v1h-1zM13 1h6v1h-6zM23 1h2v1h-2zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM12 2h2v1h-2zM15 2h1v1h-1zM17 2h2v1h-2zM20 2h1v1h-1zM22 2h3v1h-3zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM9 3h1v1h-1zM12 3h3v1h-3zM16 3h1v1h-1zM18 3h3v1h-3zM22 3h1v1h-1zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM9 4h1v1h-1zM11 4h1v1h-1zM13 4h2v1h-2zM17 4h2v1h-2zM22 4h2v1h-2zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM13 5h1v1h-1zM15 5h2v1h-2zM19 5h3v1h-3zM24 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM10 7h1v1h-1zM14 7h4v1h-4zM21 7h3v1h-3zM0 8h1v1h-1zM3 8h1v1h-1zM5 8h2v1h-2zM8 8h2v1h-2zM13 8h2v1h-2zM16 8h1v1h-1zM19 8h3v1h-3zM25 8h1v1h-1zM27 8h1v1h-1zM1 9h1v1h-1zM4 9h2v1h-2zM9 9h5v1h-5zM16 9h1v1h-1zM18 9h1v1h-1zM20 9h2v1h-2zM24 9h4v1h-4zM32 9h1v1h-1zM1 10h4v1h-4zM6 10h1v1h-1zM8 10h2v1h-2zM12 10h3v1h-3zM16 10h1v1h-1zM19 10h1v1h-1zM21 10h1v1h-1zM24 10h1v1h-1zM26 10h3v1h-3zM30 10h1v1h-1zM32 10h1v1h-1zM9 11h1v1h-1zM12 11h2v1h-2zM16 11h1v1h-1zM18 11h6v1h-6zM26 11h1v1h-1zM28 11h2v1h-2zM32 11h1v1h-1zM0 12h1v1h-1zM4 12h1v1h-1zM6 12h3v1h-3zM10 12h1v1h-1zM14 12h4v1h-4zM19 12h3v1h-3zM24 12h3v1h-3zM29 12h1v1h-1zM31 12h2v1h-2zM1 13h1v1h-1zM3 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM14 13h2v1h-2zM17 13h1v1h-1zM19 13h3v1h-3zM24 13h1v1h-1zM26 13h1v1h-1zM28 13h2v1h-2zM31 13h2v1h-2zM1 14h1v1h-1zM3 14h1v1h-1zM6 14h3v1h-3zM15 14h3v1h-3zM22 14h2v1h-2zM25 14h3v1h-3zM29 14h1v1h-1zM31 14h1v1h-1zM0 15h1v1h-1zM2 15h4v1h-4zM7 15h1v1h-1zM9 15h5v1h-5zM16 15h3v1h-3zM20 15h3v1h-3zM24 15h1v1h-1zM26 15h4v1h-4zM31 15h1v1h-1zM0 16h2v1h-2zM3 16h1v1h-1zM6 16h3v1h-3zM10 16h1v1h-1zM12 16h1v1h-1zM14 16h2v1h-2zM17 16h1v1h-1zM20 16h4v1h-4zM26 16h1v1h-1zM28 16h1v1h-1zM31 16h1v1h-1zM0 17h4v1h-4zM5 17h1v1h-1zM10 17h1v1h-1zM12 17h1v1h-1zM14 17h1v1h-1zM17 17h1v1h-1zM21 17h5v1h-5zM27 17h1v1h-1zM29 17h1v1h-1zM31 17h1v1h-1zM0 18h3v1h-3zM6 18h1v1h-1zM8 18h1v1h-1zM10 18h3v1h-3zM14 18h1v1h-1zM24 18h2v1h-2zM30 18h3v1h-3zM8 19h1v1h-1zM12 19h2v1h-2zM17 19h1v1h-1zM19 19h4v1h-4zM25 19h1v1h-1zM27 19h1v1h-1zM32 19h1v1h-1zM0 20h1v1h-1zM5 20h3v1h-3zM11 20h1v1h-1zM15 20h1v1h-1zM17 20h2v1h-2zM21 20h1v1h-1zM23 20h3v1h-3zM2 21h1v1h-1zM4 21h2v1h-2zM9 21h2v1h-2zM12 21h4v1h-4zM17 21h1v1h-1zM21 21h1v1h-1zM25 21h2v1h-2zM30 21h3v1h-3zM0 22h4v1h-4zM6 22h1v1h-1zM10 22h1v1h-1zM12 22h3v1h-3zM16 22h5v1h-5zM24 22h1v1h-1zM27 22h4v1h-4zM32 22h1v1h-1zM1 23h1v1h-1zM3 23h1v1h-1zM5 23h1v1h-1zM9 23h1v1h-1zM11 23h1v1h-1zM14 23h2v1h-2zM19 23h1v1h-1zM21 23h1v1h-1zM23 23h2v1h-2zM26 23h1v1h-1zM28 23h2v1h-2zM0 24h1v1h-1zM4 24h3v1h-3zM8 24h1v1h-1zM11 24h4v1h-4zM16 24h6v1h-6zM23 24h7v1h-7zM31 24h2v1h-2zM8 25h1v1h-1zM11 25h1v1h-1zM13 25h1v1h-1zM17 25h1v1h-1zM19 25h4v1h-4zM24 25h1v1h-1zM28 25h2v1h-2zM32 25h1v1h-1zM0 26h7v1h-7zM13 26h1v1h-1zM17 26h2v1h-2zM22 26h1v1h-1zM24 26h1v1h-1zM26 26h1v1h-1zM28 26h4v1h-4zM0 27h1v1h-1zM6 27h1v1h-1zM8 27h1v1h-1zM15 27h1v1h-1zM17 27h1v1h-1zM20 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM11 28h1v1h-1zM14 28h2v1h-2zM18 28h1v1h-1zM20 28h3v1h-3zM24 28h6v1h-6zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM8 29h1v1h-1zM10 29h3v1h-3zM15 29h3v1h-3zM21 29h1v1h-1zM23 29h1v1h-1zM26 29h1v1h-1zM28 29h1v1h-1zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM9 30h1v1h-1zM11 30h1v1h-1zM13 30h1v1h-1zM15 30h3v1h-3zM20 30h1v1h-1zM22 30h3v1h-3zM28 30h1v1h-1zM30 30h1v1h-1zM32 30h1v1h-1zM0 31h1v1h-1zM6 31h1v1h-1zM11 31h2v1h-2zM17 31h1v1h-1zM20 31h2v1h-2zM23 31h4v1h-4zM0 32h7v1h-7zM8 32h1v1h-1zM11 32h3v1h-3zM15 32h2v1h-2zM19 32h1v1h-1zM21 32h2v1h-2zM24 32h3v1h-3zM28 32h2v1h-2zM31 32h1v1h-1z" fill="#20232e"/></svg></div>
+    <div class="addr">https://merrypapa.github.io/number-pokemon/install.html</div>
+    <button class="btn ghost" id="btn-copy2">🔗 주소 복사하기</button>
+    <p class="note">컴퓨터에 설치하려면 크롬·엣지 주소창 오른쪽 끝의 <b>설치 아이콘</b>을 누르세요.</p>
+    <a class="btn" href="./">▶ 컴퓨터에서 바로 하기</a>
+  </section>
+
+  <section class="card">
+    <h2>설치하면 좋은 점</h2>
+    <div class="why">
+      <div><span>🏠</span>홈 화면 아이콘</div>
+      <div><span>⛶</span>주소창 없는 전체 화면</div>
+      <div><span>✈️</span>인터넷 없어도 열림</div>
+      <div><span>⚡</span>다음부터 빨리 시작</div>
+    </div>
+    <p class="note">설치해도 저장은 그대로예요. 계정으로 로그인하면 다른 기기에서도 이어 할 수 있어요.</p>
+  </section>
+
+  <footer>
+    아이와 함께 만드는 숫자 놀이 게임<br />
+    <a href="./" style="color:#0f6fa8;font-weight:800">게임 바로 가기</a>
+  </footer>
+</div>
+
+<script>
+  var ua = navigator.userAgent;
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  // 카카오톡·인스타 같은 "앱 안의 브라우저"에서는 홈 화면 추가가 없다
+  var inApp = /KAKAOTALK|Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER\(inapp|DaumApps|everytimeApp|kakaostory|band/i.test(ua)
+           || (isIOS && !/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua));
+  var standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  var show = function (id) { var e = document.getElementById(id); if (e) e.classList.remove('hidden'); };
+  var URL_HERE = 'https://merrypapa.github.io/number-pokemon/install.html';
+
+  if (standalone) show('done');
+  else if (inApp) {
+    show('inapp');
+    document.getElementById('inapp-how').textContent = isIOS
+      ? '지금은 카카오톡 같은 앱 안의 창이에요. 오른쪽 아래(또는 위) 메뉴에서 "Safari로 열기"를 누른 뒤에 설치해 주세요.'
+      : '지금은 카카오톡 같은 앱 안의 창이에요. 아래 버튼을 누르거나, 오른쪽 위 메뉴에서 "다른 브라우저로 열기"를 눌러 주세요.';
+    document.getElementById('btn-open').onclick = function () {
+      if (isAndroid) location.href = 'intent://merrypapa.github.io/number-pokemon/install.html#Intent;scheme=https;package=com.android.chrome;end';
+      else window.open(URL_HERE, '_blank');
+    };
+  }
+  else if (isIOS) show('ios');
+  else if (isAndroid) show('android');
+  else show('desktop');
+
+  // 안드로이드·데스크톱 크롬: 설치 창을 바로 띄운다
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; });
+  window.addEventListener('appinstalled', function () { document.getElementById('android').classList.add('hidden'); show('done'); });
+  var installBtn = document.getElementById('btn-install');
+  if (installBtn) installBtn.onclick = function () {
+    if (!deferred) { document.getElementById('android-note').textContent = '설치 창이 안 뜨면 오른쪽 위 ⋮ 메뉴 → "앱 설치"로 해 주세요. (크롬에서 열어야 해요)'; return; }
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; });
+  };
+
+  var copy = function (btn) {
+    if (!btn) return;
+    btn.onclick = function () {
+      var done = function () { btn.textContent = '✅ 주소를 복사했어요!'; setTimeout(function () { btn.textContent = '🔗 주소 복사하기'; }, 2500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(URL_HERE).then(done, function () { prompt('이 주소를 복사해 주세요', URL_HERE); });
+      else prompt('이 주소를 복사해 주세요', URL_HERE);
+    };
+  };
+  copy(document.getElementById('btn-copy')); copy(document.getElementById('btn-copy2'));
+
+  // 서비스 워커: 설치할 수 있는 앱으로 인식되게 하고, 게임 파일도 미리 받아 둔다
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+</script>
+</body>
+</html>

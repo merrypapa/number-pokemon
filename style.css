@@ -138,6 +138,11 @@ body.battle #btn-dex, body.battle #hud { display: none !important; }
 #joy-base { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; background: rgba(255,255,255,.22); border: 3px solid rgba(255,255,255,.65); pointer-events: none; transition: background .15s; }
 #joy-base.active { background: rgba(255,255,255,.35); }
 #joy-knob { position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+/* 설치 안내창 아래의 "친구에게 보낼 주소" 줄 */
+.install-share { margin-top: 12px; padding: 12px; border-radius: 12px; background: #f3f8fc; font-size: 13px; line-height: 1.6; color: #3a4a5a; text-align: center; }
+.install-share code { display: block; margin: 6px 0 8px; font-size: 13px; font-weight: 800; color: #0f6fa8; word-break: break-all; }
+.install-share button { font-size: 13px; padding: 8px 14px; }
+
 #touch-actions { position: absolute; right: 16px; bottom: 90px; display: flex; gap: 10px; pointer-events: auto; }
 #touch button { width: 60px; height: 60px; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); font-size: 18px; font-weight: 800; color: #333; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 #touch-actions button { width: 72px; height: 72px; white-space: nowrap; } /* 점프·헤엄·달리기·가속은 한 줄로 (줄이 바뀌면 둥근 버튼 안에서 글자가 깨져 보인다) */

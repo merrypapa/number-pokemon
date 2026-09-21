@@ -95,6 +95,20 @@ python3 -m http.server 8000
 | `.github/workflows/pages.yml` | main에 푸시하면 GitHub Pages로 자동 배포 |
 | `manifest.webmanifest`, `sw.js`, `assets/icons/` | 홈 화면 앱(PWA): 설치 정보, 오프라인·모델 캐시 서비스 워커, 아이콘 |
 
+## 설치 링크 하나로 보내기
+
+폰에 앱으로 담는 절차가 기기마다 달라서, **주소 하나만 보내면 그 폰에 맞는 방법만 보여 주는 페이지**를 뒀습니다.
+
+**https://merrypapa.github.io/number-pokemon/install.html**
+
+- 아이폰·아이패드(사파리): 공유 → "홈 화면에 추가" 3단계를 그림과 함께
+- 안드로이드(크롬): **앱 설치 버튼**을 눌러 바로 설치 창 (`beforeinstallprompt`)
+- 카카오톡·인스타 같은 앱 안의 창: "여기선 안 돼요" 안내 + 브라우저로 열기(안드로이드는 `intent://` 로 크롬 열기) + 주소 복사
+- 컴퓨터: 폰으로 찍는 **QR 코드**(페이지 안에 SVG 로 들어 있음)와 주소 복사
+- 이미 설치한 기기에서 열면: "이미 설치돼 있어요" + 바로 놀기
+
+링크만 눌러서 자동으로 설치되게 하는 건 어떤 폰에서도 불가능합니다(아이폰은 사파리 공유 메뉴를 거쳐야 하고, 안드로이드도 설치 창에서 한 번은 눌러야 합니다). 이 페이지는 그 절차를 "내 폰에 해당하는 것만" 남겨 줍니다. 게임 첫 화면의 "📱 홈 화면에 추가" 안내창 아래에도 이 주소와 복사 버튼이 있습니다.
+
 ## 홈 화면 앱 (PWA)
 
 - `manifest.webmanifest` + `sw.js` + `assets/icons/`(Pillow 로 그린 넘버볼·숫자블록 아이콘 192/512/maskable/apple-touch 180). 홈 화면에 추가하면 주소창 없이 전체 화면으로 열린다(`apple-mobile-web-app-capable`, `viewport-fit=cover`, HUD·도감 버튼은 `env(safe-area-inset-*)` 만큼 노치를 피한다). iOS 상태 표시줄은 `default`(theme-color 하늘색 띠)로 둔다: `black-translucent` 로 하면 iOS 가 화면 높이를 상태 표시줄만큼 짧게 잡아 아래에 배경색 띠가 남고 위에서는 게임이 시계 밑으로 들어갔다.

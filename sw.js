@@ -4,11 +4,11 @@
 //  - www.gstatic.com 의 Firebase SDK : 'np-vendor' 에 처음 받을 때 넣고 다음부터는 캐시에서 (주소에 버전이 있어 안전)
 //  - 그 밖의 다른 출처(Firebase 인증·데이터 서버) : 건드리지 않는다 (네트워크 그대로)
 // 새 버전이 설치되면 게임이 "새 버전이 있어요 · 다시 열기" 안내를 띄우고, 누르면 이 워커에게 SKIP_WAITING 을 보내 바로 바꾼다.
-const VERSION = 'v2026-09-21-18';
+const VERSION = 'v2026-09-21-19';
 const ASSET_VERSION = '2';
 const SHELL = `np-shell-${VERSION}`, ASSETS = `np-assets-${ASSET_VERSION}`, VENDOR = 'np-vendor'; // VENDOR: gstatic 의 Firebase SDK (주소에 버전이 있어 오래 둬도 된다)
 const SHELL_FILES = [
-  './', './index.html', './style.css', './manifest.webmanifest',
+  './', './index.html', './install.html', './style.css', './manifest.webmanifest',
   './data/creatures.json', './data/numberblocks.json', './data/zones.json',
   './vendor/three/three.module.js', './vendor/three/loaders/GLTFLoader.js', './vendor/three/utils/BufferGeometryUtils.js', './vendor/three/utils/SkeletonUtils.js',
   './src/arena.js', './src/balls.js', './src/battle.js', './src/boat.js', './src/car.js', './src/cave.js', './src/cloud-config.js', './src/cloud.js', './src/creatures.js', './src/deepsea.js', './src/dex.js', './src/duel.js', './src/effects.js', './src/hive.js', './src/input.js', './src/intro.js', './src/lab.js', './src/main.js', './src/mega.js', './src/models.js', './src/npc.js', './src/numberblocks.js', './src/palette.js', './src/party.js', './src/planetquiz.js', './src/planets.js', './src/player.js', './src/portrait.js', './src/presence.js', './src/quiz.js', './src/rank.js', './src/save.js', './src/sea.js', './src/space.js', './src/types.js', './src/ufo.js', './src/util.js', './src/view3d.js', './src/volcano.js', './src/world.js',

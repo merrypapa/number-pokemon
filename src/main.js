@@ -1868,6 +1868,13 @@ installBtn.onclick = async () => {
   installModal.classList.remove('hidden');
 };
 document.getElementById('btn-install-close').onclick = () => installModal.classList.add('hidden');
+const INSTALL_LINK = 'https://merrypapa.github.io/number-pokemon/install.html'; // 이 주소 하나만 보내면, 받은 사람 폰에 맞는 설치 방법이 나온다
+document.getElementById('btn-install-copy').onclick = (e) => {
+  const btn = e.currentTarget;
+  const done = () => { btn.textContent = '✅ 복사했어요'; setTimeout(() => { btn.textContent = '🔗 주소 복사'; }, 2500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(INSTALL_LINK).then(done, () => prompt('이 주소를 복사해 주세요', INSTALL_LINK));
+  else prompt('이 주소를 복사해 주세요', INSTALL_LINK);
+};
 if ('serviceWorker' in navigator && !location.search.includes('nosw') && location.protocol !== 'file:') {
   const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
   const updateBar = document.getElementById('update-bar');
