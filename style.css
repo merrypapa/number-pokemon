@@ -197,6 +197,7 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 #dex-actions { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
 #dex-actions button { font: inherit; font-size: 14px; font-weight: 900; height: 40px; padding: 0 14px; border-radius: 999px; border: 0; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
 #dex-actions button:active { transform: translateY(2px); box-shadow: none; }
+#dex-bgm { background: #f0e6c0; color: #8a7a4a; padding: 0 12px; font-size: 18px; } /* 배경 음악 켜기/끄기 */
 #dex-save { background: #57b947; color: #fff; }
 #dex-logout { background: #eee; color: #666; }
 #dex-logout[hidden] { display: none; }

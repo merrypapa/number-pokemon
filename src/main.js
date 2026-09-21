@@ -25,6 +25,7 @@ import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOL
 import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle, BALL_MODEL, CUBE_MODEL } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
+import { Bgm, trackFor } from './bgm.js';
 import { Dex } from './dex.js';
 import { Party, friendStats } from './party.js';
 import { Quiz } from './quiz.js';
@@ -72,6 +73,20 @@ window.visualViewport?.addEventListener('resize', fitRenderer);
 
 const input = new Input();
 const sound = new Sound();
+// 배경 음악 (src/bgm.js). 음악 파일 없이 WebAudio 로 직접 연주한다. 브라우저 규칙상 화면을 한 번 눌러야 소리가 나므로,
+// 첫 조작 때 지금 있어야 할 곡을 틀고 그 뒤로는 지역·대결에 따라 바뀐다.
+const bgm = new Bgm(sound);
+function bgmNow() { // 지금 나와야 할 곡
+  if (battle?.active) return battle.creature?.isBoss ? 'boss' : 'battle';
+  return zone ? trackFor(zone.name) : 'title';
+}
+function bgmRefresh() { bgm.play(bgmNow(), zone?.name || null); }
+for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, () => { sound.ensure(); bgmRefresh(); }, { passive: true });
+document.addEventListener('visibilitychange', () => bgm.setHidden(document.hidden));
+const bgmBtns = [document.getElementById('btn-bgm'), document.getElementById('dex-bgm')];
+function refreshBgmBtn() { for (const b of bgmBtns) { if (!b) continue; const t = bgm.on ? '🎵' : '🔇'; b.textContent = b.id === 'btn-bgm' ? `${t} 음악` : t; b.title = bgm.on ? '배경 음악 끄기' : '배경 음악 켜기'; } }
+for (const b of bgmBtns) if (b) b.onclick = () => { sound.ensure(); bgm.toggle(); if (bgm.on) bgmRefresh(); refreshBgmBtn(); sound.click(); };
+refreshBgmBtn();
 const particles = new Particles();
 const confetti = new Confetti(document.getElementById('fx'));
 
@@ -792,6 +807,7 @@ function switchZone(name, spawn, message) {
     camera.position.copy(player.position).add(camOffset());
     snapCam = true;
     showZoneBanner(zone.label);
+    bgmRefresh(); // 지역마다 다른 곡
     if (message) say(message.text, message);
     refreshHud();
     autosave();
@@ -1498,6 +1514,7 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   camera.position.copy(player.position).add(camOffset());
   snapCam = true;
   showZoneBanner(zone.label);
+  bgmRefresh();
   refreshHud();
 }
 function chooseStarter(id) {
@@ -2240,15 +2257,17 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
 let prevBattle = false;
+let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대결 → 대결곡/보스곡, 끝나면 지역 곡)
 function frame() {
   state.frames++;
   fitRenderer();
+  if (battle.active !== bgmInBattle) { bgmInBattle = battle.active; bgmRefresh(); }
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
