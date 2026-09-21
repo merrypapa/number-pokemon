@@ -545,6 +545,18 @@ body.intro #btn-save { display: none !important; }
 .duel-invite { display: flex; flex-direction: column; gap: 10px; }
 .duel-invite .menu-title { font-size: 22px; }
 .duel-invite .duel-mon { max-width: 260px; }
+/* 아레나 무대 위 대결(3D): 어둡게 덮지 않고 화면 아래 띠로 — 무대에서 싸우는 포켓몬이 보여야 한다 */
+#duel-modal.stage { background: none; align-items: flex-end; padding: 0 8px 8px; pointer-events: none; }
+#duel-modal.stage .menu-card { pointer-events: auto; width: min(720px, 100%); max-height: 34vh; background: rgba(255,251,230,.95); padding: 10px 12px 12px; }
+#duel-modal.stage .duel-head { display: none; }                       /* 이름은 무대 위 포켓몬으로 보인다 */
+#duel-modal.stage .duel-arena { gap: 6px; }
+#duel-modal.stage .duel-mon { padding: 4px 6px; display: flex; align-items: center; gap: 8px; text-align: left; }
+#duel-modal.stage .duel-mon img, #duel-modal.stage .duel-mon .friend-noimg { width: 34px; height: 34px; margin: 0; flex: none; }
+#duel-modal.stage .duel-who { display: none; }
+#duel-modal.stage .duel-atk { display: none; }
+#duel-modal.stage .duel-vs { font-size: 14px; }
+#duel-modal.stage .duel-log { max-height: 3.4em; overflow: hidden; }
+#duel-modal.stage .modal-x { top: -44px; right: 4px; }                 /* 닫기(=무대에서 내려오기)는 카드 위로 */
 #rank-modal { position: fixed; inset: 0; z-index: 31; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
 #rank-modal.hidden { display: none; }
 #rank-modal .menu-card { text-align: left; }

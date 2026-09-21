@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
 import { buildMegaShrine, shrineName, shrineHeightAt, SHRINE_PILLARS } from './mega.js';
-import { buildArena } from './arena.js';
+import { buildArena, ARENA } from './arena.js';
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -26,6 +26,7 @@ import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle, BALL_MODEL, CUBE_MODEL } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
 import { Bgm, trackFor } from './bgm.js';
+import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
 import { Party, friendStats } from './party.js';
 import { Quiz } from './quiz.js';
@@ -78,6 +79,7 @@ const sound = new Sound();
 const bgm = new Bgm(sound);
 function bgmNow() { // 지금 나와야 할 곡
   if (battle?.active) return battle.creature?.isBoss ? 'boss' : 'battle';
+  if (duelStage?.active) return 'battle'; // 아레나 무대 위 친구 대결
   return zone ? trackFor(zone.name) : 'title';
 }
 function bgmRefresh() { bgm.play(bgmNow(), zone?.name || null); }
@@ -1218,7 +1220,7 @@ const jumpBtn = document.querySelector('#touch-actions button[data-key="jump"]')
 const runBtn = document.querySelector('#touch-actions button[data-key="run"]');
 function offer(label, run, short = label) { if (!ctxAction) ctxAction = { label, run, short }; }
 function updateCtxButton() {
-  const show = ctxAction && !battle.active && !dex.open && !quiz.open && !planetOpen && !ride && !switching && !evo;
+  const show = ctxAction && !battle.active && !duelStage.active && !dex.open && !quiz.open && !planetOpen && !ride && !switching && !evo;
   if (document.body.classList.contains('touch')) { // 터치 화면: 점프 버튼이 그 일을 하는 버튼으로 바뀐다 (색도 바뀜)
     ctxBtn.classList.add('hidden');
     const label = show ? ctxAction.short : (player.swim ? '헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼 (둥근 버튼 안에 한 줄로 들어가게 한 단어)
@@ -2118,13 +2120,62 @@ const duelModal = document.getElementById('duel-modal'), duelModalBody = documen
 let duelModalId = null; // 열려 있는 대결 (문서가 바뀌면 다시 그린다)
 function openDuelModal(id) { duelModalId = id; renderDuelModal(); duelModal.classList.remove('hidden'); input.endFrame?.(); }
 function closeDuelModal() { duelModal.classList.add('hidden'); duelModalId = null; }
-document.getElementById('btn-duel-modal-close').onclick = closeDuelModal;
+document.getElementById('btn-duel-modal-close').onclick = () => { if (duelStage.active) leaveDuelStage('무대에서 내려왔어. 자리에 다시 올라서면 이어서 할 수 있어!'); else closeDuelModal(); };
 /** 아레나로 이동 (이미 아레나면 그대로). 대결·탈것·전환 중이면 말만 한다 */
 function goToArena() {
   if (!zone || zone.name === 'arena') { say('🏟 여기가 아레나야! 친구가 오면 가까이 가서 대결! 버튼을 눌러.', { sec: 5 }); return; }
   if (battle.active || ride || switching || evo) { say('지금은 못 가. 끝나고 다시 눌러 줘!', { sec: 4 }); return; }
   closeDuelModal();
   switchZone('arena', getZone('arena').world.spawn, { text: '🏟 넘버볼 아레나! 친구가 도착하면 가까이 가서 대결! 버튼을 눌러.', sec: 7 });
+}
+// ----- 아레나 무대 위 3D 대결 (src/duelstage.js) -----
+// 예전에는 어디에 서 있든 도감 카드로 대결했다. 이제는 무대 위 제 자리(1P·2P)에 올라가야 열리고,
+// 두 포켓몬이 무대에서 마주 서서 기술을 쓸 때마다 달려들어 때린다.
+const duelStage = new DuelStage({ camera, particles, sound, confetti });
+let duelPlay = null; // { id, side, logSeen } — 무대에서 진행 중인 대결
+/** 그 편이 설 무대 위 자리 (a = 파란 1P, b = 빨간 2P) */
+const arenaSpot = (side) => (side === 'b' ? ARENA.spots.b : ARENA.spots.a);
+/** 포켓몬이 설 자리: 1P·2P 표시보다 가운데로 조금 당긴다 (14m 는 너무 멀어 서로 작게 보인다) */
+const monSpot = (side) => { const s = arenaSpot(side), r = ARENA.ring; return { x: r.x + (s.x - r.x) * 0.6, z: r.z + (s.z - r.z) * 0.6 }; };
+/** 대결 문서에 찍힌 포켓몬의 모습 (모델이 있으면 모델로) */
+function duelMonMesh(mon) {
+  const sp = speciesById[mon?.speciesId];
+  if (!sp) return null;
+  const mesh = buildDraftMesh(sp);
+  mesh.scale.setScalar(partyScale(sp));
+  return mesh;
+}
+function enterDuelStage(d) {
+  if (duelStage.active || battle.active || switching || evo || ride) return;
+  const me = cloud.user?.uid, side = sideOf(d, me);
+  if (!side || d.state !== 'active') return;
+  const other = side === 'a' ? 'b' : 'a';
+  const myMesh = duelMonMesh(d.mons[side]), theirMesh = duelMonMesh(d.mons[other]);
+  if (!myMesh || !theirMesh) { say('포켓몬 모습을 못 불러왔어… 도감 대결 탭에서 해 보자.', { sec: 5 }); return; }
+  duelStage.start({
+    scene: zone.scene,
+    mySpot: monSpot(side), theirSpot: monSpot(other), stageY: 0.32,
+    mine: { mesh: myMesh, name: d.mons[side].name }, theirs: { mesh: theirMesh, name: d.mons[other].name },
+    hide: [player.group, myStack.mesh, ...chain.followers.map((f) => f.mesh)], // 주인공과 따라다니는 친구는 무대에서 비킨다
+  });
+  duelPlay = { id: d.id, side, logSeen: (d.log || []).length };
+  duelModalId = d.id;
+  duelModal.classList.add('stage'); // 카드를 화면 아래 띠로 (무대가 보이게)
+  duelModal.classList.remove('hidden');
+  renderDuelModal();
+  bgmRefresh();
+  input.endFrame();
+  say(`⚔ ${d.mons[side].name} vs ${d.mons[other].name}! ${d.turn === side ? '내 차례야 — 아래에서 기술을 골라!' : '상대 차례야, 잠깐 기다리자.'}`, { sec: 6 });
+}
+function leaveDuelStage(msg) {
+  if (!duelStage.active) return;
+  duelStage.end();
+  duelPlay = null;
+  duelModal.classList.remove('stage');
+  closeDuelModal();
+  snapCam = true; // 카메라를 주인공에게 되돌린다
+  bgmRefresh();
+  if (msg) say(msg, { sec: 6 });
 }
 const duelThumb = (id) => { const sp = speciesById[id]; return sp ? dex.thumbs(sp)?.color || null : null; };
 function renderDuelModal() {
@@ -2178,6 +2229,21 @@ function onDuelsChanged() {
       if (d.state === 'pending' && d.b === me && prev === undefined) { sound.pickup(); say(`⚔ ${josa(name, '이가')} 대결을 신청했어!`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
       else if (d.state === 'active' && d.a === me && (prev?.startsWith('pending') || (prev === undefined && duels.created.has(d.id)))) { duels.created.delete(d.id); sound.fanfare(); say(`⚔ ${josa(name, '이가')} 수락했어! 아레나로 가서 만나자.`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
       else if (d.state === 'active' && d.turn === side && prev !== undefined) { sound.pickup(); if (duelModalId !== d.id) say(`⚔ ${josa(name, '과와')}의 대결, 내 차례야! ${zone?.name === 'arena' ? '친구 가까이서 대결! 버튼을' : '도감 → 대결 탭을'} 눌러.`, { sec: 6 }); }
+    }
+    // 무대에서 보고 있는 대결이면, 새로 쌓인 공격을 그대로 보여 준다 (달려들어 때리기)
+    if (duelStage.active && duelPlay && d.id === duelPlay.id) {
+      const log = d.log || [];
+      for (let i = duelPlay.logSeen; i < log.length; i++) {
+        const l = log[i];
+        const skill = d.mons?.[l.who]?.skills?.find((s) => s.name === l.skill);
+        setTimeout(() => { if (duelStage.active) duelStage.attack(l.who === duelPlay.side, { dmg: l.dmg, mult: l.mult, kind: skill?.kind || 'tackle' }); }, (i - duelPlay.logSeen) * 1500);
+      }
+      duelPlay.logSeen = log.length;
+      if (d.state === 'done') {
+        const iWon = d.winner === duelPlay.side;
+        setTimeout(() => { if (duelStage.active) duelStage.cheer(iWon); }, 1600);
+        setTimeout(() => leaveDuelStage(null), 7500); // 보상 말풍선은 아래 done 처리가 띄운다
+      }
     }
     if (d.state === 'done' && !d.rewarded?.[me] && !d.rewarding) { // 결과 보상은 각자 한 번씩 (문서에 표시)
       d.rewarding = true;
@@ -2282,7 +2348,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
@@ -2293,7 +2359,8 @@ let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대�
 function frame() {
   state.frames++;
   fitRenderer();
-  if (battle.active !== bgmInBattle) { bgmInBattle = battle.active; bgmRefresh(); }
+  const fighting = battle.active || duelStage.active;
+  if (fighting !== bgmInBattle) { bgmInBattle = fighting; bgmRefresh(); }
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
@@ -2330,6 +2397,9 @@ function frame() {
     if (input.wasPressed('cancel')) closePlanetPopup();
   } else if (battle.active) {
     battle.update(dt);
+  } else if (duelStage.active) {
+    duelStage.update(dt);
+    if (input.wasPressed('cancel')) leaveDuelStage('무대에서 내려왔어. 자리에 다시 올라서면 이어서 할 수 있어!');
   } else if (ride) {
     updateRide(dt);
   } else if (!switching) {
@@ -2403,12 +2473,17 @@ function frame() {
         if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
       } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
-    // ----- 넘버볼 아레나: 진행 중인 대결 상대(친구 유령)가 가까이 있으면 "대결!" 버튼 -----
+    // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----
     if (!moved && zone.name === 'arena' && cloud.user) {
-      for (const d of duels.list) {
-        if (d.state !== 'active') continue;
-        const otherUid = d.a === cloud.user.uid ? d.b : d.a, pos = ghosts.positionOf(otherUid);
-        if (pos && pos.distanceTo(pp) < 7) { const nm = d.names?.[d.a === cloud.user.uid ? 'b' : 'a'] || '친구'; offer(`⚔ ${josa(nm, '과와')} 대결!`, () => openDuelModal(d.id), '⚔\n대결'); break; }
+      const mineDuels = duels.list.filter((d) => d.state === 'active' && sideOf(d, cloud.user.uid));
+      if (mineDuels.length) {
+        const d = mineDuels[0], side = sideOf(d, cloud.user.uid), spot = arenaSpot(side);
+        const nm = d.names?.[side === 'a' ? 'b' : 'a'] || '친구';
+        if (near(spot, 2.4)) offer(`⚔ ${josa(nm, '과와')} 대결!`, () => enterDuelStage(d), '⚔\n대결');
+        else if (state.prompt <= 0) { // 어디로 올라가야 하는지 알려 준다
+          state.prompt = 12;
+          say(`⚔ ${nm}와의 대결이 기다리고 있어! 무대 위 ${side === 'a' ? '파란 1P' : '빨간 2P'} 자리에 올라서면 시작해.`, { sec: 7 });
+        }
       }
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
