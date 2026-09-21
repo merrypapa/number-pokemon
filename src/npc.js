@@ -6,7 +6,7 @@ import { swapDraftWithModel } from './models.js';
 export const NPC_HEIGHT = 1.8; // NPC 모델 키(m)
 
 // 지역 안내 NPC (드래프트 사람 캐릭터). 가까이 가서 대화 버튼을 누르면 한 줄씩 이야기하고, 마지막엔 연구소로 데려다준다.
-// outfit: 'ranger'(숲지기) | 'miner'(광부) | 'scientist'(화산학자) | 'captain'(선장) | 'astronaut'(우주비행사) | 'professor'(오박사)
+// outfit: 'ranger'(숲지기) | 'miner'(광부) | 'scientist'(화산학자) | 'captain'(선장) | 'astronaut'(우주비행사) | 'professor'(오박사) | 'rocket'(넘버로켓단 대원)
 export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd, model = null } = {}) {
   const g = new THREE.Group();
   const draft = new THREE.Group(); // 드래프트 부품. 모델(.glb)이 있으면 통째로 교체된다
@@ -20,6 +20,7 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
     astronaut: { coat: 0xf4f4f8, pants: 0xf4f4f8, hat: 0xdddddd, hatKind: 'bubble' },
     professor: { coat: 0xffffff, pants: 0x556070, hat: 0xbfc5cc, hatKind: 'hair' },
     pilot:     { coat: 0x7c6cff, pants: 0x2b2450, hat: 0xe8e8ff, hatKind: 'antenna' }, // UFO 조종사 (지금은 손오공.glb 모델, 이 드래프트는 예비)
+    rocket:    { coat: 0x20232e, pants: 0x14161d, hat: 0x20232e, hatKind: 'rocketcap' },   // 넘버로켓단 대원: 검은 옷에 붉은 R (src/rocket.js)
   }[outfit];
   const mat = (c) => new THREE.MeshStandardMaterial({ color: c });
   const coat = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.7, 6, 12), mat(C.coat)); coat.position.y = 0.75;
@@ -40,6 +41,17 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
     const badge = new THREE.Mesh(new THREE.CircleGeometry(0.09, 5), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.6 })); badge.position.set(-0.18, 1.05, 0.39);
     const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 8, 16), mat(0xffd93d)); scarf.rotation.x = Math.PI / 2; scarf.position.y = 1.22;
     draft.add(helmet, rod, bulb, goggles, badge, scarf);
+  }
+  if (C.hatKind === 'rocketcap') { // 넘버로켓단 대원: 검은 모자 + 가슴의 붉은 R + 붉은 띠. 무섭지 않고 조금 우스꽝스럽게
+    const red = new THREE.MeshStandardMaterial({ color: 0xe8453c, emissive: 0xe8453c, emissiveIntensity: 0.35 });
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.39, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.2), mat(C.hat)); cap.position.y = 1.62;
+    const brim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.34), mat(C.hat)); brim.position.set(0, 1.62, 0.4);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 8, 16), red); band.rotation.x = Math.PI / 2; band.position.y = 1.2; // 목에 두른 붉은 띠
+    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.06, 8, 16), red); belt.rotation.x = Math.PI / 2; belt.position.y = 0.5;
+    const rBar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.3, 0.04), red); rBar.position.set(-0.08, 0.95, 0.38);        // R 의 세로획
+    const rTop = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.035, 6, 12, Math.PI), red); rTop.position.set(-0.02, 1.03, 0.38); rTop.rotation.z = -Math.PI / 2; // R 의 동그라미
+    const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.04), red); rLeg.position.set(0.05, 0.86, 0.38); rLeg.rotation.z = -0.5; // R 의 뻗은 다리
+    draft.add(cap, brim, band, belt, rBar, rTop, rLeg);
   }
   if (C.hatKind === 'hair') { const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), mat(C.hat)); hair.position.y = 1.62; const gm = mat(0x333333); for (const gx of [-0.12, 0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14), gm); ring.position.set(gx, 1.58, 0.34); draft.add(ring); } const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.05), mat(0xe8453c)); tie.position.set(0, 0.95, 0.38); draft.add(hair, tie); }
   const border = '#' + C.coat.toString(16).padStart(6, '0'); // 옷 색 테두리의 둥근 이름표

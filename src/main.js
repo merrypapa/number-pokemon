@@ -33,6 +33,7 @@ import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
+import { GRUNTS, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
 import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -172,6 +173,33 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
   const c = new Creature(z.scene, data, new THREE.Vector3(x, 0, zz));
   z.creatures.push(c);
   return c;
+}
+/** 넘버로켓단 대원을 그 지역에 세운다 (src/rocket.js).
+ *  서려던 자리가 바위·물·장식으로 막혀 있으면 둘레를 넓혀 가며 빈자리를 찾는다 (맵이 넓어져도 안 파묻히게). */
+function placeGrunt(z) {
+  const g = GRUNTS[z.name];
+  if (!g) return;
+  const clear = (x, zz) => Math.abs(x) < z.terrain.size / 2 - 4 && Math.abs(zz) < z.terrain.size / 2 - 4 && !inHole(x, zz) && !isBlocked(x, zz) && !insideObstacle(x, zz, 1.4);
+  let at = null;
+  for (const r of [0, 3, 6, 9, 13, 18, 24, 32]) {
+    for (let k = 0; k < (r ? 16 : 1); k++) {
+      const a = (k / 16) * Math.PI * 2;
+      const x = g.at.x + Math.cos(a) * r, zz = g.at.z + Math.sin(a) * r;
+      if (clear(x, zz)) { at = { x, z: zz }; break; }
+    }
+    if (at) break;
+  }
+  if (!at) { console.warn('[rocket] 대원이 설 자리를 못 찾았어:', z.name); return; }
+  const mesh = buildGruntMesh(g);
+  mesh.position.set(at.x, terrainHeight(at.x, at.z), at.z);
+  const home = z.world.spawn || { x: 0, z: 0 };
+  mesh.rotation.y = Math.atan2(home.x - at.x, home.z - at.z); // 지우가 오는 쪽(시작 지점)을 본다
+  mesh.userData.radius = 0.9; // 대결 중 시야를 가릴 때만 잠깐 숨기는 크기 (나무·바위와 같은 규칙, src/battle.js)
+  (z.world.decor || z.scene).add(mesh); // 다른 NPC 와 같이 장식 그룹에 — 그래야 대결 화면에서 상대를 가리지 않는다
+  const npc = { x: at.x, z: at.z, mesh, name: g.name, rocket: g, lines: g.after };
+  if (state.rockets[z.name]) addWhiteFlag(mesh); // 이미 항복시킨 대원은 흰 깃발을 들고 서 있다
+  (z.world.npcs ||= []).push(npc);
+  z.grunt = npc;
 }
 /** 시작 지점에서 얼마나 멀리 있는 자리인가: 0 = 시작 지점, 1 = 맵 가장자리 */
 function outwardness(z, x, zz) {
@@ -419,6 +447,7 @@ function getZone(name) {
   for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) { // 조건을 채우면 일반 맵에 나타나는 포켓몬 (맨 뒤에 세워야 저장된 번호가 안 밀린다)
     if (megaUnlocked(sp)) spawnUnlocked(z, sp);
   }
+  placeGrunt(z); // 넘버로켓단 대원 (지역마다 한 명)
   applyPendingCaught(z);
   if (name === 'forest' && state.conquered.forest) removeBoulder();
   if (name === 'cave' && state.glow) z.scene.fog.far = 110;
@@ -443,7 +472,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -1334,6 +1363,64 @@ function winReward(c) {
   return Math.max(c.data.baseAtk * blockValue() * (c.isBoss ? 2 : 1), Math.ceil(ball.cost / 2));
 }
 
+// ---------- 넘버로켓단 대원과의 대결 (src/rocket.js) ----------
+// 대원은 직접 싸우지 않는다. 세뇌한 포켓몬을 내보내고, 그 포켓몬 머리 위의 "가짜 숫자"를 0으로 깎으면
+// 포켓몬은 제 좋아하는 숫자를 되찾아 친구가 되고, 대원은 숫자를 못 세며 항복한다. 다치는 사람은 아무도 없다.
+function challengeGrunt(npc) {
+  const g = npc.rocket;
+  if (!g || state.rockets[zone.name] || battle.active || npc.busy) return;
+  if (zone.creatures.some((c) => c.rocketOf === npc)) return; // 이미 내보낸 포켓몬이 밖에 서 있으면 또 부르지 않는다 (닿으면 대결이 열린다)
+  let L = party.leader;
+  if (!L || party.isFainted(L)) {
+    const other = party.healthy()[0];
+    if (!other) { say('포켓몬이 모두 기절했어… 오박사 연구소에서 치료받고 다시 오자!', { sec: 6 }); return; }
+    attachLeader(other); L = other;
+  }
+  npc.busy = true;
+  npc.talking = true;
+  state.prompt = 8;
+  sound.click();
+  say(`${npc.name}: ${g.taunt}`, { sec: 6, faceImg: npcFace(npc) });
+  input.endFrame();
+  const z = zone;
+  setTimeout(() => {
+    npc.busy = false;
+    if (zone !== z || battle.active || state.rockets[z.name] || z.creatures.some((c) => c.rocketOf === npc)) return;
+    // 세뇌된 포켓몬은 대원과 지우 사이에 나온다 (막힌 자리면 대원 발밑에)
+    const pp = player.position;
+    const dx = pp.x - npc.x, dz = pp.z - npc.z, d = Math.hypot(dx, dz) || 1;
+    let sx = npc.x + (dx / d) * 1.5, sz = npc.z + (dz / d) * 1.5;
+    if (inHole(sx, sz) || isBlocked(sx, sz) || insideObstacle(sx, sz, 0.8)) { sx = npc.x; sz = npc.z; }
+    const c = spawnCreature(z, g.mon, sx, sz, { boss: false, baseHp: g.hp, baseAtk: g.atk, ...(g.extra || {}) });
+    c.rocketOf = npc;
+    c.hint.visible = true;             // 붉은 가짜 숫자는 처음부터 보인다
+    c.leash = 3;                       // 대원 곁을 떠나지 않는다
+    addBrainwashRing(c.mesh, c.data.scale || 1);
+    particles.cubes(z.scene, c.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 16, 0xe8453c);
+    sound.click();
+  }, 1600);
+}
+/** 대원이 내보낸 포켓몬과의 대결이 끝났다. won 이면 대원은 항복하고 그 자리에 남아 지역의 비밀을 알려 준다. */
+function beatGrunt(c, won) {
+  const npc = c.rocketOf;
+  if (!npc) return;
+  const z = zone, g = npc.rocket;
+  c.rocketOf = null;
+  c.becomeFriend();       // 다시 대결이 열리지 않게 (자리에는 남지만 움직이지 않는다)
+  z.scene.remove(c.mesh);
+  npc.talking = false;
+  if (!won) { setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.hold}`, { sec: 6, faceImg: npcFace(npc) }); }, 2600); return; }
+  state.rockets[z.name] = true;
+  addWhiteFlag(npc.mesh);
+  state.balls[g.ball] = (state.balls[g.ball] || 0) + 1;
+  setBlocks(Math.min(MAX_BLOCKS, state.blocks + g.blocks));
+  confetti.burst(160); sound.fanfare();
+  refreshHud();
+  setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.lose}`, { sec: 6, faceImg: npcFace(npc) }); }, 3200);
+  setTimeout(() => { if (zone === z) say(`${z.label}의 넘버로켓단 ${g.chief ? '간부' : '대원'}을 물리쳤어! 블록 ${g.blocks}개와 ${BALL_BY_ID[g.ball].name} 1개를 받았어. 항복한 그 자리에서 말을 걸면 이곳의 비밀을 알려 줄 거야!`, { sec: 9 }); }, 9600);
+  autosave();
+}
+
 // ---------- 주간 순위 기록 (src/rank.js) ----------
 /** 이번 주 기록 +1 (quiz | caught | boss). 주가 바뀌었으면 먼저 0으로 돌린다 */
 function wkAdd(key) { checkWeek(); state.wk[key] = (state.wk[key] || 0) + 1; }
@@ -1551,7 +1638,7 @@ function buildSaveData() {
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
-    balls: { ...state.balls },
+    balls: { ...state.balls }, rockets: { ...state.rockets },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
     returnTo: state.returnTo,
     carTold: !!state.carTold,
@@ -2120,7 +2207,8 @@ function applySave(d) {
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
-  for (const z of Object.values(zones)) applyPendingCaught(z); // 타이틀 중에 미리 만든 푸른숲에도 적용
+  state.rockets = { ...(d.rockets || {}) };
+  for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   if (state.conquered.forest) removeBoulder();
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
   const seenSpecies = new Set();
@@ -2254,8 +2342,10 @@ function frame() {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
-        offer('💬 대화', () => talkTo(npc), '💬\n대화');
-        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(`${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
+        const foe = npc.rocket && !state.rockets[zone.name] ? npc.rocket : null; // 아직 안 이긴 넘버로켓단 대원
+        if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
+        else offer('💬 대화', () => talkTo(npc), '💬\n대화');
+        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
       } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 넘버볼 아레나: 진행 중인 대결 상대(친구 유령)가 가까이 있으면 "대결!" 버튼 -----
@@ -2356,7 +2446,7 @@ function frame() {
           else { c.becomeShy(); say('포켓몬이 모두 기절했어… 오박사 연구소에서 치료받자!', { sec: 5 }); break; }
         }
         const hp = c.hp ?? c.data.baseHp;
-        say(c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${josa(c.data.name, '이가')} 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: 3 });
+        say(c.rocketOf ? `${josa(c.rocketOf.name, '이가')} 세뇌한 ${c.data.name}! 머리 위 붉은 ${josa(String(hp), '을를')} 0으로 깎으면 친구로 되돌아와!` : c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${josa(c.data.name, '이가')} 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: c.rocketOf ? 5 : 3 });
         battle.start({
           creature: c, player, scene: zone.scene, member: L, onWater: !!c.swim,
           hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
@@ -2374,7 +2464,7 @@ function frame() {
             }
             if (c.isBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
-            (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지
+            if (!c.rocketOf) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
             L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수
             const reward = winReward(c);
@@ -2398,7 +2488,7 @@ function frame() {
                 say(`${josa(c.data.name, '이가')} 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
               } else say(`${josa(c.data.name, '이가')} 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${josa(c.data.name, '이가')} 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
             } else if (!c.data.mega) {
-              state.caught++;
+              if (!c.rocketOf) state.caught++; // 로켓단이 내보낸 포켓몬은 이 지역의 야생 목록에 없으니 "친구 몇/몇" 총합을 넘기지 않게 셈에서 뺀다 (도감 기록은 그대로 남는다)
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
               const winNote = party.canEvolve(L) ? ` ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
@@ -2408,6 +2498,7 @@ function frame() {
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
             if (!already && party.members.length === 2) say(`${josa(party.name(member), '은는')} 볼 안에서 쉬고 있어. 도감에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
+            beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 대원이 항복한다
             autosave();
           },
           onLost: () => {
@@ -2424,13 +2515,15 @@ function frame() {
               setTimeout(() => goToLab('오박사님이 연구소로 데려왔어. 오박사님께 가까이 가서 대화 버튼을 누르면 치료해 줘!'), 900);
             }
             refreshHud();
+            beatGrunt(c, false);
           },
           onEscaped: () => { // 넘버볼에서 튀어나와 도망: 승리 아님, 블록·승수 없음. 한동안 사라졌다가 돌아온다
             c.flee();
             say(`${josa(c.data.name, '이가')} 도망쳤어… 등급이 높은 포켓몬은 더 좋은 넘버볼이 필요해. 도감 넘버볼 탭에서 블록으로 바꾸자!`, { sec: 7 });
             refreshHud();
+            beatGrunt(c, false);
           },
-          onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 모아서 더 강해진 다음 다시 오자!'); refreshHud(); },
+          onLeave: () => { c.becomeShy(); say('괜찮아, 블록을 모아서 더 강해진 다음 다시 오자!'); refreshHud(); beatGrunt(c, false); },
         });
         break;
       }
