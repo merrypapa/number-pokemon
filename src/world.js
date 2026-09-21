@@ -40,7 +40,9 @@ export const WORLD = {
   station: { x: -120.0, z: 57.3 },      // 기차역 (물의길로 가는 기차)
   rocketPad: { x: 128, z: 95 },     // 로켓 발사장 (꿈의우주로 가는 로켓)
   sleepSpot: { x: -130.9, z: -130.9, r: 4.5 }, // 북서쪽 구석, 잠만보가 자는 버섯 고리
-  hiveTree: { x: -72, z: 96 },    // 서남쪽 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로)
+  hiveTree: { x: -118, z: 124 },  // 남서쪽 바깥의 아주 큰 나무에 매달린 꿀벌집 (닿으면 꿀벌집 안으로). 마을에서 '꿀의 길'을 따라간다
+  // 꿀의 길: 마을 남서쪽에서 꿀벌집 나무까지 이어지는 황금빛 길 (흙길과 달리 꿀 색이고 더 넓다)
+  honeyPath: [[-44, 82], [-70, 96], [-95, 110], [-112, 119]],
   lab: { x: 0, z: 115 },            // 오박사 연구소 (마을 남쪽 가운데, 문은 북쪽)
   stadium: { x: 68, z: 134, r: 9 },  // 넘버볼 아레나 (친구 대결 경기장, 마을 동남쪽 둥근 건물, 문은 북쪽)
   // 흙길 (마을 → 구멍/동굴, 마을 → 연못, 마을 → 아레나, 구멍 → 동굴 입구, 구멍 → 불의산 입구, 마을 → 기차역, 마을 → 로켓 발사장)
@@ -199,6 +201,13 @@ function distToSegment(px, pz, ax, az, bx, bz) {
 function distToPath(x, z) {
   let d = Infinity;
   for (const path of WORLD.paths) for (let i = 0; i + 1 < path.length; i++) d = Math.min(d, distToSegment(x, z, ...path[i], ...path[i + 1]));
+  return d;
+}
+/** 꿀의 길(꿀벌집 나무로 가는 황금빛 길)까지의 거리 */
+function distToHoney(x, z) {
+  const p = WORLD.honeyPath;
+  let d = Infinity;
+  for (let i = 0; i + 1 < p.length; i++) d = Math.min(d, distToSegment(x, z, ...p[i], ...p[i + 1]));
   return d;
 }
 
@@ -396,6 +405,7 @@ export function buildWorld(scene) {
   const grassA = new THREE.Color(0x7ccf5a), grassB = new THREE.Color(0x5fb648);
   const dirt = new THREE.Color(0xc9a15a), sand = new THREE.Color(0xe8d9a0), pondBed = new THREE.Color(0x6fa1a8);
   const stone = new THREE.Color(0xa7adb8), stoneDark = new THREE.Color(0x7d8594), dark = new THREE.Color(0x1b2a1a);
+  const honey = new THREE.Color(0xf0a92a), honeyEdge = new THREE.Color(0xf6cf7a); // 꿀의 길
   const tmp = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
@@ -408,6 +418,7 @@ export function buildWorld(scene) {
     else if (pd < WORLD.pond.r + 2.5) c = sand;
     else if (ad < WORLD.arena.r) c = (Math.floor(x / 2) + Math.floor(z / 2)) % 2 === 0 ? stone : stoneDark;
     else if (Math.hypot(x - WORLD.village.x, z - WORLD.village.z) < 7.5) c = (Math.floor(x / 1.5) + Math.floor(z / 1.5)) % 2 === 0 ? sand : dirt; // 마을 광장
+    else if (distToHoney(x, z) < 3.4) c = distToHoney(x, z) < 2.2 ? honey : honeyEdge; // 꿀의 길 (가운데가 진한 호박색)
     else if (distToPath(x, z) < 1.8 + Math.random() * 0.5) c = dirt;
     pos.setY(i, y);
     tmp.copy(c);
@@ -876,7 +887,7 @@ export function buildWorld(scene) {
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - WORLD.hole.x, z - WORLD.hole.z) < WORLD.hole.r + 4 ||
     Math.hypot(x - WORLD.pond.x, z - WORLD.pond.z) < WORLD.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 8 ||
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - WORLD.volcanoGate.x, z - WORLD.volcanoGate.z) < 16 ||
-    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 16 ||
+    Math.hypot(x - WORLD.station.x, z - WORLD.station.z) < 18 || Math.hypot(x - WORLD.rocketPad.x, z - WORLD.rocketPad.z) < 16 || Math.hypot(x - WORLD.hiveTree.x, z - WORLD.hiveTree.z) < 24 || distToHoney(x, z) < 4.5 ||
     Math.hypot(x - WORLD.lab.x, z - WORLD.lab.z) < 20 || Math.hypot(x - WORLD.stadium.x, z - WORLD.stadium.z) < WORLD.stadium.r + 10 || distToPath(x, z) < 2.5 + extra ||
     WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
   const treeSpots = [];
@@ -978,15 +989,18 @@ export function buildWorld(scene) {
   const hiveBees = [];
   {
     const y0 = meadowHeight(ht.x, ht.z);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.1, 6, 12), trunkMat); trunk.position.set(ht.x, y0 + 3, ht.z); trunk.castShadow = true;
-    const crown = new THREE.Mesh(new THREE.SphereGeometry(4.2, 16, 12), leafMats[2]); crown.position.set(ht.x, y0 + 8.2, ht.z); crown.castShadow = true;
-    const crown2 = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 10), leafMats[1]); crown2.position.set(ht.x + 2.6, y0 + 6.4, ht.z + 1.2);
-    const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 4.2, 8), trunkMat); branch.position.set(ht.x - 1.6, y0 + 5.6, ht.z + 1.2); branch.rotation.z = 1.1; branch.rotation.y = 0.4;
-    decor.add(trunk, crown, crown2, branch); block(ht.x, ht.z, 1.2);
+    // 숲에서 제일 큰 나무 — 멀리서도 보이게 키를 키웠다 (줄기 6 → 11m, 잎 4.2 → 7m)
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.9, 11, 14), trunkMat); trunk.position.set(ht.x, y0 + 5.5, ht.z); trunk.castShadow = true;
+    const root = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 3.2, 1.2, 14), trunkMat); root.position.set(ht.x, y0 + 0.6, ht.z); root.castShadow = true; // 뿌리 밑동
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(7, 18, 14), leafMats[2]); crown.position.set(ht.x, y0 + 14, ht.z); crown.castShadow = true;
+    const crown2 = new THREE.Mesh(new THREE.SphereGeometry(4.4, 14, 10), leafMats[1]); crown2.position.set(ht.x + 4.4, y0 + 11, ht.z + 2);
+    const crown3 = new THREE.Mesh(new THREE.SphereGeometry(3.6, 14, 10), leafMats[0]); crown3.position.set(ht.x - 3.8, y0 + 11.6, ht.z - 2.2);
+    const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 6.4, 8), trunkMat); branch.position.set(ht.x - 2.6, y0 + 9.2, ht.z + 1.8); branch.rotation.z = 1.1; branch.rotation.y = 0.4;
+    decor.add(trunk, root, crown, crown2, crown3, branch); block(ht.x, ht.z, 2.2);
     // 벌집: 가지에 매달린 호박색 덩어리 (고리 여러 겹) + 어두운 입구 + 꿀 방울
-    const hx = ht.x - 7.6, hz = ht.z + 3.2, HIVE_SCALE = 2.3, hy = y0 + 1.6 * HIVE_SCALE + 0.9; // 벌집은 나뭇잎에 안 가리게 가지 끝(나무 밖)에 크게 매달린다. 아래쪽이 땅에서 0.9m 떠 있다
-    const bigBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 8.6, 8), trunkMat); bigBranch.position.set((ht.x + hx) / 2, hy + 1.47 * HIVE_SCALE + 1.3, (ht.z + hz) / 2); bigBranch.rotation.z = Math.PI / 2 - 0.25; bigBranch.rotation.y = -Math.atan2(hz - ht.z, hx - ht.x); bigBranch.castShadow = true; decor.add(bigBranch); // 나무에서 벌집까지 뻗은 긴 가지
-    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.4, 6), trunkMat); rope.position.set(hx, hy + 1.47 * HIVE_SCALE + 0.7, hz);
+    const hx = ht.x - 10.5, hz = ht.z + 4.4, HIVE_SCALE = 3.2, hy = y0 + 1.6 * HIVE_SCALE + 1.0; // 벌집은 나뭇잎에 안 가리게 가지 끝(나무 밖)에 크게 매달린다. 아래쪽이 땅에서 1m 떠 있다
+    const bigBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.46, 12.4, 8), trunkMat); bigBranch.position.set((ht.x + hx) / 2, hy + 1.47 * HIVE_SCALE + 1.5, (ht.z + hz) / 2); bigBranch.rotation.z = Math.PI / 2 - 0.22; bigBranch.rotation.y = -Math.atan2(hz - ht.z, hx - ht.x); bigBranch.castShadow = true; decor.add(bigBranch); // 나무에서 벌집까지 뻗은 긴 가지
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.6, 6), trunkMat); rope.position.set(hx, hy + 1.47 * HIVE_SCALE + 0.8, hz);
     const hive = new THREE.Group();
     hive.scale.setScalar(HIVE_SCALE);
     const combMat = new THREE.MeshStandardMaterial({ color: 0xe8a020, roughness: 0.7 });
@@ -1007,11 +1021,84 @@ export function buildWorld(scene) {
       bee.userData = { r: rand(1.6, 3.2), h: rand(-0.8, 1.4), speed: rand(0.8, 1.6) * (i % 2 ? 1 : -1), phase: rand(0, 6) };
       hive.add(bee); hiveBees.push(bee);
     }
-    decor.add(makeSignAt('🐝 꿀벌집 · 벌집에 닿으면 안으로!', ht.x + 4.5, y0, ht.z + 4.5, -0.6, { bg: '#ffe08a', fg: '#5a3a08', board: 0xf4b400 }));
-    block(ht.x + 4.5, ht.z + 4.5, 0.3);
+    decor.add(makeSignAt('🐝 꿀벌집 · 벌집에 닿으면 안으로!', ht.x + 6, y0, ht.z + 6.5, -0.6, { bg: '#ffe08a', fg: '#5a3a08', board: 0xf4b400 }));
+    block(ht.x + 6, ht.z + 6.5, 0.3);
   }
+  // ---------- 꿀의 길: 마을 남서쪽에서 꿀벌집 나무까지 이어지는 황금빛 길 ----------
+  // 땅 색은 지형에서 칠하고(honey/honeyEdge), 여기서는 길목의 아치·꿀단지·꿀 웅덩이·가로등 벌집을 세운다.
+  const honeyBees = [];
+  {
+    const HP = WORLD.honeyPath;
+    const at = (t) => { // 길 위 t(0~1) 지점의 좌표와 진행 방향
+      const seg = Math.min(HP.length - 2, Math.floor(t * (HP.length - 1)));
+      const u = t * (HP.length - 1) - seg;
+      const a = HP[seg], b = HP[seg + 1];
+      return { x: a[0] + (b[0] - a[0]) * u, z: a[1] + (b[1] - a[1]) * u, yaw: Math.atan2(b[0] - a[0], b[1] - a[1]) };
+    };
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 });
+    const combMat2 = new THREE.MeshStandardMaterial({ color: 0xe8a020, roughness: 0.7 });
+    const honeyMat = new THREE.MeshStandardMaterial({ color: 0xffa825, roughness: 0.25, metalness: 0.1, emissive: 0xc06a00, emissiveIntensity: 0.25 });
+
+    // 길목의 아치: 굵은 기둥 둘 + 위를 잇는 들보 + 가운데 매달린 벌집 간판 (여기부터 꿀의 길)
+    const gate = at(0.04);
+    const gy = meadowHeight(gate.x, gate.z);
+    const side = { x: Math.cos(gate.yaw), z: -Math.sin(gate.yaw) };
+    for (const sgn of [-1, 1]) {
+      const px = gate.x + side.x * 4.2 * sgn, pz = gate.z + side.z * 4.2 * sgn;
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 6.2, 10), woodMat);
+      post.position.set(px, meadowHeight(px, pz) + 3.1, pz); post.castShadow = true;
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 8), combMat2); cap.scale.y = 0.6; cap.position.set(px, meadowHeight(px, pz) + 6.3, pz);
+      decor.add(post, cap); block(px, pz, 0.6);
+    }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(9.4, 0.7, 0.7), woodMat);
+    beam.position.set(gate.x, gy + 6.1, gate.z); beam.rotation.y = -gate.yaw + Math.PI / 2; beam.castShadow = true;
+    const sign = makePillSprite('🍯 꿀의 길 → 꿀벌집', { bg: '#ffe08a', fg: '#5a3a08', border: '#c98a00' }, 1.25);
+    sign.position.set(gate.x, gy + 5.1, gate.z);
+    decor.add(beam, sign);
+
+    // 길을 따라 꿀단지와 꿀 웅덩이, 그리고 길가를 밝히는 벌집 등
+    for (let i = 1; i <= 7; i++) {
+      const t = i / 8, pt = at(t);
+      for (const sgn of [-1, 1]) {
+        const ox = Math.cos(pt.yaw) * 3.1 * sgn, oz = -Math.sin(pt.yaw) * 3.1 * sgn;
+        const x = pt.x + ox, z = pt.z + oz, y = meadowHeight(x, z);
+        if (i % 2 === 1) { // 꿀단지 (뚜껑에서 꿀이 흐른다)
+          const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 0.95, 12), new THREE.MeshStandardMaterial({ color: 0xd98d2b, roughness: 0.8 }));
+          pot.position.set(x, y + 0.48, z); pot.castShadow = true;
+          const lid = new THREE.Mesh(new THREE.SphereGeometry(0.52, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), honeyMat); lid.position.set(x, y + 0.95, z);
+          decor.add(pot, lid); block(x, z, 0.5);
+        } else { // 벌집 등 (기둥 위 호박색 등)
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 2.6, 8), woodMat); pole.position.set(x, y + 1.3, z);
+          const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.46, 12, 9), new THREE.MeshStandardMaterial({ color: 0xffc247, emissive: 0xff9500, emissiveIntensity: 0.8 }));
+          lamp.scale.y = 0.8; lamp.position.set(x, y + 2.8, z);
+          decor.add(pole, lamp); block(x, z, 0.35);
+        }
+      }
+      if (i % 3 === 0) { // 길 위에 고인 꿀 웅덩이 (반짝반짝)
+        const y = meadowHeight(pt.x, pt.z);
+        const pool = new THREE.Mesh(new THREE.CircleGeometry(1.5 + (i % 2) * 0.5, 20), honeyMat);
+        pool.rotation.x = -Math.PI / 2; pool.position.set(pt.x, y + 0.05, pt.z);
+        decor.add(pool);
+      }
+    }
+
+    // 길 위를 오가는 꿀벌 (벌집 쪽으로 줄지어 날아간다)
+    const beeBody = new THREE.MeshStandardMaterial({ color: 0xffd23f }), beeStripe = new THREE.MeshStandardMaterial({ color: 0x20232e });
+    const beeWing = new THREE.MeshStandardMaterial({ color: 0xdff6ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+    for (let i = 0; i < 9; i++) {
+      const bee = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), beeBody); body.scale.x = 1.5;
+      const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.045, 6, 12), beeStripe); stripe.rotation.y = Math.PI / 2;
+      const wing = new THREE.Mesh(new THREE.CircleGeometry(0.15, 8), beeWing); wing.rotation.x = -Math.PI / 2; wing.position.y = 0.15;
+      bee.add(body, stripe, wing);
+      bee.userData = { t: i / 9, speed: rand(0.035, 0.06), side: rand(-2.2, 2.2), h: rand(1.6, 3.4), phase: rand(0, 6) };
+      decor.add(bee); honeyBees.push(bee);
+    }
+    honeyBees.at = at; // 움직일 때 쓰려고 길 계산 함수를 들고 있는다
+  }
+
   // 도토로: 벌집 나무 옆에 서서 꿀벌집을 소개한다 (꿀벌집 안에서도 만난다)
-  const totoroAt = { x: ht.x + 1.5, z: ht.z + 8 };
+  const totoroAt = { x: ht.x + 2.5, z: ht.z + 10 };
   const totoro = makeNpc({ outfit: 'miner', name: '도토로', model: '도토로.glb' });
   totoro.position.set(totoroAt.x, meadowHeight(totoroAt.x, totoroAt.z), totoroAt.z);
   totoro.rotation.y = 2.4;
@@ -1088,6 +1175,13 @@ export function buildWorld(scene) {
   decor.traverse((o) => { if (o.userData.flame) flames.push(o); });
 
   function animate(t) {
+    for (const b of honeyBees) { // 꿀의 길 위를 벌집 쪽으로 줄지어 나는 꿀벌
+      const u = b.userData;
+      const pt = honeyBees.at((u.t + t * u.speed) % 1); // 시간으로 굴린다 (프레임 수와 무관하게 같은 속도)
+      const ox = Math.cos(pt.yaw) * u.side, oz = -Math.sin(pt.yaw) * u.side;
+      b.position.set(pt.x + ox, meadowHeight(pt.x + ox, pt.z + oz) + u.h + Math.sin(t * 3 + u.phase) * 0.25, pt.z + oz);
+      b.rotation.y = pt.yaw + Math.PI;
+    }
     for (const b of hiveBees) { const u = b.userData; const a = t * u.speed + u.phase; b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t * 3 + u.phase) * 0.2, Math.sin(a) * u.r); b.rotation.y = -a - Math.PI / 2 * Math.sign(u.speed); }
     bugs.position.y = meadowHeight(bb.x, bb.z) + Math.sin(t * 2) * 0.03;
     goku.position.y = meadowHeight(gk.x, gk.z) + Math.abs(Math.sin(t * 4)) * 0.12; // 제자리에서 폴짝폴짝 수련
@@ -1115,9 +1209,9 @@ export function buildWorld(scene) {
     volcanoGate: { x: vg.x, z: vg.z + 3.6 },
     labDoor: { x: lab.x, z: lab.z - 6.4 }, // 연구소 문 앞 (닿으면 main 이 연구소 내부로 보낸다)
     arenaDoor: { x: stad.x, z: stad.z - stad.r - 1.9 }, // 넘버볼 아레나 문 앞 (닿으면 main 이 아레나 안으로 보낸다)
-    hiveDoor: { x: ht.x - 7.6, z: ht.z + 3.2 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
+    hiveDoor: { x: ht.x - 10.5, z: ht.z + 4.4 }, // 매달린 벌집의 바로 아래 (어느 쪽에서든 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [
-      `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
+      `안녕, ${c.name}! 난 이 큰 나무에 사는 숲의 요정 도토로야. 꿀의 길을 따라 여기까지 왔구나. 저 위에 매달린 호박색 덩어리가 꿀벌집이란다.`,
       '벌집 바로 아래로 걸어가면 벌집 속으로 들어갈 수 있어. 안에는 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해!',
       '그런데 요즘 벌집 속에서 붉은 숫자를 단 벌들이 떼로 줄을 맞춰 날더구나. 누군가 벌 떼를 한꺼번에 조종해 본 것 같아.',
       `안에는 뿔충이·딱충이·세꿀버리 같은 벌레·풀 포켓몬이 살아. 공격 ${c.zone.targetAtk + 1}쯤이면 편하게 이겨. 불 포켓몬이 벌레에 세!`,
@@ -1141,7 +1235,7 @@ export function buildWorld(scene) {
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구! 북쪽 산의 동굴 입구가 열렸어. 지하동굴에 가 보자고.' : `서북쪽 돌기둥 아레나에 보스 이상해꽃이 있어. 체력 60에 공격 6이나 되니까 공격 ${c.zone.targetAtk + 4} 이상, 체력 25쯤 되면 도전해 봐. 불 포켓몬이면 더 좋고.`,
       '북서쪽 구석 버섯 고리에는 잠만보가 자고 있어. 체력이 60이나 되니까 충분히 세진 다음에 가 보라고.',
       '동북쪽 붉은 바위 협곡은 불의산, 서쪽 기차역은 물의길, 남동쪽 로켓은 꿈의우주로 가는 길이야. 마을 남쪽 큰 건물은 오박사 연구소!',
-      '서남쪽 큰 나무에 꿀벌집이 매달려 있어. 벌집에 닿으면 안으로 들어가는데, 벌레·풀 포켓몬과 꿀 웅덩이가 가득하대.',
+      '남서쪽으로 쭉 가면 황금빛 "꿀의 길"이 나와. 아치를 지나 길만 따라가면 숲에서 제일 큰 나무가 나오는데, 거기 꿀벌집이 매달려 있어. 벌집 바로 아래로 걸어가면 안으로 들어가!',
       '바다 일은 나한테 묻지 마. 항해사 나미가 심해에 내려가 있으니 거기서 물어보라고!',
     ] }, { x: conductorAt.x, z: conductorAt.z, mesh: conductor, name: '리리', boards: 'train', lines: (c) => [
       `어서 오게, ${c.name}! 난 선장 리리야. 이 기차는 바다 마을 물의길로 간다네.`,

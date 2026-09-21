@@ -173,9 +173,22 @@ function spawnCreature(z, speciesId, x, zz, extra = {}) {
   z.creatures.push(c);
   return c;
 }
+/** 시작 지점에서 얼마나 멀리 있는 자리인가: 0 = 시작 지점, 1 = 맵 가장자리 */
+function outwardness(z, x, zz) {
+  const s = z.world.spawn || { x: 0, z: 0 };
+  const half = (z.terrain.size || 200) / 2;
+  return Math.max(0, Math.min(1, Math.hypot(x - s.x, zz - s.z) / half));
+}
+/** 그 자리에서 수수께끼 상자가 나올 확률. 마을 근처(0.3 안쪽)에는 안 나오고, 멀수록 잦다(가장자리에서 두 배).
+ *  아이가 맵 구석구석까지 나가 보도록 — 전체 개수는 예전과 비슷하다. */
+function chestChanceAt(z, x, zz) {
+  const d = outwardness(z, x, zz);
+  if (d < 0.3) return 0;
+  return CHEST_CHANCE * (0.5 + 2 * (d - 0.3) / 0.7);
+}
 function spawnPickup(z, x, zz) {
   let m;
-  const chest = CHEST_MODEL[z.name] && Math.random() < CHEST_CHANCE ? CHEST_MODEL[z.name] : null;
+  const chest = CHEST_MODEL[z.name] && Math.random() < chestChanceAt(z, x, zz) ? CHEST_MODEL[z.name] : null;
   if (chest) { // 수수께끼 상자 (푸른숲·지하동굴·불의산·꿀벌집) / 바다 보물상자 (물의길·심해)
     m = new THREE.Group();
     const draft = new THREE.Group(); draft.add(makeBlockMesh(0xffd43b)); m.add(draft); m.userData.draft = draft;
@@ -380,7 +393,17 @@ function getZone(name) {
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
   const wildOnly = { ...wildExtra, boss: false }; // 야생으로 나올 땐 보스 표시를 뗀다 (꼬마돌은 수성에서만 보스)
   const extraFor = (c) => (ws ? { ...wildOnly, baseHp: c.baseHp, baseAtk: c.baseAtk } : wildOnly); // wildScale 로 키운 능력치를 그대로 넘긴다
-  z.world.wildSpots.forEach(([x, zz], i) => { if (land.length) { const c = land[i % land.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
+  // 시작 지점에 가까운 자리에는 순한 종, 멀수록 등급이 높은(희귀하고 센) 종이 나온다.
+  // 맵을 넓게 쓰게 하려는 것 — 바깥으로 나갈수록 좋은 포켓몬을 만난다.
+  if (land.length) {
+    const order = [...land].sort((a, b) => (a.grade || 1) - (b.grade || 1) || (a.baseHp || 0) - (b.baseHp || 0));
+    const spots = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => a.d - b.d);
+    spots.forEach((s, i) => {
+      const band = Math.floor((i + rand(-0.9, 0.9)) * order.length / spots.length); // 띠 경계가 칼같지 않게 살짝 섞는다
+      const c = order[Math.max(0, Math.min(order.length - 1, band))];
+      spawnCreature(z, c.id, s.x, s.z, extraFor(c));
+    });
+  }
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
   (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) { const c = swimmers[i % swimmers.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
   (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) { const c = deep[i % deep.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
@@ -2308,8 +2331,9 @@ function frame() {
       }
     }
     zone.respawnTimer -= dt;
-    if (zone.respawnTimer <= 0 && zone.pickups.length < 1 && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·숫자블록 퀴즈가 주 수입)
-      zone.respawnTimer = 120;
+    const farOut = outwardness(zone, pp.x, pp.z) > 0.5; // 맵 바깥으로 나오면 줍는 것이 조금 더 자주·많이 (상자도 바깥에서 잘 나온다)
+    if (zone.respawnTimer <= 0 && zone.pickups.length < (farOut ? 2 : 1) && !zone.world.indoor) { // 블록은 아주 드물게 다시 생긴다 (대결·숫자블록 퀴즈가 주 수입)
+      zone.respawnTimer = farOut ? 75 : 120;
       const half = zone.terrain.size / 2 - 4;
       for (let tries = 0; tries < 20; tries++) {
         const x = pp.x + rand(-36, 36), zz = pp.z + rand(-36, 36);
