@@ -531,15 +531,20 @@ function setBlocks(n, { glow = false, quiet = false } = {}) {
     myStack.pop = 1;
   }
   refreshHud();
-  if (!quiet && chunkNow > chunkBefore) { // 뭉치는 순간을 크게 알려 준다 (25개마다 은빛 한 칸, 은빛 두 칸이면 금빛 한 칸)
+  // 블록이 뭉치면 뒤에 쌓인 더미가 눈에 띄게 "작아진다" (25개가 은빛 한 칸으로). 왜 작아졌는지 설명이 없으면
+  // 블록을 잃은 것처럼 보이므로 반드시 알려 준다. 그런데 보상 말풍선이 곧바로 덮어써서 설명이 사라지곤 했다
+  // (상자 퀴즈를 풀 때 특히) — 그래서 지금 떠 있는 말이 끝난 뒤에 띄우도록 줄을 세운다.
+  let merged = '';
+  if (chunkNow > chunkBefore) {
     const golds = Math.floor(n / GOLD_BLOCK);
-    sound.fanfare();
-    confetti.burst(160);
-    say(chunkNow % 2 // 홀수 번째 묶음 = 은빛 한 칸이 새로 생긴 순간
-      ? `✨ 블록 ${SILVER_BLOCK}개가 은빛 블록 한 칸으로 뭉쳤어! 은빛 한 칸은 ${SILVER_BLOCK}개, 두 칸이 되면 금빛 한 칸(${GOLD_BLOCK})이 돼. 지금 블록은 모두 ${n}개!`
-      : `✨ 은빛 두 칸이 금빛 블록 한 칸으로 뭉쳤어! 금빛 한 칸은 ${GOLD_BLOCK}개${golds > 1 ? `, 금빛 ${golds}칸이면 ${GOLD_BLOCK}씩 ${golds}번이라 ${golds * GOLD_BLOCK}개` : ''}야. 지금 블록은 모두 ${n}개!`, { sec: 8 });
+    merged = chunkNow % 2 // 홀수 번째 묶음 = 은빛 한 칸이 새로 생긴 순간
+      ? `✨ 블록을 잃은 게 아니야 — ${SILVER_BLOCK}개가 은빛 블록 한 칸으로 뭉쳐서 더미가 작아 보이는 거야! 은빛 한 칸은 ${SILVER_BLOCK}개, 두 칸이 되면 금빛 한 칸(${GOLD_BLOCK})이 돼. 지금 블록은 모두 ${n}개!`
+      : `✨ 은빛 두 칸이 금빛 블록 한 칸으로 뭉쳤어! 금빛 한 칸은 ${GOLD_BLOCK}개${golds > 1 ? `, 금빛 ${golds}칸이면 ${GOLD_BLOCK}씩 ${golds}번이라 ${golds * GOLD_BLOCK}개` : ''}야. 지금 블록은 모두 ${n}개!`;
+    if (!quiet) { sound.fanfare(); confetti.burst(160); mergeMsg = merged; }
   }
+  return merged; // 부르는 쪽이 제 말풍선에 이어 붙이고 싶으면 quiet 로 받아 간다
 }
+let mergeMsg = null; // 줄 세워 둔 뭉침 안내 (프레임 루프가 지금 말이 끝나면 띄운다)
 
 const hudBlocks = document.getElementById('hud-blocks');
 const hudLeader = document.getElementById('hud-leader');
@@ -1303,26 +1308,46 @@ function placeRescue(z, data, x, zz) {
 // 몸은 numberblocks.js 의 shapeFor 가 11~24 를 다섯 칸 기둥으로 쌓아 주므로 그대로 세워진다
 const BIG_NB_NAMES = { 11: '열하나', 12: '열둘', 13: '열셋', 14: '열넷', 15: '열다섯', 16: '열여섯', 17: '열일곱', 18: '열여덟', 19: '열아홉', 20: '스물' };
 const BIG_NB_CHANCE = 0.2; // 상자 다섯 개에 하나쯤. 상자 자체가 드물어서(CHEST_CHANCE) 줍는 것 100개에 2~3번꼴이다
-/** 상자에서 나올 친구를 고른다. 보통은 2~10, 가끔 11~20 (11 쪽이 더 자주 나온다) */
-function chestFriendData() {
-  if (Math.random() < BIG_NB_CHANCE) {
-    const n = 11 + Math.floor(Math.random() ** 2 * 10);
-    return { id: `nbx${n}`, number: n, name: BIG_NB_NAMES[n] };
-  }
-  return nbByNumber[2 + Math.floor(Math.random() * 9)];
-}
 /** 상자 속에 몇 개가 들어 있었나: 문제를 다 풀고 나서야 굴린다 (주울 때는 아무도 모른다).
  *  분포는 예전에 "나온 친구의 숫자"를 그대로 주던 때와 같다 — 보통 2~10, 다섯 번에 한 번쯤 11~20. */
 function chestReward() {
   if (Math.random() < BIG_NB_CHANCE) return 11 + Math.floor(Math.random() ** 2 * 10);
   return 2 + Math.floor(Math.random() * 9);
 }
-/** 수수께끼 상자를 열었을 때: 상자가 있던 자리에서 랜덤 숫자블록 친구가 나온다 */
-function spawnRescueAt(z, x, zz) {
-  const nb = placeRescue(z, chestFriendData(), x, zz);
-  nb.fromChest = true; // 이 친구의 보상은 제 숫자가 아니라, 문제를 푼 뒤에 굴리는 상자 속 블록이다
-  z.nbTimer = Math.max(z.nbTimer, rand(10, 16)); // 상자에서 나온 친구와 평소 친구가 한꺼번에 몰리지 않게
-  return nb;
+/** 그 숫자의 숫자블록 친구 자료 (열보다 크면 그 자리에서 만든다) */
+function nbDataFor(n) { return nbByNumber[n] || { id: `nbx${n}`, number: n, name: BIG_NB_NAMES[n] || `${n}` }; }
+/** 수수께끼 상자를 열었을 때. 문제가 먼저 나오고, 상자 속에 몇 개가 들었는지는 풀고 나서야
+ *  그 숫자의 숫자블록 친구가 되어 튀어나온다 — 숫자를 먼저 보여 주면 "몇 개가 들었을까?" 가 되지 않는다. */
+function openChest(z, at, boxName) {
+  const hard = Math.random() < 0.45 ? 8 : 4; // 문제 난이도만 정한다 (상자 속 개수와는 상관없다)
+  z.nbTimer = Math.max(z.nbTimer, rand(10, 16)); // 상자를 푸는 동안 평소 친구가 겹쳐 나오지 않게
+  return quiz.ask(hard, boxName, z.name).then((res) => {
+    if (res !== 'ok') {
+      sound.bounce();
+      say(res === 'wrong'
+        ? `${boxName}가 도로 닫혀 버렸어… 정답은 ${quiz.last?.answer}이었어. ${quiz.last?.explain || quiz.last?.hint || ''} 다음 상자에 또 도전해 봐!`
+        : `${boxName}는 다음에 열어 보자!`, { sec: 7 });
+      return res;
+    }
+    const reward = chestReward();               // 이제야 굴린다
+    const data = nbDataFor(reward);
+    const nb = placeRescue(z, data, at.x, at.z); // 보상 숫자 그대로인 친구가 상자 자리에서 뿅
+    nb.prize = true;                             // 문제를 내는 친구가 아니다 (퀴즈 버튼도 안 뜬다)
+    nb.life = 5;                                 // 잠깐 보여 주고 사라진다
+    if (nb.help) nb.help.visible = false;        // 도와달라는 빨간 ! 도 없다
+    particles.stars(z.scene, nb.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 26, new THREE.Color(colorForCount(reward)).getHex(), 0.5);
+    state.rescued++;
+    wkAdd('quiz');
+    const merged = setBlocks(state.blocks + reward, { quiet: true }); // 뭉침 안내는 아래 말풍선에 이어 붙인다
+    sound.fanfare();
+    confetti.burst(100);
+    const why = quiz.last?.explain || quiz.last?.hint || '';
+    say(`정답이야! ${boxName} 속에는… ${josa(data.name, '이가')} 들어 있었어 — 블록 ${reward}개!${reward > 10 ? ' 열보다 많아!' : ''} 이제 모두 ${state.blocks}개야. ${why}${merged ? ' ' + merged : ''}`,
+      { face: String(reward), sec: merged ? 11 : 8 });
+    refreshHud();
+    autosave();
+    return res;
+  });
 }
 function removeRescue(z, nb, escaped) {
   if (!nb || !z.rescues.includes(nb)) return;
@@ -1342,15 +1367,13 @@ function rescueSolved(z, nb) {
   // 길에서 만난 친구는 딱 "그 친구의 숫자만큼" 준다 — 줍기·대결과 달리 퀴즈는 자주 나오니
   // 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
   // 수수께끼 상자에서 나온 친구는 다르다: 상자 속에 몇 개가 들었는지 지금 굴려서 알려 준다.
-  const reward = nb.fromChest ? chestReward() : n;
-  setBlocks(state.blocks + reward);
+  const reward = n;
+  const merged = setBlocks(state.blocks + reward, { quiet: true }); // 뭉침 안내는 아래 말풍선에 이어 붙인다
   sound.fanfare();
   confetti.burst(100);
   const why = quiz.last?.explain || quiz.last?.hint || '';
-  say(nb.fromChest
-    ? `${nb.data.name}: 정답이야! 상자 속에는… 블록 ${reward}개가 들어 있었어!${reward > 10 ? ' 열보다 많아!' : ''} ${why}`
-    : `${nb.data.name}: 정답이야, 고마워! 블록 ${reward}개를 받았어!${reward > 10 ? ' 열보다 큰 숫자야!' : ''} ${why}`,
-    { face: String(reward), sec: 7 });
+  say(`${nb.data.name}: 정답이야, 고마워! 블록 ${reward}개를 받았어! 이제 모두 ${state.blocks}개야.${reward > 10 ? ' 열보다 큰 숫자야!' : ''} ${why}${merged ? ' ' + merged : ''}`,
+    { face: String(reward), sec: merged ? 10 : 7 });
   refreshHud();
   autosave();
 }
@@ -2435,10 +2458,11 @@ function frame() {
           zone.pickups.splice(i, 1);
           sound.pickup();
           particles.stars(zone.scene, at.clone().add(new THREE.Vector3(0, 0.8, 0)), 22, 0xffd43b, 0.5);
-          const nb = spawnRescueAt(zone, at.x, at.z);
-          say(`${CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자'}를 열었어! 숫자블록 친구 ${josa(nb.data.name, '이가')} 나와서 문제를 내! 맞히면 상자 속 블록을 준대 — 몇 개가 들었을까?`, { sec: 6 });
+          const boxName = CHEST_MODEL[zone.name] === '바다보물상자.glb' ? '바다 보물상자' : '수수께끼 상자';
+          say(`${boxName}를 열었어! 안에서 문제가 톡 튀어나왔어. 맞히면 상자 속 블록을 다 준대 — 몇 개가 들었을까?`, { sec: 6 });
           input.endFrame();
-          setTimeout(() => { if (zone.rescues.includes(nb) && !quiz.open && !battle.active && !dex.open) askRescueQuiz(zone, nb); }, 900); // 튀어나오는 연출을 잠깐 보여 준 뒤 문제
+          const zz2 = zone;
+          setTimeout(() => { if (zone === zz2 && !quiz.open && !battle.active && !dex.open) openChest(zz2, at, boxName); }, 900); // 상자가 열리는 연출을 잠깐 보여 준 뒤 문제
           continue;
         }
         if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감에서 포켓몬을 키우는 데 쓰자!`); } continue; }
@@ -2572,12 +2596,13 @@ function frame() {
       nb.mesh.rotation.y = Math.atan2(pp.x - nb.position.x, pp.z - nb.position.z); // 주인공을 본다
       animateNumberblock(nb.mesh, dt, true);
       if (nb.life <= 0) removeRescue(zone, nb, true);
-      else if (nb.position.distanceTo(pp) < 2.4 && (!nearNb || nb.position.distanceTo(pp) < nearNb.position.distanceTo(pp))) nearNb = nb;
+      else if (!nb.prize && nb.position.distanceTo(pp) < 2.4 && (!nearNb || nb.position.distanceTo(pp) < nearNb.position.distanceTo(pp))) nearNb = nb; // 상자에서 상품으로 나온 친구는 문제를 내지 않는다
     }
     if (nearNb) {
       const nb = nearNb;
       offer(`🧩 ${nb.data.name} 퀴즈 풀기`, () => { input.endFrame(); askRescueQuiz(zone, nb); }, '🧩\n퀴즈');
     }
+    if (mergeMsg && msgTimer <= 0) { say(mergeMsg, { sec: 8 }); mergeMsg = null; } // 줄 세워 둔 뭉침 안내 (보상 말풍선이 끝난 뒤)
     tickCar();
     if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
