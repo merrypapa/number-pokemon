@@ -110,11 +110,11 @@ export function planetSvg(p) {
 }
 
 // ---------- 행성 지역 만들기 ----------
-const S = 180; // 행성 지역 한 변
-const SPAWN = { x: 0, z: 62 }, STATION = { x: 13, z: 54 }, ARENA = { x: 0, z: -52, r: 8 }; // 아레나: 북쪽, 보스가 지킨다
+const S = 240; // 행성 지역 한 변 (180 → 240 으로 넓힘)
+const SPAWN = { x: 0, z: 83 }, STATION = { x: 17, z: 72 }, ARENA = { x: 0, z: -69, r: 10 }; // 아레나: 북쪽, 보스가 지킨다
 // 야생·블록 자리 틀 (막힌 곳이면 근처 빈 자리로 옮긴다)
-const WILD_TEMPLATE = [[-32, 30], [32, 34], [-52, -8], [52, -14], [-20, -46], [26, -50], [-66, 44], [66, 48], [0, -72], [-70, -56], [70, -60], [-4, 8]];
-const PICKUP_TEMPLATE = [[-14, 44], [16, 40], [-40, 10], [42, 12], [-24, -24], [28, -26], [0, -40], [-60, 70], [62, 74], [-76, -20], [78, -22], [0, 78]];
+const WILD_TEMPLATE = [[-42.7, 40.0], [42.7, 45.3], [-69.3, -10.7], [69.3, -18.7], [-26.7, -61.3], [34.7, -66.7], [-88.0, 58.7], [88.0, 64.0], [0.0, -96.0], [-93.3, -74.7], [93.3, -80.0], [-5.3, 10.7], [7.7, -11.3], [-18.9, 107.2], [-87.9, -103.6], [95.0, -21.0]];
+const PICKUP_TEMPLATE = [[-18.7, 58.7], [21.3, 53.3], [-53.3, 13.3], [56.0, 16.0], [-32.0, -32.0], [37.3, -34.7], [0.0, -53.3], [-80.0, 93.3], [82.7, 98.7], [-101.3, -26.7], [104.0, -29.3], [0.0, 104.0], [-65.1, -36.7], [-29.2, 98.3], [-62.6, -61.1], [18.3, 10.2]];
 /** 가우스 언덕들의 높이 합 */
 const bumpsHeight = (bumps, x, z) => { let y = 0; for (const b of bumps) { const dx = x - b.x, dz = z - b.z; y += b.h * Math.exp(-(dx * dx + dz * dz) / (b.r * b.r)); } return y; };
 /** 웅덩이(못 들어가는 곳) 근처는 조금 파인다 */
@@ -158,8 +158,8 @@ const keepClear = (x, z) => near(x, z, SPAWN, 9) || near(x, z, STATION, 9) || ne
 const THEMES = {
   sun: {
     sky: 0xff9a2a, fog: [0xffb060, 45, 150], hemi: [0xfff1b5, 0xff6a00, 1.6], sun: [0xfff4c0, 1.2], dark: false,
-    bumps: [{ x: -40, z: -30, r: 16, h: 2.4 }, { x: 45, z: 20, r: 14, h: 2.0 }, { x: 10, z: -60, r: 18, h: 3.0 }, { x: -60, z: 50, r: 13, h: 1.8 }, { x: 60, z: -60, r: 15, h: 2.6 }],
-    pools: [{ x: -30, z: 10, r: 7 }, { x: 36, z: -30, r: 8 }, { x: -58, z: -58, r: 6 }, { x: 62, z: 60, r: 6 }, { x: 0, z: -22, r: 5 }, { x: -70, z: 10, r: 5 }, { x: 24, z: 30, r: 4.5 }],
+    bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.4 }, { x: 60.0, z: 26.7, r: 18.7, h: 2.0 }, { x: 13.3, z: -80.0, r: 24.0, h: 3.0 }, { x: -80.0, z: 66.7, r: 17.3, h: 1.8 }, { x: 80.0, z: -80.0, r: 20.0, h: 2.6 }],
+    pools: [{ x: -40.0, z: 13.3, r: 9.3 }, { x: 48.0, z: -40.0, r: 10.7 }, { x: -77.3, z: -77.3, r: 8.0 }, { x: 82.7, z: 80.0, r: 8.0 }, { x: 0.0, z: -29.3, r: 6.7 }, { x: -93.3, z: 13.3, r: 6.7 }, { x: 32.0, z: 40.0, r: 6.0 }],
     colors: { a: 0xffc93a, b: 0xff9a1f, pool: 0x7a2a10, rim: 0xffe08a },
     decorate({ scene, decor, block, height, pools, anim }) {
       // 검은 흑점 웅덩이: 어두운 플라즈마 호수
@@ -167,7 +167,7 @@ const THEMES = {
       for (const p of pools) { const m = new THREE.Mesh(new THREE.CircleGeometry(p.r, 28), lavaMat); m.rotation.x = -Math.PI / 2; m.position.set(p.x, height(p.x, p.z) + 0.25, p.z); scene.add(m); }
       // 불꽃 기둥(플레어): 위아래로 출렁이는 주황 원뿔
       const flares = [];
-      for (let i = 0; i < 26; i++) {
+      for (let i = 0; i < 46; i++) {
         const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8);
         if (keepClear(x, z) || inPools(pools, x, z, 2)) continue;
         const h = rand(2.5, 6);
@@ -184,7 +184,7 @@ const THEMES = {
       }
       // 솟아오르는 불티
       const sparks = [];
-      for (let i = 0; i < 40; i++) { const sp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffe08a })); sp.userData = { x: rand(-80, 80), z: rand(-80, 80), phase: rand(0, 10), speed: rand(1.2, 2.4) }; scene.add(sp); sparks.push(sp); }
+      for (let i = 0; i < 40; i++) { const sp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffe08a })); sp.userData = { x: rand(-108, 108), z: rand(-108, 108), phase: rand(0, 10), speed: rand(1.2, 2.4) }; scene.add(sp); sparks.push(sp); }
       anim.push((t) => {
         for (const f of flares) { const u = f.userData; const s = 1 + Math.sin(t * 3 + u.phase) * 0.25; f.scale.set(1, s, 1); f.position.y = height(f.position.x, f.position.z) + (u.h * s) / 2; }
         for (const s of sparks) { const u = s.userData; const life = ((t * u.speed + u.phase) % 4) / 4; s.position.set(u.x, height(u.x, u.z) + life * 14, u.z + life * 3); s.visible = life < 0.9; }
@@ -193,7 +193,7 @@ const THEMES = {
   },
   mercury: {
     sky: 0x050308, fog: [0x0a0810, 70, 190], hemi: [0xd8d8e8, 0x2a2a30, 1.0], sun: [0xfff6d0, 1.9], dark: false, stars: true,
-    bumps: [{ x: -45, z: -35, r: 16, h: 3.2 }, { x: 50, z: 30, r: 14, h: 2.6 }, { x: 15, z: -65, r: 16, h: 3.6 }, { x: -65, z: 45, r: 13, h: 2.2 }, { x: 70, z: -60, r: 15, h: 3.0 }, { x: -20, z: 20, r: 10, h: 1.4 }],
+    bumps: [{ x: -60.0, z: -46.7, r: 21.3, h: 3.2 }, { x: 66.7, z: 40.0, r: 18.7, h: 2.6 }, { x: 20.0, z: -86.7, r: 21.3, h: 3.6 }, { x: -86.7, z: 60.0, r: 17.3, h: 2.2 }, { x: 93.3, z: -80.0, r: 20.0, h: 3.0 }, { x: -26.7, z: 26.7, r: 13.3, h: 1.4 }],
     craters: [{ x: -30, z: -5, r: 12, d: 2.4 }, { x: 40, z: -30, r: 10, d: 2.0 }, { x: -60, z: -65, r: 13, d: 2.6 }, { x: 60, z: 62, r: 9, d: 1.6 }, { x: 0, z: -35, r: 8, d: 1.5 }, { x: -72, z: 5, r: 9, d: 1.8 }, { x: 30, z: 20, r: 6, d: 1.2 }, { x: 72, z: -5, r: 10, d: 1.9 }],
     pools: [],
     colors: { a: 0x8a8a90, b: 0x6f6f78, hot: 0xa08a70, cold: 0x6a7080 },
@@ -201,22 +201,22 @@ const THEMES = {
     decorate({ scene, decor, block, height, anim }) {
       addSkyBody(scene, { az: 0.5, el: 0.55, r: 34, color: 0xfff6d0, glow: 0xffd070 }); // 아주 가까운 커다란 태양
       const rocks = [];
-      for (let i = 0; i < 110; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z)) continue; const r = rand(0.4, 1.8); rocks.push({ x, y: height(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) }); block(x, z, r * 0.9); }
+      for (let i = 0; i < 195; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z)) continue; const r = rand(0.4, 1.8); rocks.push({ x, y: height(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) }); block(x, z, r * 0.9); }
       decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x8a8a94, roughness: 1 }), rocks, { shadow: true }));
       const spires = [];
-      for (let i = 0; i < 30; i++) { const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6); if (keepClear(x, z)) continue; const h = rand(2, 6), r = rand(0.6, 1.4); spires.push({ x, y: height(x, z) + h / 2 - 0.2, z, sx: r, sy: h, sz: r, ry: rand(0, 3) }); block(x, z, r * 0.8); }
+      for (let i = 0; i < 53; i++) { const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6); if (keepClear(x, z)) continue; const h = rand(2, 6), r = rand(0.6, 1.4); spires.push({ x, y: height(x, z) + h / 2 - 0.2, z, sx: r, sy: h, sz: r, ry: rand(0, 3) }); block(x, z, r * 0.8); }
       decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 5), new THREE.MeshStandardMaterial({ color: 0x5a5a64, roughness: 1 }), spires, { shadow: true }));
       // 그늘진 크레이터 바닥의 얼음 (서쪽 밤 쪽)
       for (const c of THEMES.mercury.craters) if (c.x < 0) { const ice = new THREE.Mesh(new THREE.CircleGeometry(c.r * 0.45, 20), new THREE.MeshStandardMaterial({ color: 0xdff6ff, emissive: 0x88c0d0, emissiveIntensity: 0.3, roughness: 0.2 })); ice.rotation.x = -Math.PI / 2; ice.position.set(c.x, height(c.x, c.z) + 0.08, c.z); scene.add(ice); }
       const heat = []; // 낮 쪽 땅에서 아지랑이처럼 올라오는 빛 점
-      for (let i = 0; i < 30; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffe0a0, transparent: true, opacity: 0.7 })); m.userData = { x: rand(10, 85), z: rand(-85, 85), phase: rand(0, 10) }; scene.add(m); heat.push(m); }
+      for (let i = 0; i < 53; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffe0a0, transparent: true, opacity: 0.7 })); m.userData = { x: rand(12, 112), z: rand(-112, 112), phase: rand(0, 10) }; scene.add(m); heat.push(m); }
       anim.push((t) => { for (const m of heat) { const u = m.userData; const life = ((t * 0.7 + u.phase) % 3) / 3; m.position.set(u.x, height(u.x, u.z) + 0.3 + life * 4, u.z); m.material.opacity = 0.7 * (1 - life); } });
     },
   },
   venus: {
     sky: 0xe0b060, fog: [0xe8c070, 28, 105], hemi: [0xfff0c0, 0x8a5a20, 1.2], sun: [0xffe8b0, 0.7], dark: false,
-    bumps: [{ x: -40, z: -30, r: 14, h: 2.2 }, { x: 46, z: 26, r: 14, h: 2.0 }, { x: 0, z: -66, r: 14, h: 5 }, { x: -64, z: 46, r: 12, h: 1.8 }, { x: 64, z: -58, r: 14, h: 4.4 }, { x: -70, z: -60, r: 12, h: 3.6 }],
-    pools: [{ x: -28, z: 14, r: 7 }, { x: 34, z: -26, r: 8 }, { x: -56, z: -20, r: 6 }, { x: 58, z: 58, r: 5.5 }, { x: 6, z: -30, r: 5 }, { x: -20, z: -70, r: 6 }, { x: 74, z: 4, r: 5 }],
+    bumps: [{ x: -53.3, z: -40.0, r: 18.7, h: 2.2 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.0 }, { x: 0.0, z: -88.0, r: 18.7, h: 5 }, { x: -85.3, z: 61.3, r: 16.0, h: 1.8 }, { x: 85.3, z: -77.3, r: 18.7, h: 4.4 }, { x: -93.3, z: -80.0, r: 16.0, h: 3.6 }],
+    pools: [{ x: -37.3, z: 18.7, r: 9.3 }, { x: 45.3, z: -34.7, r: 10.7 }, { x: -74.7, z: -26.7, r: 8.0 }, { x: 77.3, z: 77.3, r: 7.3 }, { x: 8.0, z: -40.0, r: 6.7 }, { x: -26.7, z: -93.3, r: 8.0 }, { x: 98.7, z: 5.3, r: 6.7 }],
     colors: { a: 0xb8862e, b: 0x9c6f22, rock: 0x5a3a22, pool: 0x8a9a20, rim: 0xd8c060 },
     decorate({ scene, decor, block, height, pools, anim }) {
       const acid = new THREE.MeshStandardMaterial({ color: 0xc9e04a, emissive: 0x8ab020, emissiveIntensity: 0.7, roughness: 0.3, transparent: true, opacity: 0.9 });
@@ -224,33 +224,33 @@ const THEMES = {
       // 방패 화산 셋(큰 원뿔 + 분화구)과 유황 수정
       for (const [x, z, r, h] of [[0, -66, 14, 5], [64, -58, 14, 4.4], [-70, -60, 12, 3.6]]) { const top = new THREE.Mesh(new THREE.CircleGeometry(r * 0.35, 20), acid); top.rotation.x = -Math.PI / 2; top.position.set(x, height(x, z) + 0.15, z); scene.add(top); }
       const crystals = [];
-      for (let i = 0; i < 90; i++) { const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(0.8, 2.6); crystals.push({ x, y: height(x, z) + h * 0.5, z, sx: 0.45, sy: h * 0.8, sz: 0.45, ry: rand(0, 3), rx: rand(-0.2, 0.2) }); block(x, z, 0.6); }
+      for (let i = 0; i < 160; i++) { const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(0.8, 2.6); crystals.push({ x, y: height(x, z) + h * 0.5, z, sx: 0.45, sy: h * 0.8, sz: 0.45, ry: rand(0, 3), rx: rand(-0.2, 0.2) }); block(x, z, 0.6); }
       decor.add(makeInstanced(new THREE.OctahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0xf0d040, emissive: 0xa08020, emissiveIntensity: 0.4, roughness: 0.4 }), crystals));
       const rocks = [];
-      for (let i = 0; i < 70; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const r = rand(0.5, 1.6); rocks.push({ x, y: height(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) }); block(x, z, r * 0.9); }
+      for (let i = 0; i < 125; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const r = rand(0.5, 1.6); rocks.push({ x, y: height(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) }); block(x, z, r * 0.9); }
       decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 1 }), rocks, { shadow: true }));
       // 노란 구름이 머리 위로 흘러가고, 가끔 번개가 친다
       const tex = puffTexture('240,210,140');
       const clouds = [];
-      for (let i = 0; i < 40; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.7 })); sp.scale.setScalar(rand(14, 26)); sp.userData = { x: rand(-120, 120), z: rand(-120, 120), y: rand(18, 30), speed: rand(2, 5) }; scene.add(sp); clouds.push(sp); }
+      for (let i = 0; i < 40; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.7 })); sp.scale.setScalar(rand(14, 26)); sp.userData = { x: rand(-160, 160), z: rand(-160, 160), y: rand(18, 30), speed: rand(2, 5) }; scene.add(sp); clouds.push(sp); }
       const bolt = new THREE.PointLight(0xffffff, 0, 90); bolt.position.set(0, 25, 0); scene.add(bolt);
       anim.push((t) => {
         for (const c of clouds) { const u = c.userData; c.position.set(((u.x + t * u.speed + 120) % 240) - 120, u.y, u.z); }
-        const f = Math.sin(t * 7.3) * Math.sin(t * 1.7); bolt.intensity = f > 0.985 ? 12 : 0; if (f > 0.985) bolt.position.set(rand(-60, 60), 25, rand(-60, 60));
+        const f = Math.sin(t * 7.3) * Math.sin(t * 1.7); bolt.intensity = f > 0.985 ? 12 : 0; if (f > 0.985) bolt.position.set(rand(-80, 80), 25, rand(-80, 80));
       });
     },
   },
   earth: {
     sky: 0x8fd3ff, fog: [0xbfe6ff, 90, 220], hemi: [0xdff4ff, 0x4f7f3f, 1.0], sun: [0xfff4e0, 1.2], dark: false,
-    bumps: [{ x: -40, z: -35, r: 15, h: 2.6 }, { x: 44, z: 24, r: 13, h: 2.0 }, { x: 10, z: -66, r: 16, h: 6 }, { x: -64, z: 44, r: 13, h: 1.8 }, { x: 66, z: -60, r: 15, h: 5 }, { x: -72, z: -62, r: 14, h: 5.5 }],
-    pools: [{ x: -30, z: 6, r: 11 }, { x: 50, z: -20, r: 8 }],
+    bumps: [{ x: -53.3, z: -46.7, r: 20.0, h: 2.6 }, { x: 58.7, z: 32.0, r: 17.3, h: 2.0 }, { x: 13.3, z: -88.0, r: 21.3, h: 6 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.8 }, { x: 88.0, z: -80.0, r: 20.0, h: 5 }, { x: -96.0, z: -82.7, r: 18.7, h: 5.5 }],
+    pools: [{ x: -40.0, z: 8.0, r: 14.7 }, { x: 66.7, z: -26.7, r: 10.7 }],
     colors: { a: 0x6fc95a, b: 0x5fb64c, pool: 0x3f9fe8, rim: 0xe8d9a0, snow: 0xf4f8ff },
     colorFn(x, z, y, C) { if (y > 4.2) return new THREE.Color(C.snow); return null; },
     decorate({ scene, decor, block, height, pools, anim }) {
       for (const p of pools) { const w = new THREE.Mesh(new THREE.CircleGeometry(p.r + 0.5, 32), new THREE.MeshStandardMaterial({ color: 0x3f9fe8, roughness: 0.15, transparent: true, opacity: 0.9 })); w.rotation.x = -Math.PI / 2; w.position.set(p.x, height(p.x, p.z) + 0.35, p.z); scene.add(w); }
       // 나무 (줄기 + 초록 원뿔), 꽃, 덤불
       const trunks = [], crowns = [];
-      for (let i = 0; i < 110; i++) { const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5); if (keepClear(x, z) || inPools(pools, x, z, 3) || height(x, z) > 4) continue; const h = rand(1.2, 2.2), y = height(x, z); trunks.push({ x, y: y + h / 2, z, sy: h }); crowns.push({ x, y: y + h + 1.4, z, s: rand(1.6, 2.4), color: Math.random() < 0.5 ? 0x2e9e4f : 0x3fb85a }); block(x, z, 0.5); }
+      for (let i = 0; i < 195; i++) { const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5); if (keepClear(x, z) || inPools(pools, x, z, 3) || height(x, z) > 4) continue; const h = rand(1.2, 2.2), y = height(x, z); trunks.push({ x, y: y + h / 2, z, sy: h }); crowns.push({ x, y: y + h + 1.4, z, s: rand(1.6, 2.4), color: Math.random() < 0.5 ? 0x2e9e4f : 0x3fb85a }); block(x, z, 0.5); }
       decor.add(makeInstanced(new THREE.CylinderGeometry(0.18, 0.26, 1, 7), new THREE.MeshStandardMaterial({ color: 0x8b5a2b }), trunks));
       decor.add(makeInstanced(new THREE.ConeGeometry(1, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }), crowns, { shadow: true }));
       const flowers = [];
@@ -264,21 +264,21 @@ const THEMES = {
       // 하늘의 구름과 달
       const tex = puffTexture('255,255,255');
       const clouds = [];
-      for (let i = 0; i < 30; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); sp.scale.setScalar(rand(16, 30)); sp.userData = { x: rand(-140, 140), z: rand(-140, 140), y: rand(28, 40), speed: rand(0.6, 1.4) }; scene.add(sp); clouds.push(sp); }
+      for (let i = 0; i < 53; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); sp.scale.setScalar(rand(16, 30)); sp.userData = { x: rand(-140, 140), z: rand(-140, 140), y: rand(28, 40), speed: rand(0.6, 1.4) }; scene.add(sp); clouds.push(sp); }
       addSkyBody(scene, { az: -0.9, el: 0.6, r: 10, color: 0xf4f4f8 });
       anim.push((t) => { for (const c of clouds) { const u = c.userData; c.position.set(((u.x + t * u.speed + 140) % 280) - 140, u.y, u.z); } });
     },
   },
   mars: {
     sky: 0xe0a070, fog: [0xe8b088, 60, 190], hemi: [0xffd0b0, 0x7a3a20, 1.1], sun: [0xffe0c0, 1.1], dark: false,
-    bumps: [{ x: -42, z: -30, r: 16, h: 3.0 }, { x: 46, z: 26, r: 14, h: 2.4 }, { x: 8, z: -60, r: 22, h: 9 }, { x: -64, z: 44, r: 13, h: 2.0 }, { x: 66, z: -60, r: 14, h: 3.4 }, { x: -70, z: -60, r: 14, h: 3.0 }, { x: 30, z: 60, r: 12, h: 1.6 }],
-    canyon: { x1: -80, z1: 20, x2: 70, z2: -10, w: 5, d: 2.6 },
+    bumps: [{ x: -56.0, z: -40.0, r: 21.3, h: 3.0 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.4 }, { x: 10.7, z: -80.0, r: 29.3, h: 9 }, { x: -85.3, z: 58.7, r: 17.3, h: 2.0 }, { x: 88.0, z: -80.0, r: 18.7, h: 3.4 }, { x: -93.3, z: -80.0, r: 18.7, h: 3.0 }, { x: 40.0, z: 80.0, r: 16.0, h: 1.6 }],
+    canyon: { x1: -106.7, z1: 26.7, x2: 93.3, z2: -13.3, w: 5, d: 2.6 },
     pools: [],
     colors: { a: 0xc1512f, b: 0xa8452a, canyon: 0x7a3020, ice: 0xf0eef0 },
     colorFn(x, z, y, C) { if (Math.abs(z) > 72) return new THREE.Color(C.ice); return null; },
     decorate({ scene, decor, block, height, anim }) {
       const rocks = [];
-      for (let i = 0; i < 90; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z)) continue; const r = rand(0.4, 1.7); rocks.push({ x, y: height(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) }); block(x, z, r * 0.9); }
+      for (let i = 0; i < 160; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z)) continue; const r = rand(0.4, 1.7); rocks.push({ x, y: height(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) }); block(x, z, r * 0.9); }
       decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x8a3a24, roughness: 1 }), rocks, { shadow: true }));
       const mesas = [];
       for (let i = 0; i < 18; i++) { const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8); if (keepClear(x, z) || Math.abs(z) > 68) continue; const h = rand(2, 5), r = rand(1.4, 2.6); mesas.push({ x, y: height(x, z) + h / 2 - 0.3, z, sx: r, sy: h, sz: r, ry: rand(0, 3) }); block(x, z, r * 0.9); }
@@ -302,9 +302,9 @@ const THEMES = {
   },
   jupiter: {
     sky: 0xd8a56a, fog: [0xe0b080, 50, 160], hemi: [0xfff0d0, 0x8a5a3a, 1.2], sun: [0xfff4e0, 0.9], dark: false,
-    bumps: [{ x: -40, z: -30, r: 20, h: 1.6 }, { x: 46, z: 26, r: 18, h: 1.4 }, { x: 0, z: -60, r: 22, h: 1.8 }, { x: -64, z: 44, r: 16, h: 1.2 }, { x: 66, z: -60, r: 18, h: 1.6 }],
+    bumps: [{ x: -53.3, z: -40.0, r: 26.7, h: 1.6 }, { x: 61.3, z: 34.7, r: 24.0, h: 1.4 }, { x: 0.0, z: -80.0, r: 29.3, h: 1.8 }, { x: -85.3, z: 58.7, r: 21.3, h: 1.2 }, { x: 88.0, z: -80.0, r: 24.0, h: 1.6 }],
     spot: { x: 40, z: -22, rx: 24, rz: 15 },
-    pools: [{ x: -50, z: 10, r: 6 }, { x: 10, z: 20, r: 5 }, { x: -20, z: -62, r: 6 }, { x: 62, z: 60, r: 5 }],
+    pools: [{ x: -66.7, z: 13.3, r: 8.0 }, { x: 13.3, z: 26.7, r: 6.7 }, { x: -26.7, z: -82.7, r: 8.0 }, { x: 82.7, z: 80.0, r: 6.7 }],
     colors: { bands: [0xf0d9b0, 0xb8834a, 0xd8a56a, 0x8a5a3a], spot: 0xc0442a, pool: 0x4a2a1a },
     colorFn(x, z, y, C) {
       const sp = THEMES.jupiter.spot; const e = ((x - sp.x) / sp.rx) ** 2 + ((z - sp.z) / sp.rz) ** 2;
@@ -336,9 +336,9 @@ const THEMES = {
   },
   saturn: {
     sky: 0xf3e2b8, fog: [0xf6ead0, 70, 200], hemi: [0xfff8e0, 0x9a8a5a, 1.1], sun: [0xfff4e0, 1.0], dark: false,
-    bumps: [{ x: -40, z: -30, r: 16, h: 2.0 }, { x: 46, z: 26, r: 14, h: 1.8 }, { x: 10, z: -62, r: 16, h: 2.4 }, { x: -64, z: 44, r: 13, h: 1.6 }, { x: 66, z: -60, r: 14, h: 2.2 }],
+    bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.0 }, { x: 61.3, z: 34.7, r: 18.7, h: 1.8 }, { x: 13.3, z: -82.7, r: 21.3, h: 2.4 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.6 }, { x: 88.0, z: -80.0, r: 18.7, h: 2.2 }],
     hex: { x: 0, z: -72, r: 13 },
-    pools: [{ x: 0, z: -72, r: 12 }],
+    pools: [{ x: 0.0, z: -96.0, r: 16.0 }],
     colors: { a: 0xe6cf8f, b: 0xd4b877, hex: 0x2a3a6a, rim: 0xf6ead0 },
     colorFn(x, z, y, C) { const h = THEMES.saturn.hex; if (Math.hypot(x - h.x, z - h.z) < h.r + 1) return new THREE.Color(C.hex); return null; },
     decorate({ scene, decor, block, height, anim }) {
@@ -364,8 +364,8 @@ const THEMES = {
   },
   uranus: {
     sky: 0x8fd8e8, fog: [0xa8e4ee, 50, 160], hemi: [0xe0fbff, 0x3a7a8a, 1.1], sun: [0xe0f8ff, 0.9], dark: false,
-    bumps: [{ x: -40, z: -30, r: 16, h: 2.4 }, { x: 46, z: 26, r: 14, h: 2.0 }, { x: 10, z: -62, r: 16, h: 3.0 }, { x: -64, z: 44, r: 13, h: 1.8 }, { x: 66, z: -60, r: 14, h: 2.6 }, { x: -70, z: -60, r: 14, h: 2.8 }],
-    pools: [{ x: -30, z: 8, r: 9 }, { x: 40, z: -30, r: 8 }, { x: -60, z: -50, r: 6 }, { x: 60, z: 62, r: 6 }, { x: 8, z: -30, r: 5 }],
+    bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.4 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.0 }, { x: 13.3, z: -82.7, r: 21.3, h: 3.0 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.8 }, { x: 88.0, z: -80.0, r: 18.7, h: 2.6 }, { x: -93.3, z: -80.0, r: 18.7, h: 2.8 }],
+    pools: [{ x: -40.0, z: 10.7, r: 12.0 }, { x: 53.3, z: -40.0, r: 10.7 }, { x: -80.0, z: -66.7, r: 8.0 }, { x: 80.0, z: 82.7, r: 8.0 }, { x: 10.7, z: -40.0, r: 6.7 }],
     colors: { a: 0xa8e8f0, b: 0x8ad0dc, dark: 0x5aa8b8, pool: 0x3a8a9a, rim: 0xdff6ff },
     decorate({ scene, decor, block, height, pools, anim }) {
       for (const p of pools) { const m = new THREE.Mesh(new THREE.CircleGeometry(p.r + 0.4, 28), new THREE.MeshStandardMaterial({ color: 0x66d8e8, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.85 })); m.rotation.x = -Math.PI / 2; m.position.set(p.x, height(p.x, p.z) + 0.3, p.z); scene.add(m); }
@@ -373,7 +373,7 @@ const THEMES = {
       for (const [r, tube, op] of [[130, 2.2, 0.85], [140, 1.2, 0.7]]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 8, 80, Math.PI), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op, fog: false, side: THREE.DoubleSide })); ring.position.set(40, 0, -30); ring.rotation.y = 0.5; scene.add(ring); }
       // 다이아몬드 수정과 얼어붙은 간헐천
       const diamonds = [];
-      for (let i = 0; i < 90; i++) { const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(0.8, 2.4); diamonds.push({ x, y: height(x, z) + h * 0.5, z, sx: 0.5, sy: h * 0.8, sz: 0.5, ry: rand(0, 3) }); block(x, z, 0.6); }
+      for (let i = 0; i < 160; i++) { const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(0.8, 2.4); diamonds.push({ x, y: height(x, z) + h * 0.5, z, sx: 0.5, sy: h * 0.8, sz: 0.5, ry: rand(0, 3) }); block(x, z, 0.6); }
       decor.add(makeInstanced(new THREE.OctahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88c0d0, emissiveIntensity: 0.35, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.85 }), diamonds));
       const geysers = [];
       for (let i = 0; i < 24; i++) { const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(3, 7); geysers.push({ x, y: height(x, z) + h / 2, z, sx: 0.7, sy: h, sz: 0.7, ry: rand(0, 3) }); block(x, z, 0.7); }
@@ -385,9 +385,9 @@ const THEMES = {
   },
   neptune: {
     sky: 0x2b4ad8, fog: [0x3050d0, 45, 150], hemi: [0x9fb8ff, 0x101a60, 1.2], sun: [0xcfe0ff, 1.0], dark: false,
-    bumps: [{ x: -40, z: -30, r: 16, h: 2.4 }, { x: 46, z: 26, r: 14, h: 2.0 }, { x: 10, z: -62, r: 16, h: 3.0 }, { x: -64, z: 44, r: 13, h: 1.8 }, { x: 66, z: -60, r: 14, h: 2.6 }],
+    bumps: [{ x: -53.3, z: -40.0, r: 21.3, h: 2.4 }, { x: 61.3, z: 34.7, r: 18.7, h: 2.0 }, { x: 13.3, z: -82.7, r: 21.3, h: 3.0 }, { x: -85.3, z: 58.7, r: 17.3, h: 1.8 }, { x: 88.0, z: -80.0, r: 18.7, h: 2.6 }],
     spot: { x: -44, z: -40, r: 16 },
-    pools: [{ x: 30, z: 6, r: 8 }, { x: -20, z: 30, r: 6 }, { x: 56, z: -40, r: 7 }, { x: -70, z: 60, r: 6 }, { x: 12, z: -34, r: 5 }],
+    pools: [{ x: 40.0, z: 8.0, r: 10.7 }, { x: -26.7, z: 40.0, r: 8.0 }, { x: 74.7, z: -53.3, r: 9.3 }, { x: -93.3, z: 80.0, r: 8.0 }, { x: 16.0, z: -45.3, r: 6.7 }],
     colors: { a: 0x3f5fd8, b: 0x3350c0, spot: 0x1a2a70, pool: 0x102060, rim: 0x8fb0ff },
     colorFn(x, z, y, C) { const s = THEMES.neptune.spot; if (Math.hypot(x - s.x, z - s.z) < s.r) return new THREE.Color(C.spot); return null; },
     decorate({ scene, decor, block, height, pools, anim }) {
@@ -396,7 +396,7 @@ const THEMES = {
       const s = THEMES.neptune.spot;
       const eye = new THREE.Mesh(new THREE.TorusGeometry(s.r * 0.6, 0.5, 6, 48), new THREE.MeshBasicMaterial({ color: 0x8fb0ff, transparent: true, opacity: 0.5 })); eye.rotation.x = Math.PI / 2; eye.position.set(s.x, height(s.x, s.z) + 0.8, s.z); scene.add(eye);
       const spires = [];
-      for (let i = 0; i < 70; i++) { const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(2, 7), r = rand(0.5, 1.2); spires.push({ x, y: height(x, z) + h / 2 - 0.2, z, sx: r, sy: h, sz: r, ry: rand(0, 3), rz: rand(-0.15, 0.15) }); block(x, z, r * 0.9); }
+      for (let i = 0; i < 125; i++) { const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6); if (keepClear(x, z) || inPools(pools, x, z, 2)) continue; const h = rand(2, 7), r = rand(0.5, 1.2); spires.push({ x, y: height(x, z) + h / 2 - 0.2, z, sx: r, sy: h, sz: r, ry: rand(0, 3), rz: rand(-0.15, 0.15) }); block(x, z, r * 0.9); }
       decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 6), new THREE.MeshStandardMaterial({ color: 0xbfd8ff, roughness: 0.3 }), spires, { shadow: true }));
       // 바람에 날아가는 흰 구름 줄기
       const tex = puffTexture('235,245,255');
@@ -413,7 +413,7 @@ const THEMES = {
   },
   pluto: {
     sky: 0x030210, fog: [0x06041a, 60, 170], hemi: [0x9a8ab0, 0x1a1020, 0.9], sun: [0xd8d0ff, 0.9], dark: true, stars: true,
-    bumps: [{ x: -55, z: -40, r: 16, h: 5 }, { x: 60, z: -50, r: 15, h: 5.5 }, { x: -70, z: 40, r: 13, h: 3.6 }, { x: 70, z: 45, r: 13, h: 3.2 }, { x: 0, z: -78, r: 14, h: 4.5 }, { x: 40, z: 10, r: 10, h: 1.8 }, { x: -40, z: 10, r: 10, h: 1.6 }],
+    bumps: [{ x: -73.3, z: -53.3, r: 21.3, h: 5 }, { x: 80.0, z: -66.7, r: 20.0, h: 5.5 }, { x: -93.3, z: 53.3, r: 17.3, h: 3.6 }, { x: 93.3, z: 60.0, r: 17.3, h: 3.2 }, { x: 0.0, z: -104.0, r: 18.7, h: 4.5 }, { x: 53.3, z: 13.3, r: 13.3, h: 1.8 }, { x: -53.3, z: 13.3, r: 13.3, h: 1.6 }],
     pools: [],
     colors: { a: 0x9a8a80, b: 0x7a5a50, heart: 0xf4f0f0, heart2: 0xffe8f0 },
     colorFn(x, z, y, C) { return inHeart(x, z) ? new THREE.Color(Math.random() < 0.5 ? C.heart : C.heart2) : null; },
@@ -424,7 +424,7 @@ const THEMES = {
       for (let i = 0; i < 50; i++) { const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6); if (keepClear(x, z) || inHeart(x, z)) continue; const h = rand(2, 7), r = rand(1, 2.4); mountains.push({ x, y: height(x, z) + h / 2 - 0.3, z, sx: r, sy: h, sz: r, ry: rand(0, 3) }); block(x, z, r * 0.9); }
       decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 6), new THREE.MeshStandardMaterial({ color: 0xe8e0e8, roughness: 0.6 }), mountains, { shadow: true }));
       const blocks = [];
-      for (let i = 0; i < 70; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z)) continue; const s = rand(0.5, 1.4); blocks.push({ x, y: height(x, z) + s * 0.4, z, s, ry: rand(0, 3), rx: rand(-0.2, 0.2), color: inHeart(x, z) ? 0xffffff : 0x8a6a60 }); block(x, z, s * 0.8); }
+      for (let i = 0; i < 125; i++) { const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4); if (keepClear(x, z)) continue; const s = rand(0.5, 1.4); blocks.push({ x, y: height(x, z) + s * 0.4, z, s, ry: rand(0, 3), rx: rand(-0.2, 0.2), color: inHeart(x, z) ? 0xffffff : 0x8a6a60 }); block(x, z, s * 0.8); }
       decor.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }), blocks, { shadow: true }));
       // 하트 평원 위에 떠다니는 서릿빛 구슬 + 은은한 점광원
       const frost = [];

@@ -8,19 +8,19 @@ import { buildUfoStation } from './ufo.js';
 // 보랏빛 달 표면(분화구·빛나는 수정·떠다니는 별빛·유성)과 하늘의 태양과 여덟 행성(+명왕성). 중력이 약해 높이 뛴다.
 // 돌아갈 때는 착륙장의 로켓을 다시 탄다 (E).
 export const SPACE = {
-  size: 220,
-  spawn: { x: 0, z: 80 },
+  size: 300,
+  spawn: { x: 0.0, z: 109.1 },
   craters: [
-    { x: -40, z: 30, r: 14, d: 2.4 }, { x: 45, z: 40, r: 12, d: 2.0 }, { x: 55, z: -40, r: 16, d: 2.8 }, { x: -60, z: -45, r: 14, d: 2.4 },
-    { x: 8, z: -8, r: 9, d: 1.5 }, { x: -80, z: 70, r: 10, d: 1.7 }, { x: 80, z: 80, r: 9, d: 1.5 }, { x: -12, z: -75, r: 13, d: 2.2 },
-    { x: 90, z: 5, r: 11, d: 1.9 }, { x: -95, z: -5, r: 12, d: 2.0 }, { x: 30, z: -95, r: 12, d: 2.1 }, { x: -50, z: -95, r: 10, d: 1.8 }, { x: 60, z: 95, r: 9, d: 1.5 }, { x: -30, z: 85, r: 8, d: 1.4 },
+    { x: -54.5, z: 40.9, r: 19.1, d: 2.4 }, { x: 61.4, z: 54.5, r: 16.4, d: 2.0 }, { x: 75.0, z: -54.5, r: 21.8, d: 2.8 }, { x: -81.8, z: -61.4, r: 19.1, d: 2.4 },
+    { x: 10.9, z: -10.9, r: 12.3, d: 1.5 }, { x: -109.1, z: 95.5, r: 13.6, d: 1.7 }, { x: 109.1, z: 109.1, r: 12.3, d: 1.5 }, { x: -16.4, z: -102.3, r: 17.7, d: 2.2 },
+    { x: 122.7, z: 6.8, r: 15.0, d: 1.9 }, { x: -129.5, z: -6.8, r: 16.4, d: 2.0 }, { x: 40.9, z: -129.5, r: 16.4, d: 2.1 }, { x: -68.2, z: -129.5, r: 13.6, d: 1.8 }, { x: 81.8, z: 129.5, r: 12.3, d: 1.5 }, { x: -40.9, z: 115.9, r: 10.9, d: 1.4 },
   ],
   bumps: [
-    { x: -25, z: -55, r: 16, h: 2.8 }, { x: 70, z: 0, r: 14, h: 2.4 }, { x: -80, z: 5, r: 15, h: 2.6 }, { x: 25, z: 85, r: 12, h: 1.8 }, { x: 85, z: -85, r: 14, h: 2.6 },
-    { x: -85, z: -80, r: 13, h: 2.4 }, { x: 0, z: 40, r: 10, h: 1.4 }, { x: 95, z: 50, r: 12, h: 2.0 },
+    { x: -34.1, z: -75.0, r: 21.8, h: 2.8 }, { x: 95.5, z: 0.0, r: 19.1, h: 2.4 }, { x: -109.1, z: 6.8, r: 20.5, h: 2.6 }, { x: 34.1, z: 115.9, r: 16.4, h: 1.8 }, { x: 115.9, z: -115.9, r: 19.1, h: 2.6 },
+    { x: -115.9, z: -109.1, r: 17.7, h: 2.4 }, { x: 0.0, z: 54.5, r: 13.6, h: 1.4 }, { x: 129.5, z: 68.2, r: 16.4, h: 2.0 },
   ],
-  altar: { x: 0, z: -40, r: 9 }, // 보스 팬텀이 지키는 꿈의 제단
-  ufoPad: { x: -18, z: 66 },    // UFO 정거장 (손오공에게 말을 걸면 태양·행성으로 간다)
+  altar: { x: 0.0, z: -54.5, r: 12.3 }, // 보스 팬텀이 지키는 꿈의 제단
+  ufoPad: { x: -24.5, z: 90.0 },    // UFO 정거장 (손오공에게 말을 걸면 태양·행성으로 간다)
   gravity: 0.45, // 지구의 절반도 안 되는 중력: 점프가 높고 오래 뜬다
 };
 
@@ -142,7 +142,7 @@ export function buildSpace(scene) {
   const crystalColors = [0xff8bd6, 0x8bffe8, 0xc38bff, 0xfff28b];
   const crystalItems = crystalColors.map(() => []);
   const crystals = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 140; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
     if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 10 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 3 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 10) continue;
     const ci = i % crystalColors.length;
@@ -156,7 +156,7 @@ export function buildSpace(scene) {
   }
   crystalColors.forEach((col, ci) => decor.add(makeInstanced(new THREE.OctahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.9, transparent: true, opacity: 0.9 }), crystalItems[ci])));
   const rockItems = [];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 160; i++) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
     if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 8 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 2 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 9) continue;
     const r = rand(0.4, 1.6);
@@ -165,7 +165,7 @@ export function buildSpace(scene) {
   }
   decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x6d5f9a, roughness: 1 }), rockItems, { shadow: true }));
   const orbs = [];
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 120; i++) {
     const col = crystalColors[i % crystalColors.length];
     const o = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: col }));
     o.userData = { x: rand(-S / 2, S / 2), z: rand(-S / 2, S / 2), h: rand(1.5, 5), phase: rand(0, 10), r: rand(1, 3) };
@@ -175,7 +175,7 @@ export function buildSpace(scene) {
   const meteors = [];
   for (let i = 0; i < 6; i++) {
     const m = new THREE.Mesh(new THREE.ConeGeometry(0.25, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, fog: false }));
-    m.userData = { phase: rand(0, 20), speed: rand(0.6, 1.1), x0: rand(-90, 90), z0: rand(-90, 40) };
+    m.userData = { phase: rand(0, 20), speed: rand(0.6, 1.1), x0: rand(-125, 125), z0: rand(-125, 55) };
     m.rotation.z = Math.PI / 4;
     scene.add(m);
     meteors.push(m);
@@ -282,8 +282,8 @@ export function buildSpace(scene) {
     ufo: station.vehicle,
     ufoArrival: station.arrival,
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rx - 2.6, z: rz + 2.6 }, to: 'forest' },
-    wildSpots: [[-40, 50], [40, 55], [-55, 5], [60, 10], [-20, -30], [30, -25], [-75, -30], [75, -55], [-40, -80], [40, -80], [-85, 55], [85, 60], [0, 25], [-95, -80], [95, -20], [-15, 100], [70, -95], [-70, 95]],
+    wildSpots: [[-54.5, 68.2], [54.5, 75.0], [-75.0, 6.8], [81.8, 13.6], [-27.3, -40.9], [40.9, -34.1], [-102.3, -40.9], [102.3, -75.0], [-54.5, -109.1], [54.5, -109.1], [-115.9, 75.0], [115.9, 81.8], [0.0, 34.1], [-129.5, -109.1], [129.5, -27.3], [-20.5, 136.4], [95.5, -129.5], [-95.5, 129.5], [99.5, 128.2], [111.7, 19.1], [59.0, -79.7], [-24.7, -96.4], [31.6, -125.6], [60.3, -46.7], [1.5, 137.6], [-83.5, -25.4]],
     bossSpot: { x: SPACE.altar.x, z: SPACE.altar.z },
-    pickupSpots: [[-14, 60], [14, 60], [-35, 20], [35, 20], [-55, -20], [58, -25], [-25, -60], [25, -60], [0, 5], [-70, 30], [70, 30], [-80, -60], [80, -75], [0, -95], [-12, 40], [12, 40], [-50, 80], [50, 82], [-100, 90], [100, 90], [-100, -10], [100, 0], [0, 100], [-95, -100]],
+    pickupSpots: [[-19.1, 81.8], [19.1, 81.8], [-47.7, 27.3], [47.7, 27.3], [-75.0, -27.3], [79.1, -34.1], [-34.1, -81.8], [34.1, -81.8], [0.0, 6.8], [-95.5, 40.9], [95.5, 40.9], [-109.1, -81.8], [109.1, -102.3], [0.0, -129.5], [-16.4, 54.5], [16.4, 54.5], [-68.2, 109.1], [68.2, 111.8], [-136.4, 122.7], [136.4, 122.7], [-136.4, -13.6], [136.4, 0.0], [0.0, 136.4], [-129.5, -136.4], [30.5, -94.9], [-126.3, 101.5], [-51.4, 126.6], [109.5, -33.7], [16.4, 33.2], [121.6, 1.9], [-72.4, -54.9], [13.4, -134.8], [-23.4, 22.1], [-132.5, 32.0]],
   };
 }

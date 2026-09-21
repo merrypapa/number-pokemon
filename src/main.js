@@ -154,11 +154,11 @@ function makeZone(name, builder) {
 /** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
 const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, hive: buildHive, arena: buildArena };
-const WILD_TOTAL = { forest: 29, cave: 16, volcano: 18, sea: 32, deepsea: 16, space: 18, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 14 + 바다 14 + 먼바다 4)
+const WILD_TOTAL = { forest: 42, cave: 16, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
   BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: bossFor(p.zone), hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
-  WILD_TOTAL[p.zone] = 12; PICKUP_CAP[p.zone] = 2;
+  WILD_TOTAL[p.zone] = 16; PICKUP_CAP[p.zone] = 2;
 }
 const MAX_RESCUES = 5; // 한 지역에 동시에 나타나는 퀴즈 친구 수 (문제를 많이 풀게)
 const blockValue = () => ZONE_INFO[zone?.name]?.blockValue || 1; // 이 지역에서 블록 1개의 가치
@@ -273,7 +273,7 @@ function toggleCar() { driving ? dismountCar() : mountCar(); }
 carBtn.onclick = toggleCar;
 
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
-const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -44, z: 34 }, volcano: { x: -68, z: 62 }, sea: { x: 110, z: 114 }, space: { x: 62, z: 58 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
+const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -44, z: 34 }, volcano: { x: -93, z: 85 }, sea: { x: 110, z: 114 }, space: { x: 85, z: 79 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
 /** 성역을 놓을 만한 넓고 평평한 자리를 찾는다 (바다 지역은 탁 트인 물 위) */
 function findShrineSpot(z) {
   const onWater = !!z.world.waterY;
