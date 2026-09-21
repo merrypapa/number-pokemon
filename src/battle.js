@@ -72,6 +72,12 @@ function ballOnTop(ball, on) {
   const meshes = []; ball.traverse((o) => { if (o.isMesh) meshes.push(o); });
   meshes.forEach((o, i) => {
     o.material.depthTest = true;
+    // 깊이 버퍼 비우기는 "그 뒤에 그려지는 모든 것"에 듣는다. three 는 불투명한 것을 먼저, 반투명한 것을 나중에 그리는데,
+    // 볼이 불투명이라 깊이를 비운 뒤에 반투명한 바다 수면(370m 짜리 판)이 그려져 화면 전체를 파랗게 덮었다
+    // (물의길에서 볼을 던지면 화면이 파랗게 번쩍이던 버그). 볼도 반투명 쪽으로 보내 수면보다 나중에 그린다.
+    if (o.userData.opaqueBase === undefined) o.userData.opaqueBase = !o.material.transparent; // 원래 불투명이었는지 기억해 둔다
+    const wantTransparent = on ? true : !o.userData.opaqueBase;
+    if (o.material.transparent !== wantTransparent) { o.material.transparent = wantTransparent; o.material.needsUpdate = true; }
     o.renderOrder = on ? (i === 0 ? 20 : 21) : 0; // 첫 조각이 먼저(깊이 비우기), 나머지가 그 뒤
     if (on && i === 0) o.onBeforeRender = (renderer) => renderer.clearDepth();
     else delete o.onBeforeRender; // null 을 넣으면 three 가 그리다 멈춘다(프로토타입의 빈 함수를 가린다) — 지워서 원래대로 돌린다
