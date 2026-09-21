@@ -947,18 +947,28 @@ function updateGoingHome(dt) {
   m.rotation.y = Math.atan2(dx, dz) - Math.PI / 2;
   placeSailorOnBoat();
 }
-/** 배에서 내릴 수 있는 가장 가까운 뭍. 없으면 null. (찾기가 무거워서 0.3초마다만 다시 센다) */
+/** 배에서 내릴 수 있는 가장 가까운 뭍. 없으면 null. (찾기가 무거워서 0.3초마다만 다시 센다)
+ *  섬 둘레에는 배가 못 들어가는 얕은 턱이 있는데, 큰 섬일수록 이 턱이 넓다.
+ *  거북왕 섬(가장 크고 높다)은 턱이 10m가 넘어서, 예전 기준(땅 높이 0.6 위)으로는 배를 아무리 붙여도
+ *  내릴 곳을 못 찾아 "내리기" 버튼이 아예 안 떴다. 물 위로 나온 모래밭(0.2 위, 수면은 -0.35)까지
+ *  내릴 곳으로 치고, 방향도 촘촘히(24방향) 돌면서 그 고리에서 가장 안쪽(가장 높은) 자리를 고른다. */
 const landCache = { t: -1, spot: null };
+const LAND_Y = 0.2;   // 이만큼 솟았으면 물 밖으로 나온 마른 모래밭이다
 function landingSpot(now = 0) {
   if (now && now - landCache.t < 0.3) return landCache.spot;
   landCache.t = now;
   const p = player.position;
   landCache.spot = null;
-  for (let r = 4; r <= 10 && !landCache.spot; r += 3) {   // 둘레를 돌며 걸어 다닐 수 있는 모래밭을 찾는다
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+  for (let r = 4; r <= 10 && !landCache.spot; r += 2) {   // 가까운 고리부터 둘레를 돌며 걸어 다닐 수 있는 모래밭을 찾는다
+    let best = null;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
       const x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
-      if (!isBlocked(x, z) && !insideObstacle(x, z, 0.8) && terrainHeight(x, z) > 0.6) { landCache.spot = { x, z }; break; }
+      const h = terrainHeight(x, z);                      // 가장 싼 검사부터 (트인 바다에서는 여기서 거의 다 걸러진다)
+      if (h <= LAND_Y || (best && h <= best.h)) continue;
+      if (isBlocked(x, z) || insideObstacle(x, z, 0.8)) continue;
+      best = { x, z, h };
     }
+    if (best) landCache.spot = { x: best.x, z: best.z };
   }
   return landCache.spot;
 }
@@ -2348,7 +2358,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
