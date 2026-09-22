@@ -62,9 +62,11 @@ export const rand = (a, b) => a + Math.random() * (b - a);
  *  그 밖에 한글이 아닌 글자로 끝나면(영어·이모지) 두 가지를 같이 보여 준다: '???이(가)'. 종류: 이가·을를·은는·과와·으로·이라 */
 const JOSA = { '이가': ['이', '가'], '을를': ['을', '를'], '은는': ['은', '는'], '과와': ['과', '와'], '으로': ['으로', '로'], '이라': ['이라', '라'] };
 const DIGIT_SOUND = { '0': '영', '1': '일', '2': '이', '3': '삼', '4': '사', '5': '오', '6': '육', '7': '칠', '8': '팔', '9': '구' }; // 10·20·100 처럼 0 으로 끝나는 수도 십·이십·백 이라 받침이 있어 '영'과 같다
+// 알파벳으로 끝나는 이름(메가리자몽Y 등)은 읽는 소리의 끝 글자를 본다: Y → 와이 → '이'(받침 없음) → "메가리자몽Y가"
+const ALPHA_SOUND = { A: '이', B: '비', C: '씨', D: '디', E: '이', F: '프', G: '지', H: '치', I: '이', J: '이', K: '이', L: '엘', M: '엠', N: '엔', O: '오', P: '피', Q: '큐', R: '알', S: '스', T: '티', U: '유', V: '이', W: '유', X: '스', Y: '이', Z: '트' };
 export function josa(word, type) {
   const w = String(word ?? ''), [withJong, noJong] = JOSA[type] || ['', ''];
-  const last = w[w.length - 1], ch = DIGIT_SOUND[last] || last; // 숫자는 그 소리의 받침을 본다 (5 → 오)
+  const last = w[w.length - 1], ch = DIGIT_SOUND[last] || ALPHA_SOUND[String(last).toUpperCase()] || last; // 숫자·알파벳은 그 소리의 받침을 본다 (5 → 오, Y → 이)
   const code = ch ? ch.charCodeAt(0) - 0xac00 : NaN;
   if (!(code >= 0 && code <= 11171)) return `${w}${withJong}(${noJong})`;
   const jong = code % 28;
