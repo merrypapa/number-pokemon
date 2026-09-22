@@ -356,7 +356,7 @@ body.intro #btn-save { display: none !important; }
 #save-toast { position: fixed; top: calc(46px + max(12px, env(safe-area-inset-top))); right: max(12px, env(safe-area-inset-right)); z-index: 30; background: #57b947; color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
 
 /* ---------- 도감: 탭 + 지도 ---------- */
-#dex-tabs { display: flex; gap: 4px; background: #f0e6c0; border-radius: 999px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; } /* 탭이 7개(관리자)면 좁은 화면에서 옆으로 밀어 본다 */
+#dex-tabs { display: flex; flex-wrap: wrap; gap: 4px; background: #f0e6c0; border-radius: 22px; padding: 3px; max-width: 100%; } /* 탭이 아홉 개까지 늘어서, 좁은 화면에서는 옆으로 미는 대신 줄을 바꾼다 (밀면 뒤쪽 탭이 안 보인다) */
 #dex-tabs button { white-space: nowrap; font-size: 14px; font-weight: 900; padding: 6px 14px; border-radius: 999px; border: 0; background: transparent; color: #666; cursor: pointer; }
 #dex-tabs button.on { background: #fff; color: #e8453c; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 #dex-mapview { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
@@ -435,7 +435,7 @@ body.intro #btn-save { display: none !important; }
   #dex-card { width: 100%; max-height: none; height: 100dvh; border-radius: 0; }
   #dex-head { position: sticky; top: 0; background: #fffbe6; z-index: 2; gap: 6px 8px; padding: 8px 10px; }
   #dex-title { flex-basis: 100%; padding-right: 200px; line-height: 40px; } /* 첫 줄: 제목 + (오른쪽 위) 저장·닫기, 둘째 줄: 탭과 블록 알약 */
-  #dex-tabs { max-width: 100%; overflow-x: auto; }
+  #dex-tabs { max-width: 100%; }
   #dex-actions { top: 8px; right: 8px; transform: none; gap: 5px; }
   #dex-actions button { height: 36px; font-size: 13px; padding: 0 10px; }
   #btn-dex-close { width: 36px; font-size: 18px; }

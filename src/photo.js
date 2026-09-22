@@ -39,29 +39,62 @@ export class Photo {
     this.savedPoses = [{ mesh: player.group, pos: player.group.position.clone(), rotY: player.group.rotation.y },
       ...followers.map((m) => ({ mesh: m, pos: m.position.clone(), rotY: m.rotation.y }))];
 
-    // 주인공이 보는 쪽 앞에 카메라를 둔다 (셀카처럼 마주 본다)
     const p = player.position;
     const yaw = player.facing || 0;
-    const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));   // 주인공이 보는 쪽
     const right = new THREE.Vector3(fwd.z, 0, -fwd.x);
-    const camAt = new THREE.Vector3(p.x + fwd.x * 4.6, p.y + 1.55, p.z + fwd.z * 4.6);
-    camera.position.copy(camAt);
-    camera.lookAt(p.x, p.y + 0.75, p.z);
     player.group.rotation.y = yaw;                       // 주인공은 카메라를 본다
 
-    // 친구들은 주인공 좌우로 한 줄씩 벌려 서서 카메라를 본다
+    // 친구들은 주인공 좌우로 한 줄씩 벌려 선다. 세로 화면(휴대폰)은 가로가 좁으니 더 붙여 세운다.
+    const narrow = camera.aspect < 1.1;
+    const spread = narrow ? 0.78 : 1;
     followers.forEach((m, i) => {
       const side = i % 2 ? 1 : -1, rank = Math.floor(i / 2);
-      const off = 1.0 + rank * 0.95;
-      const back = 0.1 + rank * 0.45;                    // 뒷줄은 조금 뒤로 (다 보이게)
+      const off = (0.95 + rank * 0.9) * spread;
+      const back = 0.15 + rank * 0.75;                   // 뒷줄은 뒤로 (앞줄에 안 가리게)
       const x = p.x + right.x * side * off - fwd.x * back;
       const z = p.z + right.z * side * off - fwd.z * back;
       m.position.set(x, groundY(x, z), z);
-      m.rotation.y = Math.atan2(camAt.x - x, camAt.z - z);
       m.visible = true;
-      this.pose.push({ mesh: m, x, y: m.position.y, z, rotY: m.rotation.y });
+      this.pose.push({ mesh: m, x, y: m.position.y, z, rotY: 0 });
     });
     this.pose.push({ mesh: player.group, x: p.x, y: player.group.position.y, z: p.z, rotY: yaw });
+
+    // 모두를 화면에 담을 만큼 카메라를 뒤로 뺀다.
+    // 서 있는 것들의 진짜 크기(Box3)를 재서 정한다 — 블록 더미는 개수에 따라 아주 높아질 수 있어서,
+    // 거리를 고정해 두면 더미 꼭대기나 양 끝 친구가 잘렸다.
+    const all = [player.group, ...followers];
+    for (const o of all) o.updateWorldMatrix(true, true);
+    const bb = new THREE.Box3();
+    let lMin = Infinity, lMax = -Infinity, top = -Infinity, bottom = Infinity;
+    for (const o of all) {
+      bb.setFromObject(o);
+      if (!Number.isFinite(bb.min.x) || !Number.isFinite(bb.max.y)) continue;
+      top = Math.max(top, bb.max.y); bottom = Math.min(bottom, bb.min.y);
+      for (const cx of [bb.min.x, bb.max.x]) for (const cz of [bb.min.z, bb.max.z]) {   // 좌우로 얼마나 벌어져 있나 (카메라의 오른쪽 방향으로 재서)
+        const l = (cx - p.x) * right.x + (cz - p.z) * right.z;
+        lMin = Math.min(lMin, l); lMax = Math.max(lMax, l);
+      }
+    }
+    if (!Number.isFinite(lMin)) { lMin = -1; lMax = 1; }                // 크기를 못 재면 적당히
+    if (!Number.isFinite(top)) { top = p.y + 1.8; bottom = p.y; }
+    const lMid = (lMin + lMax) / 2;                                     // 무리의 좌우 한가운데 (주인공이 아니라 여기를 겨눈다)
+    const midY = (top + bottom) / 2;
+    const halfW = Math.max(0.8, (lMax - lMin) / 2 + 0.35);
+    const halfH = Math.max(0.95, (top - bottom) / 2 + 0.3);
+    const vHalf = (camera.fov * Math.PI) / 360;                        // 세로 화각의 반
+    const hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);          // 가로 화각의 반
+    const dist = Math.min(18, Math.max(3.4, Math.max(halfW / Math.tan(hHalf), halfH / Math.tan(vHalf)) * 1.1));
+    const aimX = p.x + right.x * lMid, aimZ = p.z + right.z * lMid;
+    const camAt = new THREE.Vector3(aimX + fwd.x * dist, midY + 0.3, aimZ + fwd.z * dist);
+    camera.position.copy(camAt);
+    camera.lookAt(aimX, midY, aimZ);
+
+    for (const q of this.pose) {                         // 이제 카메라 자리가 정해졌으니 다 같이 그쪽을 본다
+      if (q.mesh === player.group) continue;             // 주인공은 제 방향(=카메라 쪽)을 그대로 본다
+      q.rotY = Math.atan2(camAt.x - q.x, camAt.z - q.z);
+      q.mesh.rotation.y = q.rotY;
+    }
 
     this.say(String(COUNT));
     this.sound?.tone?.(660, 0.1, 'square', 0.07);
