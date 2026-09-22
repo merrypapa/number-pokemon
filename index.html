@@ -42,9 +42,9 @@
     <div id="dex-card">
       <div id="dex-head">
         <div id="dex-title">내 포켓몬 · 도감</div>
-        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="learn">배움</button><button data-tab="friends" hidden>친구<span id="duel-badge" class="tab-badge" hidden></span></button><button data-tab="feedback" hidden>요청</button><button data-tab="rank" hidden>순위</button><button data-tab="admin" hidden>관리자</button></div>
+        <div id="dex-tabs"><button data-tab="poke" class="on">포켓몬</button><button data-tab="balls">넘버볼</button><button data-tab="map">지도</button><button data-tab="learn">배움</button><button data-tab="goals">미션</button><button data-tab="friends" hidden>친구<span id="duel-badge" class="tab-badge" hidden></span></button><button data-tab="feedback" hidden>요청</button><button data-tab="rank" hidden>순위</button><button data-tab="admin" hidden>관리자</button></div>
         <div id="dex-blocks">블록 0개</div>
-        <div id="dex-actions"><button id="dex-bgm" title="배경 음악 켜기 / 끄기">🎵</button><button id="dex-save" title="지금까지 한 것 저장">💾 저장</button><button id="dex-logout" hidden title="계정에서 로그아웃">로그아웃</button><button id="btn-dex-close" aria-label="닫기">✕</button></div>
+        <div id="dex-actions"><button id="dex-bgm" title="배경 음악 켜기 / 끄기">🎵</button><button id="dex-photo" title="포켓몬과 사진 찍기">📸</button><button id="dex-save" title="지금까지 한 것 저장">💾 저장</button><button id="dex-logout" hidden title="계정에서 로그아웃">로그아웃</button><button id="btn-dex-close" aria-label="닫기">✕</button></div>
       </div>
       <div id="dex-body">
         <div id="dex-members"></div>
@@ -58,6 +58,7 @@
       <div id="dex-feedback" class="hidden"></div>
       <div id="dex-rank" class="hidden"></div>
       <div id="dex-learn" class="hidden"></div>
+      <div id="dex-goals" class="hidden"></div>
       <div id="dex-mapview" class="hidden">
         <div id="dex-map"></div>
         <div id="dex-map-nav"><button id="map-prev">◀ 이전 지역</button><span id="map-pos"></span><button id="map-next">다음 지역 ▶</button></div>
@@ -119,6 +120,19 @@
       <div class="menu-actions"><button id="btn-acct-close" class="secondary">닫기</button></div>
     </div>
   </div>
+  </div>
+  <div id="photo-count" class="hidden"></div>
+  <div id="photo-flash"></div>
+  <div id="photo-modal" class="hidden">
+    <div class="menu-card">
+      <div class="menu-title">📸 사진이 나왔어!</div>
+      <img id="photo-img" alt="찍은 사진">
+      <div class="menu-actions">
+        <a id="photo-save" class="btn-save" download="넘버몬스터.png">💾 저장</a>
+        <button id="photo-again" class="secondary">📸 다시 찍기</button>
+        <button id="photo-close" class="secondary">닫기</button>
+      </div>
+    </div>
   </div>
   <div id="evo-flash"></div>
   <div id="evo-banner" class="hidden"></div>

@@ -34,6 +34,8 @@ import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
+import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount } from './goals.js';
+import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
 import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
@@ -492,7 +494,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -510,9 +512,11 @@ for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderSt
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
 const STACK_SCALE = 0.72; // 따라오는 블록 더미는 조금 작게 (주인공을 가리지 않게)
-function setBlocks(n, { glow = false, quiet = false } = {}) {
+/** mission:false 는 "오늘 모은 블록"으로 세지 않는다 (불러오기·관리자처럼 새로 번 게 아닐 때) */
+function setBlocks(n, { glow = false, quiet = false, mission = true } = {}) {
   n = Math.max(0, Math.min(MAX_BLOCKS, n));
   if (n > state.blocks && glow) state.glowBlocks += n - state.blocks; // 형광 블록 획득
+  const gained = Math.max(0, n - state.blocks);
   const chunkBefore = Math.floor(state.blocks / SILVER_BLOCK);
   state.blocks = n;
   const chunkNow = Math.floor(n / SILVER_BLOCK); // 25개마다 은빛 한 칸, 은빛 두 칸은 금빛 한 칸으로 뭉쳐서 더미가 다시 작아진다
@@ -543,11 +547,13 @@ function setBlocks(n, { glow = false, quiet = false } = {}) {
     merged = chunkNow % 2 // 홀수 번째 묶음 = 은빛 한 칸이 새로 생긴 순간
       ? `✨ 블록을 잃은 게 아니야 — ${SILVER_BLOCK}개가 은빛 블록 한 칸으로 뭉쳐서 더미가 작아 보이는 거야! 은빛 한 칸은 ${SILVER_BLOCK}개, 두 칸이 되면 금빛 한 칸(${GOLD_BLOCK})이 돼. 지금 블록은 모두 ${n}개!`
       : `✨ 은빛 두 칸이 금빛 블록 한 칸으로 뭉쳤어! 금빛 한 칸은 ${GOLD_BLOCK}개${golds > 1 ? `, 금빛 ${golds}칸이면 ${GOLD_BLOCK}씩 ${golds}번이라 ${golds * GOLD_BLOCK}개` : ''}야. 지금 블록은 모두 ${n}개!`;
-    if (!quiet) { sound.fanfare(); confetti.burst(160); mergeMsg = merged; }
+    if (!quiet) { sound.fanfare(); confetti.burst(160); queueSay(merged, { sec: 8 }); }
   }
+  if (gained && mission) bump('blocks', null, gained); // 오늘의 미션 "블록 모으기"
   return merged; // 부르는 쪽이 제 말풍선에 이어 붙이고 싶으면 quiet 로 받아 간다
 }
-let mergeMsg = null; // 줄 세워 둔 뭉침 안내 (프레임 루프가 지금 말이 끝나면 띄운다)
+const msgQueue = []; // 줄 세워 둔 말풍선 (프레임 루프가 지금 말이 끝나면 하나씩 띄운다 — 뭉침 안내·미션 완료·스티커)
+function queueSay(text, opts = {}) { msgQueue.push({ text, opts }); }
 
 const hudBlocks = document.getElementById('hud-blocks');
 const hudLeader = document.getElementById('hud-leader');
@@ -633,6 +639,7 @@ let evo = null; // { t, m, oldSp, sp, oldMesh, newMesh, wasLeader, stage }
 const evoFlash = document.getElementById('evo-flash'), evoBanner = document.getElementById('evo-banner');
 function evolveMember(m) {
   if (!party.canEvolve(m) || evo) return;
+  state.goals.stats.evolved++; bump('evolve');
   const wasLeader = party.isLeader(m);
   const oldSp = party.species(m), oldMesh = m.mesh;
   const sp = party.evolve(m);
@@ -811,7 +818,8 @@ function switchZone(name, spawn, message) {
     player.teleport(spawn.x, spawn.z);
     if (spawn.yaw !== undefined) cam.yaw = spawn.yaw; // 도착 방향이 정해진 곳(연구소 문 앞 등)
     for (const f of chain.followers) { f.mesh.position.set(spawn.x + rand(-1, 1), terrainHeight(spawn.x, spawn.z), spawn.z + 1.5 + rand(0, 1)); }
-    if (state.blocks > 0) setBlocks(state.blocks, { quiet: true }); // 블록 더미를 새 지역 색(불·물·풀·형광)으로 다시 만든다
+    if (state.blocks > 0) setBlocks(state.blocks, { quiet: true, mission: false }); // 블록 더미를 새 지역 색(불·물·풀·형광)으로 다시 만든다
+    state.goals.stats.zones[name] = true; bump('zones', name); // 오늘의 미션 "다른 지역 가 보기" · 스티커 "여행자"
     applyZoneEnv();
     camera.position.copy(player.position).add(camOffset());
     snapCam = true;
@@ -1336,6 +1344,7 @@ function openChest(z, at, boxName) {
   z.nbTimer = Math.max(z.nbTimer, rand(10, 16)); // 상자를 푸는 동안 평소 친구가 겹쳐 나오지 않게
   return quiz.ask(hard, boxName, z.name).then((res) => {
     if (res !== 'ok') {
+      if (res === 'wrong') quizResult(false);
       sound.bounce();
       say(res === 'wrong'
         ? `${boxName}가 도로 닫혀 버렸어… 정답은 ${quiz.last?.answer}이었어. ${quiz.last?.explain || quiz.last?.hint || ''} 다음 상자에 또 도전해 봐!`
@@ -1351,6 +1360,8 @@ function openChest(z, at, boxName) {
     particles.stars(z.scene, nb.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 26, new THREE.Color(colorForCount(reward)).getHex(), 0.5);
     state.rescued++;
     wkAdd('quiz');
+    quizResult(true);
+    bump('chest');
     const merged = setBlocks(state.blocks + reward, { quiet: true }); // 뭉침 안내는 아래 말풍선에 이어 붙인다
     sound.fanfare();
     confetti.burst(100);
@@ -1377,6 +1388,7 @@ function rescueSolved(z, nb) {
   z.nbTimer = Math.min(z.nbTimer, rand(4, 9)); // 풀고 나면 곧 다음 친구가 온다
   state.rescued++;
   wkAdd('quiz');
+  quizResult(true);
   // 길에서 만난 친구는 딱 "그 친구의 숫자만큼" 준다 — 줍기·대결과 달리 퀴즈는 자주 나오니
   // 보상을 낮춰 두어야 1000개까지 차근차근 모으는 맛이 난다.
   // 수수께끼 상자에서 나온 친구는 다르다: 상자 속에 몇 개가 들었는지 지금 굴려서 알려 준다.
@@ -1398,6 +1410,7 @@ function askRescueQuiz(z, nb) {
     if (!z.rescues.includes(nb)) return res;
     if (res === 'ok') rescueSolved(z, nb);
     else if (res === 'wrong') { // 한 번 틀리면 그 문제는 끝: 친구는 가 버리고 다른 친구가 곧 나타난다
+      quizResult(false);
       removeRescue(z, nb);
       sound.bounce();
       say(`${nb.data.name}: 정답은 ${quiz.last?.answer}이었어. ${quiz.last?.explain || quiz.last?.hint || ''} 다음 퀴즈에 또 도전해 봐!`, { face: String(nb.data.number), sec: 7 });
@@ -1488,6 +1501,55 @@ function checkWeek(announce = true) {
   if (announce && zone) say(`🏆 새로운 한 주가 시작됐어! ${state.lastWeek ? `지난주엔 ${weekScore(state.lastWk)}점이었어. ` : ''}이번 주 순위에 다시 도전해 보자!`, { sec: 7 });
   return true;
 }
+// ---------- 오늘의 미션 · 스티커 (src/goals.js) ----------
+/** 하루가 바뀌었으면 오늘의 미션을 새로 뽑는다 */
+function checkDay(announce = true) {
+  if (!rollDay(state.goals, state.name)) return false;
+  if (announce && zone) queueSay('🎯 새로운 하루야! 오늘의 미션이 새로 나왔어 — 도감의 "미션" 탭에서 보자!', { sec: 7 });
+  return true;
+}
+/** 지금까지 해낸 것으로 새 스티커를 받았는지 본다 */
+function checkNewStickers() {
+  const got = checkStickers(state.goals, {
+    caught: state.caught, rescued: state.rescued, blocks: state.blocks,
+    bosses: Object.keys(state.conquered).length,
+    dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
+    stats: state.goals.stats,
+  });
+  for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
+  return got;
+}
+/** 미션 진행. 끝낸 미션마다 넘버볼을 주고, 셋 다 끝내면 하나 더 준다 */
+function bump(kind, key = null, amount = 1) {
+  if (!zone) return;
+  checkDay();
+  const done = goalAdd(state.goals, kind, key, amount);
+  for (const t of done) {
+    const m = MISSION_BY_ID[t.id];
+    t.got = true;
+    state.balls[MISSION_BALL] = (state.balls[MISSION_BALL] || 0) + 1;
+    sound.fanfare(); confetti.burst(90);
+    queueSay(`🎯 오늘의 미션 완료 — ${m.emoji} ${m.text(m.need)}! ${BALL_BY_ID[MISSION_BALL].name} 1개를 받았어.`, { sec: 7 });
+  }
+  if (done.length && allDone(state.goals) && !state.goals.bonus) {
+    state.goals.bonus = true;
+    state.goals.stats.daily++;
+    state.balls[BONUS_BALL] = (state.balls[BONUS_BALL] || 0) + 1;
+    confetti.burst(200);
+    queueSay(`🏅 오늘의 미션을 셋 다 했어! ${BALL_BY_ID[BONUS_BALL].name} 1개를 더 받았어. 내일 또 하자!`, { sec: 8 });
+  }
+  if (done.length) refreshHud();
+  checkNewStickers();
+}
+/** 퀴즈를 맞히거나 틀렸을 때 (연속 정답 기록) */
+function quizResult(ok) {
+  const st = state.goals.stats;
+  if (!ok) { st.streak = 0; return; }
+  st.streak++;
+  st.best = Math.max(st.best || 0, st.streak);
+  bump('quiz');
+}
+
 // ---------- 튜토리얼/진행 ----------
 function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
@@ -1554,6 +1616,9 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   showZoneBanner(zone.label);
   bgmRefresh();
   refreshHud();
+  checkDay(false);                                       // 날이 바뀌었으면 오늘의 미션을 새로 (시작할 때는 말풍선 없이)
+  state.goals.stats.zones[zoneName] = true; bump('zones', zoneName);
+  checkNewStickers();                                    // 예전 저장에서 이어 하면 이미 해낸 몫의 스티커를 여기서 받는다
 }
 function chooseStarter(id) {
   starterEl.classList.add('hidden');
@@ -1582,7 +1647,7 @@ function applyAdmin() {
   state.tutorial = 5; state.upgradeTold = true; state.mapTold = true; // 처음 안내는 건너뛴다
 }
 function startAdmin() {
-  setBlocks(30, { quiet: true }); // 너무 많으면 뒤에 쌓인 블록 더미가 주인공을 가린다 (모자라면 +블록 100 버튼)
+  setBlocks(30, { quiet: true, mission: false }); // 너무 많으면 뒤에 쌓인 블록 더미가 주인공을 가린다 (모자라면 +블록 100 버튼)
   adminGrantAll();
   showAdminPanel();
   say(`관리자 모드야, ${state.name}! 모든 지역이 열렸고 모든 포켓몬이 도감에 있어. 도감(B)의 "관리자" 탭에서 어디든 바로 갈 수 있어.`, { sec: 8 });
@@ -1620,7 +1685,7 @@ function showAdminPanel() {
   const row2 = document.createElement('div'); row2.className = 'admin-row'; box.appendChild(row2);
   const more = document.createElement('button');
   more.textContent = '+블록 100';
-  more.onclick = () => { setBlocks(state.blocks + 100); dex.blocksEl.textContent = `${state.blocks}`; };
+  more.onclick = () => { setBlocks(state.blocks + 100, { mission: false }); dex.blocksEl.textContent = `${state.blocks}`; }; // 관리자 버튼은 미션으로 세지 않는다
   row2.appendChild(more);
   const note = document.createElement('div'); note.className = 'admin-note'; note.textContent = '관리자 모드: 모든 지역이 열려 있고, 모든 포켓몬이 도감에 있어 대표로 고를 수 있어요. 메가블럭 30개, 넘버볼 각 30개로 시작해요.'; box.appendChild(note);
 }
@@ -1702,6 +1767,7 @@ function buildSaveData() {
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
+    goals: state.goals,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -1724,6 +1790,41 @@ function doSave(manual = false) {
 }
 function autosave() { if (zone && player) { checkWeek(); doSave(false); state.autosave = 90; } }
 document.getElementById('dex-save').onclick = () => { if (doSave(true)) sound.click(); }; // 저장은 도감 안에서
+
+// ---------- 사진 모드 (src/photo.js): 도감의 📸 를 누르면 친구들과 줄 서서 찰칵 ----------
+const photo = new Photo({ sound });
+const photoModal = document.getElementById('photo-modal');
+const photoImg = document.getElementById('photo-img');
+const photoSave = document.getElementById('photo-save');
+function startPhoto() {
+  if (!zone || !player) return;
+  if (battle.active || duelStage.active || ride || switching || evo || photo.active) { say('지금은 사진을 찍을 수 없어. 잠깐 뒤에 다시 눌러 봐!', { sec: 4 }); return; }
+  dex.hide();
+  photoModal.classList.add('hidden');
+  document.body.classList.add('photo-mode');   // HUD·버튼을 잠깐 숨긴다 (사진에 안 나오게)
+  input.enabled = false;
+  const today = state.goals.day;
+  photo.start({
+    camera, player,
+    followers: chain.followers.map((f) => f.mesh).filter((m) => m && m.visible),
+    groundY: (x, z) => terrainHeight(x, z),
+    caption: `${state.name} · ${zone.label} · ${today}`,
+    onShot: (url) => {
+      state.goals.stats.photos++;
+      checkNewStickers();
+      autosave();
+      if (!url) { say('사진이 잘 안 나왔어… 다시 찍어 보자!', { sec: 4 }); return; }
+      photoImg.src = url;
+      photoSave.href = url;
+      photoSave.download = `${state.name}_${zone.label}_${today}.png`;
+      photoModal.classList.remove('hidden');
+    },
+    onEnd: () => { document.body.classList.remove('photo-mode'); input.enabled = true; snapCam = true; },
+  });
+}
+document.getElementById('dex-photo').onclick = () => { sound.ensure(); startPhoto(); };
+document.getElementById('photo-close').onclick = () => photoModal.classList.add('hidden');
+document.getElementById('photo-again').onclick = () => { photoModal.classList.add('hidden'); startPhoto(); };
 
 // ---------- 클라우드 계정: 이름 + 4자리 비밀번호. 진행을 클라우드에 올려 어느 기기에서든 이어 하고, 친구의 도감을 본다 (src/cloud.js) ----------
 /** 친구에게 보이는 내 요약 (profiles 문서) */
@@ -1995,7 +2096,7 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 // ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
@@ -2262,7 +2363,7 @@ function onDuelsChanged() {
       const won = d.winner === side, gain = won ? DUEL_REWARD.win : DUEL_REWARD.lose;
       cloud.duelTx(d.id, (cur) => (cur.rewarded?.[me] ? null : { rewarded: { ...(cur.rewarded || {}), [me]: true } })).then((ok) => {
         if (!ok) return;
-        setBlocks(state.blocks + gain); if (won) { wkAdd('duel'); sound.fanfare(); confetti.burst(120); }
+        setBlocks(state.blocks + gain); if (won) { wkAdd('duel'); state.goals.stats.duels++; checkNewStickers(); sound.fanfare(); confetti.burst(120); }
         say(won ? `🏆 ${josa(name, '과와')}의 대결에서 이겼어! 블록 ${gain}개!` : `😢 ${josa(name, '과와')}의 대결에서 졌어… 그래도 블록 ${gain}개! 포켓몬을 더 키워서 다시 도전하자.`, { sec: 7 });
         refreshHud(); autosave();
       }).catch(() => {});
@@ -2349,6 +2450,37 @@ function renderLearn(el) {
     <div class="rank-how">잘하는 종류는 숫자가 커지고, 어려워하는 종류는 작아져요. 틀린 종류에는 🔁 가 붙고, 그 지역에 다시 가면 쉬운 문제로 한 번 더 나와요.</div>`;
   el.querySelectorAll('.rank-switch button').forEach((b) => { b.onclick = () => { learnWhich = b.dataset.which; renderLearn(el); }; });
 }
+
+// ---------- 미션 탭 (src/goals.js): 오늘의 미션 셋 + 지금까지 모은 스티커 ----------
+function renderGoals(el) {
+  checkDay();
+  const G = state.goals;
+  const tasks = G.tasks.map((t) => {
+    const m = MISSION_BY_ID[t.id];
+    const done = t.n >= t.need, pc = Math.min(100, Math.round((t.n / t.need) * 100));
+    return `<div class="goal-row${done ? ' done' : ''}">
+      <span class="goal-emoji">${done ? '✅' : m.emoji}</span>
+      <span class="goal-text">${escHtml(m.text(m.need))}</span>
+      <div class="goal-bar"><i style="width:${pc}%"></i></div>
+      <span class="goal-num">${Math.min(t.n, t.need)}/${t.need}</span>
+    </div>`;
+  }).join('');
+  const got = stickerCount(G);
+  const board = STICKERS.map((st) => {
+    const on = G.stickers[st.id];
+    return `<div class="stk${on ? ' on' : ''}" title="${escHtml(st.how)}">
+      <span class="stk-face">${on ? st.emoji : '❔'}</span>
+      <span class="stk-name">${escHtml(on ? st.name : '???')}</span>
+      <span class="stk-how">${escHtml(on ? st.how : '아직 못 받았어')}</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="rank-head">🎯 오늘의 미션 <span class="rank-how">(${escHtml(G.day)} · 날마다 새로 나와요)</span></div>
+    <div class="goal-rows">${tasks}</div>
+    <div class="rank-how">미션 하나를 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)} 1개, 셋을 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 1개를 더 받아요.</div>
+    ${allDone(G) ? '<div class="lrn-tip good">🏅 오늘 미션을 다 했어! 내일 새 미션으로 또 만나자.</div>' : ''}
+    <div class="lrn-head2">🏅 스티커 <span class="rank-how">(${got} / ${STICKERS.length})</span></div>
+    <div class="stk-board">${board}</div>`;
+}
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
 function applySave(d) {
@@ -2367,6 +2499,7 @@ function applySave(d) {
   state.carTold = !!d.carTold;
   state.lastWeek = d.lastWeek || null; state.lastWk = d.lastWk ? { ...emptyWeek(), ...d.lastWk } : null;
   state.learn = loadLearn(d.learn); quiz.learn = state.learn;   // 퀴즈도 새로 읽은 기록을 보게 (참조가 바뀐다)
+  state.goals = loadGoals(d.goals, d.name);                    // 오늘의 미션 · 스티커
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
@@ -2386,7 +2519,7 @@ function applySave(d) {
   }
   const leader = party.healthy().includes(party.members[d.leader]) ? party.members[d.leader] : (party.healthy()[0] || party.members[0]);
   if (leader) attachLeader(leader);
-  setBlocks(d.blocks || 0, { quiet: true }); // 불러오기: 금빛 블록 축하는 새로 모았을 때만
+  setBlocks(d.blocks || 0, { quiet: true, mission: false }); // 불러오기: 금빛 블록 축하도, 오늘의 미션 셈도 하지 않는다
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
   if (state.admin) { adminGrantAll(); showAdminPanel(); }
   sound.fanfare();
@@ -2651,6 +2784,7 @@ function frame() {
             const cnt = state.dex[c.data.id];
             checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
             wkAdd('caught');
+            bump('catch');
             if (c.isBoss) wkAdd('boss');
             if (c.data.mega) { // 메가 포켓몬을 잡으면 메가블럭을 준다 (메가 진화에 쓴다)
               state.caught++;
@@ -2724,7 +2858,7 @@ function frame() {
       const nb = nearNb;
       offer(`🧩 ${nb.data.name} 퀴즈 풀기`, () => { input.endFrame(); askRescueQuiz(zone, nb); }, '🧩\n퀴즈');
     }
-    if (mergeMsg && msgTimer <= 0) { say(mergeMsg, { sec: 8 }); mergeMsg = null; } // 줄 세워 둔 뭉침 안내 (보상 말풍선이 끝난 뒤)
+    if (msgQueue.length && msgTimer <= 0) { const m = msgQueue.shift(); say(m.text, m.opts); } // 줄 세워 둔 말풍선 (앞의 말이 끝난 뒤 하나씩)
     tickCar();
     if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
@@ -2734,7 +2868,7 @@ function frame() {
     if (player.swimming && input.isHeld('jump') && Math.random() < 0.5) {
       particles.stars(zone.scene, pp.clone().add(new THREE.Vector3(rand(-0.4, 0.4), 0.2, rand(-0.4, 0.4))), 1, 0xdff6ff, 0.3);
     }
-    if (!sailing) chain.update(dt);
+    if (!sailing) chain.update(dt); // 사진 중에도 돌린다 (모델 등장·걷기 애니메이션이 여기서 돈다). 포즈는 그 뒤 photo.update 가 다시 잡는다
     else for (const f of chain.followers) f.mesh.visible = false; // 대결이 끝나 돌아와도 물 위를 걷지 않게
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
     for (const f of chain.followers) {
@@ -2769,10 +2903,13 @@ function frame() {
     if (state.autosave <= 0) autosave();
 
     // 카메라 따라가기 (대결이 막 끝났으면 눈높이에서 바로 원래 자리로 복귀)
-    const camTarget = resolveCamera(pp.clone().add(camOffset()));
-    if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
-    else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
-    camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
+    if (photo.active) photo.update(dt); // 사진 찍는 동안에는 카메라를 photo 가 잡아 둔 자리에 그대로 둔다
+    else {
+      const camTarget = resolveCamera(pp.clone().add(camOffset()));
+      if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
+      else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
+      camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
+    }
   }
   ctxClicked = false;
   updateCtxButton();
@@ -2795,6 +2932,7 @@ function frame() {
   if (zoneBannerTimer > 0) { zoneBannerTimer -= dt; if (zoneBannerTimer <= 0) zoneBannerEl.classList.add('hidden'); }
 
   renderer.render(zone.scene, camera);
+  photo.afterRender(renderer); // 그린 직후에만 캔버스를 읽을 수 있다 (preserveDrawingBuffer 가 꺼져 있다)
   input.endFrame();
   requestAnimationFrame(frame);
 }

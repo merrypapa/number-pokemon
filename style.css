@@ -512,7 +512,7 @@ body.intro #btn-save { display: none !important; }
 /* 도감 넘버볼 탭 */
 #dex-balls { padding: 6px 2px; overflow-y: auto; min-height: 0; } /* 아이패드에서 넘버볼 탭이 안 내려가던 것: 스크롤 허용 */
 /* 도감 안의 스크롤 판들: body 의 touch-action:none 을 풀어 손가락으로 내릴 수 있게 */
-#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank, #dex-learn { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank, #dex-learn, #dex-goals { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 #dex-tabs button[hidden] { display: none; }
 /* 관리자 탭: 지역 바로 가기 버튼들 (관리자 모드에서만 탭이 보인다) */
 #dex-admin { padding: 12px; overflow-y: auto; }
@@ -562,6 +562,7 @@ body.intro #btn-save { display: none !important; }
 #rank-modal .menu-card { text-align: left; }
 #dex-rank { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 #dex-learn { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#dex-goals { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 /* 친구 대결 탭 */
 /* 친구 탭: 접힌 줄(이름·상태·대결 버튼) → 누르면 자세히 펼침 */
 .friend-row { flex-wrap: wrap; cursor: pointer; }
@@ -607,6 +608,7 @@ body.intro #btn-save { display: none !important; }
 .duel-actions .duel-decline { background: #eee; color: #666; box-shadow: 0 3px 0 #bbb; }
 #dex-rank.hidden { display: none; }
 #dex-learn.hidden { display: none; }
+#dex-goals.hidden { display: none; }
 .rank-head { font-size: 18px; font-weight: 900; color: #20232e; }
 .rank-how { font-size: 12px; color: #777; font-weight: 700; margin: -4px 0 4px; }
 .rank-mine { background: #fff3c4; border: 3px solid #ffd93d; border-radius: 14px; padding: 8px 12px; font-size: 14px; font-weight: 900; color: #333; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
@@ -833,3 +835,47 @@ body.touch #btn-ufo { bottom: calc(var(--ctx-bottom) + 64px); }
   .lrn-row { grid-template-columns: 78px 1fr 42px; }
   .lrn-lv { display: none; }
 }
+
+/* ----- 미션 탭: 오늘의 미션 셋 + 스티커 판 (src/goals.js) ----- */
+.goal-rows { display: flex; flex-direction: column; gap: 6px; }
+.goal-row { display: grid; grid-template-columns: 26px 1fr 90px 44px; align-items: center; gap: 8px; background: #fff; border: 3px solid #eee; border-radius: 14px; padding: 7px 10px; }
+.goal-row.done { border-color: #57b947; background: #f2fbf0; }
+.goal-emoji { font-size: 18px; text-align: center; }
+.goal-text { font-size: 14px; font-weight: 900; color: #20232e; }
+.goal-row.done .goal-text { color: #2f6b23; }
+.goal-bar { height: 12px; border-radius: 999px; background: #eee; overflow: hidden; }
+.goal-bar i { display: block; height: 100%; background: #ffd93d; }
+.goal-row.done .goal-bar i { background: #57b947; }
+.goal-num { font-size: 13px; font-weight: 900; color: #888; text-align: right; }
+.goal-row.done .goal-num { color: #57b947; }
+.stk-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.stk { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; background: #f6f6f6; border: 3px dashed #ddd; border-radius: 16px; padding: 9px 6px; opacity: .65; }
+.stk.on { background: #fff8e1; border: 3px solid #ffd93d; opacity: 1; box-shadow: 0 2px 0 #e7c02f; }
+.stk-face { font-size: 26px; line-height: 1.1; }
+.stk-name { font-size: 12px; font-weight: 900; color: #20232e; }
+.stk.on .stk-name { color: #8a6d00; }
+.stk-how { font-size: 10px; font-weight: 700; color: #888; line-height: 1.25; }
+@media (max-width: 480px) {
+  .goal-row { grid-template-columns: 24px 1fr 44px; }
+  .goal-bar { display: none; }
+  .stk-board { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+  .stk-how { display: none; }
+}
+
+/* ----- 사진 모드 (src/photo.js) ----- */
+body.photo-mode #hud, body.photo-mode #btn-dex, body.photo-mode #touch-pad, body.photo-mode #touch-actions,
+body.photo-mode #msg, body.photo-mode #ctx-action, body.photo-mode #zone-banner, body.photo-mode #save-toast { display: none !important; }
+#photo-count { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(90px, 22vw, 220px); font-weight: 900; color: #fff; text-shadow: 0 6px 0 rgba(0,0,0,.35); z-index: 60; pointer-events: none; }
+#photo-count.hidden { display: none; }
+#photo-count.pop { animation: photoPop .45s ease-out; }
+@keyframes photoPop { from { transform: scale(1.9); opacity: 0; } 40% { opacity: 1; } to { transform: scale(1); opacity: .95; } }
+#photo-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 61; }
+#photo-flash.on { animation: photoFlash .38s ease-out; }
+@keyframes photoFlash { from { opacity: .95; } to { opacity: 0; } }
+#photo-modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 62; padding: 16px; }
+#photo-modal.hidden { display: none; }
+#photo-modal .menu-card { max-width: min(96vw, 720px); display: flex; flex-direction: column; gap: 12px; }
+#photo-img { width: 100%; max-height: 64vh; object-fit: contain; border-radius: 12px; background: #fffdf5; }
+#photo-save { font: inherit; font-size: 15px; font-weight: 900; padding: 10px 18px; border-radius: 14px; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; text-decoration: none; display: inline-block; }
+#photo-save:active { transform: translateY(2px); box-shadow: none; }
+#dex-photo { background: #f0e6c0; color: #8a7a4a; padding: 0 12px; font-size: 18px; } /* 포켓몬과 사진 찍기 */

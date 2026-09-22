@@ -46,6 +46,7 @@ export class Dex {
     this.feedbackEl = document.getElementById('dex-feedback'); // 요청 탭 (main 이 채운다)
     this.rankEl = document.getElementById('dex-rank');         // 주간 순위 탭 (main 이 채운다)
     this.learnEl = document.getElementById('dex-learn');       // 배움 탭 — 무엇을 잘하고 무엇을 연습하면 좋은지 (main 이 채운다)
+    this.goalsEl = document.getElementById('dex-goals');       // 미션 탭 — 오늘의 미션과 스티커 (main 이 채운다)
     this.onTab = null; // (tab) → main 이 탭이 열릴 때 할 일 (친구 목록 새로 고침)
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
@@ -123,6 +124,7 @@ export class Dex {
     this.feedbackEl.classList.toggle('hidden', tab !== 'feedback');
     this.rankEl.classList.toggle('hidden', tab !== 'rank');
     this.learnEl.classList.toggle('hidden', tab !== 'learn');
+    this.goalsEl.classList.toggle('hidden', tab !== 'goals');
     this.onTab?.(tab);
     if (tab !== 'poke') this.stopView(); else if (this.selectedId && this.byId[this.selectedId]) this.render(this.lastCaught || {});
     if (tab === 'map') this.renderMap(this.lastCaught || {});
