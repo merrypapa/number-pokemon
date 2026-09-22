@@ -33,6 +33,7 @@ import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
+import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
 import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
@@ -491,7 +492,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -503,7 +504,7 @@ const dex = new Dex(
   Object.fromEntries(Object.entries(ZONE_INFO).filter(([, v]) => v.wild).map(([k, v]) => [k, v.wild])),
 );
 dex.lastCaught = state.dex;
-const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && c.boss !== true && !c.evolvedFrom), sound }); // 순수 보스(큰 것)만 뺀다
+const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && c.boss !== true && !c.evolvedFrom), sound, learn: state.learn }); // 순수 보스(큰 것)만 뺀다
 for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
@@ -1483,7 +1484,7 @@ function checkWeek(announce = true) {
   const now = weekKey();
   if (state.week === now) return false;
   if (state.week && weekScore(state.wk) > 0) { state.lastWeek = state.week; state.lastWk = { ...state.wk }; } // 0점짜리 주는 남기지 않는다
-  state.week = now; state.wk = emptyWeek();
+  state.week = now; state.wk = emptyWeek(); rollWeek(state.learn); // 배움 기록도 이번 주를 지난주로 넘긴다 (통산 기록·복습 빚은 그대로)
   if (announce && zone) say(`🏆 새로운 한 주가 시작됐어! ${state.lastWeek ? `지난주엔 ${weekScore(state.lastWk)}점이었어. ` : ''}이번 주 순위에 다시 도전해 보자!`, { sec: 7 });
   return true;
 }
@@ -1700,6 +1701,7 @@ function buildSaveData() {
     returnTo: state.returnTo,
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
+    learn: state.learn,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -1993,7 +1995,7 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 // ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
@@ -2313,6 +2315,40 @@ async function renderRank(el, inGame) {
     } catch (e) { fr.innerHTML = `<div class="friend-note">친구 순위를 못 읽었어: ${e.message}</div>`; }
   }
 }
+
+// ---------- 배움 탭 (src/learn.js): 무엇을 잘하고 무엇을 같이 연습하면 좋은지 ----------
+// 퀴즈를 풀 때마다 종류(더하기·빼기·곱하기…)별로 맞음/틀림이 쌓인다. 여기서 그걸 읽어 보여 준다.
+const LEVEL_NAME = ['쉬운 숫자', '보통 숫자', '큰 숫자'];
+const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let learnWhich = 'wk';   // 'wk' 이번 주 · 'tiers' 전부
+function renderLearn(el) {
+  checkWeek(false);      // 게임을 켜 둔 채 월요일을 넘겼을 수 있다
+  const which = learnWhich;
+  const s = learnSummary(state.learn, which);
+  const pct = (a) => (a === null ? '—' : `${Math.round(a * 100)}%`);
+  const lastAcc = s.last && s.last.ok + s.last.no ? s.last.ok / (s.last.ok + s.last.no) : null;
+  const bar = (r) => {
+    const w = r.n ? Math.round((r.ok / r.n) * 100) : 0;
+    return `<div class="lrn-bar"><i class="ok" style="width:${w}%"></i><i class="no" style="width:${100 - w}%"></i></div>`;
+  };
+  const rows = s.rows.length ? s.rows.map((r) => `<div class="lrn-row">
+      <span class="lrn-name">${escHtml(r.name)}${r.owed ? ' <b class="lrn-again">🔁</b>' : ''}</span>
+      ${bar(r)}
+      <span class="lrn-num">${r.ok}/${r.n}</span>
+      <span class="lrn-lv">${r.level === null ? escHtml(r.where) : LEVEL_NAME[r.level]}</span>
+    </div>`).join('') : '<div class="friend-note">아직 푼 문제가 없어요. 숫자블록 친구를 만나 퀴즈를 풀어 보자!</div>';
+  const misses = s.misses.length ? `<div class="lrn-head2">🔁 다시 풀어 볼 문제 <span class="rank-how">(최근에 아쉬웠던 것 — 그 지역에 가면 쉬운 걸로 다시 나와요)</span></div>
+    ${s.misses.map((m) => `<div class="lrn-miss"><b>${escHtml(TIER_NAME[m.tier] || '')}</b> ${escHtml(m.text)} <span>정답 ${escHtml(m.answer)}</span></div>`).join('')}` : '';
+  el.innerHTML = `<div class="rank-head">🌱 배움 카드 <span class="rank-how">${which === 'wk' ? `(이번 주 · ${weekRange(state.week)})` : '(지금까지 전부)'}</span></div>
+    <div class="rank-switch"><button data-which="wk" class="${which === 'wk' ? 'on' : ''}">이번 주</button><button data-which="tiers" class="${which === 'tiers' ? 'on' : ''}">전부</button></div>
+    <div class="rank-mine"><span>${s.total.ok + s.total.no ? `${s.total.ok + s.total.no}문제 중 <b>${s.total.ok}</b>개 맞혔어 · ${pct(s.acc)}` : '아직 푼 문제가 없어'}</span>${which === 'wk' && lastAcc !== null ? `<span class="rank-last">지난주 ${pct(lastAcc)} (${s.last.ok}/${s.last.ok + s.last.no})</span>` : ''}</div>
+    ${s.best ? `<div class="lrn-tip good">👍 제일 잘하는 건 <b>${escHtml(s.best.name)}</b> (${s.best.ok}/${s.best.n})</div>` : ''}
+    ${s.weak ? `<div class="lrn-tip weak">🌱 같이 연습하면 좋은 건 <b>${escHtml(s.weak.name)}</b> (${s.weak.ok}/${s.weak.n}) — ${escHtml(s.weak.where)}에서 나와요</div>` : ''}
+    <div class="lrn-rows">${rows}</div>
+    ${misses}
+    <div class="rank-how">잘하는 종류는 숫자가 커지고, 어려워하는 종류는 작아져요. 틀린 종류에는 🔁 가 붙고, 그 지역에 다시 가면 쉬운 문제로 한 번 더 나와요.</div>`;
+  el.querySelectorAll('.rank-switch button').forEach((b) => { b.onclick = () => { learnWhich = b.dataset.which; renderLearn(el); }; });
+}
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
 function applySave(d) {
@@ -2330,6 +2366,7 @@ function applySave(d) {
   state.returnTo = d.returnTo || null;
   state.carTold = !!d.carTold;
   state.lastWeek = d.lastWeek || null; state.lastWk = d.lastWk ? { ...emptyWeek(), ...d.lastWk } : null;
+  state.learn = loadLearn(d.learn); quiz.learn = state.learn;   // 퀴즈도 새로 읽은 기록을 보게 (참조가 바뀐다)
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
@@ -2358,7 +2395,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------

@@ -512,7 +512,7 @@ body.intro #btn-save { display: none !important; }
 /* 도감 넘버볼 탭 */
 #dex-balls { padding: 6px 2px; overflow-y: auto; min-height: 0; } /* 아이패드에서 넘버볼 탭이 안 내려가던 것: 스크롤 허용 */
 /* 도감 안의 스크롤 판들: body 의 touch-action:none 을 풀어 손가락으로 내릴 수 있게 */
-#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank, #dex-learn { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 #dex-tabs button[hidden] { display: none; }
 /* 관리자 탭: 지역 바로 가기 버튼들 (관리자 모드에서만 탭이 보인다) */
 #dex-admin { padding: 12px; overflow-y: auto; }
@@ -561,6 +561,7 @@ body.intro #btn-save { display: none !important; }
 #rank-modal.hidden { display: none; }
 #rank-modal .menu-card { text-align: left; }
 #dex-rank { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+#dex-learn { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 /* 친구 대결 탭 */
 /* 친구 탭: 접힌 줄(이름·상태·대결 버튼) → 누르면 자세히 펼침 */
 .friend-row { flex-wrap: wrap; cursor: pointer; }
@@ -605,6 +606,7 @@ body.intro #btn-save { display: none !important; }
 .duel-actions button { font: inherit; font-size: 14px; font-weight: 900; padding: 8px 14px; border-radius: 12px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8c30; cursor: pointer; }
 .duel-actions .duel-decline { background: #eee; color: #666; box-shadow: 0 3px 0 #bbb; }
 #dex-rank.hidden { display: none; }
+#dex-learn.hidden { display: none; }
 .rank-head { font-size: 18px; font-weight: 900; color: #20232e; }
 .rank-how { font-size: 12px; color: #777; font-weight: 700; margin: -4px 0 4px; }
 .rank-mine { background: #fff3c4; border: 3px solid #ffd93d; border-radius: 14px; padding: 8px 12px; font-size: 14px; font-weight: 900; color: #333; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
@@ -807,3 +809,27 @@ body.touch #btn-ufo { bottom: calc(var(--ctx-bottom) + 64px); }
 #warp canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #warp-text { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); color: #fff; font-size: clamp(22px, 5vw, 40px); font-weight: 900; -webkit-text-stroke: 1.5px #20232e; text-shadow: 0 4px 0 var(--warp, #3fb8e8), 0 8px 20px rgba(0,0,0,.5); white-space: nowrap; animation: warpPulse .9s ease-in-out infinite alternate; }
 @keyframes warpPulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.06); } }
+
+/* ----- 배움 탭: 종류별로 얼마나 맞혔나 (src/learn.js) ----- */
+#dex-learn .rank-mine > span { display: inline; }   /* 요약은 한 덩어리로 (flex gap 이 글자 사이를 벌리지 않게) */
+.lrn-tip { font-size: 14px; font-weight: 800; color: #444; background: #f6f6f6; border-radius: 12px; padding: 7px 10px; }
+.lrn-tip.good { background: #e8f7e4; color: #2f6b23; }
+.lrn-tip.weak { background: #fff1e0; color: #8a5a1a; }
+.lrn-tip b { color: inherit; }
+.lrn-rows { display: flex; flex-direction: column; gap: 5px; }
+.lrn-row { display: grid; grid-template-columns: 92px 1fr 46px 62px; align-items: center; gap: 8px; background: #fff; border: 3px solid #eee; border-radius: 12px; padding: 5px 9px; }
+.lrn-name { font-size: 13px; font-weight: 900; color: #20232e; }
+.lrn-again { color: #e8453c; }
+.lrn-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: #eee; }
+.lrn-bar i.ok { background: #57b947; }
+.lrn-bar i.no { background: #f3b8b4; }
+.lrn-num { font-size: 13px; font-weight: 900; color: #57b947; text-align: right; }
+.lrn-lv { font-size: 11px; font-weight: 800; color: #888; text-align: right; }
+.lrn-head2 { font-size: 15px; font-weight: 900; color: #20232e; margin-top: 4px; }
+.lrn-miss { font-size: 12px; font-weight: 700; color: #555; background: #fff6f5; border: 2px solid #f6d5d2; border-radius: 10px; padding: 5px 8px; }
+.lrn-miss b { color: #e8453c; margin-right: 4px; }
+.lrn-miss span { color: #2f6b23; font-weight: 900; margin-left: 4px; white-space: nowrap; }
+@media (max-width: 480px) {
+  .lrn-row { grid-template-columns: 78px 1fr 42px; }
+  .lrn-lv { display: none; }
+}
