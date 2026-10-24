@@ -2889,6 +2889,22 @@ function frame() {
             beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 대원이 항복한다
             autosave();
           },
+          onReleased: () => { // 가짜 숫자를 깬 뒤 볼을 쓰지 않고 풀어줬다: 이긴 것은 이긴 것 — 블록·승수(진화 조건)는 그대로, 넘버볼만 안 쓴다. 포켓몬은 친구가 되지 않고 제자리에 남는다
+            const L = battle.member;
+            c.becomeShy();
+            c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
+            party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
+            L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수 (잡을 때와 같다)
+            const reward = winReward(c);
+            setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
+            const winNote = party.canEvolve(L) ? ` ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
+            if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
+            else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            refreshHud();
+            beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 붉은 숫자가 깨진 것이니 대원은 항복한다
+            autosave();
+          },
           onLost: () => {
             const L = battle.member;
             c.becomeShy();
