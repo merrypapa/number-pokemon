@@ -9,6 +9,8 @@ import { buildSea } from './sea.js';
 import { buildDeepSea } from './deepsea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
+import { buildSchool } from './school.js';
+import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
 import { WarpFx } from './ufo.js';
@@ -148,7 +150,7 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb'];
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb']; // 인하: 포켓몬 학교 당번 친구
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
 const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
@@ -174,7 +176,7 @@ function makeZone(name, builder) {
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 /** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, hive: buildHive, arena: buildArena };
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, hive: buildHive, arena: buildArena };
 const WILD_TOTAL = { forest: 42, cave: 16, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
 const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
@@ -263,7 +265,7 @@ function spawnPickup(z, x, zz) {
 // 푸른숲 시작 지점 옆에 세워져 있다. 가까이 가서 "🚗 타기"를 누르면 타고, 한 번 타면 내 차가 되어 어느 지역에서든 HUD 🚗 버튼(C)으로 부르거나 내린다.
 // 걷기의 2.2배로 달리고(가속 버튼이면 더) 점프는 못 한다. 물 위·심해·꿀벌집·연구소에서는 못 타고, 기차·로켓·배·UFO 를 타면 자동으로 내린다.
 // 이상해꽃 자동차는 이상해꽃(푸른숲 보스·이상해씨의 최종 진화·메가이상해꽃)이 대표 포켓몬일 때만 쓸 수 있다. 대표를 바꾸면 차는 사라진다.
-const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab'].includes(name);
+const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab', 'school'].includes(name);
 const CAR_SPECIES = new Set(['m01ee', 'x01']); // 이상해꽃 · 메가이상해꽃
 const carAllowed = () => !!party.leader && CAR_SPECIES.has(party.leader.speciesId);
 let carAt = null;   // 세워 둔 차: { zone, car, obs }
@@ -494,7 +496,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals() }; // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool() }; // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.conqueredCount = () => Object.keys(state.conquered).length;
 party.zoneOf = () => zone?.name || 'forest';
@@ -507,6 +509,28 @@ const dex = new Dex(
 );
 dex.lastCaught = state.dex;
 const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && c.boss !== true && !c.evolvedFrom), sound, learn: state.learn }); // 순수 보스(큰 것)만 뺀다
+// 포켓몬 학교: 내 자리에 앉아 과목을 골라 공부한다 (src/study.js). 맞힌 만큼 블록, 숙제는 오박사님께 검사받는다
+const study = new Study({
+  sound,
+  getState: () => state.school,
+  onReward: (n, subject, { homework }) => {
+    const merged = n > 0 ? setBlocks(state.blocks + n, { quiet: true }) : null;
+    if (homework) confetti.burst(80);
+    say(`${subject.emoji} ${subject.name} 공부 끝! 블록 ${n}개를 받았어. 이제 모두 ${state.blocks}개야.${homework ? ' 📒 오늘의 숙제 끝! 오박사님께 말씀드리자.' : ''}${merged ? ' ' + merged : ''}`, { sec: 6 });
+    refreshHud();
+    autosave();
+  },
+  onClose: () => { say('자리에서 일어났어. 다시 공부하고 싶으면 ⭐ 내 자리로 와!', { sec: 3 }); },
+});
+function sitDown() {
+  const seat = zone.world.mySeat;
+  if (!seat || study.open) return;
+  player.teleport(seat.x, seat.z);
+  player.facing = Math.PI; player.group.rotation.y = Math.PI; // 칠판(북쪽)을 본다
+  cam.yaw = 0; snapCam = true;                                  // 카메라는 뒤에서 칠판 쪽으로
+  sound.click();
+  study.show();
+}
 for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
@@ -1239,7 +1263,7 @@ const jumpBtn = document.querySelector('#touch-actions button[data-key="jump"]')
 const runBtn = document.querySelector('#touch-actions button[data-key="run"]');
 function offer(label, run, short = label) { if (!ctxAction) ctxAction = { label, run, short }; }
 function updateCtxButton() {
-  const show = ctxAction && !battle.active && !duelStage.active && !dex.open && !quiz.open && !planetOpen && !ride && !switching && !evo;
+  const show = ctxAction && !battle.active && !duelStage.active && !dex.open && !quiz.open && !study.open && !planetOpen && !ride && !switching && !evo;
   if (document.body.classList.contains('touch')) { // 터치 화면: 점프 버튼이 그 일을 하는 버튼으로 바뀐다 (색도 바뀜)
     ctxBtn.classList.add('hidden');
     const label = show ? ctxAction.short : (player.swim ? '헤엄' : '점프'); // 심해에서는 점프 버튼이 헤엄 버튼 (둥근 버튼 안에 한 줄로 들어가게 한 단어)
@@ -1264,13 +1288,28 @@ function talkTo(npc) {
     if (healed) { sound.fanfare(); particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5); refreshHud(); }
   }
   if (!healed) sound.click();
+  // 포켓몬 학교의 오박사님: 숙제를 끝냈으면 칭찬과 블록(하루 한 번), 아니면 오늘의 숙제를 일러 준다
+  let homeworkNote = '';
+  if (npc.teacher) {
+    const S = rollSchoolDay(state.school), hw = homeworkOf(S.day);
+    if (S.hwDone && !S.hwPaid) {
+      S.hwPaid = true;
+      const merged = setBlocks(state.blocks + HW_BONUS, { quiet: true });
+      sound.fanfare(); confetti.burst(120);
+      say(`${npc.name}: 오, 오늘의 숙제(${hw.emoji} ${hw.name})를 다 했구나! 참 잘했어요 💮 상으로 블록 ${HW_BONUS}개를 주마. 내일 숙제도 열심히 하렴!${merged ? ' ' + merged : ''}`, { sec: 8, faceImg: npcFace(npc) });
+      npc.talking = true;
+      refreshHud(); autosave();
+      return;
+    }
+    homeworkNote = S.hwDone ? ' (오늘 숙제는 이미 끝냈구나. 내일 숙제도 기대할게!)' : ` 📒 오늘의 숙제는 ${hw.emoji} ${hw.name}! ⭐ 내 자리에 앉아서 열심히 하렴.`;
+  }
   // 꿈의우주에서 행성으로 가는 UFO 는 별의 문을 지키는 메가팬텀을 잡아야 띄울 수 있다 (관리자 모드는 예외)
   const spaceMega = creatureData.creatures.find((c) => c.zone === 'space' && c.shrine);
   const ufoLocked = !!(npc.ufo && zone.world.ufo && !zone.world.ufo.to && spaceMega && !(state.dex[spaceMega.id] > 0) && !state.admin);
   const text = ufoLocked
     ? `${npc.name}: UFO 는 별의 문의 힘으로 나는 거야. ${state.conquered.space ? `별의 문을 지키는 ${josa(spaceMega.name, '을를')} 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 별의 문을 열고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
-    : `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}`;
-  say(text, { sec: ufoLocked ? 8 : 6, faceImg: npcFace(npc) });
+    : `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}${homeworkNote}`;
+  say(text, { sec: ufoLocked || homeworkNote ? 8 : 6, faceImg: npcFace(npc) });
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
@@ -1768,6 +1807,7 @@ function buildSaveData() {
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
     goals: state.goals,
+    school: state.school,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
 }
@@ -2500,6 +2540,7 @@ function applySave(d) {
   state.lastWeek = d.lastWeek || null; state.lastWk = d.lastWk ? { ...emptyWeek(), ...d.lastWk } : null;
   state.learn = loadLearn(d.learn); quiz.learn = state.learn;   // 퀴즈도 새로 읽은 기록을 보게 (참조가 바뀐다)
   state.goals = loadGoals(d.goals, d.name);                    // 오늘의 미션 · 스티커
+  state.school = loadSchool(d.school);                         // 포켓몬 학교 공부·숙제
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
@@ -2528,7 +2569,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
@@ -2567,12 +2608,14 @@ function frame() {
     return;
   }
   ctxAction = null; // 이번 프레임에 할 수 있는 일은 아래 탐험 코드가 다시 채운다
-  if (input.wasPressed('dex') && !battle.active && !quiz.open && !ride) dex.toggle(state.dex);
+  if (input.wasPressed('dex') && !battle.active && !quiz.open && !study.open && !ride) dex.toggle(state.dex);
   if (input.wasPressed('car') && carAllowed() && !battle.active && !quiz.open && !dex.open && !ride && !switching) toggleCar();
   if (dex.open) {
     if (input.wasPressed('cancel')) dex.hide();
   } else if (quiz.open) {
     if (input.wasPressed('cancel')) quiz.finish('skip'); // 답을 고른 뒤라면 그 결과로 닫힌다
+  } else if (study.open) { // 학교 자리에 앉아 공부하는 동안은 멈춘다
+    if (input.wasPressed('cancel')) study.back();
   } else if (planetOpen) { // 행성 고르기 팝업이 떠 있는 동안은 멈춘다
     if (input.wasPressed('cancel')) closePlanetPopup();
   } else if (battle.active) {
@@ -2599,9 +2642,9 @@ function frame() {
     let moved = false;
     if (zone.name === 'forest') {
       const w = zone.world;
-      if (player.fellInHole) {
-        player.fellInHole = false; moved = true;
-        switchZone('cave', getZone('cave').world.spawn, { text: '뿅! 지하동굴로 떨어졌어. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 푸른숲에 돌아갈 수 있어!', sec: 8 });
+      if (near(w.caveMouth, 2.0)) { // 북쪽 바위 언덕의 굴 입구로 걸어 들어간다 (떨어지지 않는다)
+        moved = true;
+        switchZone('cave', getZone('cave').world.spawn, { text: '굴을 따라 지하동굴에 들어왔어! 어두우니 조심해. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 푸른숲에 돌아갈 수 있어!', sec: 8 });
       } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
@@ -2617,9 +2660,12 @@ function frame() {
       } else if (Math.abs(pp.x - w.labDoor.x) < 1.6 && pp.z > w.labDoor.z - 0.6 && pp.z < w.labDoor.z + 1.6) { // 문 앞 네모 칸 (문 틈으로 들어서면 바로)
         moved = true;
         switchZone('lab', getZone('lab').world.spawn, { text: '오박사 연구소에 들어왔어! 오박사님께 가까이 가서 대화 버튼을 눌러 봐. 문으로 나가면 마을이야.', sec: 6 });
+      } else if (w.schoolDoor && Math.abs(pp.x - w.schoolDoor.x) < 1.6 && pp.z < w.schoolDoor.z + 0.6 && pp.z > w.schoolDoor.z - 1.6) { // 학교 문 앞 칸 (남쪽에서 들어간다)
+        moved = true;
+        switchZone('school', getZone('school').world.spawn, { text: '🏫 포켓몬 학교에 들어왔어! 앞줄 ⭐ 내 자리에 앉으면 공부할 수 있어. 오박사님 선생님께 말을 걸어 봐. 문으로 나가면 마을이야.', sec: 7 });
       }
     } else if (zone.name === 'sea' && zone.world.dive && sailing && !returning && near(zone.world.dive, zone.world.dive.r)) {
-      // 먼바다의 소용돌이: 보스 거북왕을 이긴 뒤부터 심해로 내려갈 수 있다 (푸른숲 큰 구멍 → 지하동굴과 같은 방식)
+      // 먼바다의 소용돌이: 보스 거북왕을 이긴 뒤부터 심해로 내려갈 수 있다
       if (state.conquered.sea) {
         moved = true;
         switchZone('deepsea', getZone('deepsea').world.spawn, { text: '소용돌이에 빨려 들어갔어… 여긴 심해야! 점프 버튼(스페이스)을 꾹 누르면 헤엄쳐 올라갈 수 있어. 북쪽 해류를 타면 돌아갈 수 있어!', sec: 9 });
@@ -2642,10 +2688,12 @@ function frame() {
     if (landNear) offer('⚓ 여기 내리기', () => leaveBoat(true), '⚓\n내리기');
     // ----- 세워 둔 이상해꽃 자동차 옆: 타기 -----
     if (!moved && !driving && carAt && carAt.zone === zone.name && near(carAt.car.group.position, 3.4)) offer('🚗 타기', mountCar, '🚗\n타기');
+    // ----- 포켓몬 학교: 내 자리에 가면 "공부하기" -----
+    if (!moved && zone.world.mySeat && near(zone.world.mySeat, 1.3)) offer('📚 공부하기', sitDown, '📚\n공부');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
     if (!moved) for (const npc of zone.world.npcs || []) {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
-      if (d < 7) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
+      if (d < 7 && !npc.seated) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8) {
         const foe = npc.rocket && !state.rockets[zone.name] ? npc.rocket : null; // 아직 안 이긴 넘버로켓단 대원
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
@@ -2797,7 +2845,7 @@ function frame() {
               conquer(zone.name);
               if (zone.name === 'forest') {
                 removeBoulder();
-                say(`${josa(c.data.name, '이가')} 친구가 됐어! 푸른숲 정복! 북쪽 산의 지하동굴 입구 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
+                say(`${josa(c.data.name, '이가')} 친구가 됐어! 푸른숲 정복! 북서쪽 산의 지하동굴 뒷문 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
               } else say(`${josa(c.data.name, '이가')} 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${josa(c.data.name, '이가')} 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
             } else if (!c.data.mega) {
               if (!c.rocketOf) state.caught++; // 로켓단이 내보낸 포켓몬은 이 지역의 야생 목록에 없으니 "친구 몇/몇" 총합을 넘기지 않게 셈에서 뺀다 (도감 기록은 그대로 남는다)
@@ -2916,6 +2964,10 @@ function frame() {
   prevBattle = battle.active;
   document.body.classList.toggle('battle', battle.active); // 대결 중엔 말풍선을 위로 올린다 (패널과 안 겹치게)
 
+  if (zone.world.setBoard) { // 학교 칠판: 오늘의 숙제 (날이 바뀌거나 숙제를 끝내면 다시 적는다)
+    const S = rollSchoolDay(state.school), hw = homeworkOf(S.day), key = `${S.day}/${S.hwDone}/${S.hwPaid}/${state.name}`;
+    if (zone.boardKey !== key) { zone.boardKey = key; zone.world.setBoard({ homework: `${hw.emoji} ${hw.name}`, done: S.hwDone, name: state.name }); }
+  }
   if (zone.name === 'lab' && zone.world.setScreenSubjects && (zone.screenFedAt == null || t - zone.screenFedAt > 20)) { // 연구 모니터에 내가 만난 포켓몬 그림을 넣는다
     zone.screenFedAt = t;
     const ids = Object.keys(state.dex).filter((id) => state.dex[id] > 0 && speciesById[id]);
