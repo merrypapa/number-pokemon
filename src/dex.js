@@ -16,6 +16,7 @@ const MAP_REGIONS = [
   { id: 'forest', x: 50, y: 33, rx: 17, ry: 10.5, icon: '🌲', fill: '#7ccf5a', desc: '시작 마을이 있는 숲. 풀·노말·벌레·전기 포켓몬이 산다. 다른 지역으로 가는 길이 모두 여기서 시작해.', how: '처음 시작하는 곳. 다른 지역에서 포탈·기차·로켓으로 돌아온다.' },
   { id: 'hive', x: 27, y: 19, rx: 6.5, ry: 5, icon: '🐝', fill: '#f4b400', desc: '푸른숲 서남쪽 큰 나무에 매달린 벌집 속. 육각형 벌집 칸 바닥, 빛나는 꿀 웅덩이, 천장에서 떨어지는 꿀 방울, 날아다니는 꿀벌 떼. 벌레·풀 포켓몬이 살고, 북쪽 벌집 탑 꼭대기(육각 계단 열한 개를 뛰어 올라)에 대장 독침붕이 있어.', how: '푸른숲 서남쪽 큰 나무 아래 벌집에 닿으면 들어간다. 남쪽 초록 포탈로 나오면 그 나무 아래.' },
   { id: 'cave', x: 50, y: 10, rx: 13, ry: 8, icon: '🕳️', fill: '#4b5261', desc: '어두운 지하 동굴. 땅·바위·독 포켓몬이 산다. 호수와 다리, 빛나는 웅덩이가 있어.', how: '푸른숲 북쪽 바위 언덕의 굴 입구로 걸어 들어가거나, 푸른숲 보스를 잡은 뒤 북서쪽 산의 뒷문 입구로. 포탈로 돌아온다.' },
+  { id: 'thunder', x: 66, y: 4, rx: 7.5, ry: 5, icon: '⚡', fill: '#2b3560', desc: '지하동굴 동쪽 벽의 번개 굴 안. 전기 포켓몬(피카츄·코일·쥬피썬더·닌자피카츄)의 고향이야. 노란 번개 수정, 감전되는 푸른 웅덩이, 테슬라 탑 사이로 튀는 전기 아크, 천장에서 내리치는 번개. 북쪽 번개 제단에 보스 라이츄. 땅 포켓몬은 전기를 안 맞아!', how: '지하동굴 동쪽 벽의 노란 번개가 지직거리는 굴로 들어간다. 남쪽 노란 포탈로 지하동굴에 돌아온다.' },
   { id: 'volcano', x: 83, y: 15, rx: 14, ry: 8.5, icon: '🌋', fill: '#c0533a', desc: '용암이 끓는 화산. 불 포켓몬이 산다. 큰 화산 꼭대기에 보스가 있어.', how: '푸른숲 동북쪽 붉은 바위 아치로 들어간다. 포탈로 돌아온다.' },
   { id: 'sea', x: 15, y: 42, rx: 14, ry: 9, icon: '🌊', fill: '#3fb8e8', desc: '다리로 이어진 모래섬들의 바다. 물 포켓몬이 산다. 남쪽 끝 섬에 보스가 있어. 동쪽 선착장에서 배를 타면 먼바다로 나가 헤엄치는 포켓몬(잉어킹·셀러·크랩·독파리, 아주 먼바다엔 라프라스)을 만난다.', how: '푸른숲 서쪽 기차역에서 기차 타기 버튼을 누른다. 돌아올 때도 그곳 기차역에서 탄다. 바다는 도착 섬 동쪽 선착장에서 배 타기.' },
   { id: 'space', x: 82, y: 49, rx: 14, ry: 8.5, icon: '🚀', fill: '#6a4ca8', desc: '별하늘 아래 보랏빛 달 표면. 신비한 포켓몬이 산다. 북쪽 제단에 보스, 하늘엔 태양과 행성들.', how: '푸른숲 남동쪽 로켓 발사장에서 로켓 타기 버튼을 누른다. 돌아올 때도 착륙장의 로켓을 탄다.' },
@@ -196,7 +197,7 @@ export class Dex {
       <!-- 큰 섬(육지): 푸른숲 + 동굴 산 + 화산 + 우주 착륙지 -->
       <path class="land" d="M28,58 C18,50 20,34 34,26 C36,14 46,6 58,8 C66,2 80,2 92,8 C104,12 104,26 98,34 C104,44 100,58 88,62 C76,66 60,66 48,63 C40,64 32,64 28,58 Z" fill="url(#gLand)"/>
       <!-- 흙길 / 철길 / 항로 -->
-      ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}${curve('forest', 'hive', 'path', 2)}
+      ${curve('forest', 'cave', 'path', 3)}${curve('forest', 'volcano', 'path', 8)}${curve('forest', 'sea', 'rail', 5)}${curve('forest', 'space', 'flight', 14)}${curve('forest', 'hive', 'path', 2)}${curve('cave', 'thunder', 'path', 2)}
       <!-- 물의길 → 심해: 소용돌이로 내려가는 길 (지역 그림·이름표에 가리지 않게 왼쪽으로 비껴 그린다) -->
       <path class="dive" d="M${R.sea.x - R.sea.rx + 1},${R.sea.y + R.sea.ry - 2} Q${R.sea.x - R.sea.rx - 4},${(R.sea.y + R.deepsea.y) / 2} ${R.deepsea.x - R.deepsea.rx + 1},${R.deepsea.y - R.deepsea.ry + 2}"/>
       <!-- 태양계 띠 (지도 아래): 별 + 궤도선 + 제목. 꿈의우주에서 UFO 항로가 내려온다 -->
@@ -219,6 +220,10 @@ export class Dex {
       cave: (r) => `<path d="M${-r.rx},${r.ry} Q${-r.rx * 0.5},${-r.ry * 1.3} 0,${-r.ry} Q${r.rx * 0.5},${-r.ry * 1.3} ${r.rx},${r.ry} Z" class="blob" fill="url(#gRock)"/>
         <path d="M-3,${r.ry} Q-3,${r.ry - 6} 0,${r.ry - 6} Q3,${r.ry - 6} 3,${r.ry} Z" fill="#1b1f2a"/>
         <circle cx="-6" cy="-1" r=".9" fill="#9fe8ff"/><circle cx="6" cy="0" r=".7" fill="#c9b8ff"/><circle cx="-2" cy="-4" r=".6" fill="#9fe8ff"/>`,
+      thunder: (r) => `<path d="M${-r.rx},${r.ry} Q${-r.rx * 0.5},${-r.ry * 1.3} 0,${-r.ry} Q${r.rx * 0.5},${-r.ry * 1.3} ${r.rx},${r.ry} Z" class="blob" fill="#2b3560"/>
+        <path d="M-2.4,${r.ry} Q-2.4,${r.ry - 4.5} 0,${r.ry - 4.5} Q2.4,${r.ry - 4.5} 2.4,${r.ry} Z" fill="#0b0f1c"/>
+        <path d="M-3.5,-3.5 L-1.8,-0.5 L-3,-0.3 L-1.2,2.4 M3,-3.8 L1.4,-1 L2.6,-0.8 L0.9,1.8" fill="none" stroke="#ffe36b" stroke-width=".6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="4.6" cy="1.6" r=".8" fill="#3fb0ff"/><circle cx="-5" cy="1.2" r=".7" fill="#3fb0ff"/>`,
       volcano: (r) => `<path d="M${-r.rx},${r.ry} L-4,${-r.ry} L4,${-r.ry} L${r.rx},${r.ry} Z" class="blob" fill="url(#gLava)"/>
         <path d="M-4,${-r.ry} L4,${-r.ry} L2,${-r.ry + 3} L0,${-r.ry + 1.5} L-2,${-r.ry + 3} Z" fill="#ff6a1a"/>
         <path d="M-1,${-r.ry} L-2,${-r.ry + 6} L0,${-r.ry + 4} L1,${-r.ry + 9} " fill="none" stroke="#ff9a3c" stroke-width="1" stroke-linecap="round"/>

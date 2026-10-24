@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
-import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced } from './world.js';
+import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced, makePillSprite } from './world.js';
 
 // 괴물 동굴 (160x160). 푸른숲 북쪽 바위 언덕의 굴 입구로 걸어 들어오거나, 북쪽 산의 뒷문 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
@@ -9,6 +9,7 @@ export const CAVE = {
   size: 160,
   spawn: { x: 0, z: 15 },
   portal: { x: 0, z: 33 },
+  thunderGate: { x: 70, z: 12 }, // 동쪽 벽의 번개 굴: 들어가면 main 이 번개동굴로 보낸다
   lake: { x: 33, z: -21, r: 10 },
   lake2: { x: -48, z: 34, r: 9 },  // 두 번째 지하 호수 (다리로 건넌다)
   pools: [ { x: -20, z: -50, r: 3 }, { x: 55, z: 20, r: 2.5 }, { x: -60, z: -20, r: 3 }, { x: 20, z: 55, r: 2.5 }, { x: 60, z: -55, r: 3 }, { x: -30, z: 62, r: 2.5 } ], // 빛나는 작은 웅덩이 (못 들어감)
@@ -57,6 +58,7 @@ function makeTextTexture(text, bg = '#1f2a3a', fg = '#9fe8ff') {
 }
 
 export function buildCave(scene) {
+  let thunderGlow = null, thunderBolts = [];
   const S = CAVE.size;
   const decor = new THREE.Group();
   scene.add(decor);
@@ -126,7 +128,7 @@ export function buildCave(scene) {
   }
   for (let i = 0; i < 70; i++) {
     const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8);
-    if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z)) continue;
+    if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || Math.hypot(x - CAVE.thunderGate.x, z - CAVE.thunderGate.z) < 8 || LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z)) continue;
     const h = rand(1.5, 5), pr = rand(0.6, 1.6);
     pillarItems.push({ x, y: caveHeight(x, z) + h / 2 - 0.2, z, sx: pr, sy: h, sz: pr, ry: rand(0, 3) });
     block(x, z, pr * 0.8);
@@ -177,7 +179,7 @@ export function buildCave(scene) {
   const stalItems = [];
   for (let i = 0; i < 40; i++) {
     const cx = rand(-S / 2 + 8, S / 2 - 8), cz = rand(-S / 2 + 8, S / 2 - 8);
-    if (Math.hypot(cx - CAVE.spawn.x, cz - CAVE.spawn.z) < 8 || Math.hypot(cx - CAVE.portal.x, cz - CAVE.portal.z) < 6 || LAKES().some((L) => Math.hypot(cx - L.x, cz - L.z) < L.r + 4) || caveBlocked(cx, cz)) continue;
+    if (Math.hypot(cx - CAVE.spawn.x, cz - CAVE.spawn.z) < 8 || Math.hypot(cx - CAVE.portal.x, cz - CAVE.portal.z) < 6 || Math.hypot(cx - CAVE.thunderGate.x, cz - CAVE.thunderGate.z) < 8 || LAKES().some((L) => Math.hypot(cx - L.x, cz - L.z) < L.r + 4) || caveBlocked(cx, cz)) continue;
     for (let k = 0; k < 4; k++) {
       const x = cx + rand(-1.5, 1.5), z = cz + rand(-1.5, 1.5), h = rand(0.5, 1.6), r = rand(0.2, 0.45);
       stalItems.push({ x, y: caveHeight(x, z) + h / 2 - 0.1, z, sx: r, sy: h, sz: r });
@@ -208,6 +210,28 @@ export function buildCave(scene) {
   portal.position.set(P.x, caveHeight(P.x, P.z), P.z);
   scene.add(portal);
 
+  // 번개 굴 (동쪽 벽): 노란 번개가 지직거리는 어두운 굴. 들어서면 번개동굴로 간다
+  const TG = CAVE.thunderGate;
+  {
+    const g = new THREE.Group();
+    const darkMat = new THREE.MeshBasicMaterial({ color: 0x05070c });
+    const hollow = new THREE.Mesh(new THREE.BoxGeometry(5, 3.2, 3.4), darkMat); hollow.position.set(3.2, 1.6, 0);
+    const vault = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 5, 16), darkMat); vault.rotation.z = Math.PI / 2; vault.position.set(3.2, 3.2, 0);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x3a3f4a, roughness: 1 });
+    for (const side of [-1, 1]) { const r = new THREE.Mesh(new THREE.DodecahedronGeometry(2.2, 0), frameMat); r.position.set(1.2, 1.5, side * 3.0); r.scale.set(1, 1.5, 1); g.add(r); }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.5, 1.4, 7), frameMat); lintel.position.set(1.4, 4.2, 0);
+    const boltMat = new THREE.MeshStandardMaterial({ color: 0xffe36b, emissive: 0xffc400, emissiveIntensity: 1.2 });
+    const bolts = [];
+    for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.ConeGeometry(0.22, rand(1, 2), 4), boltMat); b.position.set(-0.4 + rand(-0.4, 0.4), 0.6 + rand(0, 1), -2.6 + k * 1.3); b.rotation.z = rand(-0.4, 0.4); g.add(b); bolts.push(b); }
+    const glow = new THREE.PointLight(0xffd23f, 3, 16); glow.position.set(0, 2.2, 0); g.add(glow);
+    const sign = makePillSprite('⚡ 번개 굴 → 번개동굴', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.4);
+    sign.position.set(-1, 6, 0); g.add(sign);
+    g.add(hollow, vault, lintel);
+    g.position.set(TG.x, caveHeight(TG.x, TG.z), TG.z);
+    scene.add(g);
+    block(TG.x + 1.2, TG.z - 3.0, 2.0); block(TG.x + 1.2, TG.z + 3.0, 2.0);
+    thunderGlow = glow; thunderBolts = bolts;
+  }
   // 광부 아저씨 (지역 안내 NPC)
   const miner = makeNpc({ outfit: 'miner', name: '웅이', model: '웅이.glb' });
   miner.position.set(CAVE.spawn.x + 4, caveHeight(CAVE.spawn.x + 4, CAVE.spawn.z - 2), CAVE.spawn.z - 2);
@@ -221,6 +245,8 @@ export function buildCave(scene) {
   scene.add(drop);
 
   function animate(t) {
+    if (thunderGlow) thunderGlow.intensity = 2 + Math.max(0, Math.sin(t * 7)) * 3; // 번개 굴이 지직거린다
+    for (const b of thunderBolts) b.visible = Math.sin(t * 5 + b.position.z * 3) > -0.3;
     for (const l of crystals) l.intensity = 1.8 + Math.sin(t * 2 + l.userData.phase) * 0.6;
     for (const l of poolLights) l.intensity = 2.2 + Math.sin(t * 3 + l.position.x) * 0.6;
     ring.rotation.y = t * 0.6;
@@ -236,12 +262,15 @@ export function buildCave(scene) {
     sun, animate, terrain: CAVE_TERRAIN, portal: P, spawn: CAVE.spawn,
     decor,
     dark: true,
+    thunderGate: { x: TG.x + 1.5, z: TG.z }, // 번개 굴 안쪽 (들어서면 main 이 번개동굴로 보낸다)
+    arrivals: { thunder: { x: TG.x - 5, z: TG.z } }, // 번개동굴 포탈로 돌아오면 번개 굴 앞
     npcs: [{ x: CAVE.spawn.x + 4, z: CAVE.spawn.z - 2, mesh: miner, name: '웅이', warp: true, lines: (c) => [
       `여긴 지하동굴이야, ${c.name}. 난 광부 웅이! 어두우니까 조심해. 포니타를 잡으면 동굴이 환해진단다.`,
       `여기 포켓몬은 땅·바위·독 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 물이나 풀 포켓몬이 바위·땅에 세!`,
       '밤마다 검은 옷 입은 사람들이 여기서 블록을 캐 갔어. 하얀 블록이 아니라 붉게 빛나는 걸… 그걸로 가짜 숫자를 만든다더군.',
       '롱스톤은 나쁜 포켓몬이 아니야. 로켓단이 굴 파는 기계처럼 부린 거지. 붉은 숫자를 깨 주면 원래 순한 친구란다.',
       c.conquered.cave ? '보스 롱스톤은 이미 네 친구구나! 대단해.' : `북쪽 끝에 보스 롱스톤이 있어. 체력이 56이나 되니 공격 ${c.zone.targetAtk + 2} 이상, 체력 25쯤 되면 도전해 봐. 물 포켓몬이 있으면 좋아.`,
+      '동쪽 벽에 노란 번개가 지직거리는 굴이 있어. 그 안은 번개동굴, 전기 포켓몬의 고향이야. 여기 친구들보다 세니까 충분히 키우고 가 봐. 땅 포켓몬은 전기를 안 맞아!',
       '남쪽의 빛나는 포탈로 푸른숲의 동굴 입구 앞에 돌아갈 수 있어.',
     ] }],
     wildSpots: [[-24, -9], [21, 6], [-30, 50], [-36, -33], [12, -45], [48, -50], [39, 12], [-9, -24], [-45, -48], [60, 40], [-65, 50], [65, -25], [-70, -40], [0, -50], [30, 60], [-20, 70]],

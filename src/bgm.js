@@ -55,6 +55,16 @@ const TRACKS = {
     lead: '7 . 7 . 9 . 9 .  7 . 7 . 4 - - -  7 . 7 . 4 . 4 .  2 - - - . . . .',
     bass: '0 . . .  0 . . .  0 . . .  7 . . .',
     drum: '. . . . x . . .  . . . . x . . .  . . . . x . . .  . . . . x . . .' },
+  // 지우네 집: 느긋한 자장가풍, 아주 조용히
+  home: { bpm: 80, root: 523.25, wave: 'sine', bassWave: 'sine', quiet: true,
+    lead: '4 - - - 4 - - -  7 - - - . . . .  5 - - - 4 - - -  2 - - - 0 - - -',
+    bass: '0 . . .  5 . . .  7 . . .  0 . . .',
+    drum: '. . . . . . . .  . . . . . . . .  . . . . . . . .  . . . . . . . .' },
+  // 번개동굴: 지직거리는 빠른 단조, 번개처럼 끊어 치는 높은 음
+  thunder: { bpm: 140, root: 440.00, wave: 'sawtooth', bassWave: 'square', short: true,
+    lead: '0 . 0 . 12 . . .  3 . 3 . 15 . . .  5 . 5 . 12 . 7 .  3 . 2 . 0 . . .',
+    bass: '0 0 . 0  3 3 . 3  5 5 . 5  3 3 2 2',
+    drum: 'x . . x . . x .  x . . x . . x .  x . . x . . x .  x . x . x . x x' },
   // 아레나: 행진곡풍, 또박또박
   arena: { bpm: 124, root: 523.25, wave: 'square', bassWave: 'triangle', short: true,
     lead: '0 . 0 . 7 . 7 .  5 . 5 . 4 . . .  2 . 2 . 9 . 9 .  7 . 5 . 0 . . .',

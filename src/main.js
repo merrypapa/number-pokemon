@@ -10,6 +10,8 @@ import { buildDeepSea } from './deepsea.js';
 import { buildSpace } from './space.js';
 import { buildLab } from './lab.js';
 import { buildSchool } from './school.js';
+import { buildHome } from './home.js';
+import { buildThunder } from './thunder.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
@@ -153,7 +155,7 @@ const starters = creatureData.creatures.filter((c) => c.starter);
 const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb']; // 인하: 포켓몬 학교 당번 친구
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
-const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
+const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', thunder: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
 const CHEST_CHANCE = 0.12; // 여덟 개에 하나쯤 — 가끔 만나야 반갑다. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치이기도 해서 상자로 다 바꾸지는 않는다
 const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
@@ -176,9 +178,9 @@ function makeZone(name, builder) {
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 /** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, hive: buildHive, arena: buildArena };
-const WILD_TOTAL = { forest: 42, cave: 16, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
-const PICKUP_CAP = { forest: 3, cave: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, hive: buildHive, arena: buildArena };
+const WILD_TOTAL = { forest: 42, cave: 16, thunder: 14, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
+const PICKUP_CAP = { forest: 3, cave: 2, thunder: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
   BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: bossFor(p.zone), hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
   WILD_TOTAL[p.zone] = 16; PICKUP_CAP[p.zone] = 2;
@@ -265,7 +267,7 @@ function spawnPickup(z, x, zz) {
 // 푸른숲 시작 지점 옆에 세워져 있다. 가까이 가서 "🚗 타기"를 누르면 타고, 한 번 타면 내 차가 되어 어느 지역에서든 HUD 🚗 버튼(C)으로 부르거나 내린다.
 // 걷기의 2.2배로 달리고(가속 버튼이면 더) 점프는 못 한다. 물 위·심해·꿀벌집·연구소에서는 못 타고, 기차·로켓·배·UFO 를 타면 자동으로 내린다.
 // 이상해꽃 자동차는 이상해꽃(푸른숲 보스·이상해씨의 최종 진화·메가이상해꽃)이 대표 포켓몬일 때만 쓸 수 있다. 대표를 바꾸면 차는 사라진다.
-const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab', 'school'].includes(name);
+const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab', 'school', 'home'].includes(name);
 const CAR_SPECIES = new Set(['m01ee', 'x01']); // 이상해꽃 · 메가이상해꽃
 const carAllowed = () => !!party.leader && CAR_SPECIES.has(party.leader.speciesId);
 let carAt = null;   // 세워 둔 차: { zone, car, obs }
@@ -522,6 +524,23 @@ const study = new Study({
   },
   onClose: () => { say('자리에서 일어났어. 다시 공부하고 싶으면 ⭐ 내 자리로 와!', { sec: 3 }); },
 });
+let sleeping = false;
+function sleepInBed() {
+  if (sleeping || switching) return;
+  sleeping = true;
+  sound.click();
+  fadeEl.classList.add('on'); // 눈을 감는다
+  setTimeout(() => {
+    const healed = party.healAll();
+    refreshHud();
+    doSave(true);
+    fadeEl.classList.remove('on');
+    sound.fanfare();
+    particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 20, 0xffd93d, 0.5);
+    say(`쿨쿨… 잘 자고 일어났어! ${healed ? '포켓몬들도 기운을 되찾았어. ' : ''}모험도 저장했어. 오늘도 힘내자!`, { sec: 6 });
+    setTimeout(() => { sleeping = false; }, 1500);
+  }, 1200);
+}
 function sitDown() {
   const seat = zone.world.mySeat;
   if (!seat || study.open) return;
@@ -1462,7 +1481,7 @@ function askRescueQuiz(z, nb) {
  *  단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값의 절반보다는 많다 — 두 번쯤 이기면 그 볼 하나를 만들 수 있게.
  *  (볼 값을 두 배로 올리면서 이 바닥값도 "볼 값 + 1" 에서 절반으로 낮췄다. 그러지 않으면 볼이 비싸질수록
  *   대결 보상이 따라 올라가서, 비싸진 값이 하나도 어렵지 않게 된다.) */
-const ZONE_GRADE = { forest: 1, hive: 1, cave: 2, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
+const ZONE_GRADE = { forest: 1, hive: 1, cave: 2, thunder: 3, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
 for (const p of PLANETS) ZONE_GRADE[p.zone] = 5; // 행성은 우주 등급
 function winReward(c) {
   const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
@@ -2663,6 +2682,9 @@ function frame() {
       } else if (w.schoolDoor && Math.abs(pp.x - w.schoolDoor.x) < 1.6 && pp.z < w.schoolDoor.z + 0.6 && pp.z > w.schoolDoor.z - 1.6) { // 학교 문 앞 칸 (남쪽에서 들어간다)
         moved = true;
         switchZone('school', getZone('school').world.spawn, { text: '🏫 포켓몬 학교에 들어왔어! 앞줄 ⭐ 내 자리에 앉으면 공부할 수 있어. 오박사님 선생님께 말을 걸어 봐. 문으로 나가면 마을이야.', sec: 7 });
+      } else if (w.homeDoor && Math.abs(pp.x - w.homeDoor.x) < 1.2 && pp.z < w.homeDoor.z + 0.6 && pp.z > w.homeDoor.z - 1.6) { // 지우네 집 문 앞 칸
+        moved = true;
+        switchZone('home', getZone('home').world.spawn, { text: '🏠 우리 집에 왔어! 엄마가 포켓몬을 돌봐 주셔. 침대에서 자면 치료와 저장, 책상에 앉으면 숙제를 할 수 있어. 문으로 나가면 마을이야.', sec: 7 });
       }
     } else if (zone.name === 'sea' && zone.world.dive && sailing && !returning && near(zone.world.dive, zone.world.dive.r)) {
       // 먼바다의 소용돌이: 보스 거북왕을 이긴 뒤부터 심해로 내려갈 수 있다
@@ -2675,6 +2697,9 @@ function frame() {
         whirlToldAt = Date.now();
         say('🔒 소용돌이가 아직 잠겨 있어! 남쪽 섬의 보스 거북왕을 이겨서 물의길을 정복하면 열려. 그때 다시 오자!', { sec: 7 });
       }
+    } else if (zone.name === 'cave' && zone.world.thunderGate && near(zone.world.thunderGate, 2.4)) { // 지하동굴 동쪽 벽의 번개 굴
+      moved = true;
+      switchZone('thunder', getZone('thunder').world.spawn, { text: '⚡ 번개동굴에 들어왔어! 전기 포켓몬의 고향이야. 푸른 웅덩이는 감전되니 들어가지 마. 천장에서 번개가 쳐! 남쪽 노란 포탈로 지하동굴에 돌아가.', sec: 8 });
     } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
       moved = true;
       const toName = zone.world.portalTo || 'forest'; // 보통은 푸른숲으로, 심해의 해류는 물의길로
@@ -2689,7 +2714,9 @@ function frame() {
     // ----- 세워 둔 이상해꽃 자동차 옆: 타기 -----
     if (!moved && !driving && carAt && carAt.zone === zone.name && near(carAt.car.group.position, 3.4)) offer('🚗 타기', mountCar, '🚗\n타기');
     // ----- 포켓몬 학교: 내 자리에 가면 "공부하기" -----
-    if (!moved && zone.world.mySeat && near(zone.world.mySeat, 1.3)) offer('📚 공부하기', sitDown, '📚\n공부');
+    if (!moved && zone.world.mySeat && near(zone.world.mySeat, 1.3)) offer(zone.world.seatLabel || '📚 공부하기', sitDown, zone.world.seatLabel ? '📚\n숙제' : '📚\n공부');
+    // ----- 지우네 집: 침대 옆에서 "자기" (포켓몬 치료 + 저장) -----
+    if (!moved && zone.world.bed && !sleeping && near(zone.world.bed, 1.6)) offer('🛏 자기', sleepInBed, '🛏\n자기');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
     if (!moved) for (const npc of zone.world.npcs || []) {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
@@ -2698,7 +2725,7 @@ function frame() {
         const foe = npc.rocket && !state.rockets[zone.name] ? npc.rocket : null; // 아직 안 이긴 넘버로켓단 대원
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
         else offer('💬 대화', () => talkTo(npc), '💬\n대화');
-        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
+        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : npc.prompt || `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
       } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----
