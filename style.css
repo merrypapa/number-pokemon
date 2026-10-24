@@ -516,6 +516,7 @@ body.intro #btn-save { display: none !important; }
 /* 대결 중 포켓몬 교체: 왼쪽 위 버튼 + 팝업 */
 #btn-switch { position: fixed; top: 14px; left: 14px; z-index: 12; font-size: 17px; font-weight: 900; padding: 10px 16px; border-radius: 999px; border: 0; background: #3fb8e8; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #2a8ab0, 0 6px 14px rgba(0,0,0,.25); }
 #btn-switch:active { transform: translateY(3px); box-shadow: 0 1px 0 #2a8ab0; }
+#btn-release { background: #e3f6dc !important; color: #1f7a3a !important; font-size: 15px !important; border: 2px solid #57b947; padding: 9px 14px !important; }
 #btn-craft { background: #fff4c2 !important; color: #b8860b !important; font-size: 14px !important; border: 2px dashed #e0b400; padding: 8px 12px !important; }
 #switch-modal, #craft-modal, #catch-modal { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .pop-card { position: relative; width: min(94vw, 440px); max-height: 94vh; overflow: auto; background: #fffbe6; border-radius: 22px; padding: 14px 18px; box-shadow: 0 12px 40px rgba(0,0,0,.4); border: 3px solid #20232e; display: flex; flex-direction: column; align-items: center; gap: 6px; }

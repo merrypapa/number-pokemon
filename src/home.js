@@ -155,7 +155,7 @@ export function buildHome(scene) {
 
   // 엄마 (드래프트 사람: 앞치마). 식탁 옆에서 문 쪽을 본다
   const momAt = { x: -2.6, z: -1.2 };
-  const mom = makeNpc({ outfit: 'mom', name: '엄마' });
+  const mom = makeNpc({ outfit: 'mom', name: '엄마', model: '엄마.glb' }); // 모델이 없으면 앞치마 드래프트
   mom.position.set(momAt.x, 0, momAt.z);
   mom.rotation.y = Math.PI * 0.85;
   decor.add(mom); block(momAt.x, momAt.z, 0.6);

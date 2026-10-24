@@ -14,14 +14,10 @@ import { josa } from './util.js';
 // 아무도 다치지 않는다. 대원은 무섭지 않고 우스꽝스럽다 — 늘 숫자를 틀린다.
 // ---------------------------------------------------------------------------
 
-// ⛔ 지금은 꺼 두었다. 로켓단 캐릭터 그림(.glb)이 정해지지 않아서, 임시 드래프트 모습으로는 내보내지 않는다.
-//    켜는 법: 아래 ROCKETS_ON 을 true 로 바꾸기만 하면 된다 (기능은 그대로 다 살아 있다).
-//    미리 보기: 주소 뒤에 ?rockets 를 붙이면 이번 접속에서만 켜진다 (예: index.html?rockets).
-//    켤 때 같이 해 둘 것:
-//      - src/npc.js 의 outfit 'rocket' 을 진짜 모델로 바꾸거나 그대로 쓰기 (buildGruntMesh 에서 model 지정)
-//      - src/world.js 벅스버니 대사에 "동북쪽 길목에 대원이 서 있다" 한 줄 되살리기
-//        (지금은 만날 수 없는 것을 알려 주게 되므로 빼 두었다)
-export const ROCKETS_ON = false;
+// 대원은 둘뿐이다 — 로사(로사.glb)와 로이(로이.glb). 지역을 번갈아 맡는다 (model). 행성의 간부도 이 둘이 망토를 두르고 나온다.
+// 끄는 법: ROCKETS_ON 을 false 로 (기능은 그대로 남는다. 주소 뒤에 ?rockets 를 붙이면 그 접속에서만 켜진다)
+export const ROCKETS_ON = true;
+export const ROCKET_MODELS = ['로사.glb', '로이.glb'];
 
 /** 대원 한 명의 설계
  *  at      : 서 있으면 좋은 자리 (막혀 있으면 main.js 가 근처의 빈자리로 옮긴다)
@@ -36,7 +32,7 @@ export const ROCKETS_ON = false;
  */
 export const GRUNTS = {
   forest: {
-    name: '로켓단 덜렁이', at: { x: 104, z: -80 }, mon: 'm08', hp: 26, atk: 5, ball: 'bronze', blocks: 12,
+    name: '로이', model: '로이.glb', at: { x: 104, z: -80 }, mon: 'm08', hp: 26, atk: 5, ball: 'bronze', blocks: 12,
     greet: '거기 서! 이 길은 넘버로켓단이 막았다! …어, 셋까지 세고 말하랬는데.',
     taunt: '가라 냐옹! 붉은 26으로 덮쳐라! 어… 26이 맞나? 27인가?',
     lose: '내 숫자가 깨졌잖아! 셋… 넷… 아, 몇까지 세야 하는 거야! 후퇴!',
@@ -49,7 +45,7 @@ export const GRUNTS = {
     ],
   },
   hive: {
-    name: '로켓단 붕붕이', at: { x: 34, z: 30 }, mon: 'm51e', hp: 38, atk: 6, ball: 'bronze', blocks: 16,
+    name: '로사', model: '로사.glb', at: { x: 34, z: 30 }, mon: 'm51e', hp: 38, atk: 6, ball: 'bronze', blocks: 16,
     greet: '쉿! 벌 떼 실험 중이야. 하나, 둘, 셋… 넷은 어디 갔지?',
     taunt: '딱충이, 붉은 38로 줄 맞춰! 줄! 줄을 맞추라고!',
     lose: '줄이 흐트러졌어! 벌이 몇 마리였더라… 후퇴!',
@@ -62,7 +58,7 @@ export const GRUNTS = {
     ],
   },
   cave: {
-    name: '로켓단 곡괭이', at: { x: -58, z: -52 }, mon: 'm17e', hp: 44, atk: 7, ball: 'silver', blocks: 22,
+    name: '로사', model: '로사.glb', at: { x: -58, z: -52 }, mon: 'm17e', hp: 44, atk: 7, ball: 'silver', blocks: 22,
     greet: '누구야! 여긴 붉은 원석 광산이라고… 아, 말하면 안 되는 거였나?',
     taunt: '골뱃, 붉은 44로 캄캄하게 만들어! 44… 사사? 사십사?',
     lose: '원석이 다 식어 버렸어! 셋… 넷… 후퇴!',
@@ -75,7 +71,7 @@ export const GRUNTS = {
     ],
   },
   volcano: {
-    name: '로켓단 뜨끈이', at: { x: 92, z: 70 }, mon: 'm25', hp: 84, atk: 11, ball: 'silver', blocks: 30,
+    name: '로이', model: '로이.glb', at: { x: 92, z: 70 }, mon: 'm25', hp: 84, atk: 11, ball: 'silver', blocks: 30,
     greet: '어이 꼬마! 여긴 화력 훈련장이야. 하나, 둘! 하나, 둘! …그다음은?',
     taunt: '가디! 붉은 84로 불을 뿜어! 84, 84… 아 뜨거!',
     lose: '불이 꺼졌어! 하나, 둘… 셋이 안 나와! 후퇴!',
@@ -88,7 +84,7 @@ export const GRUNTS = {
     ],
   },
   sea: {
-    name: '로켓단 파도타기', at: { x: 104, z: 36 }, mon: 'm20', hp: 60, atk: 9, ball: 'silver', blocks: 26,
+    name: '로사', model: '로사.glb', at: { x: 104, z: 36 }, mon: 'm20', hp: 60, atk: 9, ball: 'silver', blocks: 26,
     greet: '여기까지 배를 타고 왔다고? 이 바깥 섬은 아무도 못 찾는 줄 알았는데!',
     taunt: '고라파덕! 붉은 60으로 물대포! 60… 6? 600? 아 헷갈려!',
     lose: '파도에 숫자가 떠내려갔어! 셋… 넷… 후퇴!',
@@ -101,7 +97,7 @@ export const GRUNTS = {
     ],
   },
   deepsea: {
-    name: '로켓단 뽀글이', at: { x: -56, z: 32 }, mon: 'm42', hp: 95, atk: 16, extra: { swim: false }, ball: 'gold', blocks: 40,
+    name: '로사', model: '로사.glb', at: { x: -56, z: 32 }, mon: 'm42', hp: 95, atk: 16, extra: { swim: false }, ball: 'gold', blocks: 40,
     greet: '이 난파선이 우리 잠수정 기지야… 였어. 지금은 나 혼자 남았지만.',
     taunt: '라프라스! 붉은 95로 얼려 버려! 95… 59? 구십이 몇이더라!',
     lose: '백까지 세다가 숨이 찼어! 후퇴! 보글보글…',
@@ -113,8 +109,21 @@ export const GRUNTS = {
       '물속에서는 점프 버튼을 누르고 있으면 위로 헤엄쳐 올라가. 나도 그건 잘해!',
     ],
   },
+  thunder: {
+    name: '로사', model: '로사.glb', at: { x: 50, z: -8 }, mon: 'm41', hp: 52, atk: 9, ball: 'silver', blocks: 24,
+    greet: '번개동굴은 넘버로켓단의 발전소다! 전기를 모아서… 음, 몇 볼트였더라?',
+    taunt: '코일, 붉은 52로 찌릿찌릿! 쉰둘? 쉰셋? 아무튼 많이!',
+    lose: '감전된 것처럼 머리가 찌릿해… 숫자가 다 날아갔어! 후퇴!',
+    hold: '전기는 땅에 안 통한다는 것도 모르면서 덤비다니!',
+    after: [
+      '여기 번개 수정으로 붉은 숫자 기계를 돌렸어. 전기가 세서 가짜 숫자도 더 세게 붙였지.',
+      '전기 공격은 땅 포켓몬한테 하나도 안 통해. 디그다나 탕구리를 데려오면 우린 꼼짝 못 해.',
+      '북쪽 번개 제단의 라이츄도 우리가 씌운 숫자야. 붉은 90을 깨 주면 원래 착한 친구로 돌아와.',
+      '라이츄를 되돌리면 번개동굴 어딘가에 전설의 라이코가 내려온대. 번개 그 자체 같은 녀석이라더군.',
+    ],
+  },
   space: {
-    name: '로켓단 둥둥이', at: { x: 105, z: 6 }, mon: 'm26', hp: 118, atk: 22, ball: 'gold', blocks: 48,
+    name: '로이', model: '로이.glb', at: { x: 105, z: 6 }, mon: 'm26', hp: 118, atk: 22, ball: 'gold', blocks: 48,
     greet: '지구는 연습이었어. 진짜 군대는 저 위 행성에 있다고! …저 위가 몇 개였지?',
     taunt: '고우스트! 붉은 118로 스며들어! 118… 81? 811…?',
     lose: '숫자가 우주로 날아갔어! 하나도 안 남았어! 후퇴!',
@@ -170,9 +179,9 @@ const CHIEFS = [
     quip: '열은 단장님의 숫자다. 0 옆에 1이 서면 열이 되니까.',
     secret: '태양 하나에 지구가 109개나 들어간다. 태양계 무게의 99.8%가 태양이다.' },
 ];
-for (const c of CHIEFS) {
+CHIEFS.forEach((c, i) => {
   GRUNTS[c.zone] = {
-    name: c.name, chief: true, at: CHIEF_SPOT, mon: c.mon, hp: c.hp, atk: c.atk, ball: c.ball, blocks: c.blocks,
+    name: c.name, chief: true, model: ROCKET_MODELS[i % 2], at: CHIEF_SPOT, mon: c.mon, hp: c.hp, atk: c.atk, ball: c.ball, blocks: c.blocks, // 간부도 로사·로이가 번갈아 (망토·금깃으로 구분)
     greet: `나는 넘버로켓단 간부 ${c.name}. 이 별의 숫자 ${josa(String(c.num), '은는')} 내가 가졌다. ${c.quip}`,
     taunt: `가라! 붉은 ${josa(String(c.hp), '으로')} 저 아이를 눌러라!`,
     lose: `붉은 숫자가 깨졌군… 좋다. ${josa(String(c.num), '은는')} 이 별로 돌려주마.`,
@@ -184,11 +193,11 @@ for (const c of CHIEFS) {
       '제로 단장은 아는 수가 0 하나뿐이다. 그래서 모두를 0으로 줄 세우려 했지. …나도 처음엔 그게 맞는 줄 알았다.',
     ],
   };
-}
+});
 
 /** 넘버로켓단 대원·간부 한 명의 모습 (드래프트. 전용 .glb 는 없다) */
 export function buildGruntMesh(g) {
-  const mesh = makeNpc({ outfit: 'rocket', name: g.name });
+  const mesh = makeNpc({ outfit: 'rocket', name: g.name, model: g.model || null });
   if (g.chief) { // 간부는 붉은 망토와 금빛 깃으로 대원과 구분한다
     const cape = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.15, 12, 1, true), new THREE.MeshStandardMaterial({ color: 0x6a1b1b, side: THREE.DoubleSide, roughness: 0.8 }));
     cape.position.set(0, 1.02, -0.14);

@@ -206,6 +206,9 @@ export class Battle {
     this.craftRowsEl = document.getElementById('craft-rows');
     this.craftBlocksEl = document.getElementById('craft-blocks');
     this.craftBtn.onclick = () => this.openCraft();
+    // 풀어주기: 가짜 숫자를 깬 포켓몬을 볼을 쓰지 않고 놓아준다. 이긴 것은 이긴 것 — 블록과 승수는 그대로 받는다 (main 의 onReleased)
+    this.releaseBtn = document.getElementById('btn-release');
+    this.releaseBtn.onclick = () => this.release();
     this.catchEl = document.getElementById('catch-modal');
     document.getElementById('btn-catch-ok').onclick = () => { if (this.phase === 'success') this.end('caught'); };
     document.getElementById('btn-craft-close').onclick = () => this.closeCraft();
@@ -217,8 +220,8 @@ export class Battle {
   /** 대결이 벌어지는 바닥 높이. 바다 위(배를 타고 만난 포켓몬)면 수면 위에서 싸운다 */
   groundY(x, z) { return this.floorY == null ? terrainHeight(x, z) : Math.max(terrainHeight(x, z), this.floorY); }
 
-  start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, hideMeshes = [], decor = null, onWater = false }) {
-    Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, onEscaped, decor });
+  start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, onReleased = null, hideMeshes = [], decor = null, onWater = false }) {
+    Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, onEscaped, onReleased, decor });
     this.floorY = onWater ? waterLevel() : null; // 물 위 대결: 바닥 대신 수면
     this.active = true;
     this.phase = 'enter';
@@ -325,6 +328,7 @@ export class Battle {
     if (member.hp <= creature.data.baseAtk) this.msgEl.textContent += ` (조심해! 내 체력이 ${member.hp}밖에 없어)`;
     this.ballBtn.classList.add('hidden');
     this.ballsEl.classList.add('hidden');
+    this.releaseBtn.classList.add('hidden');
     this.bannerEl.classList.add('hidden');
     this.runBtn.textContent = '도망치기';
     this.runBtn.classList.remove('primary');
@@ -379,7 +383,7 @@ export class Battle {
 
     // 기술 버튼: 열린 기술은 이름 + 피해, 아직 안 열린 다음 기술은 잠금 표시. 볼을 고르는 동안은 숨긴다
     this.skillsEl.innerHTML = '';
-    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble');
+    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble' || this.phase === 'released');
     const unlocked = this.party.skills(m);
     this.sel = Math.max(0, Math.min(this.sel, unlocked.length - 1));
     const choosing = this.phase === 'choose';
@@ -576,6 +580,7 @@ export class Battle {
       this.showBanner('가짜 숫자가 깨졌다!');
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
+      this.releaseBtn.classList.remove('hidden');
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
       // 머리 위에 씌워져 있던 붉은 숫자가 조각나 흩어진다 (넘버로켓단의 가짜 숫자, docs/02_storyline.md)
       this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
@@ -654,6 +659,7 @@ export class Battle {
     this.ballBtn.classList.add('hidden');
     this.ballsEl.classList.add('hidden');
     this.craftBtn.classList.add('hidden');
+    this.releaseBtn.classList.add('hidden');
     this.msgEl.textContent = `${spec.name} 던지기!`;
     this.sound.throw_();
   }
@@ -716,6 +722,7 @@ export class Battle {
     if (this.phase === 'success') { this.end('caught'); return; } // 성공 연출은 버튼/키로 바로 넘길 수 있다
     if (this.phase === 'lost') { this.end('lost'); return; }
     if (this.phase === 'escape') { this.end('escaped'); return; }
+    if (this.phase === 'released') { this.end('released'); return; }
     if (this.phase !== 'choose' && this.phase !== 'dizzy' && this.phase !== 'enter') return; // 연출 중엔 못 나감
     this.end('later');
   }
@@ -751,8 +758,10 @@ export class Battle {
     this.closeSwitch(); this.switchBtn.classList.add('hidden');
     this.catchEl.classList.add('hidden');
     this.craftOpen = false; this.craftEl.classList.add('hidden'); this.craftBtn.classList.add('hidden');
+    this.releaseBtn.classList.add('hidden');
     if (this.switched) this.onSwitched?.(this.member, this.firstMember); // 새 포켓몬이 대표로 따라온다
     if (result === 'caught') this.onCaught?.();
+    else if (result === 'released') this.onReleased?.();
     else if (result === 'lost') this.onLost?.();
     else if (result === 'escaped') this.onEscaped?.();
     else this.onLeave?.();
@@ -799,6 +808,7 @@ export class Battle {
       else if (this.phase === 'dizzy') this.throwBall(this.bestBall());
       else if (this.phase === 'success') this.end('caught');
       else if (this.phase === 'escape') this.end('escaped');
+      else if (this.phase === 'released') this.end('released');
       else if (this.phase === 'lost') this.end('lost');
     }
     if (this.input.wasPressed('cancel')) this.leave();
@@ -936,6 +946,13 @@ export class Battle {
       m.position.y = this.groundY(m.position.x, m.position.z) + Math.abs(Math.sin(t * 14)) * 0.6;
       m.rotation.z = 0;
       if (this.timer - this.escapeStart > 1.7) this.end('escaped');
+    } else if (this.phase === 'released') { // 풀어줬다: 상대는 제 숫자를 되찾고 기뻐 폴짝폴짝, 내 포켓몬도 이겼다고 폴짝폴짝
+      const t = this.timer - this.releaseStart;
+      m.visible = true; m.rotation.z = 0; m.scale.setScalar(base);
+      m.position.copy(this.stageTo).addScaledVector(this.dir, Math.min(1, t / 1.2) * 1.5);
+      m.position.y = this.groundY(m.position.x, m.position.z) + Math.abs(Math.sin(t * 9)) * 0.45;
+      mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 8)) * 0.4;
+      if (Math.random() < 0.2) this.particles.stars(this.scene, m.position.clone().add(new THREE.Vector3(0, 0.8 * base, 0)), 2, colorForCount(c.data.favoriteNumber || c.data.baseHp), 0.3);
     } else if (this.phase === 'success') {
       m.visible = false; // 상대는 볼 안에 있다 (잡았다 팝업에 그림으로 나온다)
       if (this.ball) { // 볼은 땅에 그대로, 반짝이며 살짝 튄다
@@ -985,6 +1002,25 @@ export class Battle {
     this.showBanner('앗, 도망쳤다!');
     this.msgEl.textContent = `${josa(c.data.name, '이가')} ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
     this.runBtn.textContent = '돌아가기 ▶';
+  }
+  /** 풀어주기: 어질어질한 상대를 볼 없이 놓아준다. 이긴 보상(블록·승수)은 main 의 onReleased 가 준다 */
+  release() {
+    if (this.phase !== 'dizzy') return;
+    const c = this.creature;
+    this.phase = 'released';
+    this.releaseStart = this.timer;
+    this.ballBtn.classList.add('hidden');
+    this.ballsEl.classList.add('hidden');
+    this.craftBtn.classList.add('hidden');
+    this.releaseBtn.classList.add('hidden');
+    this.closeCraft();
+    this.particles.stars(this.scene, this.targetPoint(), 20, 0xffd93d, 0.5);
+    this.sound.fanfare();
+    this.showBanner('풀어줬다!');
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} 제 숫자 ${josa(String(c.data.favoriteNumber), '을를')} 되찾고 돌아갔어! 넘버볼은 안 썼고, 이긴 보상은 그대로 받아.`;
+    this.runBtn.textContent = '계속하기 ▶';
+    this.runBtn.classList.add('primary');
+    this.render();
   }
   showCatchPopup() {
     this.catchShown = true;

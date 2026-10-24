@@ -152,7 +152,7 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb']; // 인하: 포켓몬 학교 당번 친구
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb', '엄마.glb', '로사.glb', '로이.glb']; // 인하: 포켓몬 학교 당번 친구 · 엄마: 지우네 집 · 로사·로이: 넘버로켓단 대원
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
 const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', thunder: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
@@ -405,8 +405,8 @@ function checkUnlocked(caughtId) {
     if (!megaUnlocked(sp) || (state.dex[sp.id] || 0) > 0) continue;
     const z = zones[sp.zone];
     if (z && !spawnUnlocked(z, sp)) continue; // 아직 안 만든 지역이면 처음 갈 때 getZone 이 세운다
-    const many = unlockNeeds(sp).length > 1; // 뮤: 행성 보스를 모두 잡았을 때
-    setTimeout(() => say(`✨ ${many ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : ''}${josa(sp.name, '이가')} ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
+    const many = sp.id === 'x07' ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : sp.id === 'b10' ? '라이코·엔테이·스이쿤을 모두 친구로 만들었어! 무지개 새 ' : ''; // 뮤: 행성 보스를 모두 잡았을 때 · 칠색조: 세 전설을 모두 잡았을 때
+    setTimeout(() => say(`✨ ${many}${josa(sp.name, '이가')} ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
   }
 }
 function revealShrine(z, silent = false) {
@@ -2565,6 +2565,7 @@ function applySave(d) {
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   state.rockets = { ...(d.rockets || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
+  for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
   const seenSpecies = new Set();
@@ -2886,6 +2887,22 @@ function frame() {
             if (!already && party.members.length === 2) say(`${josa(party.name(member), '은는')} 볼 안에서 쉬고 있어. 도감에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
             refreshHud();
             beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 대원이 항복한다
+            autosave();
+          },
+          onReleased: () => { // 가짜 숫자를 깬 뒤 볼을 쓰지 않고 풀어줬다: 이긴 것은 이긴 것 — 블록·승수(진화 조건)는 그대로, 넘버볼만 안 쓴다. 포켓몬은 친구가 되지 않고 제자리에 남는다
+            const L = battle.member;
+            c.becomeShy();
+            c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
+            party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
+            L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수 (잡을 때와 같다)
+            const reward = winReward(c);
+            setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
+            const winNote = party.canEvolve(L) ? ` ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
+            if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
+            else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            refreshHud();
+            beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 붉은 숫자가 깨진 것이니 대원은 항복한다
             autosave();
           },
           onLost: () => {
