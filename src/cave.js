@@ -3,7 +3,7 @@ import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced } from './world.js';
 
-// 괴물 동굴 (80x80). 초원의 큰 구멍에 빠지거나 동굴 입구로 들어오면 도착한다.
+// 괴물 동굴 (160x160). 푸른숲 북쪽 바위 언덕의 굴 입구로 걸어 들어오거나, 북쪽 산의 뒷문 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
 export const CAVE = {
   size: 160,
@@ -214,7 +214,7 @@ export function buildCave(scene) {
   miner.rotation.y = -0.7;
   scene.add(miner); block(CAVE.spawn.x + 4, CAVE.spawn.z - 2, 0.6);
 
-  // 도착 지점 표시 (떨어진 곳의 빛)
+  // 도착 지점 표시 (굴 입구로 들어오는 빛)
   const drop = new THREE.Mesh(new THREE.CircleGeometry(2, 24), new THREE.MeshBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.25 }));
   drop.rotation.x = -Math.PI / 2;
   drop.position.set(CAVE.spawn.x, caveHeight(CAVE.spawn.x, CAVE.spawn.z) + 0.02, CAVE.spawn.z);
@@ -242,7 +242,7 @@ export function buildCave(scene) {
       '밤마다 검은 옷 입은 사람들이 여기서 블록을 캐 갔어. 하얀 블록이 아니라 붉게 빛나는 걸… 그걸로 가짜 숫자를 만든다더군.',
       '롱스톤은 나쁜 포켓몬이 아니야. 로켓단이 굴 파는 기계처럼 부린 거지. 붉은 숫자를 깨 주면 원래 순한 친구란다.',
       c.conquered.cave ? '보스 롱스톤은 이미 네 친구구나! 대단해.' : `북쪽 끝에 보스 롱스톤이 있어. 체력이 56이나 되니 공격 ${c.zone.targetAtk + 2} 이상, 체력 25쯤 되면 도전해 봐. 물 포켓몬이 있으면 좋아.`,
-      '남쪽의 빛나는 포탈로 푸른숲에 돌아갈 수 있어.',
+      '남쪽의 빛나는 포탈로 푸른숲의 동굴 입구 앞에 돌아갈 수 있어.',
     ] }],
     wildSpots: [[-24, -9], [21, 6], [-30, 50], [-36, -33], [12, -45], [48, -50], [39, 12], [-9, -24], [-45, -48], [60, 40], [-65, 50], [65, -25], [-70, -40], [0, -50], [30, 60], [-20, 70]],
     bossSpot: { x: 0, z: -68 },

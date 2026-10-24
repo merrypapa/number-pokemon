@@ -195,7 +195,7 @@ export class Player {
     this.swimming = !!sw && !this.onGround && (this.airT || 0) > 0.12; // 잠깐 뜬 것으로는 헤엄 동작으로 바꾸지 않는다 (동작이 깜빡이지 않게)
     if (this.body) this.body.rotation.x = this.swimming && !anim ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다 (헤엄 애니가 있으면 애니에 맡긴다)
 
-    // 구멍에 떨어지면 main 이 지역을 바꾼다 (초원 → 동굴)
+    // 구멍에 떨어지면 fellInHole 을 켠다 (지금은 구멍이 있는 지역이 없다: 지하동굴은 굴 입구로 걸어 들어간다)
     if (p.y < -4) {
       p.y = -4;
       this.vy = 0;
