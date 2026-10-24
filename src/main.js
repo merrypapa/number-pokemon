@@ -152,7 +152,7 @@ const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, 
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
-const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb']; // 인하: 포켓몬 학교 당번 친구
+const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb', '엄마.glb', '로사.glb', '로이.glb']; // 인하: 포켓몬 학교 당번 친구 · 엄마: 지우네 집 · 로사·로이: 넘버로켓단 대원
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
 const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', thunder: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
@@ -405,8 +405,8 @@ function checkUnlocked(caughtId) {
     if (!megaUnlocked(sp) || (state.dex[sp.id] || 0) > 0) continue;
     const z = zones[sp.zone];
     if (z && !spawnUnlocked(z, sp)) continue; // 아직 안 만든 지역이면 처음 갈 때 getZone 이 세운다
-    const many = unlockNeeds(sp).length > 1; // 뮤: 행성 보스를 모두 잡았을 때
-    setTimeout(() => say(`✨ ${many ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : ''}${josa(sp.name, '이가')} ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
+    const many = sp.id === 'x07' ? '행성 열 곳의 보스를 모두 잡았어! 전설의 ' : sp.id === 'b10' ? '라이코·엔테이·스이쿤을 모두 친구로 만들었어! 무지개 새 ' : ''; // 뮤: 행성 보스를 모두 잡았을 때 · 칠색조: 세 전설을 모두 잡았을 때
+    setTimeout(() => say(`✨ ${many}${josa(sp.name, '이가')} ${ZONE_INFO[sp.zone]?.name || sp.zone} 어딘가에 나타났어! 찾아가서 도전해 봐!`, { sec: 10 }), 2500);
   }
 }
 function revealShrine(z, silent = false) {
@@ -2565,6 +2565,7 @@ function applySave(d) {
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   state.rockets = { ...(d.rockets || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
+  for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
   const seenSpecies = new Set();

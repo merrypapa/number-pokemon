@@ -4578,6 +4578,200 @@
    "favoriteNumber": 10,
    "personality": "당당함",
    "story": "화성 보스 이상해불을 이기면 붉은 하늘을 가르며 내려오는 불의 새. 재가 되어도 다시 타오르기 때문에 아무도 쓰러뜨린 적이 없대. 메가큐브를 꼭 준비하자."
+  },
+  {
+   "id": "b07",
+   "name": "라이코",
+   "type": "전기",
+   "zone": "thunder",
+   "catchable": true,
+   "unlockedBy": "m03e",
+   "model": "라이코.glb",
+   "scale": 1.9,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F2D21B",
+    "dots": 4,
+    "glow": true
+   },
+   "baseHp": 110,
+   "baseAtk": 20,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "10만볼트",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "bolt"
+    },
+    {
+     "name": "번개",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "bolt"
+    },
+    {
+     "name": "볼트태클",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "번개처럼 빠름",
+   "story": "번개동굴의 보스 라이츄를 되돌리면 천둥소리와 함께 내려오는 전설의 포켓몬. 번개 그 자체가 몸이 된 것 같아서 달릴 때마다 땅이 찌릿찌릿 울려. 칠색조가 되살린 세 마리 중 하나야."
+  },
+  {
+   "id": "b08",
+   "name": "엔테이",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "unlockedBy": "m02ee",
+   "model": "엔테이.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#B5522A",
+    "dots": 3,
+    "glow": true
+   },
+   "baseHp": 120,
+   "baseAtk": 22,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "불꽃세례",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "화염방사",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "fire"
+    },
+    {
+     "name": "불대문자",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "fire"
+    },
+    {
+     "name": "성스러운불꽃",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "우렁참",
+   "story": "불의산의 보스 리자몽을 되돌리면 화산 연기 속에서 나타나는 전설의 포켓몬. 엔테이가 한 번 짖으면 어디선가 화산이 터진대. 칠색조가 되살린 세 마리 중 하나야."
+  },
+  {
+   "id": "b09",
+   "name": "스이쿤",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "unlockedBy": "m05ee",
+   "model": "스이쿤.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#5FC8D8",
+    "curls": 2,
+    "glow": true
+   },
+   "baseHp": 115,
+   "baseAtk": 19,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "물의파동",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "water"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "water"
+    },
+    {
+     "name": "오로라빔",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "맑고 조용함",
+   "story": "물의길의 보스 거북왕을 되돌리면 북풍을 타고 바다 위를 달려오는 전설의 포켓몬. 스이쿤이 지나간 물은 유리처럼 맑아져. 칠색조가 되살린 세 마리 중 하나야."
+  },
+  {
+   "id": "b10",
+   "name": "칠색조",
+   "type": "불",
+   "zone": "forest",
+   "catchable": true,
+   "unlockedBy": [
+    "b07",
+    "b08",
+    "b09"
+   ],
+   "model": "칠색조.glb",
+   "scale": 2.8,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#E8453C",
+    "curls": 6,
+    "glow": true
+   },
+   "baseHp": 150,
+   "baseAtk": 26,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "불꽃날개",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "무지개바람",
+     "atk": 15,
+     "power": 1.4,
+     "kind": "wind"
+    },
+    {
+     "name": "성스러운불꽃",
+     "atk": 28,
+     "power": 1.8,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "기품 있음",
+   "story": "라이코·엔테이·스이쿤을 모두 친구로 만든 트레이너 앞에만 무지개를 타고 푸른숲에 내려오는 전설의 새. 날개가 일곱 빛깔로 빛나고, 세 마리 전설의 포켓몬을 되살린 장본인이래."
   }
  ]
 }
