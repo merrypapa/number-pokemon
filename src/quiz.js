@@ -32,7 +32,7 @@ const RANGE = {
 /** plan: { tier, level, review } — 없으면 학습 기록 없이 보통 단계로 (src/learn.js planFor) */
 export function makeProblem(number, species, zone = 'forest', plan = null) {
   if (PLANET_BY_ZONE[zone] || TRIVIA_ZONE[zone]) return makePlanetProblem(zone); // 행성·꿀벌집에서는 상식 퀴즈
-  const p = plan || { tier: zone === 'cave' ? 4 : zone === 'sea' ? 3 : zone === 'volcano' ? 6 : zone === 'space' ? 7 : 2, level: 1, review: false };
+  const p = plan || { tier: zone === 'cave' ? 4 : zone === 'thunder' ? 6 : zone === 'sea' ? 3 : zone === 'volcano' ? 6 : zone === 'space' ? 7 : 2, level: 1, review: false };
   const lv = p.level ?? 1;
   const pool = [...species];
   const pick = () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0];

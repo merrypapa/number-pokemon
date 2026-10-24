@@ -21,6 +21,7 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
     professor: { coat: 0xffffff, pants: 0x556070, hat: 0xbfc5cc, hatKind: 'hair' },
     pilot:     { coat: 0x7c6cff, pants: 0x2b2450, hat: 0xe8e8ff, hatKind: 'antenna' }, // UFO 조종사 (지금은 손오공.glb 모델, 이 드래프트는 예비)
     rocket:    { coat: 0x20232e, pants: 0x14161d, hat: 0x20232e, hatKind: 'rocketcap' },   // 넘버로켓단 대원: 검은 옷에 붉은 R (src/rocket.js)
+    mom:       { coat: 0xff8fa8, pants: 0x6b4a8a, hat: 0x5a3a1a, hatKind: 'bun' },        // 지우네 집 엄마: 분홍 옷에 앞치마, 올림머리 (src/home.js)
   }[outfit];
   const mat = (c) => new THREE.MeshStandardMaterial({ color: c });
   const coat = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.7, 6, 12), mat(C.coat)); coat.position.y = 0.75;
@@ -52,6 +53,14 @@ export function makeNpc({ outfit = 'ranger', name = '안내원', skin = 0xffe0bd
     const rTop = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.035, 6, 12, Math.PI), red); rTop.position.set(-0.02, 1.03, 0.38); rTop.rotation.z = -Math.PI / 2; // R 의 동그라미
     const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.04), red); rLeg.position.set(0.05, 0.86, 0.38); rLeg.rotation.z = -0.5; // R 의 뻗은 다리
     draft.add(cap, brim, band, belt, rBar, rTop, rLeg);
+  }
+  if (C.hatKind === 'bun') { // 올림머리 + 하얀 앞치마
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.1), mat(C.hat)); hair.position.y = 1.6;
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), mat(C.hat)); bun.position.set(0, 1.95, -0.1);
+    const apron = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.06), mat(0xfffbe6)); apron.position.set(0, 0.6, 0.38);
+    const bib = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.06), mat(0xfffbe6)); bib.position.set(0, 1.08, 0.39);
+    const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.03), mat(0xffd93d)); pocket.position.set(0.1, 0.5, 0.42);
+    draft.add(hair, bun, apron, bib, pocket);
   }
   if (C.hatKind === 'hair') { const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), mat(C.hat)); hair.position.y = 1.62; const gm = mat(0x333333); for (const gx of [-0.12, 0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14), gm); ring.position.set(gx, 1.58, 0.34); draft.add(ring); } const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.05), mat(0xe8453c)); tie.position.set(0, 0.95, 0.38); draft.add(hair, tie); }
   const border = '#' + C.coat.toString(16).padStart(6, '0'); // 옷 색 테두리의 둥근 이름표
