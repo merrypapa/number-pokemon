@@ -19,7 +19,6 @@ import { WarpFx } from './ufo.js';
 import { strongAgainst, weakTo, skillIcon } from './types.js';
 import { portrait, setPortraitRenderer } from './portrait.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
-import { evolveZoneOf } from './types.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { makeCar, CAR_MODEL, CAR_NAME } from './car.js';
 import { Creature, buildDraftMesh, bossZoneOf, bossOverride, partyScale } from './creatures.js';
@@ -32,7 +31,8 @@ import { Confetti, Particles, Sound } from './effects.js';
 import { Bgm, trackFor } from './bgm.js';
 import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
-import { Party, friendStats } from './party.js';
+import { Party, friendStats, expFor, STARTER_LEVEL } from './party.js';
+import { ITEMS, ITEM_BY_ID, emptyItems, canUseItem, applyItem } from './items.js';
 import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
 import { cloud, validName, validPin } from './cloud.js';
@@ -192,9 +192,19 @@ let zone = null;       // 지금 있는 지역 (게임 시작 전엔 null)
 let player = null, chain = null;
 let pendingCaught = {}; // 불러온 저장 데이터의 "이미 잡은 몬스터" (지역이 만들어질 때 적용)
 
+// 지역마다 야생 포켓몬의 레벨대. 보스는 그 지역 꼭대기 + 3, 숨은 전설은 + 4, 로켓단 포켓몬은 가운데 + 2. 이기면 상대 레벨만큼 경험치 (src/party.js expFor)
+const ZONE_LEVEL = { forest: [2, 6], hive: [3, 7], cave: [8, 14], thunder: [14, 20], sea: [16, 24], deepsea: [22, 30], volcano: [24, 32], space: [32, 40], arena: [10, 10] };
+for (const p of PLANETS) ZONE_LEVEL[p.zone] = [34, 46];
+function wildLevel(zoneName, data) {
+  const [lo, hi] = ZONE_LEVEL[zoneName] || [5, 10];
+  if (data.boss) return hi + 3;
+  if (data.unlockedBy || data.mega) return hi + 4;
+  return lo + Math.floor(Math.random() * (hi - lo + 1));
+}
 function spawnCreature(z, speciesId, x, zz, extra = {}) {
   const data = { ...speciesById[speciesId], ...extra };
   const c = new Creature(z.scene, data, new THREE.Vector3(x, 0, zz));
+  c.level = extra.level || wildLevel(z.name, data);
   z.creatures.push(c);
   return c;
 }
@@ -498,10 +508,8 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool() }; // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems() }; // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
-party.conqueredCount = () => Object.keys(state.conquered).length;
-party.zoneOf = () => zone?.name || 'forest';
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
 const dex = new Dex(
@@ -610,7 +618,7 @@ function refreshHud() {
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   const L = party.leader;
   if (L) {
-    hudLeader.textContent = `${party.name(L)}${L.hp <= 0 ? ' 😵' : ''}`;
+    hudLeader.textContent = `${party.name(L)} Lv.${L.level}${L.hp <= 0 ? ' 😵' : ''}`;
     const thumb = dex.thumbs(party.species(L))?.color || null; // 대표 포켓몬의 작은 모습
     if (thumb) { hudPokeImg.src = thumb; hudPokeImg.hidden = false; hudPokeIcon.hidden = true; }
     else { hudPokeImg.hidden = true; hudPokeIcon.hidden = false; hudPokeIcon.style.background = party.color(L); }
@@ -637,6 +645,11 @@ refreshHud();
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
+battle.getItems = () => state.items;
+battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
+  const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
+  const healed = applyItem(it, m); state.items[id]--; refreshHud(); return healed;
+};
 battle.onUseBall = (id) => { if ((state.balls[id] || 0) <= 0) return false; state.balls[id]--; refreshHud(); return true; };
 battle.getBlocks = () => state.blocks;
 battle.onBuyBall = (id) => { // 대결 중 그 자리에서 블록으로 넘버볼 만들기
@@ -672,7 +685,7 @@ function attachLeader(member) {
 }
 function addStarter(speciesId) {
   const sp = speciesById[speciesId];
-  const member = party.add(speciesId, buildDraftMesh(sp), { hp: sp.starterHp ?? sp.baseHp, atk: sp.starterAtk ?? sp.baseAtk });
+  const member = party.add(speciesId, buildDraftMesh(sp), { hp: sp.starterHp ?? sp.baseHp, atk: sp.starterAtk ?? sp.baseAtk }, STARTER_LEVEL);
   attachLeader(member);
   state.dex[speciesId] = (state.dex[speciesId] || 0) + 1;
   return member;
@@ -752,24 +765,28 @@ dex.bindParty({
   getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, conquered: Object.keys(state.conquered).length, zones: ZONE_COUNT }), // 친구·구출·정복 진행은 도감에서 본다
   getConquered: () => state.conquered,
   getZoneName: () => zone?.name,
-  onUpgrade: (m, stat) => {
-    if (party.atCap(m, stat)) { const e = party.species(m).evolution; say(e ? `${party.name(m)}의 ${stat === 'atk' ? '공격' : '체력'}은 여기까지야! 진화하면 더 키울 수 있어.` : `${party.name(m)}의 ${stat === 'atk' ? '공격' : '체력'}은 최대치야! 더는 안 올라가.`, { sec: 5 }); return; }
-    const cost = party.upgradeCost(m, stat);
-    if (state.blocks < cost) { say(`블록이 ${cost}개 필요해! 블록을 줍거나 대결에서 이겨서 모으자.`); return; }
-    const n = 1;
-    party.upgrade(m, stat);
-    setBlocks(state.blocks - cost);
-    sound.pickup();
-    const next = party.nextSkill(m);
-    const just = stat === 'atk' && party.skills(m).length && party.skills(m)[party.skills(m).length - 1].atk > m.atk - n;
-    if (just && party.skills(m).length > 1) { const s = party.skills(m)[party.skills(m).length - 1]; sound.fanfare(); say(`${josa(party.name(m), '이가')} 새 기술 ${josa(s.name, '을를')} 배웠어!`, { sec: 5 }); }
-    else if (party.canEvolve(m) && !m.evolveTold) { m.evolveTold = true; say(`${josa(party.name(m), '이가')} 진화할 수 있어! ✨ 진화! 버튼을 눌러봐.`, { sec: 6 }); }
-    else say(stat === 'atk' ? `${party.name(m)} 공격 ${m.atk}!` : `${party.name(m)} 체력 ${m.maxHp}!`, { sec: 2, faceImg: dex.thumbs(party.species(m))?.color || null });
-    refreshHud();
-  },
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
-  evolveZone: (type) => evolveZoneOf(type),
   getBalls: () => state.balls,
+  getItems: () => state.items,
+  onBuyItem: (id) => {
+    const it = ITEM_BY_ID[id];
+    if (!it) return;
+    if (state.blocks < it.cost) { say(`${it.name}은 블록 ${it.cost}개가 필요해!`); return; }
+    setBlocks(state.blocks - it.cost);
+    state.items[id] = (state.items[id] || 0) + 1;
+    sound.pickup();
+    say(`${it.emoji} ${it.name} 1개를 샀어! 이제 ${state.items[id]}개. 도감의 내 포켓몬에서 쓰거나, 대결 중 🎒 가방에서 쓸 수 있어.`, { sec: 4 });
+    refreshHud(); autosave();
+  },
+  onUseItem: (m, id) => {
+    const it = ITEM_BY_ID[id];
+    if (!it || (state.items[id] || 0) <= 0) { say(`${it ? it.name : '아이템'}이 없어. 상점에서 블록으로 살 수 있어!`); return; }
+    if (!canUseItem(it, m)) { say(it.revive ? `${party.name(m)}은 기절하지 않았어. 열매는 기절한 포켓몬에게만!` : m.hp <= 0 ? `${party.name(m)}은 기절했어. 물약 대신 🍒 기운의 열매가 필요해!` : `${party.name(m)}은 체력이 가득해!`); return; }
+    const healed = applyItem(it, m); state.items[id]--;
+    sound.fanfare();
+    say(`${it.emoji} ${it.name}! ${josa(party.name(m), '이가')} ${it.revive ? '기운을 차렸어' : `체력 ${healed}을 회복했어`}! (❤ ${m.hp}/${m.maxHp})`, { sec: 4, faceImg: dex.thumbs(party.species(m))?.color || null });
+    refreshHud(); autosave();
+  },
   onBuyBall: (id) => {
     const b = BALL_BY_ID[id];
     if (!b) return;
@@ -1477,6 +1494,19 @@ function askRescueQuiz(z, nb) {
   });
 }
 
+/** 이긴 포켓몬에게 경험치를 준다. 레벨업·새 기술·진화 가능을 한 줄로 돌려준다 (말풍선에 이어 붙인다) */
+function giveExp(L, c) {
+  const r = party.gainExp(L, expFor(c.level || 5, c.data.grade || 1, c.isBoss, L.level));
+  let note = ` 경험치 +${r.amount}!`;
+  if (r.to > r.from) {
+    sound.fanfare();
+    particles.stars(zone.scene, L.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, 0xffd93d, 0.5);
+    note += ` ⬆ ${party.name(L)} Lv.${r.to}! (❤ ${L.maxHp} · ⚔ ${L.atk})`;
+    if (r.learned.length) note += ` 새 기술 ${josa(r.learned.map((s) => s.name).join('·'), '을를')} 배웠어!`;
+    if (party.canEvolve(L) && !L.evolveTold) { L.evolveTold = true; note += ` ✨ ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 진화!`; }
+  } else { const need = party.evolveNeed(L); if (need && !party.canEvolve(L) && !need.mega) note += ` (Lv.${need.level}이 되면 진화)`; }
+  return note;
+}
 /** 대결에서 이기면 받는 블록: 상대 공격력 × 지역 블록 가치 (보스는 2배).
  *  단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값의 절반보다는 많다 — 두 번쯤 이기면 그 볼 하나를 만들 수 있게.
  *  (볼 값을 두 배로 올리면서 이 바닥값도 "볼 값 + 1" 에서 절반으로 낮췄다. 그러지 않으면 볼이 비싸질수록
@@ -1612,8 +1642,8 @@ function quizResult(ok) {
 function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
-  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)를 열면 블록으로 포켓몬의 공격력이나 체력을 올릴 수 있어.', { sec: 7 }); }
-  else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 체력이 0이 되면 지니까 도감에서 체력도 올려 두자.', { sec: 7 }); }
+  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)의 상점에서 블록으로 넘버볼과 물약을 살 수 있어.', { sec: 7 }); }
+  else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 이기면 경험치가 쌓여서 레벨이 오르고, 레벨이 오르면 체력과 공격이 세져.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 나타나면 퀴즈를 풀어 줘. 맞히면 블록을 줘!', { sec: 7 }); }
   else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 꿈의우주의 UFO 정거장에서는 태양과 행성들까지 갈 수 있어. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
@@ -1820,7 +1850,8 @@ function buildSaveData() {
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
     balls: { ...state.balls }, rockets: { ...state.rockets },
-    party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, wins: m.wins || 0 })),
+    party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
+    items: { ...state.items },
     returnTo: state.returnTo,
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
@@ -2563,6 +2594,7 @@ function applySave(d) {
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
+  state.items = { ...emptyItems(), ...(d.items || {}) };
   state.rockets = { ...(d.rockets || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
@@ -2576,7 +2608,8 @@ function applySave(d) {
     const sp = speciesById[m.speciesId];
     if (!sp) continue;
     const member = party.add(m.speciesId, buildDraftMesh(sp));
-    Object.assign(member, { atk: m.atk, maxHp: m.maxHp, hp: Math.min(m.hp, m.maxHp), wins: m.wins || 0 });
+    Object.assign(member, { atk: m.atk, maxHp: m.maxHp, hp: Math.min(m.hp, m.maxHp), level: m.level || 0, exp: m.exp || 0, lv0: m.lv0 ?? m.level, atk0: m.atk0 ?? m.atk, hp0: m.hp0 ?? m.maxHp });
+    party.migrate(member); // 레벨이 없던 옛 저장: 공격력에서 레벨을 어림한다
   }
   const leader = party.healthy().includes(party.members[d.leader]) ? party.members[d.leader] : (party.healthy()[0] || party.members[0]);
   if (leader) attachLeader(leader);
@@ -2796,7 +2829,7 @@ function frame() {
           setTimeout(() => { if (zone === zz2 && !quiz.open && !battle.active && !dex.open) openChest(zz2, at, boxName); }, 900); // 상자가 열리는 연출을 잠깐 보여 준 뒤 문제
           continue;
         }
-        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감에서 포켓몬을 키우는 데 쓰자!`); } continue; }
+        if (state.blocks >= MAX_BLOCKS) { if (!state.fullTold) { state.fullTold = true; say(`블록이 ${MAX_BLOCKS}개! 더는 못 들어. 도감 상점에서 넘버볼이나 물약을 사자!`); } continue; }
         zone.scene.remove(b);
         zone.pickups.splice(i, 1);
         setBlocks(state.blocks + blockValue(), { glow: !!b.userData.glow });
@@ -2841,19 +2874,21 @@ function frame() {
             const L = battle.member; // 대결 중 교체했을 수 있다
             c.becomeFriend();
             const already = party.members.find((m) => m.speciesId === c.data.id || party.name(m) === c.data.name); // 같은 포켓몬은 파티에 한 마리만 (보스로 만난 이상해꽃 = 진화한 이상해꽃)
-            const member = already || party.add(c.data.id, c.mesh, { hp: c.data.baseHp, atk: c.data.baseAtk }); // 보스로 잡으면 보스 능력치로 들어온다
+            const member = already || party.add(c.data.id, c.mesh, { hp: c.data.baseHp, atk: c.data.baseAtk }, c.level); // 보스로 잡으면 보스 능력치로 들어온다. 잡을 때의 레벨로
             let upgraded = false;
             if (already && c.isBoss) { // 이미 있는 같은 종은 보스 능력치로 올라간다 (낮아지지는 않는다)
               const fs = friendStats(c.data.baseHp, c.data.baseAtk); // 보스 능력치에도 친구 보너스
               const hp = Math.max(already.maxHp, fs.hp), atk = Math.max(already.atk, fs.atk);
               upgraded = hp > already.maxHp || atk > already.atk;
               already.maxHp = hp; already.hp = hp; already.atk = atk;
+              if (party.raiseTo(already, c.level)) upgraded = true; // 레벨도 보스 레벨로
+              party.rebase(already); // 올라간 스탯이 다음 레벨업 때 되돌아가지 않게
             }
             if (c.isBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             if (!c.rocketOf) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
-            L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수
+            const expNote = giveExp(L, c); // 경험치 → 레벨업 (진화 조건)
             const reward = winReward(c);
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
@@ -2879,9 +2914,9 @@ function frame() {
               if (!c.rocketOf) state.caught++; // 로켓단이 내보낸 포켓몬은 이 지역의 야생 목록에 없으니 "친구 몇/몇" 총합을 넘기지 않게 셈에서 뺀다 (도감 기록은 그대로 남는다)
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
-              const winNote = party.canEvolve(L) ? ` ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
+              const winNote = expNote;
               if (already) say(`${josa(sp.name, '은는')} 이미 내 친구야! 이긴 보상으로 블록 ${reward}개 획득! (누적 ${cnt}마리)${winNote}`, { sec: 6 });
-              else say(`${josa(c.data.name, '이가')} 친구가 됐어! 블록 ${reward}개 획득!${winNote} 도감에서 대표로 고르거나 블록으로 키울 수 있어.`, { sec: 6 });
+              else say(`${josa(c.data.name, '이가')} 친구가 됐어 (Lv.${member.level})! 블록 ${reward}개 획득!${winNote} 도감에서 대표로 고를 수 있어.`, { sec: 6 });
             }
             if (c.data.id === 'm07' && !state.glow) { state.glow = true; player.lamp.intensity = 13; player.lamp.distance = 30; if (zones.cave) zones.cave.scene.fog.far = 110; say(`${c.data.name}가 동굴을 환하게 밝혀줘!`, { sec: 5 }); }
             if (!already && party.members.length === 2) say(`${josa(party.name(member), '은는')} 볼 안에서 쉬고 있어. 도감에서 "대표로 하기"를 누르면 따라와!`, { sec: 6 });
@@ -2894,10 +2929,9 @@ function frame() {
             c.becomeShy();
             c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
-            L.wins = (L.wins || 0) + 1;  // 진화 조건: 대표로 이긴 횟수 (잡을 때와 같다)
+            const winNote = giveExp(L, c); // 경험치 → 레벨업 (잡을 때와 같다)
             const reward = winReward(c);
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
-            const winNote = party.canEvolve(L) ? ` ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 ✨진화!` : (party.evolveNeed(L)?.wins ? ` ${party.name(L)} ${L.wins}승!` : '');
             if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
             else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
             else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 블록 ${reward}개 획득!${winNote}`, { sec: 6 });

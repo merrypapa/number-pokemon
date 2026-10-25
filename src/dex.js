@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
+import { ITEMS } from './items.js';
+import { skillLevel, expNeed, MAX_LEVEL } from './party.js';
 import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
@@ -7,7 +9,7 @@ import { skillIcon } from './types.js';
 import { PLANETS } from './planets.js';
 
 // 몬스터 도감 + 내 포켓몬.
-//  - 위: "내 포켓몬" 칩(잡은 포켓몬 한 줄) + 선택한 포켓몬 한 마리의 상세 카드 (스탯·기술·진화, 내 포켓몬이면 키우기/대표/진화 버튼).
+//  - 위: "내 포켓몬" 칩(잡은 포켓몬 한 줄) + 선택한 포켓몬 한 마리의 상세 카드 (스탯·기술·진화, 내 포켓몬이면 레벨·경험치·아이템/대표/진화 버튼).
 //  - 아래: 모든 종을 액자로. 액자를 누르면 그 종이 상세에 나온다. 잡은 종은 컬러 썸네일 + 이름, 아니면 검은 실루엣 + 물음표.
 // 썸네일은 작은 오프스크린 렌더러로 한 번만 만들어 캐시한다.
 const DEFAULT_ZONE_NAME = { forest: '푸른숲', cave: '지하동굴', volcano: '불의산', sea: '물의길', space: '꿈의우주', evolution: '진화' };
@@ -132,14 +134,14 @@ export class Dex {
     if (tab === 'balls') this.renderBalls();
   }
 
-  // ----- 넘버볼 탭: 블록으로 넘버볼 만들기 + 등급표 -----
+  // ----- 상점 탭: 블록으로 넘버볼·물약 사기 + 넘버볼 등급표 -----
   renderBalls() {
     const ctx = this.partyCtx;
     if (!ctx) return;
     const stock = ctx.getBalls?.() || {}, blocks = ctx.getBlocks();
     // 위: 볼마다 한 줄씩 (그림 · 이름 · 몇 개 · 만들기 버튼)
     const megaB = ctx.getMegaBlocks?.() || 0;
-    let html = `<div class="shop-title">🔮 내 넘버볼</div>${megaB > 0 ? `<div class="shop-note">💠 메가블럭 ${megaB}개 · 최종 진화한 포켓몬을 메가 진화시킬 때 1개씩 써요</div>` : ''}<div class="ball-rows">`;
+    let html = `<div class="shop-title">🏪 상점 · 내 블록 ${blocks}개</div><div class="shop-title">🔮 넘버볼</div>${megaB > 0 ? `<div class="shop-note">💠 메가블럭 ${megaB}개 · 최종 진화한 포켓몬을 메가 진화시킬 때 1개씩 써요</div>` : ''}<div class="ball-rows">`;
     for (const b of BALLS) {
       html += `<div class="ball-row" style="--ball:${b.css}">
         <span class="ball-dot big${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name}</span>
@@ -147,6 +149,15 @@ export class Dex {
         <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>
       </div>`;
     }
+    // 가운데: 물약·열매 (도감의 내 포켓몬에서 쓰거나, 대결 중 가방에서 쓴다)
+    const items = ctx.getItems?.() || {};
+    html += `</div><div class="shop-title">🧪 아이템</div><div class="ball-rows">`;
+    for (const it of ITEMS) {
+      html += `<div class="item-row"><span class="item-emoji">${it.emoji}</span><span><div class="item-name">${it.name}</div><div class="item-desc">${it.desc}</div></span>
+        <span class="ball-count">${items[it.id] || 0}<small>개</small></span>
+        <button data-item="${it.id}" ${blocks < it.cost ? 'disabled' : ''}>블록 ${it.cost}개로 사기</button></div>`;
+    }
+    html += `</div><div class="shop-note">물약은 도감의 내 포켓몬 카드에서 쓰거나, 대결 중 🎒 가방에서 쓸 수 있어. 오박사님·엄마·침대에서는 공짜로 낫는다!</div><div class="ball-rows">`;
     // 아래: 볼마다 설명 한 줄 (어느 ★까지, 어느 지역 포켓몬까지 잘 잡히는지)
     const GRADE_ZONE = { 1: 'forest', 2: 'cave', 3: 'sea', 4: 'volcano', 5: 'space' };
     html += `</div><div class="shop-title">📖 넘버볼 설명</div><div class="ball-infos">`;
@@ -159,6 +170,7 @@ export class Dex {
     html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가! (다시 만나면 잡힐 확률이 15%씩 올라)</div>`;
     this.ballsEl.innerHTML = html;
     this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
+    this.ballsEl.querySelectorAll('button[data-item]').forEach((btn) => { btn.onclick = () => { ctx.onBuyItem(btn.dataset.item); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
   }
 
   /** ◀ ▶ 로 지역을 차례로 넘겨 본다 (푸른숲 → 지하동굴 → 불의산 → 물의길 → 꿈의우주 → 심해 → 태양 → … → 명왕성) */
@@ -371,10 +383,9 @@ export class Dex {
     const mineAll = party ? party.members.filter((m) => m.speciesId === sp.id) : [];
     const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
     const skills = (sp.skills || []).map((s) => {
-      const locked = rep0 ? rep0.atk < s.atk : false;
-      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name} <small>🔒 공격 ${s.atk}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
+      const locked = rep0 ? rep0.level < skillLevel(s) : false;
+      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
     }).join('');
-    const evoZone = evo ? (this.zoneName[ctx?.evolveZone?.(sp.type) || 'forest'] || '') : '';
     const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;
     const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';
     card.innerHTML = `
@@ -392,47 +403,45 @@ export class Dex {
             ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
             <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
             <li class="skills">🎯 ${skills}</li>
-            ${evo ? `<li>✨ ${evo.wins ? `${evo.wins}번 이기고` : `보스 ${evo.boss}명 이기고`} 공격 ${evo.atk}·체력 ${evo.hp}가 되면 <b>${evoZone}</b>에서 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? ' 중 하나로 (랜덤!)' : '로'} 진화!</li>` : ''}
+            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>${evo.mega ? ` + 메가블럭 ${evo.mega}개` : ''}가 되면 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? ' 중 하나로 (랜덤!)' : '로'} 진화!</li>` : ''}
+            ${(sp.skills || []).some((s) => skillLevel(s) > 1) ? `<li>📈 레벨이 오르면 체력·공격이 세지고 기술도 열려 (대결에서 이기면 경험치!)</li>` : ''}
           </ul>
         </div>
       </div>`;
     const starBtn = card.querySelector('.view-star');
     if (starBtn && starTarget && !party.isLeader(starTarget)) starBtn.onclick = () => { ctx.onLeader(starTarget); this.render(this.lastCaught || {}); };
-    // 내 포켓몬 중 이 종: 한 마리씩 줄로 (키우기·대표·진화)
+    // 내 포켓몬 중 이 종: 한 마리씩 줄로 (레벨·경험치·아이템·대표·진화)
     const mine = mineAll;
     if (mine.length) {
-      const blocks = ctx.getBlocks();
+      const items = ctx.getItems?.() || {};
       const list = document.createElement('div');
       list.className = 'detail-members';
       mine.forEach((m, i) => {
         const leader = party.isLeader(m);
         const canEvolve = party.canEvolve(m);
         const need = party.evolveNeed(m);
-        const zoneBlocked = need && party.readyExceptZone(m) && !canEvolve;
         const fainted = party.isFainted(m);
-        const costHp = party.upgradeCost(m, 'hp'), costAtk = party.upgradeCost(m, 'atk');
-        const cap = party.statCap(m), capHp = party.atCap(m, 'hp'), capAtk = party.atCap(m, 'atk'); // 종마다 키우기 한계: 그 위로는 진화해야
+        const maxed = m.level >= MAX_LEVEL;
+        const nextSkill = party.nextSkill(m);
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
-          <div class="member-head">내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님께 치료</span>' : ''}
-            <span class="hp">❤ ${m.hp}/${m.maxHp}<small class="cap">최대 ${cap.hp}</small></span> <span class="atk">⚔ ${m.atk}<small class="cap">최대 ${cap.atk}</small></span>${need?.wins ? ` <span class="wins">🏆 ${m.wins || 0}/${need.wins}승</span>` : ''}</div>
+          <div class="member-head"><span class="lv">Lv.${m.level}</span>내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
+            <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span></div>
+          <div class="exp-bar"><div style="width:${party.expRatio(m) * 100}%"></div></div>
+          <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)} · 대결에서 이기면 쌓여`}${nextSkill ? ` · Lv.${skillLevel(nextSkill)}에 ${skillIcon(nextSkill)} ${nextSkill.name}` : ''}${need && !canEvolve && !need.mega ? ` · Lv.${need.level}에 진화` : ''}</div>
           <div class="member-actions">
-            <span>🌱 키우기</span>
-            <button data-act="hp1" ${capHp || blocks < costHp ? 'disabled' : ''} class="${capHp ? 'capped' : ''}" title="${capHp ? (evo ? '진화하면 더 올릴 수 있어' : '최대치') : ''}">❤ ${capHp ? 'MAX' : `+1 <small>🧱${costHp}</small>`}</button>
-            <button data-act="atk1" ${capAtk || blocks < costAtk ? 'disabled' : ''} class="${capAtk ? 'capped' : ''}" title="${capAtk ? (evo ? '진화하면 더 올릴 수 있어' : '최대치') : ''}">⚔ ${capAtk ? 'MAX' : `+1 <small>🧱${costAtk}</small>`}</button>
-            ${capHp && capAtk ? `<span class="shop-for">${evo ? '✨ 진화해야 더 커져!' : '최대치까지 다 컸어!'}</span>` : ''}
+            ${ITEMS.map((it) => `<button data-act="item:${it.id}" ${(items[it.id] || 0) > 0 && (it.revive ? fainted : !fainted && m.hp < m.maxHp) ? '' : 'disabled'} title="${it.desc}">${it.emoji} ${it.name} <small>×${items[it.id] || 0}</small></button>`).join('')}
             ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
-            ${evo ? `<button data-act="evolve" class="btn-evolve${evo.mega ? ' mega' : ''}" ${canEvolve ? '' : 'disabled'} title="공격 ${evo.atk} · 체력 ${evo.hp} · ${evo.mega ? `메가블럭 ${evo.mega}개 필요` : evo.wins ? `대표로 ${evo.wins}번 이기면` : `지역 보스 ${evo.boss}명 이기면`} 진화">${evo.mega ? '💠 메가 진화!' : '✨ 진화!'}</button>` : ''}
+            ${evo ? `<button data-act="evolve" class="btn-evolve${evo.mega ? ' mega' : ''}" ${canEvolve ? '' : 'disabled'} title="Lv.${evo.level ?? 16}${evo.mega ? ` · 메가블럭 ${evo.mega}개 필요` : ''}에 진화">${evo.mega ? '💠 메가 진화!' : '✨ 진화!'}</button>` : ''}
             ${evo?.mega ? `<span class="mega-need${(need?.megaNow || 0) >= evo.mega ? ' ok' : ''}">💠 메가블럭 ${need?.megaNow || 0}/${evo.mega}</span>` : ''}
-            ${zoneBlocked ? `<span class="shop-for">준비 끝! ${this.zoneName[need.zone] || need.zone}에 가면 진화!</span>` : ''}
           </div>`;
         row.querySelectorAll('button[data-act]').forEach((b) => {
           b.onclick = () => {
             const act = b.dataset.act;
             if (act === 'leader') ctx.onLeader(m);
             else if (act === 'evolve') { ctx.onEvolve(m); this.selectedId = m.speciesId; }
-            else ctx.onUpgrade(m, act.startsWith('hp') ? 'hp' : 'atk');
+            else if (act.startsWith('item:')) ctx.onUseItem(m, act.slice(5));
             this.render(this.lastCaught || {});
           };
         });

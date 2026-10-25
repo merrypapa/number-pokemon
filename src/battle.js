@@ -7,6 +7,8 @@ import { tickModel, instantiate, hasModel } from './models.js';
 import { partyScale } from './creatures.js';
 import { strongAgainst, weakTo } from './types.js';
 import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
+import { ITEMS, canUseItem } from './items.js';
+import { skillLevel } from './party.js';
 import { View3D } from './view3d.js';
 
 // 대결 장면 (포켓몬 배틀 느낌, 턴제):
@@ -209,6 +211,16 @@ export class Battle {
     // 풀어주기: 가짜 숫자를 깬 포켓몬을 볼을 쓰지 않고 놓아준다. 이긴 것은 이긴 것 — 블록과 승수는 그대로 받는다 (main 의 onReleased)
     this.releaseBtn = document.getElementById('btn-release');
     this.releaseBtn.onclick = () => this.release();
+    // 가방 (기술 고를 때): 상점에서 산 물약을 쓴다. 쓰면 그 턴은 상대가 공격한다
+    this.bagBtn = document.getElementById('btn-bag');
+    this.bagEl = document.getElementById('bag-modal');
+    this.bagRowsEl = document.getElementById('bag-rows');
+    this.bagNoteEl = document.getElementById('bag-note');
+    this.getItems = () => ({});     // main 이 넣어 준다
+    this.onUseItem = null;          // (itemId, member) => 회복량 (0 이면 못 씀)
+    this.bagBtn.onclick = () => this.openBag();
+    document.getElementById('btn-bag-close').onclick = () => this.closeBag();
+    document.getElementById('btn-bag-done').onclick = () => this.closeBag();
     this.catchEl = document.getElementById('catch-modal');
     document.getElementById('btn-catch-ok').onclick = () => { if (this.phase === 'success') this.end('caught'); };
     document.getElementById('btn-craft-close').onclick = () => this.closeCraft();
@@ -319,7 +331,7 @@ export class Battle {
       }
     }
 
-    this.tagNameEl.textContent = (creature.isBoss ? '보스 ' : '') + creature.data.name;
+    this.tagNameEl.textContent = `${creature.isBoss ? '보스 ' : ''}${creature.data.name} Lv.${creature.level || 5}`;
     this.tagNameEl.style.color = colorForCount(creature.data.favoriteNumber || creature.data.baseHp);
     const myName = this.party.name(member);
     this.msgEl.textContent = creature.hp === creature.data.baseHp
@@ -374,7 +386,8 @@ export class Battle {
     this.tagFillEl.style.background = ratio > 0.5 ? '#57b947' : ratio > 0.25 ? '#f7cf3e' : '#e8453c';
     this.tagHpEl.textContent = `❤ ${c.hp}/${c.data.baseHp}`;
     this.tagAtkEl.textContent = `· ⚔ ${c.data.baseAtk}`;
-    this.mineNameEl.textContent = this.party.name(m);
+    this.mineNameEl.textContent = `${this.party.name(m)} Lv.${m.level}`;
+    this.bagBtn.classList.toggle('hidden', this.phase !== 'choose' || !this.onUseItem);
     this.mineNameEl.style.color = this.party.color(m);
     const mr = Math.max(0, Math.min(1, m.hp / m.maxHp));
     this.mineHpEl.innerHTML = `<div class="tag-bar mine"><div class="mine-fill" style="width:${mr * 100}%;background:${mr > 0.5 ? '#57b947' : mr > 0.25 ? '#f7cf3e' : '#e8453c'}"></div></div>`;
@@ -680,12 +693,12 @@ export class Battle {
   showInfo() {
     const d = this.creature.data;
     const strong = strongAgainst(d.type || '노말'), weak = weakTo(d.type || '노말');
-    const skills = (d.skills || []).map((s) => `<span>${skillIcon(s)} ${s.name} <small>(공격 ${s.atk}↑ ×${s.power})</small></span>`).join('');
-    const evo = d.evolution ? `<div class="row">✨ 진화: 공격 ${d.evolution.atk} · 체력 ${d.evolution.hp} · ${d.evolution.wins ? `대표로 ${d.evolution.wins}번 이기면` : `지역 보스 ${d.evolution.boss}명 이기면`} → <b>${(Array.isArray(d.evolution.to) ? d.evolution.to.map((t) => this.speciesName?.(t.id)).filter(Boolean).join(' / ') : this.speciesName?.(d.evolution.to)) || '?'}</b></div>` : '';
+    const skills = (d.skills || []).map((s) => `<span>${skillIcon(s)} ${s.name} <small>(Lv.${skillLevel(s)}↑ ×${s.power})</small></span>`).join('');
+    const evo = d.evolution ? `<div class="row">✨ 진화: Lv.${d.evolution.level ?? 16}${d.evolution.mega ? ` + 메가블럭 ${d.evolution.mega}개` : ''} → <b>${(Array.isArray(d.evolution.to) ? d.evolution.to.map((t) => this.speciesName?.(t.id)).filter(Boolean).join(' / ') : this.speciesName?.(d.evolution.to)) || '?'}</b></div>` : '';
     const img = this.thumb ? this.thumb(d) : null;
     this.infoBodyEl.innerHTML = `
       <h2>${img ? `<img src="${img}" alt="">` : ''}<span>${d.isBoss || d.boss ? '보스 ' : ''}${d.name} <small style="font-size:14px;color:#777">${d.type} 속성</small></span></h2>
-      <div class="row">❤ 체력 <b>${this.creature.hp}/${d.baseHp}</b> · ⚔ 공격 <b>${d.baseAtk}</b> · 성격: <b>${d.personality || '-'}</b></div>
+      <div class="row">Lv.<b>${this.creature.level || 5}</b> · ❤ 체력 <b>${this.creature.hp}/${d.baseHp}</b> · ⚔ 공격 <b>${d.baseAtk}</b> · 성격: <b>${d.personality || '-'}</b></div>
       <div class="row">등급: <b>${gradeStars(d.grade || 1)} ${GRADES[d.grade || 1]}</b> · 추천 넘버볼: <b>${recommendedBall(d.grade || 1).name}</b></div>
       <div class="row">💪 강함: <b>${strong.length ? strong.join('·') : '-'}</b> &nbsp; 😖 약함: <b>${weak.length ? weak.join('·') : '-'}</b></div>
       <div class="row">기술: <span class="skill-list">${skills}</span></div>
@@ -759,6 +772,7 @@ export class Battle {
     this.catchEl.classList.add('hidden');
     this.craftOpen = false; this.craftEl.classList.add('hidden'); this.craftBtn.classList.add('hidden');
     this.releaseBtn.classList.add('hidden');
+    this.closeBag(); this.bagBtn.classList.add('hidden');
     if (this.switched) this.onSwitched?.(this.member, this.firstMember); // 새 포켓몬이 대표로 따라온다
     if (result === 'caught') this.onCaught?.();
     else if (result === 'released') this.onReleased?.();
@@ -783,8 +797,8 @@ export class Battle {
     }
     this.camera.lookAt(this.camLook);
     this.placeTag();
-    if (this.infoOpen || this.switchOpen || this.craftOpen) { // 팝업이 열려 있으면 조작은 잠시 멈춘다 (ESC 로 닫기)
-      if (this.input.wasPressed('cancel')) { this.hideInfo(); this.closeSwitch(); this.closeCraft(); }
+    if (this.infoOpen || this.switchOpen || this.craftOpen || this.bagOpen) { // 팝업이 열려 있으면 조작은 잠시 멈춘다 (ESC 로 닫기)
+      if (this.input.wasPressed('cancel')) { this.hideInfo(); this.closeSwitch(); this.closeCraft(); this.closeBag(); }
       return;
     }
     if (this.phase === 'enter') {
@@ -1002,6 +1016,42 @@ export class Battle {
     this.showBanner('앗, 도망쳤다!');
     this.msgEl.textContent = `${josa(c.data.name, '이가')} ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
     this.runBtn.textContent = '돌아가기 ▶';
+  }
+  // ----- 가방: 기술을 고르는 차례에 물약을 쓴다. 쓰면 그 턴은 상대의 공격 -----
+  openBag() {
+    if (this.phase !== 'choose' || !this.onUseItem) return;
+    this.bagOpen = true;
+    this.bagEl.classList.remove('hidden');
+    this.renderBag();
+    this.sound.click();
+  }
+  closeBag() { this.bagOpen = false; this.bagEl.classList.add('hidden'); }
+  renderBag() {
+    const items = this.getItems(), m = this.member;
+    this.bagNoteEl.textContent = `${this.party.name(m)} ❤ ${m.hp}/${m.maxHp} · 아이템을 쓰면 이번 차례는 상대가 공격해`;
+    this.bagRowsEl.innerHTML = '';
+    for (const it of ITEMS) {
+      const n = items[it.id] || 0, ok = n > 0 && canUseItem(it, m);
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `<span class="item-emoji">${it.emoji}</span><span><div class="item-name">${it.name}</div><div class="item-desc">${it.desc}</div></span><span class="ball-count">${n}<small>개</small></span><button ${ok ? '' : 'disabled'}>쓰기</button>`;
+      row.querySelector('button').onclick = () => this.useItem(it);
+      this.bagRowsEl.appendChild(row);
+    }
+  }
+  useItem(it) {
+    if (this.phase !== 'choose') return;
+    const m = this.member;
+    const healed = this.onUseItem(it.id, m);
+    if (!healed) { this.renderBag(); return; }
+    this.closeBag();
+    this.sound.fanfare();
+    this.particles.stars(this.scene, this.minePoint(), 14, 0x7ed957, 0.4);
+    this.showFloat(`+${healed}`, '#57b947', this.minePoint());
+    this.msgEl.textContent = `${it.emoji} ${it.name}! ${this.party.name(m)}의 체력이 ${m.hp}이 됐어. ${this.creature.data.name}의 공격!`;
+    this.phase = 'enemyWind';
+    this.phaseStart = this.timer;
+    this.render();
   }
   /** 풀어주기: 어질어질한 상대를 볼 없이 놓아준다. 이긴 보상(블록·승수)은 main 의 onReleased 가 준다 */
   release() {
