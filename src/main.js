@@ -12,6 +12,7 @@ import { buildLab } from './lab.js';
 import { buildSchool } from './school.js';
 import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
+import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerLevelBand, LAND_W } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
@@ -155,7 +156,7 @@ const starters = creatureData.creatures.filter((c) => c.starter);
 const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb', '엄마.glb', '로사.glb', '로이.glb']; // 인하: 포켓몬 학교 당번 친구 · 엄마: 지우네 집 · 로사·로이: 넘버로켓단 대원
 const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황금빵구.glb' }; // 흰 블록 대신 떠 있는 줍는 것 (태양 햇님 · 천왕성 보석 · 꿈의우주 황금 별)
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
-const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', thunder: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
+const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', thunder: '수수께끼블록.glb', tower: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
 const CHEST_CHANCE = 0.12; // 여덟 개에 하나쯤 — 가끔 만나야 반갑다. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치이기도 해서 상자로 다 바꾸지는 않는다
 const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
@@ -173,14 +174,14 @@ const nbByNumber = Object.fromEntries(nbData.numberblocks.map((n) => [n.number, 
 function makeZone(name, builder) {
   const scene = new THREE.Scene();
   const world = builder(scene);
-  return { name, label: ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(3, 7), respawnTimer: 6 };
+  return { name, label: world.label || ZONE_INFO[name]?.name || name, scene, world, terrain: world.terrain, creatures: [], pickups: [], rescues: [], nbTimer: rand(3, 7), respawnTimer: 6 };
 }
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 /** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, hive: buildHive, arena: buildArena };
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, tower: buildTower, hive: buildHive, arena: buildArena };
 const WILD_TOTAL = { forest: 42, cave: 16, thunder: 14, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
-const PICKUP_CAP = { forest: 3, cave: 2, thunder: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
+const PICKUP_CAP = { forest: 3, cave: 2, thunder: 2, tower: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
   BUILDERS[p.zone] = (scene) => buildPlanet(p, scene, { info: ZONE_INFO[p.zone] || {}, speciesName: (id) => speciesById[id]?.name, boss: bossFor(p.zone), hidden: creatureData.creatures.find((c) => c.zone === p.zone && c.unlockedBy) || null, rival: p.zone === 'p_sun' ? { name: '베지터', model: '베지터.glb' } : null });
   WILD_TOTAL[p.zone] = 16; PICKUP_CAP[p.zone] = 2;
@@ -195,16 +196,16 @@ let pendingCaught = {}; // 불러온 저장 데이터의 "이미 잡은 몬스�
 // 지역마다 야생 포켓몬의 레벨대. 보스는 그 지역 꼭대기 + 3, 숨은 전설은 + 4, 로켓단 포켓몬은 가운데 + 2. 이기면 상대 레벨만큼 경험치 (src/party.js expFor)
 const ZONE_LEVEL = { forest: [2, 6], hive: [3, 7], cave: [8, 14], thunder: [14, 20], sea: [16, 24], deepsea: [22, 30], volcano: [24, 32], space: [32, 40], arena: [10, 10] };
 for (const p of PLANETS) ZONE_LEVEL[p.zone] = [34, 46];
-function wildLevel(zoneName, data) {
-  const [lo, hi] = ZONE_LEVEL[zoneName] || [5, 10];
+function wildLevel(zoneName, data, band = null) {
+  const [lo, hi] = band || ZONE_LEVEL[zoneName] || [5, 10];
   if (data.boss) return hi + 3;
   if (data.unlockedBy || data.mega) return hi + 4;
   return lo + Math.floor(Math.random() * (hi - lo + 1));
 }
 function spawnCreature(z, speciesId, x, zz, extra = {}) {
   const data = { ...speciesById[speciesId], ...extra };
-  const c = new Creature(z.scene, data, new THREE.Vector3(x, 0, zz));
-  c.level = extra.level || wildLevel(z.name, data);
+  const c = new Creature(z.scene, data, new THREE.Vector3(x, extra.homeY || 0, zz)); // homeY: 층이 겹치는 지형(동굴탑)에서 어느 층인지
+  c.level = extra.level || wildLevel(z.name, data, z.world.levelBand);
   z.creatures.push(c);
   return c;
 }
@@ -277,7 +278,7 @@ function spawnPickup(z, x, zz) {
 // 푸른숲 시작 지점 옆에 세워져 있다. 가까이 가서 "🚗 타기"를 누르면 타고, 한 번 타면 내 차가 되어 어느 지역에서든 HUD 🚗 버튼(C)으로 부르거나 내린다.
 // 걷기의 2.2배로 달리고(가속 버튼이면 더) 점프는 못 한다. 물 위·심해·꿀벌집·연구소에서는 못 타고, 기차·로켓·배·UFO 를 타면 자동으로 내린다.
 // 이상해꽃 자동차는 이상해꽃(푸른숲 보스·이상해씨의 최종 진화·메가이상해꽃)이 대표 포켓몬일 때만 쓸 수 있다. 대표를 바꾸면 차는 사라진다.
-const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab', 'school', 'home'].includes(name);
+const CAR_ZONE_OK = (name) => !['deepsea', 'hive', 'lab', 'school', 'home', 'tower'].includes(name);
 const CAR_SPECIES = new Set(['m01ee', 'x01']); // 이상해꽃 · 메가이상해꽃
 const carAllowed = () => !!party.leader && CAR_SPECIES.has(party.leader.speciesId);
 let carAt = null;   // 세워 둔 차: { zone, car, obs }
@@ -451,8 +452,9 @@ function getZone(name) {
   const wildExtra = zi.wildOverride || {};
   const ws = zi.wildScale; // 심해: 물의길 종이 내려와 살지만 기본 능력치 1.5배 (잡으면 그 능력치로 들어온다)
   const scaled = (c) => (ws ? { ...c, baseHp: Math.round(c.baseHp * (ws.hp || 1)), baseAtk: Math.round(c.baseAtk * (ws.atk || 1)) } : c);
-  const wild = zi.wild
-    ? zi.wild.map((id) => speciesById[id]).filter((c) => c && !(c.boss && bossZoneOf(c) === z.name)).map((c) => scaled({ ...c, ...wildExtra })) // 이 지역의 보스인 종은 야생으로는 안 나온다 (화성 이상해불·명왕성 윤겔라·수성 꼬마돌)
+  const wildIds = z.world.wildIds || zi.wild; // 동굴탑은 층마다 종이 다르다 (src/tower.js)
+  const wild = wildIds
+    ? wildIds.map((id) => speciesById[id]).filter((c) => c && !(c.boss && bossZoneOf(c) === z.name)).map((c) => scaled({ ...c, ...wildExtra })) // 이 지역의 보스인 종은 야생으로는 안 나온다 (화성 이상해불·명왕성 윤겔라·수성 꼬마돌)
     : creatureData.creatures.filter((c) => c.zone === z.name && !(c.boss && bossZoneOf(c) === z.name) && !c.special && !c.mega && !c.unlockedBy && c.catchable); // 이 지역의 보스는 야생으로 안 나온다 (다른 지역 보스인 종은 여기선 야생). unlockedBy 종(힙합리자몽·루기아)도 조건을 채우기 전에는 야생으로 안 나온다
   const land = wild.filter((c) => !c.swim), swimmers = wild.filter((c) => c.swim && !c.deepSea), deep = wild.filter((c) => c.deepSea);
   const wildOnly = { ...wildExtra, boss: false }; // 야생으로 나올 땐 보스 표시를 뗀다 (꼬마돌은 수성에서만 보스)
@@ -472,7 +474,7 @@ function getZone(name) {
   (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) { const c = swimmers[i % swimmers.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
   (z.world.deepSpots || []).forEach(([x, zz], i) => { if (deep.length) { const c = deep[i % deep.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
   const boss = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === z.name);
-  if (boss) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z, bossOverride(boss)); c.mesh.userData.bossZone = z.name; }
+  if (boss && z.world.bossSpot && !(z.world.transient && state.conquered[z.name])) { const c = spawnCreature(z, boss.id, z.world.bossSpot.x, z.world.bossSpot.z, bossOverride(boss)); c.mesh.userData.bossZone = z.name; }
   // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
   for (const c of creatureData.creatures.filter((c) => c.zone === z.name && c.special)) {
     const spot = z.world.specialSpots?.[c.special];
@@ -508,7 +510,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems() }; // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -518,6 +520,8 @@ const dex = new Dex(
   Object.fromEntries(Object.entries(ZONE_INFO).filter(([, v]) => v.wild).map(([k, v]) => [k, v.wild])),
 );
 dex.lastCaught = state.dex;
+TOWER.species = creatureData.creatures; // 동굴탑 층마다 사는 종을 고르는 데 쓴다
+TOWER.conquered = () => !!state.conquered.tower;
 const quiz = new Quiz({ dex, species: creatureData.creatures.filter((c) => c.model && c.boss !== true && !c.evolvedFrom), sound, learn: state.learn }); // 순수 보스(큰 것)만 뺀다
 // 포켓몬 학교: 내 자리에 앉아 과목을 골라 공부한다 (src/study.js). 맞힌 만큼 블록, 숙제는 오박사님께 검사받는다
 const study = new Study({
@@ -849,9 +853,45 @@ function partyMeshes() { return [player.group, ...chain.followers.map((f) => f.m
 function applyZoneEnv() {
   zone.world.setWhirlOpen?.(!!state.conquered[zone.name]); // 물의길 소용돌이: 거북왕을 이겼으면 열린 모습으로 (src/sea.js)
   player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
+  zone.world.refreshPads?.(state.tower.best); // 동굴탑 바닥의 워프 패드 (가 본 10층 단위까지)
   player.gravityScale = zone.world.gravity || 1;
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
   chain.swim = !!zone.world.swim;         // 따라오는 친구들도 함께 떠오른다
+}
+// ---------- 동굴탑 (src/tower.js): 한 지역에 94층이 세로로 쌓여 있다. 포켓몬은 지금 있는 층 근처(아래 1층 ~ 위 2층)만 세우고, 멀어지면 치운다 ----------
+function towerFloorNow() { return zone?.world?.tower ? floorOfY(player.position.y) : 0; }
+/** n 층 층계참에 포켓몬을 세운다 (야생 셋, 10층마다 문지기, 94층은 수호신) */
+function spawnTowerFloor(z, n) {
+  z.towerFloors.add(n);
+  const at = landingAt(n), band = towerLevelBand(n);
+  const spots = n >= TOWER_TOP ? [[6, 6], [-6, 6], [7, -5]] : [[at.x - 2, 1.6], [at.x + 2.5, 2.8], [at.x + 0.5, 0.4]]; // 층계참 쐐기 안 (각도 0~LAND_W)
+  const fb = towerFloorBoss(n);
+  const wild = towerWild(n, fb || n >= TOWER_TOP ? 2 : 3);
+  wild.forEach((id, i) => { const [x, zz] = spots[i]; const c = spawnCreature(z, id, x, zz, { homeY: at.y, level: band[0] + Math.floor(Math.random() * (band[1] - band[0] + 1)), swim: false, deepSea: false }); c.towerFloor = n; });
+  if (fb) { const c = spawnCreature(z, fb.id, at.x, at.z, { homeY: at.y, boss: true, floorBoss: true, baseHp: fb.hp, baseAtk: fb.atk, scale: fb.scale, grade: 6, level: fb.level, swim: false, deepSea: false }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
+  if (n >= TOWER_TOP && !state.conquered.tower) { const boss = speciesById.t94; const c = spawnCreature(z, boss.id, 0, 0, { ...bossOverride(boss), homeY: at.y, level: band[1] + 3 }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
+}
+function towerTick() {
+  const z = zone; if (!z?.world?.tower) return;
+  z.towerFloors ||= new Set();
+  const cur = floorOfY(player.position.y);
+  if (cur > state.tower.best) { state.tower.best = cur; z.world.refreshPads?.(state.tower.best); }
+  for (let n = Math.max(1, cur - 1); n <= Math.min(TOWER_TOP, cur + 2); n++) if (!z.towerFloors.has(n)) spawnTowerFloor(z, n);
+  for (const c of [...z.creatures]) { // 멀어진 층의 포켓몬은 치운다 (대결 중인 상대는 빼고)
+    if (c.towerFloor == null || (c.towerFloor >= cur - 3 && c.towerFloor <= cur + 4) || (battle.active && battle.creature === c)) continue;
+    z.scene.remove(c.mesh); z.creatures.splice(z.creatures.indexOf(c), 1); z.towerFloors.delete(c.towerFloor);
+  }
+}
+/** 94층 수호신을 친구로 만들었다: 하늘의 문이 열리고 특별 보상 */
+function towerCleared() {
+  state.megaBlocks += 3;
+  state.balls.diamond = (state.balls.diamond || 0) + 2;
+  state.goals.stats.tower94 = true; checkNewStickers();
+  state.tower.best = TOWER_TOP;
+  const z = zones.tower;
+  if (z) { z.world.openSkyDoor?.(); z.world.portal = z.world.skyDoor; z.world.refreshPads?.(TOWER_TOP); }
+  confetti.burst(300);
+  setTimeout(() => say('🌌 동굴탑 94층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
 }
 function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
@@ -1315,7 +1355,7 @@ function updateCtxButton() {
 }
 function talkTo(npc) {
   state.prompt = 8;
-  const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader };
+  const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader, towerBest: state.tower.best };
   const lines = typeof npc.lines === 'function' ? npc.lines(ctx) : npc.lines;
   npc.line = ((npc.line ?? -1) + 1) % lines.length;
   let healed = 0;
@@ -1511,7 +1551,7 @@ function giveExp(L, c) {
  *  단, 그 등급을 잘 잡는(75% 이상) 넘버볼 값의 절반보다는 많다 — 두 번쯤 이기면 그 볼 하나를 만들 수 있게.
  *  (볼 값을 두 배로 올리면서 이 바닥값도 "볼 값 + 1" 에서 절반으로 낮췄다. 그러지 않으면 볼이 비싸질수록
  *   대결 보상이 따라 올라가서, 비싸진 값이 하나도 어렵지 않게 된다.) */
-const ZONE_GRADE = { forest: 1, hive: 1, cave: 2, thunder: 3, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
+const ZONE_GRADE = { forest: 1, hive: 1, cave: 2, thunder: 3, tower: 3, sea: 3, deepsea: 4, volcano: 4, space: 5 }; // 그 지역 야생 포켓몬의 등급
 for (const p of PLANETS) ZONE_GRADE[p.zone] = 5; // 행성은 우주 등급
 function winReward(c) {
   const grade = c.isBoss ? (ZONE_GRADE[zone.name] || 1) : (c.data.grade || 1); // 보스는 그 지역 기준 볼 값으로 (다이아 값까지는 아니게)
@@ -1696,7 +1736,7 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   setActiveTerrain(zone.terrain);
   player = new Player(zone.scene);
   chain = new FollowChain(player);
-  if (pos) player.teleport(pos.x, pos.z);
+  if (pos) player.teleport(pos.x, pos.z, pos.y ?? null);
   applyZoneEnv();
   if (state.glow) { player.lamp.distance = 30; }
   camera.position.copy(player.position).add(camOffset());
@@ -1845,13 +1885,14 @@ function renderContinue() {
 function buildSaveData() {
   return {
     v: 1, name: state.name, admin: !!state.admin, savedAt: Date.now(),
-    zone: zone.name, pos: sailing ? { ...dockLanding() } : { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1) }, // 배 위에서 저장하면 선착장에서 다시 시작
+    zone: zone.name, pos: sailing ? { ...dockLanding() } : { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1), y: +player.position.y.toFixed(1) }, // y: 동굴탑처럼 층이 겹치는 곳에서 어느 층인지 // 배 위에서 저장하면 선착장에서 다시 시작
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
     balls: { ...state.balls }, rockets: { ...state.rockets },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
+    tower: { ...state.tower },
     returnTo: state.returnTo,
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
@@ -2595,6 +2636,7 @@ function applySave(d) {
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   state.items = { ...emptyItems(), ...(d.items || {}) };
+  state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1) };
   state.rockets = { ...(d.rockets || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
@@ -2622,7 +2664,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
 }
 
 // ---------- 루프 ----------
@@ -2647,6 +2689,7 @@ function frame() {
   }
   if (saveToastTimer > 0) { saveToastTimer -= dt; if (saveToastTimer <= 0) saveToastEl.classList.add('hidden'); }
   presenceTick(dt); // 같이 놀기: 내 위치 올리기 + 같은 지역 친구 유령 (진화 연출·대결 중에도 친구는 보인다)
+  towerTick(); // 동굴탑: 지금 층 근처의 포켓몬만 세운다
 
   if (evo) { // 진화 연출 중에는 그것만 그린다
     updateEvolution(dt);
@@ -2731,10 +2774,21 @@ function frame() {
         whirlToldAt = Date.now();
         say('🔒 소용돌이가 아직 잠겨 있어! 남쪽 섬의 보스 거북왕을 이겨서 물의길을 정복하면 열려. 그때 다시 오자!', { sec: 7 });
       }
+    } else if (zone.name === 'cave' && zone.world.towerGate && near(zone.world.towerGate, 2.4)) { // 지하동굴 서쪽 벽의 동굴탑 문
+      moved = true;
+      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 벽을 따라 도는 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 94층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
+    } else if (zone.name === 'tower' && zone.world.exitGate && player.position.y < 1 && near(zone.world.exitGate, 2.2)) { // 동굴탑 바닥의 출구 → 지하동굴
+      moved = true;
+      const dest = getZone('cave'); switchZone('cave', dest.world.arrivals?.tower || dest.world.spawn, { text: '지하동굴로 나왔어!', sec: 4 });
+    } else if (zone.name === 'tower' && player.position.y < 1 && zone.world.checkpoints?.some((cp) => cp.group.visible && near(cp, 1.3))) { // 바닥의 기록석 워프 패드 → 그 층 층계참으로
+      moved = true;
+      const cp = zone.world.checkpoints.find((cp) => cp.group.visible && near(cp, 1.3)), at = landingAt(cp.n);
+      player.teleport(at.x, at.z, at.y); snapCam = true; sound.portal();
+      say(cp.n >= TOWER_TOP ? '🗼 94층 꼭대기!' : `🗼 ${cp.n}층 층계참으로 올라왔어!`, { sec: 3 });
     } else if (zone.name === 'cave' && zone.world.thunderGate && near(zone.world.thunderGate, 2.4)) { // 지하동굴 동쪽 벽의 번개 굴
       moved = true;
       switchZone('thunder', getZone('thunder').world.spawn, { text: '⚡ 번개동굴에 들어왔어! 전기 포켓몬의 고향이야. 푸른 웅덩이는 감전되니 들어가지 마. 천장에서 번개가 쳐! 남쪽 노란 포탈로 지하동굴에 돌아가.', sec: 8 });
-    } else if (zone.world.portal && near(zone.world.portal, 1.6)) {
+    } else if (zone.world.portal && near(zone.world.portal, 1.6) && (zone.world.portal.y == null || Math.abs(player.position.y - zone.world.portal.y) < 2)) {
       moved = true;
       const toName = zone.world.portalTo || 'forest'; // 보통은 푸른숲으로, 심해의 해류는 물의길로
       const dest = getZone(toName);
@@ -2884,9 +2938,9 @@ function frame() {
               if (party.raiseTo(already, c.level)) upgraded = true; // 레벨도 보스 레벨로
               party.rebase(already); // 올라간 스탯이 다음 레벨업 때 되돌아가지 않게
             }
-            if (c.isBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
+            if (c.isBoss && !c.data.floorBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
-            if (!c.rocketOf) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
+            if (!c.rocketOf && !zone.world.transient) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
             const expNote = giveExp(L, c); // 경험치 → 레벨업 (진화 조건)
             const reward = winReward(c);
@@ -2904,14 +2958,20 @@ function frame() {
               say(`✨ ${josa(c.data.name, '이가')} 친구가 됐어! 메가블럭 ${MEGA_REWARD}개를 얻었어! 도감에서 최종 진화한 포켓몬을 메가 진화시킬 수 있어!`, { sec: 10 });
               refreshHud();
             }
-            if (c.isBoss) { // 보스이면서 메가(태양의 메가리자몽X)면 위의 메가블럭에 더해 정복도
+            if (c.isBoss && c.data.floorBoss) { // 동굴탑 문지기: 정복은 아니지만 기록석이 켜진다
+              const fl = c.towerFloor || 0;
+              state.tower.best = Math.max(state.tower.best, fl); zone.world.refreshPads?.(state.tower.best);
+              confetti.burst(160);
+              say(`🗼 ${fl}층 문지기 ${josa(c.data.name, '을를')} 이겼어! 블록 ${reward}개 획득! 기록석이 켜져서 바닥의 워프 패드로 ${fl}층에 바로 올 수 있어.${upgraded ? ` 내 ${josa(c.data.name, '이가')} 세졌어!` : ''}`, { sec: 8 });
+            } else if (c.isBoss) { // 보스이면서 메가(태양의 메가리자몽X)면 위의 메가블럭에 더해 정복도
               conquer(zone.name);
+              if (zone.name === 'tower') towerCleared();
               if (zone.name === 'forest') {
                 removeBoulder();
                 say(`${josa(c.data.name, '이가')} 친구가 됐어! 푸른숲 정복! 북서쪽 산의 지하동굴 뒷문 바위도 치워졌어!${upgraded ? ` 내 이상해꽃이 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 8 });
               } else say(`${josa(c.data.name, '이가')} 친구가 됐어! ${zone.label} 정복! 블록 ${reward}개 획득!${upgraded ? ` 내 ${josa(c.data.name, '이가')} 보스 능력치(체력 ${member.maxHp}·공격 ${member.atk})로 올라갔어!` : ''}`, { sec: 7 });
             } else if (!c.data.mega) {
-              if (!c.rocketOf) state.caught++; // 로켓단이 내보낸 포켓몬은 이 지역의 야생 목록에 없으니 "친구 몇/몇" 총합을 넘기지 않게 셈에서 뺀다 (도감 기록은 그대로 남는다)
+              if (!c.rocketOf && !zone.world.transient) state.caught++; // 로켓단이 내보낸 포켓몬은 이 지역의 야생 목록에 없으니 "친구 몇/몇" 총합을 넘기지 않게 셈에서 뺀다 (도감 기록은 그대로 남는다)
               const sp = speciesById[c.data.id];
               const evo = sp.evolution;
               const winNote = expNote;
@@ -2933,6 +2993,7 @@ function frame() {
             const reward = winReward(c);
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            else if (c.isBoss && c.data.floorBoss) { const fl = c.towerFloor || 0; state.tower.best = Math.max(state.tower.best, fl); zone.world.refreshPads?.(state.tower.best); say(`🗼 ${fl}층 문지기 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} 기록석이 켜졌어!`, { sec: 7 }); }
             else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
             else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
             refreshHud();

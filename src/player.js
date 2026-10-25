@@ -82,8 +82,8 @@ export class Player {
   }
 
   /** 지역 이동 시 위치를 옮기고 "뿅" 효과 */
-  teleport(x, z) {
-    this.group.position.set(x, terrainHeight(x, z) + 0.5, z);
+  teleport(x, z, y = null) { // y: 겹치는 층이 있는 지형(동굴탑)에서 어느 층인지
+    this.group.position.set(x, terrainHeight(x, z, y ?? 0) + 0.5, z);
     this.vx = this.vz = 0;
     this.vy = 2;
     this.respawnFlash = 0.6;
@@ -112,7 +112,7 @@ export class Player {
     // 축마다 따로 시도해서 가장자리를 따라 미끄러지듯 움직인다.
     // 턱: 지형이 정한 높이(ledgeStep)보다 높은 곳으로는 걸어 올라갈 수 없고 뛰어서 발이 그 높이 가까이 올라와야 올라선다 (꿀벌집 육각 계단)
     const ledge = ledgeStep();
-    const wall = (x, z) => (this.boat ? !this.boat.canGo(x, z) : isBlocked(x, z)) || (!this.boat && terrainHeight(x, z) > p.y + ledge);
+    const wall = (x, z) => (this.boat ? !this.boat.canGo(x, z) : isBlocked(x, z, p.y)) || (!this.boat && terrainHeight(x, z, p.y) > p.y + ledge);
     const blocked = wall;
     const ox = p.x, oz = p.z;
     p.x += this.vx * dt;
@@ -173,7 +173,7 @@ export class Player {
     }
     p.y += this.vy * dt;
 
-    const floor = inHole(p.x, p.z) ? -20 : terrainHeight(p.x, p.z);
+    const floor = inHole(p.x, p.z) ? -20 : terrainHeight(p.x, p.z, p.y);
     // 내리막을 달릴 때는 중력보다 땅이 더 빨리 낮아져 매 프레임 살짝 떠 버린다 → 점프 동작이 깜빡이며 버벅였다.
     // 점프 중이 아니고 땅과의 틈이 작으면(0.6m 안) 땅에 붙인다. 그보다 높은 턱에서 떨어지는 건 진짜 낙하.
     const gap = p.y - floor;

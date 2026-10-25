@@ -301,7 +301,7 @@ export class FollowChain {
         moving = true;
       }
       const bob = Math.abs(Math.sin(f.t * (moving ? 10 : 3))) * (moving ? 0.12 : 0.03);
-      const ground = terrainHeight(p.x, p.z);
+      const ground = terrainHeight(p.x, p.z, prev.y); // 앞사람(주인공)이 선 층을 따른다 (동굴탑)
       if (this.swim) p.y += (Math.max(ground, prev.y) + bob - p.y) * Math.min(1, dt * 3); // 물속: 앞사람을 따라 스르르 떠오른다
       else p.y = ground + bob;
       animateNumberblock(f.mesh, dt, moving);
