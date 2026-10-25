@@ -1720,7 +1720,7 @@ function renderStarter() {
     item.innerHTML = `
       ${t ? `<img src="${t.color}" alt="">` : ''}
       <div class="starter-name">${sp.name}</div>
-      <div class="starter-stat">${sp.type} 속성 · ❤ 체력 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).hp} · ⚔ 공격 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).atk}</div>
+      <div class="starter-stat">Lv.${STARTER_LEVEL} · ${sp.type} 속성 · ❤ 체력 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).hp} · ⚔ 공격 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).atk}</div>
       <div class="starter-skill">기술: ${first ? `${skillIcon(first)} ${first.name}` : '-'}${sp.skills?.[1] ? ` → ${skillIcon(sp.skills[1])} ${sp.skills[1].name}` : ''}</div>`;
     item.onclick = () => chooseStarter(sp.id);
     starterGrid.appendChild(item);

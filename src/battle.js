@@ -408,10 +408,10 @@ export class Battle {
       b.onclick = () => { this.sel = i; this.useSkill(i); };
       this.skillsEl.appendChild(b);
     });
-    for (const s of (this.party.species(m).skills || []).filter((s) => m.atk < s.atk)) { // 아직 못 쓰는 기술은 회색으로
+    for (const s of (this.party.species(m).skills || []).filter((s) => m.level < skillLevel(s))) { // 아직 못 쓰는 기술은 회색으로 (레벨이 오르면 열린다)
       const b = document.createElement('button');
       b.className = 'skill locked';
-      b.innerHTML = `<span class="skill-top"><span class="skill-icon">${skillIcon(s)}</span><span class="skill-name">${s.name}</span></span><span class="skill-dmg">🔒 공격 ${s.atk}</span>`;
+      b.innerHTML = `<span class="skill-top"><span class="skill-icon">${skillIcon(s)}</span><span class="skill-name">${s.name}</span></span><span class="skill-dmg">🔒 Lv.${skillLevel(s)}</span>`;
       b.disabled = true;
       this.skillsEl.appendChild(b);
     }
