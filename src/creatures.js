@@ -110,6 +110,7 @@ export class Creature {
     this.mesh = buildDraftMesh(data, { onSwap: (m) => { if (this.sleeping) this.lieDown(m); } });
     this.home = home.clone();
     this.mesh.position.copy(home);
+    this.mesh.position.y = home.y || 0; // 동굴탑처럼 층이 겹치는 곳에서는 집의 높이가 어느 층인지 알려 준다
     this.mesh.position.y = this.groundY(home.x, home.z);
     this.target = home.clone();
     this.state = this.sleeping ? 'sleep' : 'wander'; // wander | approach | caught | shy | sleep
@@ -166,12 +167,12 @@ export class Creature {
   }
 
   /** 이 몬스터가 서(떠) 있는 높이. 헤엄치는 몬스터는 수면 */
-  groundY(x, z) { return this.swim ? (waterLevel() ?? 0) - 0.15 : terrainHeight(x, z); }
+  groundY(x, z) { return this.swim ? (waterLevel() ?? 0) - 0.15 : terrainHeight(x, z, this.mesh.position.y); }
   /** 이 자리로 갈 수 있나. 헤엄치는 몬스터는 물 위만, 나머지는 땅 위만 */
   canGo(x, z) {
     if (Math.abs(x) > worldSize() / 2 - 3 || Math.abs(z) > worldSize() / 2 - 3) return false;
     if (this.swim) return canSail(x, z) && !insideObstacle(x, z, 1.2);
-    return !inHole(x, z) && !isBlocked(x, z) && !insideObstacle(x, z, 0.6);
+    return !inHole(x, z) && !isBlocked(x, z, this.mesh.position.y) && !insideObstacle(x, z, 0.6);
   }
   pickTarget() {
     for (let i = 0; i < 10; i++) {
@@ -193,7 +194,7 @@ export class Creature {
     p.x += (dx / dist) * step;
     p.z += (dz / dist) * step;
     if (!this.swim) resolveObstacles(p, 0.5 * (this.data.scale || 1));
-    if (!this.canGo(p.x, p.z) || (!this.swim && Math.abs(terrainHeight(p.x, p.z) - terrainHeight(ox, oz)) > ledgeStep())) { p.x = ox; p.z = oz; } // 물가(헤엄치는 몬스터는 뭍) 앞에서는 멈춘다. 턱(꿀벌집 계단·탑) 가장자리에서도 멈춘다
+    if (!this.canGo(p.x, p.z) || (!this.swim && Math.abs(terrainHeight(p.x, p.z, p.y) - terrainHeight(ox, oz, p.y)) > ledgeStep())) { p.x = ox; p.z = oz; } // 물가(헤엄치는 몬스터는 뭍) 앞에서는 멈춘다. 턱(꿀벌집 계단·탑) 가장자리에서도 멈춘다
     this.mesh.rotation.y = Math.atan2(dx, dz);
     return dist;
   }

@@ -130,10 +130,10 @@ export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0
 //  - obstacles: 나무·집·바위 같은 구조물. 원 {x,z,r} 또는 선분 {ax,az,bx,bz,r}. 캐릭터를 밖으로 밀어낸다.
 let active = { height: meadowHeight, inHole: meadowInHole, size: WORLD.size };
 export function setActiveTerrain(t) { active = t; }
-export function terrainHeight(x, z) { return active.height(x, z); }
+export function terrainHeight(x, z, refY) { return active.height(x, z, refY); } // refY: 지금 서 있는 높이 (동굴탑처럼 층이 겹치는 지형이 어느 층인지 고르는 데 쓴다)
 export function inHole(x, z) { return active.inHole(x, z); }
 export function worldSize() { return active.size; }
-export function isBlocked(x, z) { return active.blocked ? active.blocked(x, z) : false; }
+export function isBlocked(x, z, refY) { return active.blocked ? active.blocked(x, z, refY) : false; }
 /** 이 지역에서 점프 없이 걸어 올라갈 수 있는 턱 높이(m). 지형이 정하지 않으면 제한 없음(언덕은 그냥 걸어 오른다). 꿀벌집 육각 계단은 0.6 이라 뛰어야 오른다 */
 export function ledgeStep() { return active.ledge ?? Infinity; }
 export function insideObstacle(x, z, r = 0.4) { return (active.obstacles || []).some((o) => obstacleDist(o, x, z) < o.r + r); }

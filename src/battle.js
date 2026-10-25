@@ -230,7 +230,7 @@ export class Battle {
   }
 
   /** 대결이 벌어지는 바닥 높이. 바다 위(배를 타고 만난 포켓몬)면 수면 위에서 싸운다 */
-  groundY(x, z) { return this.floorY == null ? terrainHeight(x, z) : Math.max(terrainHeight(x, z), this.floorY); }
+  groundY(x, z) { const h = terrainHeight(x, z, this.player?.position.y); return this.floorY == null ? h : Math.max(h, this.floorY); } // refY: 층이 겹치는 지형(동굴탑)에서는 주인공이 선 층
 
   start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, onReleased = null, hideMeshes = [], decor = null, onWater = false }) {
     Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, onEscaped, onReleased, decor });
@@ -256,7 +256,7 @@ export class Battle {
     dir.normalize();
     let dist = 5.2 + (creature.data.scale || 1) * 0.8;
     // 상대가 나무·바위·벽 속에 서면 화면에서 가려진다. 막히면 옆으로 조금씩 돌려(그다음엔 가까이) 빈 자리를 찾는다.
-    const clear = (x, z) => !insideObstacle(x, z, 0.9 + (creature.data.scale || 1) * 0.35) && !isBlocked(x, z);
+    const clear = (x, z) => !insideObstacle(x, z, 0.9 + (creature.data.scale || 1) * 0.35) && !isBlocked(x, z, player.position.y);
     const spun = new THREE.Vector3();
     found: for (const dd of [dist, dist - 1.3, dist - 2.4, dist + 1.3]) {
       if (dd < 2.4) continue;
