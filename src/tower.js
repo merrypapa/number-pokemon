@@ -90,14 +90,16 @@ export function buildTower(scene) {
   obstacles.length = 0;
   const block = (x, z, r) => obstacles.push({ x, z, r });
 
-  scene.background = new THREE.Color(0x0d1018);
-  scene.fog = new THREE.Fog(0x0d1018, 14, 46); // 위아래가 까마득하게 보이지 않게
-  scene.add(new THREE.HemisphereLight(0x8f9dc0, 0x161620, 1.0));
-  const baseLight = new THREE.PointLight(0xffd9a0, 2.5, 30); baseLight.position.set(0, 6, 0); scene.add(baseLight); // 바닥은 밝게 (위층은 횃불과 주인공의 등불)
-  const sun = new THREE.DirectionalLight(0xffffff, 0.25);
+  scene.background = new THREE.Color(0x141a26);
+  scene.fog = new THREE.Fog(0x141a26, 18, 60); // 위아래가 까마득하게 보이지 않게 (계단은 가장자리 금빛 띠가 안개 너머로도 보인다)
+  scene.add(new THREE.HemisphereLight(0xaab4d4, 0x2a2d3a, 1.6));
+  const baseLight = new THREE.PointLight(0xffd9a0, 4, 36); baseLight.position.set(0, 6, 0); scene.add(baseLight); // 바닥은 밝게 (위층은 횃불과 주인공의 등불)
+  // 처음 두 바퀴의 계단을 비추는 등불 셋씩 (1층에서 올려다봤을 때 계단이 보이게)
+  for (let k = 0; k < 2; k++) for (const a of [Math.PI * 0.6, Math.PI * 1.2, Math.PI * 1.8]) { const l = new THREE.PointLight(0xffd9a0, 2.2, 16); l.position.set(13.5 * Math.cos(a), LAP_H * (k + ramp(a)) + 2.5, 13.5 * Math.sin(a)); scene.add(l); }
+  const sun = new THREE.DirectionalLight(0xffffff, 0.4);
   sun.position.set(6, 30, 4);
   scene.add(sun, sun.target);
-  const tierColor = (k) => [0x5a6273, 0x4a5a7c, 0x5a4a80, 0x8a7a40][Math.min(3, Math.floor(k / 24))]; // 24층마다 돌 색 (회색 → 푸른 돌 → 보랏빛 → 금빛)
+  const tierColor = (k) => [0x8b93a6, 0x6f84b0, 0x8a74b4, 0xb8a455][Math.min(3, Math.floor(k / 24))]; // 24층마다 돌 색 (밝은 회색 → 푸른 돌 → 보랏빛 → 금빛)
 
   // ---------- 나선 비탈 (돌계단): 바퀴 93개를 한 메시로 ----------
   {
@@ -106,7 +108,7 @@ export function buildTower(scene) {
     const tmp = new THREE.Color();
     const push = (x, y, z, c) => { pos.push(x, y, z); tmp.setHex(c); col.push(tmp.r, tmp.g, tmp.b); return pos.length / 3 - 1; };
     for (let k = 0; k <= TOWER_TOP - 2; k++) {
-      const c = tierColor(k), cDark = new THREE.Color(c).multiplyScalar(0.8).getHex();
+      const c = tierColor(k), cDark = new THREE.Color(c).multiplyScalar(0.55).getHex(); // 한 칸 걸러 어둡게: 계단 무늬가 또렷하게
       let prev = null;
       for (let i = 0; i <= SEG; i++) {
         const a = (i / SEG) * TAU * 0.99999;
@@ -127,6 +129,31 @@ export function buildTower(scene) {
     const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: THREE.DoubleSide }));
     mesh.userData.noHide = true;
     decor.add(mesh);
+    // 바깥 가장자리를 따라 도는 금빛 띠: 안개·어둠 너머로도 계단이 어디로 도는지 보인다 (안개 안 받음, 빛 안 받음)
+    const gpos = [], gidx = [];
+    let gp = null;
+    for (let k = 0; k <= TOWER_TOP - 2; k++) for (let i = 0; i <= SEG; i++) {
+      const a = (i / SEG) * TAU * 0.99999, y = LAP_H * (k + ramp(a)) + 0.03, cs = Math.cos(a), sn = Math.sin(a);
+      const vi = gpos.push((R_OUT - 0.5) * cs, y, (R_OUT - 0.5) * sn) / 3 - 1, vo = gpos.push((R_OUT - 0.05) * cs, y, (R_OUT - 0.05) * sn) / 3 - 1;
+      if (gp && i > 0) gidx.push(gp.vi, vi, gp.vo, vi, vo, gp.vo);
+      gp = { vi, vo };
+    }
+    const ggeo = new THREE.BufferGeometry();
+    ggeo.setAttribute('position', new THREE.Float32BufferAttribute(gpos, 3));
+    ggeo.setIndex(gidx);
+    const glow = new THREE.Mesh(ggeo, new THREE.MeshBasicMaterial({ color: 0xffd36b, fog: false, side: THREE.DoubleSide }));
+    glow.userData.noHide = true;
+    decor.add(glow);
+  }
+  // ---------- 1층 계단 입구: 표지판 + 바닥 화살표 (첫 바퀴를 따라) ----------
+  {
+    const a0 = LAND_W + 0.12;
+    const sign = makePillSprite('▲ 돌계단 시작! 여기로 올라가', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 1.1);
+    sign.position.set(13.5 * Math.cos(a0), 3.0, 13.5 * Math.sin(a0));
+    decor.add(sign);
+    const arrows = [];
+    for (let i = 0; i < 14; i++) { const a = a0 + i * 0.42; arrows.push({ x: 13.5 * Math.cos(a), y: LAP_H * ramp(a) + 0.2, z: 13.5 * Math.sin(a), rz: -Math.PI / 2, ry: -Math.PI / 2 - a, sx: 0.9, sy: 0.9, sz: 0.9 }); } // 뾰족한 쪽이 올라가는 방향
+    decor.add(makeInstanced(new THREE.ConeGeometry(0.35, 0.8, 3), new THREE.MeshBasicMaterial({ color: 0xffd93d, fog: false }), arrows));
   }
   // ---------- 층계참 쐐기 (2 ~ 93층) + 층 이름표 ----------
   {
@@ -159,10 +186,10 @@ export function buildTower(scene) {
     decor.add(mesh);
   }
   // ---------- 바깥 벽: 안쪽 면만 그리는 원통 (카메라가 벽 밖으로 나가도 가리지 않는다) + 바닥·꼭대기 단 ----------
-  const wall = new THREE.Mesh(new THREE.CylinderGeometry(R_OUT + 0.6, R_OUT + 0.6, TOP_Y + 20, 48, 1, true), new THREE.MeshStandardMaterial({ color: 0x3a4150, roughness: 1, side: THREE.BackSide }));
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(R_OUT + 0.6, R_OUT + 0.6, TOP_Y + 20, 48, 1, true), new THREE.MeshStandardMaterial({ color: 0x4a5268, roughness: 1, side: THREE.BackSide }));
   wall.position.y = TOP_Y / 2 + 4; wall.userData.noHide = true;
   decor.add(wall);
-  const base = new THREE.Mesh(new THREE.CircleGeometry(R_OUT + 0.6, 48), new THREE.MeshStandardMaterial({ color: 0x4f5668, roughness: 0.9 }));
+  const base = new THREE.Mesh(new THREE.CircleGeometry(R_OUT + 0.6, 48), new THREE.MeshStandardMaterial({ color: 0x5e6679, roughness: 0.9 }));
   base.rotation.x = -Math.PI / 2; base.userData.noHide = true; base.receiveShadow = true;
   decor.add(base);
   const top = new THREE.Mesh(new THREE.CircleGeometry(R_OUT + 0.6, 48), new THREE.MeshStandardMaterial({ color: 0x8a7a40, roughness: 0.9 }));
@@ -190,7 +217,7 @@ export function buildTower(scene) {
   const torchItems = [];
   for (let k = 0; k <= TOWER_TOP - 2; k++) for (let i = 0; i < 4; i++) { const a = LAND_W + (i + 0.5) * (TAU - LAND_W) / 4; torchItems.push({ x: (R_OUT - 0.4) * Math.cos(a), y: LAP_H * (k + ramp(a)) + 2.2, z: (R_OUT - 0.4) * Math.sin(a) }); }
   decor.add(makeInstanced(new THREE.ConeGeometry(0.25, 0.6, 7), new THREE.MeshStandardMaterial({ color: 0xffa322, emissive: 0xff8a00, emissiveIntensity: 1.2 }), torchItems));
-  const title = makePillSprite('🗼 동굴탑 1층 · 벽의 돌계단을 따라 94층까지', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.6);
+  const title = makePillSprite('🗼 동굴탑 1층 · 동쪽 금빛 돌계단을 따라 94층까지 →', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.6);
   title.position.set(0, 6, 0); decor.add(title);
   const crystalItems = [];
   for (let i = 0; i < 12; i++) { const a = rand(0, TAU), r = rand(3, 9); for (let k = 0; k < 3; k++) { const h = rand(0.8, 2); crystalItems.push({ x: Math.cos(a) * r + rand(-0.5, 0.5), y: h / 2 - 0.1, z: Math.sin(a) * r + rand(-0.5, 0.5), sx: 0.3, sy: h, sz: 0.3, ry: rand(0, 3) }); } block(Math.cos(a) * r, Math.sin(a) * r, 0.7); }
@@ -230,7 +257,7 @@ export function buildTower(scene) {
     stage.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.15;
   }
   return {
-    sun, animate, terrain: TOWER_TERRAIN, decor, spawn: { x: 4, z: 12 }, dark: true, noShrine: true, transient: true, tower: true,
+    sun, animate, terrain: TOWER_TERRAIN, decor, spawn: { x: 5, z: 8 }, dark: true, noShrine: true, transient: true, tower: true,
     wildSpots: [], pickupSpots: [[6, -6], [-7, -4]],
     checkpoints: pads, refreshPads, exitGate: exitAt,
     skyDoor: skyAt, portal: TOWER.conquered() ? skyAt : null, portalTo: 'cave',

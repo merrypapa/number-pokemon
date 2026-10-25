@@ -2751,7 +2751,7 @@ function frame() {
       }
     } else if (zone.name === 'cave' && zone.world.towerGate && near(zone.world.towerGate, 2.4)) { // 지하동굴 서쪽 벽의 동굴탑 문
       moved = true;
-      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 벽을 따라 도는 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 94층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
+      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 오른쪽(동쪽) 벽의 금빛 띠가 둘린 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 94층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
     } else if (zone.name === 'tower' && zone.world.exitGate && player.position.y < 1 && near(zone.world.exitGate, 2.2)) { // 동굴탑 바닥의 출구 → 지하동굴
       moved = true;
       const dest = getZone('cave'); switchZone('cave', dest.world.arrivals?.tower || dest.world.spawn, { text: '지하동굴로 나왔어!', sec: 4 });
