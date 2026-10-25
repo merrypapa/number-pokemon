@@ -10,7 +10,7 @@ export const TIER_NAME = { 0: '상식', 1: '세기', 2: '더하기', 3: '빼기'
 /** 그 종류의 문제가 나오는 곳 (배움 탭에서 "어디 가면 연습할 수 있는지" 알려 준다) */
 export const TIER_WHERE = { 0: '행성 · 꿀벌집', 1: '지하동굴', 2: '푸른숲', 3: '물의길', 4: '지하동굴 · 번개동굴', 5: '푸른숲', 6: '불의산 · 번개동굴', 7: '꿈의우주', 8: '물의길' };
 /** 지역마다 나올 수 있는 문제 종류 (앞에서부터 쉬운 쪽) */
-const ZONE_TIERS = { forest: [2, 5], cave: [1, 4], thunder: [4, 6], sea: [3, 8], volcano: [6], space: [7] };
+const ZONE_TIERS = { forest: [2, 5], cave: [1, 4], thunder: [4, 6], tower: [2, 3, 6], sea: [3, 8], volcano: [6], space: [7] };
 
 const MAX_MISSES = 8;   // 배움 탭에 남겨 두는 "최근 틀린 문제" 개수
 const FADE_AT = 20;     // 한 종류를 이만큼 풀면 기록을 반으로 줄인다 (옛날 실력보다 요즘 실력을 보려고)

@@ -65,6 +65,11 @@ const TRACKS = {
     lead: '0 . 0 . 12 . . .  3 . 3 . 15 . . .  5 . 5 . 12 . 7 .  3 . 2 . 0 . . .',
     bass: '0 0 . 0  3 3 . 3  5 5 . 5  3 3 2 2',
     drum: 'x . . x . . x .  x . . x . . x .  x . . x . . x .  x . x . x . x x' },
+  // 동굴탑: 한 발씩 오르는 느낌의 단조, 북이 또박또박
+  tower: { bpm: 108, root: 392.00, wave: 'triangle', bassWave: 'square',
+    lead: '0 - 2 - 3 - 5 -  7 - - - 5 - 3 -  2 - 3 - 5 - 7 -  10 - - - 7 - - -',
+    bass: '0 . 0 .  3 . 3 .  5 . 5 .  7 . 3 .',
+    drum: 'x . . . x . . .  x . x . x . . .  x . . . x . . .  x . x . x . x .' },
   // 아레나: 행진곡풍, 또박또박
   arena: { bpm: 124, root: 523.25, wave: 'square', bassWave: 'triangle', short: true,
     lead: '0 . 0 . 7 . 7 .  5 . 5 . 4 . . .  2 . 2 . 9 . 9 .  7 . 5 . 0 . . .',
