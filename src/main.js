@@ -576,34 +576,9 @@ function setBlocks(n, { glow = false, quiet = false, mission = true } = {}) {
   state.blocks = n;
   const chunkNow = Math.floor(n / SILVER_BLOCK); // 25개마다 은빛 한 칸, 은빛 두 칸은 금빛 한 칸으로 뭉쳐서 더미가 다시 작아진다
   state.glowBlocks = Math.min(state.glowBlocks, n);                 // 써서 줄면 형광 블록도 줄어든다
-  const old = myStack.mesh;
-  if (n === 0) {
-    if (old) { chain.remove(old); zone.scene.remove(old); }
-    myStack.mesh = null;
-  } else {
-    const mesh = buildNumberblockMesh({ number: n }, { glow: state.glowBlocks > 0, theme: zone.name });
-    mesh.scale.setScalar(STACK_SCALE);
-    if (old) { chain.replace(old, mesh); zone.scene.remove(old); }
-    else {
-      mesh.position.copy(player.position).addScaledVector(camForward(), 1.6); // 카메라 반대편(안쪽)에 생긴다
-      chain.addFirst(mesh);
-    }
-    zone.scene.add(mesh);
-    myStack.mesh = mesh;
-    myStack.pop = 1;
-  }
+  // 블록 더미는 더 이상 주인공 뒤를 따라다니지 않는다 (뒤에는 대표 포켓몬 한 마리만). 블록 수는 HUD 와 도감에서 본다
   refreshHud();
-  // 블록이 뭉치면 뒤에 쌓인 더미가 눈에 띄게 "작아진다" (25개가 은빛 한 칸으로). 왜 작아졌는지 설명이 없으면
-  // 블록을 잃은 것처럼 보이므로 반드시 알려 준다. 그런데 보상 말풍선이 곧바로 덮어써서 설명이 사라지곤 했다
-  // (상자 퀴즈를 풀 때 특히) — 그래서 지금 떠 있는 말이 끝난 뒤에 띄우도록 줄을 세운다.
-  let merged = '';
-  if (chunkNow > chunkBefore) {
-    const golds = Math.floor(n / GOLD_BLOCK);
-    merged = chunkNow % 2 // 홀수 번째 묶음 = 은빛 한 칸이 새로 생긴 순간
-      ? `✨ 블록을 잃은 게 아니야 — ${SILVER_BLOCK}개가 은빛 블록 한 칸으로 뭉쳐서 더미가 작아 보이는 거야! 은빛 한 칸은 ${SILVER_BLOCK}개, 두 칸이 되면 금빛 한 칸(${GOLD_BLOCK})이 돼. 지금 블록은 모두 ${n}개!`
-      : `✨ 은빛 두 칸이 금빛 블록 한 칸으로 뭉쳤어! 금빛 한 칸은 ${GOLD_BLOCK}개${golds > 1 ? `, 금빛 ${golds}칸이면 ${GOLD_BLOCK}씩 ${golds}번이라 ${golds * GOLD_BLOCK}개` : ''}야. 지금 블록은 모두 ${n}개!`;
-    if (!quiet) { sound.fanfare(); confetti.burst(160); queueSay(merged, { sec: 8 }); }
-  }
+  const merged = ''; // 예전에는 25개마다 더미가 은빛 한 칸으로 뭉쳐 작아진다는 안내를 했다 — 더미가 없어져 안내도 없다
   if (gained && mission) bump('blocks', null, gained); // 오늘의 미션 "블록 모으기"
   return merged; // 부르는 쪽이 제 말풍선에 이어 붙이고 싶으면 quiet 로 받아 간다
 }
@@ -1682,7 +1657,7 @@ function quizResult(ok) {
 function tutorial() {
   if (state.tutorial === 0 && player.moved) { state.tutorial = 1; say('잘했어! 이번엔 스페이스(점프 버튼)로 점프해 봐!'); }
   else if (state.tutorial === 1 && player.jumped) { state.tutorial = 2; say('하얀 블록을 찾아서 주워보자! 블록 위로 걸어가면 돼.'); }
-  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록이 네 뒤에 숫자블록으로 쌓였어! B(도감)의 상점에서 블록으로 넘버볼과 물약을 살 수 있어.', { sec: 7 }); }
+  else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록을 주웠어! 왼쪽 위에 블록 수가 보여. B(도감)의 상점에서 블록으로 넘버볼과 물약을 살 수 있어.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 이기면 경험치가 쌓여서 레벨이 오르고, 레벨이 오르면 체력과 공격이 세져.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 나타나면 퀴즈를 풀어 줘. 맞히면 블록을 줘!', { sec: 7 }); }
   else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 꿈의우주의 UFO 정거장에서는 태양과 행성들까지 갈 수 있어. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
@@ -2400,7 +2375,7 @@ function enterDuelStage(d) {
     scene: zone.scene,
     mySpot: monSpot(side), theirSpot: monSpot(other), stageY: 0.32,
     mine: { mesh: myMesh, name: d.mons[side].name }, theirs: { mesh: theirMesh, name: d.mons[other].name },
-    hide: [player.group, myStack.mesh, ...chain.followers.map((f) => f.mesh)], // 주인공과 따라다니는 친구는 무대에서 비킨다
+    hide: [player.group, ...chain.followers.map((f) => f.mesh)], // 주인공과 따라다니는 친구는 무대에서 비킨다
   });
   duelPlay = { id: d.id, side, logSeen: (d.log || []).length };
   duelModalId = d.id;
