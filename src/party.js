@@ -13,13 +13,13 @@ export const FRIEND_BONUS = { hp: 1.3, atk: 1.25 };
 export const friendStats = (hp, atk) => ({ hp: Math.round(hp * FRIEND_BONUS.hp), atk: Math.round(atk * FRIEND_BONUS.atk) });
 export const MEGA_BONUS = { atk: 10, hp: 20 }; // 메가 진화 보너스
 export const MAX_LEVEL = 50;
-export const STARTER_LEVEL = 5;
-/** 다음 레벨까지 필요한 경험치 (Lv5 → 30, Lv15 → 90, Lv30 → 180: 같은 지역 야생을 두세 번 이기면 한 레벨) */
-export const expNeed = (level) => level * 6;
-/** 이기면 받는 경험치: 상대 레벨·등급으로 (같은 지역 야생이면 두세 번에 한 레벨), 보스는 3배. 나보다 센 상대일수록 많이, 약한 상대는 적게 (0.75~2배) */
+export const STARTER_LEVEL = 1; // 시작 포켓몬은 Lv.1 부터 (처음엔 한 번 이기면 한 레벨씩 오른다)
+/** 다음 레벨까지 필요한 경험치 (Lv1 → 16, Lv5 → 40, Lv15 → 100, Lv30 → 190: 처음엔 한 번 이기면 한 레벨, 같은 지역 야생을 두세 번 이기면 한 레벨) */
+export const expNeed = (level) => 10 + level * 6;
+/** 이기면 받는 경험치: 상대 레벨·등급으로 (같은 지역 야생이면 두세 번에 한 레벨), 보스는 3배. 나보다 센 상대일수록 많이, 약한 상대는 적게 (0.75~1.5배) */
 export function expFor(foeLevel, foeGrade = 1, boss = false, myLevel = 5) {
-  const ratio = Math.max(0.75, Math.min(2, foeLevel / Math.max(1, myLevel)));
-  return Math.max(1, Math.round((foeLevel * 4 + foeGrade * 4) * (boss ? 3 : 1) * ratio));
+  const ratio = Math.max(0.75, Math.min(1.5, foeLevel / Math.max(1, myLevel)));
+  return Math.max(1, Math.round((foeLevel * 3 + foeGrade * 3) * (boss ? 3 : 1) * ratio));
 }
 /** 레벨마다 오르는 스탯 (등급이 높을수록 조금 더): 1등급 공격 0.6·체력 1.55, 5등급 0.8·2.15 */
 export function growthOf(sp) { const g = sp.grade || 1; return { atk: 0.55 + 0.05 * g, hp: 1.4 + 0.15 * g }; }
@@ -54,7 +54,7 @@ export class Party {
   /** 옛 저장(레벨이 없던 때)을 불러올 때: 공격력에서 레벨을 어림한다 (공격 4 → Lv5, 20 → Lv30 쯤) */
   migrate(m) {
     if (m.level) return;
-    m.level = Math.max(STARTER_LEVEL, Math.min(MAX_LEVEL, Math.round(STARTER_LEVEL + (m.atk - 4) / 0.65)));
+    m.level = Math.max(1, Math.min(MAX_LEVEL, Math.round(5 + (m.atk - 4) / 0.65))); // 공격 4 → Lv.5, 20 → Lv.30 쯤
     m.exp = 0; m.lv0 = m.level; m.atk0 = m.atk; m.hp0 = m.maxHp;
   }
 
