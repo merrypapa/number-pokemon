@@ -1,5 +1,5 @@
 {
- "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 공격·체력이 그 값 이상이고 wins(대표로 이긴 횟수) 또는 boss(정복한 지역 수)를 채우면 진화. grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤). boss 가 객체({zone,hp,atk,scale,grade})면 그 종은 평소 모습(baseHp/baseAtk, 진화형)과 보스 모습을 함께 가진 하나의 항목: 그 지역에서는 보스 능력치로 나타나고, 보스를 잡으면 내 같은 종이 보스 능력치로 올라간다. modelTilt 는 모델을 뒤로 젖히는 각도(라디안, 필요한 모델에만). evolution.to 가 배열([{id,p}])이면 확률(p, 합이 1)로 그중 하나로 진화한다(이브이 → 샤미드·부스터·쥬피썬더 30%씩, 엄브레온 10%). zones[].wildScale {hp,atk} 은 그 지역 야생의 기본 능력치 배율(심해 1.5).",
+ "_comment": "몬스터 목록. zone 은 사는 지역, type 은 속성(상성은 src/types.js). boss 가 true 면 그 지역의 보스. special/sleeping 은 잠만보처럼 특별한 자리에서 자는 몬스터. baseHp/baseAtk 는 야생일 때(잡으면 그 스탯으로 파티에 들어온다), starterHp/starterAtk 는 시작 포켓몬으로 고를 때의 스탯. zones[].wild 가 있으면 그 지역 야생 포켓몬은 zone 이 아니라 이 종 목록으로 채운다(심해는 물의길의 물 포켓몬이 내려와 산다), zones[].wildOverride 는 그때 덮어쓸 값(심해는 수면이 없으므로 swim 을 끈다). zones[].targetAtk 는 그 지역에서 편하게 이기는 공격력(야생 체력 ≈ 2~3방, 보스 ≈ 7방), blockValue 는 그 지역에서 줍는 블록 1개의 가치. skills 는 공격력(atk)이 그 값 이상이면 쓸 수 있는 기술(power 는 배수). evolution 은 level(그 레벨이 되면 진화, 메가 진화는 mega 개수의 메가블럭도 필요)로 진화. 레벨은 대결에서 이겨 경험치를 쌓아 올린다(src/party.js). grade 는 등급(1 초급~5 전설급, 6 보스급; 넘버볼 잡힐 확률에 쓰인다, src/balls.js). skills[].kind 는 대결 연출 종류(leaf/fire/water/bolt/rock/poison/bug/tackle/punch/scratch/peck/wind/bone/psychic/ghost/sing). unlockedBy 는 그 종(또는 배열이면 그 종 모두)을 잡아야 일반 맵에 나타나는 숨은 포켓몬(메가리자몽X·리자풀·리흑회·보라거북왕·뮤). boss 가 객체({zone,hp,atk,scale,grade})면 그 종은 평소 모습(baseHp/baseAtk, 진화형)과 보스 모습을 함께 가진 하나의 항목: 그 지역에서는 보스 능력치로 나타나고, 보스를 잡으면 내 같은 종이 보스 능력치로 올라간다. modelTilt 는 모델을 뒤로 젖히는 각도(라디안, 필요한 모델에만). evolution.to 가 배열([{id,p}])이면 확률(p, 합이 1)로 그중 하나로 진화한다(이브이 → 샤미드·부스터·쥬피썬더 30%씩, 엄브레온 10%). zones[].wildScale {hp,atk} 은 그 지역 야생의 기본 능력치 배율(심해 1.5).",
  "zones": {
   "forest": {
    "name": "푸른숲",
@@ -374,9 +374,7 @@
    ],
    "evolution": {
     "to": "m01e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 1,
    "starter": true,
@@ -423,9 +421,7 @@
    ],
    "evolution": {
     "to": "m03e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 3,
    "starter": true,
@@ -571,9 +567,7 @@
       "p": 0.1
      }
     ],
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 12,
    "personality": "조용함",
@@ -907,9 +901,7 @@
    ],
    "evolution": {
     "to": "m51e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 12
    },
    "favoriteNumber": 3,
    "personality": "꼬물꼬물",
@@ -952,9 +944,7 @@
    ],
    "evolution": {
     "to": "hb02",
-    "atk": 20,
-    "hp": 30,
-    "boss": 1
+    "level": 20
    },
    "favoriteNumber": 4,
    "evolvedFrom": "m51",
@@ -1013,8 +1003,7 @@
    ],
    "evolution": {
     "to": "x09",
-    "atk": 30,
-    "hp": 45,
+    "level": 30,
     "mega": 1
    },
    "favoriteNumber": 3,
@@ -1185,9 +1174,7 @@
    ],
    "evolution": {
     "to": "m17e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 7,
    "personality": "장난꾸러기",
@@ -1448,9 +1435,7 @@
    ],
    "evolution": {
     "to": "b02",
-    "atk": 12,
-    "hp": 20,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 8,
    "personality": "근성",
@@ -1540,8 +1525,7 @@
    ],
    "evolution": {
     "to": "x02",
-    "atk": 30,
-    "hp": 45,
+    "level": 30,
     "mega": 1
    },
    "favoriteNumber": 10,
@@ -1594,9 +1578,7 @@
    ],
    "evolution": {
     "to": "m02e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 2,
    "starter": true,
@@ -1684,9 +1666,7 @@
    ],
    "evolution": {
     "to": "m25e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 6,
    "personality": "충직함",
@@ -1778,9 +1758,7 @@
    ],
    "evolution": {
     "to": "m05e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 5,
    "starter": true,
@@ -1868,9 +1846,7 @@
    ],
    "evolution": {
     "to": "m21e",
-    "atk": 12,
-    "hp": 20,
-    "wins": 6
+    "level": 20
    },
    "favoriteNumber": 4,
    "personality": "멍~",
@@ -2125,9 +2101,7 @@
    ],
    "evolution": {
     "to": "m40e",
-    "atk": 10,
-    "hp": 15,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 3,
    "personality": "둥실둥실",
@@ -2212,9 +2186,7 @@
    ],
    "evolution": {
     "to": "m24e",
-    "atk": 20,
-    "hp": 90,
-    "wins": 5
+    "level": 16
    },
    "favoriteNumber": 9,
    "personality": "잠꾸러기",
@@ -2360,8 +2332,7 @@
    ],
    "evolution": {
     "to": "x05",
-    "atk": 30,
-    "hp": 45,
+    "level": 30,
     "mega": 1
    },
    "favoriteNumber": 10,
@@ -2748,9 +2719,7 @@
    ],
    "evolution": {
     "to": "m01ee",
-    "atk": 20,
-    "hp": 30,
-    "boss": 1
+    "level": 32
    },
    "favoriteNumber": 1,
    "evolvedFrom": "m01",
@@ -2808,8 +2777,7 @@
    ],
    "evolution": {
     "to": "x01",
-    "atk": 30,
-    "hp": 45,
+    "level": 30,
     "mega": 1
    },
    "favoriteNumber": 1,
@@ -2868,9 +2836,7 @@
    ],
    "evolution": {
     "to": "m02ee",
-    "atk": 20,
-    "hp": 30,
-    "boss": 1
+    "level": 32
    },
    "favoriteNumber": 2,
    "evolvedFrom": "m02",
@@ -2927,10 +2893,9 @@
    ],
    "evolution": {
     "to": "x03",
+    "level": 30,
     "altTo": "x06",
     "altChance": 0.35,
-    "atk": 30,
-    "hp": 45,
     "mega": 1
    },
    "favoriteNumber": 2,
@@ -3046,9 +3011,7 @@
    ],
    "evolution": {
     "to": "m05ee",
-    "atk": 20,
-    "hp": 30,
-    "boss": 1
+    "level": 32
    },
    "favoriteNumber": 5,
    "evolvedFrom": "m05",
@@ -3104,8 +3067,7 @@
    ],
    "evolution": {
     "to": "x04",
-    "atk": 30,
-    "hp": 45,
+    "level": 30,
     "mega": 1
    },
    "favoriteNumber": 5,
@@ -4180,9 +4142,7 @@
       "p": 1
      }
     ],
-    "atk": 15,
-    "hp": 50,
-    "wins": 4
+    "level": 14
    },
    "favoriteNumber": 12,
    "personality": "졸림",
