@@ -42,13 +42,14 @@ export /** 볼을 다른 것보다 위에 그린다 (상대가 볼 위로 겹쳐
  *  예전엔 깊이 검사를 껐는데(depthTest=false) 그러면 볼 자기 자신의 앞뒤도 뒤섞여 뒷면·단추·띠가 겹쳐 보여 그래픽이 깨졌다.
  *  지금은 깊이 검사는 켠 채로, 볼의 첫 조각을 그리기 직전에 깊이 버퍼만 비운다(clearDepth) → 볼은 다른 것 위에 그려지고 볼 안의 앞뒤는 맞는다 */
 const UP = new THREE.Vector3(0, 1, 0);
-/** 점 p 에서 선분 a-b 까지의 거리 */
-const _seg = new THREE.Vector3(), _ap = new THREE.Vector3(), _cl = new THREE.Vector3();
+/** 점 p 에서 선분 a-b 까지의 거리 (높이는 무시하고 땅 위 평면에서 — 카메라가 높아도 그 아래 선 나무·바위를 가리는 것으로 본다) */
+const _seg = new THREE.Vector3(), _ap = new THREE.Vector3(), _cl = new THREE.Vector3(), _a2 = new THREE.Vector3(), _b2 = new THREE.Vector3(), _p2 = new THREE.Vector3();
 function distToSegment(p, a, b) {
-  _seg.subVectors(b, a);
+  _a2.set(a.x, 0, a.z); _b2.set(b.x, 0, b.z); _p2.set(p.x, 0, p.z);
+  _seg.subVectors(_b2, _a2);
   const len2 = _seg.lengthSq() || 1;
-  const t = Math.max(0, Math.min(1, _ap.subVectors(p, a).dot(_seg) / len2));
-  return _cl.copy(a).addScaledVector(_seg, t).distanceTo(p);
+  const t = Math.max(0, Math.min(1, _ap.subVectors(_p2, _a2).dot(_seg) / len2));
+  return _cl.copy(_a2).addScaledVector(_seg, t).distanceTo(_p2);
 }
 // 나무·바위·수풀은 한 덩어리 InstancedMesh 라 o.visible 로는 한 그루만 숨길 수 없다.
 // 그래서 시야를 가리는 그루만 크기를 0 으로 눌러 두었다가 대결이 끝나면 되돌린다.
@@ -254,7 +255,7 @@ export class Battle {
     const dir = new THREE.Vector3(m.x - p.x, 0, m.z - p.z);
     if (dir.lengthSq() < 0.01) dir.set(0, 0, -1);
     dir.normalize();
-    let dist = 5.2 + (creature.data.scale || 1) * 0.8;
+    let dist = 4.6 + (creature.data.scale || 1) * 0.8;
     // 상대가 나무·바위·벽 속에 서면 화면에서 가려진다. 막히면 옆으로 조금씩 돌려(그다음엔 가까이) 빈 자리를 찾는다.
     const clear = (x, z) => !insideObstacle(x, z, 0.9 + (creature.data.scale || 1) * 0.35) && !isBlocked(x, z, player.position.y);
     const spun = new THREE.Vector3();
@@ -276,20 +277,22 @@ export class Battle {
     this.dir = dir;
     const right = new THREE.Vector3(dir.z, 0, -dir.x);
     this.right = right;
-    // 주인공 시점(낮은 눈높이)에서 상대를 마주 본다. 주인공과 (대표가 아닌) 뒤따르던 친구들은 대결 동안 숨긴다.
-    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -0.7);
-    this.camPos.y = p.y + 1.35;
-    // 상대의 발밑 근처를 보면 상대 몸이 화면 위쪽 절반에 잡혀 아래 대결 패널에 가리지 않는다 (큰 보스도)
-    this.camLook = new THREE.Vector3(this.stageTo.x, this.stageTo.y + 0.15, this.stageTo.z);
-    // 내 포켓몬은 화면 왼쪽 아래(가로 9%, 세로 72% 지점)에 발을 딛고 서서 상대를 본다.
+    // 카메라는 주인공 자리 뒤 오른쪽 위에서 두 포켓몬을 함께 내려다본다 (주인공 눈높이가 아니라 두 포켓몬 중심 — 배 위·탈것 안·좁은 곳에서도
+    // 무대가 가려지지 않는다). 주인공과 (대표가 아닌) 뒤따르던 친구들은 대결 동안 숨긴다.
+    this.camPos = new THREE.Vector3().copy(p).addScaledVector(dir, -3.0).addScaledVector(right, 1.4);
+    this.camPos.y = p.y + 3.0;
+    // 상대보다 조금 앞(주인공 쪽)을 보면 상대는 화면 가운데 위쪽에 잡혀 아래 대결 패널에 가리지 않는다 (큰 보스도)
+    this.camLook = new THREE.Vector3().copy(this.stageTo).addScaledVector(dir, -1.6);
+    this.camLook.y = this.stageTo.y + 0.4;
+    // 내 포켓몬은 화면 왼쪽 아래(가로 15%, 세로 68% 지점)에 발을 딛고 서서 상대를 본다.
     // 대결 카메라로 그 화면 좌표를 지면까지 되쏘아 자리를 정하므로 화면 비율이 달라도 패널에 가리지 않는다.
     const mine = member.mesh;
     this.mineFrom = mine.position.clone();
     const cam = this.camera.clone();
     cam.position.copy(this.camPos); cam.lookAt(this.camLook); cam.updateMatrixWorld();
-    const ray = new THREE.Vector3(-0.78, -0.4, 0.5).unproject(cam).sub(this.camPos).normalize();
-    const tGround = ray.y < -0.02 ? (p.y - this.camPos.y) / ray.y : 4;
-    this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(2, Math.min(6, tGround)));
+    const ray = new THREE.Vector3(-0.7, -0.36, 0.5).unproject(cam).sub(this.camPos).normalize();
+    const tGround = ray.y < -0.02 ? (this.groundY(p.x, p.z) - this.camPos.y) / ray.y : 5; // 배 위(갑판)에서도 내 포켓몬은 수면에 선다
+    this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(3.5, Math.min(7, tGround)));
     this.mineTo.y = this.groundY(this.mineTo.x, this.mineTo.z);
     this.mineScale = partyScale(this.party.species(member)); // 내 포켓몬은 메가라도 1.6 까지
     // 둘이 서로 마주 본다: 내 포켓몬은 상대 자리를, 상대는 내 포켓몬 자리를 향한다
@@ -320,7 +323,7 @@ export class Battle {
     this.hiddenInstances = [];
     if (decor) {
       const a = this.camPos, b = this.stageTo;
-      const segs = [[a, b], [a, this.mineTo]];
+      const segs = [[a, b], [a, this.mineTo], [a, a]]; // 카메라→상대, 카메라→내 포켓몬, 그리고 카메라 바로 곁(나무 우듬지가 렌즈를 덮지 않게)
       for (const o of decor.children) {
         if (!o.visible) continue;
         if (o.isInstancedMesh) { hideBlockingInstances(o, segs, this.hiddenInstances); continue; } // 나무 한 그루만 골라 눌러 둔다
