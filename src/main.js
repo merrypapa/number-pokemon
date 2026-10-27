@@ -2297,7 +2297,7 @@ function presenceTick(dt) {
   if (presence.t <= 0) {
     presence.t = player.moving ? 0.1 : 0.3; // 움직일 때는 초당 10번 (친구 화면에서 끊기지 않게), 가만히 있으면 0.3초
     const p = player.position;
-    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, e: presence.emote, et: presence.emoteAt };
+    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, b: sailing ? 1 : 0, e: presence.emote, et: presence.emoteAt }; // b: 배를 타는 중 (친구 화면에서 배 위에 보이게)
     const L = presence.last;
     const changed = !L || L.zone !== d.zone || Math.hypot(L.x - d.x, L.z - d.z) > 0.05 || Math.abs(L.y - d.y) > 0.05 || L.f !== d.f || L.m !== d.m || L.et !== d.et || L.l !== d.l || Math.abs(L.vx - d.vx) > 0.2 || Math.abs(L.vz - d.vz) > 0.2;
     if (changed || presence.heart > 5) { presence.last = d; presence.heart = 0; cloud.setPresence(d).catch((e) => console.warn('[presence]', e)); } // 5초마다는 그대로라도 한 번 (살아 있다는 표시)
@@ -2905,7 +2905,7 @@ function frame() {
         say(c.rocketOf ? `${josa(c.rocketOf.name, '이가')} 세뇌한 ${c.data.name}! 머리 위 붉은 ${josa(String(hp), '을를')} 0으로 깎으면 친구로 되돌아와!` : c.isBoss ? `${zone.label}의 보스 ${c.data.name}이다! 체력이 ${hp}이나 돼! 공격력은 ${c.data.baseAtk}!` : `${josa(c.data.name, '이가')} 나타났다! 체력 ${hp}, 공격력 ${c.data.baseAtk}!`, { sec: c.rocketOf ? 5 : 3 });
         battle.start({
           creature: c, player, scene: zone.scene, member: L, onWater: !!c.swim,
-          hideMeshes: chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), decor: zone.world.decor,
+          hideMeshes: [...chain.followers.filter((f) => !f.isLeader).map((f) => f.mesh), ...(sailing && boatHere() ? [boatHere().mesh, sailorNpc()?.mesh].filter(Boolean) : [])], decor: zone.world.decor, // 배 위에서는 배와 루피도 잠시 숨긴다 (배가 화면을 다 가린다)
           onCaught: () => {
             const L = battle.member; // 대결 중 교체했을 수 있다
             c.becomeFriend();
@@ -3041,7 +3041,7 @@ function frame() {
       particles.stars(zone.scene, pp.clone().add(new THREE.Vector3(rand(-0.4, 0.4), 0.2, rand(-0.4, 0.4))), 1, 0xdff6ff, 0.3);
     }
     if (!sailing) chain.update(dt); // 사진 중에도 돌린다 (모델 등장·걷기 애니메이션이 여기서 돈다). 포즈는 그 뒤 photo.update 가 다시 잡는다
-    else for (const f of chain.followers) f.mesh.visible = false; // 대결이 끝나 돌아와도 물 위를 걷지 않게
+    else for (const f of chain.followers) if (!(battle.active && f.isLeader)) f.mesh.visible = false; // 대결이 끝나 돌아와도 물 위를 걷지 않게 (대결 중인 대표는 수면 무대에 선다)
     // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
     for (const f of chain.followers) {
       const occluding = f.mesh.position.distanceTo(camera.position) < pp.distanceTo(camera.position) - 0.3 && f.mesh.position.distanceTo(pp) < 3.5;

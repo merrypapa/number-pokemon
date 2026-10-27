@@ -2,10 +2,12 @@
 // 내 위치(지역·x·z·y·바라보는 방향·대표 포켓몬·움직이는 중인지·감정 표현)를 Firebase Realtime Database 의 presence/{uid} 에 0.3초마다 올리고
 // (main.js), 친구들의 presence 를 구독해서 같은 지역에 있는 친구를 이 모듈이 "유령 지우"(반투명 아님, 이름표 달린 지우 모델)로 그린다.
 // 서로 부딪히거나 싸우지 않고, 감정 표현(👋 🎉 😆 ❤️)만 머리 위에 잠깐 뜬다. 20초 넘게 소식이 없으면 사라진다.
+// 친구가 배를 타는 중(b)이면 친구 밑에 같은 모험선을 그려서 배 위에 선 것으로 보인다 (대표 포켓몬은 그동안 숨긴다).
 import * as THREE from 'three';
 import { swapDraftWithModel, tickModel } from './models.js';
 import { PLAYER_MODEL, PLAYER_HEIGHT } from './player.js';
-import { makePillSprite, terrainHeight } from './world.js';
+import { makePillSprite, terrainHeight, waterLevel } from './world.js';
+import { buildShip } from './boat.js';
 import { lerpAngle } from './util.js';
 import { buildDraftMesh, partyScale } from './creatures.js';
 
@@ -37,7 +39,7 @@ export function makeEmoteSprite(emoji) {
 
 export class Ghosts {
   constructor(speciesById = {}) { this.speciesById = speciesById; this.map = new Map(); this.scene = null; this.zoneName = null; this.seen = new Set(); this.onAppear = () => {}; }
-  removeGhost(g) { g.mesh.parent?.remove(g.mesh); g.pet?.parent?.remove(g.pet); }
+  removeGhost(g) { g.mesh.parent?.remove(g.mesh); g.pet?.parent?.remove(g.pet); g.boat?.group.parent?.remove(g.boat.group); }
   /** 지역이 바뀌면 이전 지역의 유령을 모두 치운다 */
   setZone(scene, zoneName) {
     for (const g of this.map.values()) this.removeGhost(g);
@@ -66,6 +68,7 @@ export class Ghosts {
       g.vx = p.vx || 0; g.vz = p.vz || 0;
       g.facing = p.f || 0;
       g.moving = !!p.m;
+      g.sailing = !!p.b;
       if ((p.l || null) !== (g.leaderId || null)) { // 친구의 대표 포켓몬이 뒤를 따라온다 (바뀌면 새로)
         g.pet?.parent?.remove(g.pet); g.pet = null; g.leaderId = p.l || null;
         const sp = p.l ? this.speciesById[p.l] : null;
@@ -87,7 +90,16 @@ export class Ghosts {
       m.position.y += (Math.max(ground, g.target.y) - m.position.y) * k;
       m.rotation.y = lerpAngle(m.rotation.y, g.facing, 0.3);
       tickModel(m, dt, g.moving ? 'walk' : 'idle');
-      if (g.pet) { // 대표 포켓몬: 친구 뒤 1.6m 를 따라온다
+      if (g.sailing) { // 배를 타는 중: 친구 밑에 모험선을 그린다 (내 배와 같은 규칙: 수면 위, 뱃머리가 가는 방향)
+        if (!g.boat) { g.boat = buildShip(); this.scene.add(g.boat.group); }
+        const b = g.boat.group, surface = waterLevel() ?? 0;
+        b.position.set(m.position.x, surface + Math.sin(now / 625) * 0.1, m.position.z);
+        b.rotation.y = m.rotation.y - Math.PI / 2;
+        b.rotation.z = Math.sin(now / 770) * 0.05;
+        g.boat.animate(now / 1000, true);
+        if (g.pet) g.pet.visible = false; // 물 위를 걸을 수는 없으니 대표는 쉰다
+      } else if (g.boat) { this.scene.remove(g.boat.group); g.boat = null; if (g.pet) g.pet.visible = true; }
+      if (g.pet && !g.sailing) { // 대표 포켓몬: 친구 뒤 1.6m 를 따라온다
         const pet = g.pet, back = 1.6;
         const tx = m.position.x - Math.sin(g.facing) * back, tz = m.position.z - Math.cos(g.facing) * back;
         const kp = 1 - Math.exp(-dt * 6);
