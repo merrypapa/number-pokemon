@@ -516,7 +516,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -1870,7 +1870,7 @@ function buildSaveData() {
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
-    balls: { ...state.balls }, rockets: { ...state.rockets },
+    balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
     tower: { ...state.tower },
@@ -2619,6 +2619,7 @@ function applySave(d) {
   state.items = { ...emptyItems(), ...(d.items || {}) };
   state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1) };
   state.rockets = { ...(d.rockets || {}) };
+  state.released = { ...(d.released || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
@@ -2971,12 +2972,15 @@ function frame() {
             c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
             const winNote = giveExp(L, c); // 경험치 → 레벨업 (잡을 때와 같다)
-            const reward = winReward(c);
+            const again = !!state.released[c.data.id]; // 같은 종을 전에도 풀어준 적이 있으면 블록은 없다 (같은 포켓몬을 풀어주기만 되풀이해서 블록을 모으지 않게). 경험치는 받는다
+            state.released[c.data.id] = true;
+            const reward = again ? 0 : winReward(c);
+            const blockNote = again ? `전에 한 번 풀어줬던 포켓몬이라 블록은 없어.` : `블록 ${reward}개 획득!`;
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
-            if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
-            else if (c.isBoss && c.data.floorBoss) { const fl = c.towerFloor || 0; state.tower.best = Math.max(state.tower.best, fl); zone.world.refreshPads?.(state.tower.best); say(`🗼 ${fl}층 문지기 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} 기록석이 켜졌어!`, { sec: 7 }); }
-            else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
-            else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! ${blockNote}${winNote}`, { sec: 6 });
+            else if (c.isBoss && c.data.floorBoss) { const fl = c.towerFloor || 0; state.tower.best = Math.max(state.tower.best, fl); zone.world.refreshPads?.(state.tower.best); say(`🗼 ${fl}층 문지기 ${josa(c.data.name, '을를')} 풀어줬어. ${blockNote}${winNote} 기록석이 켜졌어!`, { sec: 7 }); }
+            else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. ${blockNote}${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
+            else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 ${blockNote}${winNote}`, { sec: 6 });
             refreshHud();
             beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 붉은 숫자가 깨진 것이니 대원은 항복한다
             autosave();
