@@ -1067,7 +1067,7 @@ export class Battle {
     this.particles.stars(this.scene, this.targetPoint(), 20, 0xffd93d, 0.5);
     this.sound.fanfare();
     this.showBanner('풀어줬다!');
-    this.msgEl.textContent = `${josa(c.data.name, '이가')} 제 숫자 ${josa(String(c.data.favoriteNumber), '을를')} 되찾고 돌아갔어! 넘버볼은 안 썼고, 이긴 보상은 그대로 받아.`;
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} 제 숫자 ${josa(String(c.data.favoriteNumber), '을를')} 되찾고 돌아갔어! 넘버볼은 안 썼고, 이긴 보상은 그대로 받아. (같은 포켓몬을 또 풀어주면 블록은 없어)`;
     this.runBtn.textContent = '계속하기 ▶';
     this.runBtn.classList.add('primary');
     this.render();

@@ -217,18 +217,24 @@ function placeGrunt(z) {
   const g = GRUNTS[z.name];
   if (!g) return;
   const clear = (x, zz) => Math.abs(x) < z.terrain.size / 2 - 4 && Math.abs(zz) < z.terrain.size / 2 - 4 && !inHole(x, zz) && !isBlocked(x, zz) && !insideObstacle(x, zz, 1.4);
+  // 발밑 둘레(반지름 0.6m)의 땅 높이들: 비탈이면 발이 땅에 묻혀 보이니 평평한 자리를 고르고, 서는 높이는 그중 가장 높은 땅으로
+  const feet = (x, zz) => [0, 1, 2, 3, 4, 5].map((i) => terrainHeight(x + Math.cos(i * Math.PI / 3) * 0.6, zz + Math.sin(i * Math.PI / 3) * 0.6)).concat(terrainHeight(x, zz));
+  const flat = (x, zz) => { const h = feet(x, zz); return Math.max(...h) - Math.min(...h) < 0.12; };
   let at = null;
-  for (const r of [0, 3, 6, 9, 13, 18, 24, 32]) {
-    for (let k = 0; k < (r ? 16 : 1); k++) {
-      const a = (k / 16) * Math.PI * 2;
-      const x = g.at.x + Math.cos(a) * r, zz = g.at.z + Math.sin(a) * r;
-      if (clear(x, zz)) { at = { x, z: zz }; break; }
+  for (const needFlat of [true, false]) { // 평평한 빈자리를 먼저 찾고, 없으면 비탈이라도 빈자리
+    for (const r of [0, 3, 6, 9, 13, 18, 24, 32]) {
+      for (let k = 0; k < (r ? 16 : 1); k++) {
+        const a = (k / 16) * Math.PI * 2;
+        const x = g.at.x + Math.cos(a) * r, zz = g.at.z + Math.sin(a) * r;
+        if (clear(x, zz) && (!needFlat || flat(x, zz))) { at = { x, z: zz }; break; }
+      }
+      if (at) break;
     }
     if (at) break;
   }
   if (!at) { console.warn('[rocket] 대원이 설 자리를 못 찾았어:', z.name); return; }
   const mesh = buildGruntMesh(g);
-  mesh.position.set(at.x, terrainHeight(at.x, at.z), at.z);
+  mesh.position.set(at.x, Math.max(...feet(at.x, at.z)), at.z);
   const home = z.world.spawn || { x: 0, z: 0 };
   mesh.rotation.y = Math.atan2(home.x - at.x, home.z - at.z); // 지우가 오는 쪽(시작 지점)을 본다
   mesh.userData.radius = 0.9; // 대결 중 시야를 가릴 때만 잠깐 숨기는 크기 (나무·바위와 같은 규칙, src/battle.js)
@@ -510,7 +516,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -1864,7 +1870,7 @@ function buildSaveData() {
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
-    balls: { ...state.balls }, rockets: { ...state.rockets },
+    balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
     tower: { ...state.tower },
@@ -2613,6 +2619,7 @@ function applySave(d) {
   state.items = { ...emptyItems(), ...(d.items || {}) };
   state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1) };
   state.rockets = { ...(d.rockets || {}) };
+  state.released = { ...(d.released || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
@@ -2751,7 +2758,7 @@ function frame() {
       }
     } else if (zone.name === 'cave' && zone.world.towerGate && near(zone.world.towerGate, 2.4)) { // 지하동굴 서쪽 벽의 동굴탑 문
       moved = true;
-      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 벽을 따라 도는 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 94층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
+      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 오른쪽(동쪽) 벽의 금빛 띠가 둘린 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 94층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
     } else if (zone.name === 'tower' && zone.world.exitGate && player.position.y < 1 && near(zone.world.exitGate, 2.2)) { // 동굴탑 바닥의 출구 → 지하동굴
       moved = true;
       const dest = getZone('cave'); switchZone('cave', dest.world.arrivals?.tower || dest.world.spawn, { text: '지하동굴로 나왔어!', sec: 4 });
@@ -2965,12 +2972,15 @@ function frame() {
             c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
             party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
             const winNote = giveExp(L, c); // 경험치 → 레벨업 (잡을 때와 같다)
-            const reward = winReward(c);
+            const again = !!state.released[c.data.id]; // 같은 종을 전에도 풀어준 적이 있으면 블록은 없다 (같은 포켓몬을 풀어주기만 되풀이해서 블록을 모으지 않게). 경험치는 받는다
+            state.released[c.data.id] = true;
+            const reward = again ? 0 : winReward(c);
+            const blockNote = again ? `전에 한 번 풀어줬던 포켓몬이라 블록은 없어.` : `블록 ${reward}개 획득!`;
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
-            if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
-            else if (c.isBoss && c.data.floorBoss) { const fl = c.towerFloor || 0; state.tower.best = Math.max(state.tower.best, fl); zone.world.refreshPads?.(state.tower.best); say(`🗼 ${fl}층 문지기 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} 기록석이 켜졌어!`, { sec: 7 }); }
-            else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. 블록 ${reward}개 획득!${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
-            else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 블록 ${reward}개 획득!${winNote}`, { sec: 6 });
+            if (c.rocketOf) say(`${josa(c.data.name, '이가')} 붉은 숫자를 떨치고 돌아갔어! ${blockNote}${winNote}`, { sec: 6 });
+            else if (c.isBoss && c.data.floorBoss) { const fl = c.towerFloor || 0; state.tower.best = Math.max(state.tower.best, fl); zone.world.refreshPads?.(state.tower.best); say(`🗼 ${fl}층 문지기 ${josa(c.data.name, '을를')} 풀어줬어. ${blockNote}${winNote} 기록석이 켜졌어!`, { sec: 7 }); }
+            else if (c.isBoss) say(`보스 ${josa(c.data.name, '을를')} 풀어줬어. ${blockNote}${winNote} (${zone.label}을 정복하려면 넘버볼로 잡아야 해)`, { sec: 7 });
+            else say(`${josa(c.data.name, '을를')} 풀어줬어. 넘버볼은 안 쓰고 ${blockNote}${winNote}`, { sec: 6 });
             refreshHud();
             beatGrunt(c, true); // 넘버로켓단 대원이 내보낸 포켓몬이었다면 붉은 숫자가 깨진 것이니 대원은 항복한다
             autosave();
