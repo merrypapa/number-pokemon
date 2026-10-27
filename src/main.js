@@ -217,18 +217,24 @@ function placeGrunt(z) {
   const g = GRUNTS[z.name];
   if (!g) return;
   const clear = (x, zz) => Math.abs(x) < z.terrain.size / 2 - 4 && Math.abs(zz) < z.terrain.size / 2 - 4 && !inHole(x, zz) && !isBlocked(x, zz) && !insideObstacle(x, zz, 1.4);
+  // 발밑 둘레(반지름 0.6m)의 땅 높이들: 비탈이면 발이 땅에 묻혀 보이니 평평한 자리를 고르고, 서는 높이는 그중 가장 높은 땅으로
+  const feet = (x, zz) => [0, 1, 2, 3, 4, 5].map((i) => terrainHeight(x + Math.cos(i * Math.PI / 3) * 0.6, zz + Math.sin(i * Math.PI / 3) * 0.6)).concat(terrainHeight(x, zz));
+  const flat = (x, zz) => { const h = feet(x, zz); return Math.max(...h) - Math.min(...h) < 0.12; };
   let at = null;
-  for (const r of [0, 3, 6, 9, 13, 18, 24, 32]) {
-    for (let k = 0; k < (r ? 16 : 1); k++) {
-      const a = (k / 16) * Math.PI * 2;
-      const x = g.at.x + Math.cos(a) * r, zz = g.at.z + Math.sin(a) * r;
-      if (clear(x, zz)) { at = { x, z: zz }; break; }
+  for (const needFlat of [true, false]) { // 평평한 빈자리를 먼저 찾고, 없으면 비탈이라도 빈자리
+    for (const r of [0, 3, 6, 9, 13, 18, 24, 32]) {
+      for (let k = 0; k < (r ? 16 : 1); k++) {
+        const a = (k / 16) * Math.PI * 2;
+        const x = g.at.x + Math.cos(a) * r, zz = g.at.z + Math.sin(a) * r;
+        if (clear(x, zz) && (!needFlat || flat(x, zz))) { at = { x, z: zz }; break; }
+      }
+      if (at) break;
     }
     if (at) break;
   }
   if (!at) { console.warn('[rocket] 대원이 설 자리를 못 찾았어:', z.name); return; }
   const mesh = buildGruntMesh(g);
-  mesh.position.set(at.x, terrainHeight(at.x, at.z), at.z);
+  mesh.position.set(at.x, Math.max(...feet(at.x, at.z)), at.z);
   const home = z.world.spawn || { x: 0, z: 0 };
   mesh.rotation.y = Math.atan2(home.x - at.x, home.z - at.z); // 지우가 오는 쪽(시작 지점)을 본다
   mesh.userData.radius = 0.9; // 대결 중 시야를 가릴 때만 잠깐 숨기는 크기 (나무·바위와 같은 규칙, src/battle.js)

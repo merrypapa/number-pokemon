@@ -20,7 +20,7 @@ export const ROCKETS_ON = true;
 export const ROCKET_MODELS = ['로사.glb', '로이.glb'];
 
 /** 대원 한 명의 설계
- *  at      : 서 있으면 좋은 자리 (막혀 있으면 main.js 가 근처의 빈자리로 옮긴다)
+ *  at      : 서 있으면 좋은 자리 (막혀 있거나 비탈이면 main.js 가 근처의 평평한 빈자리로 옮긴다 — 비탈에 세우면 발이 땅에 묻혀 보인다)
  *  mon     : 세뇌한 포켓몬 (creatures.json 의 id) / hp·atk: 그 개체의 능력치 (야생보다 세고 보스보다는 약하게)
  *  extra   : 그 지역에 맞게 덮어쓸 값 (심해는 헤엄 끄기 등)
  *  ball    : 이기면 주는 넘버볼 / blocks: 이기면 주는 블록
@@ -123,7 +123,7 @@ export const GRUNTS = {
     ],
   },
   space: {
-    name: '로이', model: '로이.glb', at: { x: 105, z: 6 }, mon: 'm26', hp: 118, atk: 22, ball: 'gold', blocks: 48,
+    name: '로이', model: '로이.glb', at: { x: 16, z: 22 }, mon: 'm26', hp: 118, atk: 22, ball: 'gold', blocks: 48,
     greet: '지구는 연습이었어. 진짜 군대는 저 위 행성에 있다고! …저 위가 몇 개였지?',
     taunt: '고우스트! 붉은 118로 스며들어! 118… 81? 811…?',
     lose: '숫자가 우주로 날아갔어! 하나도 안 남았어! 후퇴!',
