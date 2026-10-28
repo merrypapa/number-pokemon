@@ -294,7 +294,7 @@ export class Battle {
     const tGround = ray.y < -0.02 ? (this.groundY(p.x, p.z) - this.camPos.y) / ray.y : 5; // 배 위(갑판)에서도 내 포켓몬은 수면에 선다
     this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(3.5, Math.min(7, tGround)));
     this.mineTo.y = this.groundY(this.mineTo.x, this.mineTo.z);
-    this.mineScale = partyScale(this.party.species(member)); // 내 포켓몬은 메가라도 1.6 까지
+    this.mineScale = partyScale(this.party.species(member)); // 내 포켓몬은 메가라도 2.4 까지
     // 둘이 서로 마주 본다: 내 포켓몬은 상대 자리를, 상대는 내 포켓몬 자리를 향한다
     this.mineYaw = Math.atan2(this.stageTo.x - this.mineTo.x, this.stageTo.z - this.mineTo.z);
     this.enemyYaw = Math.atan2(this.mineTo.x - this.stageTo.x, this.mineTo.z - this.stageTo.z);

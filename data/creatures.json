@@ -1869,7 +1869,7 @@
    "zone": "deepsea",
    "catchable": true,
    "model": "갸라도스.glb",
-   "scale": 1.8,
+   "scale": 2.2,
    "draftShape": {
     "body": "drop",
     "color": "#3557c9",
