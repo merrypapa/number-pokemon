@@ -8,7 +8,7 @@ import { partyScale } from './creatures.js';
 import { strongAgainst, weakTo } from './types.js';
 import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
 import { ITEMS, canUseItem } from './items.js';
-import { skillLevel } from './party.js';
+import { skillLevel, skillType, skillPP } from './party.js';
 import { View3D } from './view3d.js';
 
 // 대결 장면 (포켓몬 배틀 느낌, 턴제):
@@ -244,6 +244,7 @@ export class Battle {
     this.skill = null;
     this.shakeCam = 0;
     this.switched = false; this.firstMember = member; // 교체하면 대결이 끝날 때 새 포켓몬이 대표가 된다
+    this.pp = new Map(); this.enemyPP = new Map(); // 이번 대결에서 쓴 기술 횟수 (남은 PP = skillPP − 쓴 횟수). 대결마다 새로
     this.switchOpen = false; this.craftOpen = false;
     this.switchEl.classList.add('hidden'); this.craftEl.classList.add('hidden'); this.craftBtn.classList.add('hidden');
     if (creature.hp == null) creature.hp = creature.data.baseHp;
@@ -403,11 +404,15 @@ export class Battle {
     const unlocked = this.party.skills(m);
     this.sel = Math.max(0, Math.min(this.sel, unlocked.length - 1));
     const choosing = this.phase === 'choose';
+    const sp = this.party.species(m), foeType = this.creature.data.type || '노말';
     unlocked.forEach((s, i) => {
       const b = document.createElement('button');
-      b.className = 'skill' + (i === this.sel ? ' sel' : '');
-      b.innerHTML = `<span class="skill-top"><span class="skill-icon">${skillIcon(s)}</span><span class="skill-name">${s.name}</span></span><span class="skill-dmg">⚔ ${this.party.damage(m, s)}</span>`;
-      b.disabled = !choosing;
+      const left = this.ppLeft(m, s), out = left <= 0;
+      const ty = skillType(sp, s), mult = effectiveness(ty, foeType);
+      b.className = 'skill' + (i === this.sel ? ' sel' : '') + (out ? ' out' : '');
+      // 위: 그림 + 이름 (+ 종과 다른 속성이면 속성 꼬리표). 아래: 이 상대에게 줄 피해(상성 포함, 굉장하면 주황) · 남은 횟수
+      b.innerHTML = `<span class="skill-top"><span class="skill-icon">${skillIcon(s)}</span><span class="skill-name">${s.name}</span>${ty !== (sp.type || '노말') ? `<span class="skill-type">${ty}</span>` : ''}</span><span class="skill-dmg${mult > 1 ? ' good' : mult < 1 ? ' bad' : ''}">${out ? '다 썼어' : `⚔ ${this.party.damage(m, s, mult)}${mult > 1 ? ' !!' : mult < 1 ? ' …' : ''}`}</span>${Number.isFinite(skillPP(s)) ? `<span class="skill-pp">${out ? '0' : left}/${skillPP(s)}번</span>` : ''}`;
+      b.disabled = !choosing || out;
       b.onclick = () => { this.sel = i; this.useSkill(i); };
       this.skillsEl.appendChild(b);
     });
@@ -429,6 +434,8 @@ export class Battle {
     if (this.phase !== 'choose') return;
     const skill = this.party.skills(this.member)[i];
     if (!skill) return;
+    if (this.ppLeft(this.member, skill) <= 0) { this.msgEl.textContent = `${skill.name}은 이번 대결에서 다 썼어! 다른 기술을 고르자.`; return; }
+    this.pp.set(`${this.member.uid}:${skill.name}`, (this.pp.get(`${this.member.uid}:${skill.name}`) || 0) + 1);
     this.skill = skill;
     this.phase = 'attack';
     this.phaseStart = this.timer;
@@ -458,7 +465,7 @@ export class Battle {
     const myType = sp.type || '노말', enemyType = c.type || '노말';
     const atkMult = effectiveness(myType, enemyType), defMult = effectiveness(enemyType, myType);
     const word = (m) => (m > 1 ? '<b class="good">굉장해! ×1.5</b>' : m < 1 ? '<b class="bad">별로… ×0.5</b>' : '보통');
-    const skills = this.party.skills(x).map((s) => `${skillIcon(s)} ${s.name} <small>-${this.party.damage(x, s)}</small>`).join(' · ');
+    const skills = this.party.skills(x).map((s) => { const ty = skillType(sp, s), mu = effectiveness(ty, enemyType); return `${skillIcon(s)} ${s.name}${ty !== myType ? `(${ty})` : ''} <small>-${this.party.damage(x, s, mu)}${mu > 1 ? '!!' : mu < 1 ? '…' : ''}</small>`; }).join(' · ');
     this.switchInfoEl.innerHTML = `
       <div class="sw-name">${sp.name} <span class="party-type">${myType}</span></div>
       <div class="sw-stat"><span class="hp">❤ ${x.hp}/${x.maxHp}</span> <span class="atk">⚔ ${x.atk}</span></div>
@@ -577,7 +584,7 @@ export class Battle {
 
   onBoltHit() {
     const c = this.creature;
-    const mult = effectiveness(this.party.type(this.member), c.data.type || '노말');
+    const mult = effectiveness(skillType(this.party.species(this.member), this.skill), c.data.type || '노말'); // 기술의 속성으로 상성을 본다
     const dmg = this.party.damage(this.member, this.skill, mult);
     const hitPos = this.targetPoint();
     c.hp = Math.max(0, c.hp - dmg);
@@ -604,13 +611,16 @@ export class Battle {
     this.render();
   }
 
+  /** 이번 대결에서 이 기술을 더 쓸 수 있는 횟수 */
+  ppLeft(m, s) { return skillPP(s) - (this.pp.get(`${m.uid}:${s.name}`) || 0); }
+
   // ----- 상대의 반격 -----
   /** 상대도 내 포켓몬처럼 레벨에 맞는 기술을 쓴다: 종의 skills 중 상대 레벨(creature.level)로 열린 것 가운데 하나를 고른다.
    *  센 기술일수록 자주 고르지만(가중치 = 위력), 늘 가장 센 것만 쓰진 않아 매번 피해가 조금씩 다르다. 피해 = 공격력 × 기술 위력 × 속성 상성. */
   pickEnemySkill() {
     const c = this.creature, lv = c.level || 5;
     const all = c.data.skills || [];
-    const open = all.filter((sk, i) => i === 0 || lv >= skillLevel(sk));
+    const open = all.filter((sk, i) => (i === 0 || lv >= skillLevel(sk)) && (this.enemyPP.get(sk.name) || 0) < skillPP(sk)); // 상대도 PP 를 쓴다
     if (!open.length) return null;
     const total = open.reduce((a, sk) => a + (sk.power || 1), 0);
     let r = Math.random() * total;
@@ -621,14 +631,15 @@ export class Battle {
   startEnemyTurn(prefix = '') {
     const c = this.creature;
     this.enemySkill = this.pickEnemySkill();
+    if (this.enemySkill) this.enemyPP.set(this.enemySkill.name, (this.enemyPP.get(this.enemySkill.name) || 0) + 1);
     this.msgEl.textContent = `${prefix ? prefix + ' ' : ''}${c.data.name}의 ${this.enemySkill ? `${skillIcon(this.enemySkill)} ${this.enemySkill.name}` : '공격'}!`;
     this.phase = 'enemyWind';
     this.phaseStart = this.timer;
   }
   onEnemyHit() {
     const c = this.creature, m = this.member;
-    const mult = effectiveness(c.data.type || '노말', this.party.type(m));
     const sk = this.enemySkill;
+    const mult = effectiveness(skillType(c.data, sk), this.party.type(m)); // 상대 기술의 속성으로 상성을 본다
     const dmg = Math.max(1, Math.round(c.data.baseAtk * (sk?.power || 1) * mult));
     this.enemyEff = effectWord(mult);
     m.hp = Math.max(0, m.hp - dmg);

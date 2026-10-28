@@ -31,7 +31,7 @@ export function evolveZoneOf(type) { return EVOLVE_ZONE[type] || 'forest'; }
 export const SKILL_ICON = {
   whip: '🌿', leaf: '🍃', bolt: '⚡', bug: '🐛', peck: '🐦', tackle: '💥', scratch: '🐾',
   punch: '👊', rock: '🪨', wind: '🌀', poison: '🧪', fire: '🔥', bone: '🦴', water: '💧',
-  sing: '🎵', psychic: '🔮', ghost: '👻',
+  sing: '🎵', psychic: '🔮', ghost: '👻', sand: '🏜️',
 };
 /** 기술에 어울리는 이모지 (모르는 종류는 별) */
 export function skillIcon(skill) { return SKILL_ICON[skill?.kind] || '✨'; }

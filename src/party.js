@@ -3,7 +3,9 @@ import { evoTargets, pickEvolution } from './creatures.js';
 //  - 레벨: 포켓몬마다 level(1~50)과 exp. 대결에서 이기면(잡든 풀어주든) 경험치를 받고, 다음 레벨 경험치(level × 6)를 채우면 레벨업.
 //          레벨업마다 체력·공격이 종의 성장치만큼 오른다 (등급이 높을수록 조금 더). 블록으로는 키우지 않는다 — 블록은 상점에서 아이템을 산다.
 //  - 스탯: atk(공격력), maxHp(체력), hp(지금 체력). 잡을 때의 스탯(atk0·hp0)과 레벨(lv0)을 기억해 두고, 지금 스탯 = 그때 스탯 + 성장치 × 오른 레벨.
-//  - 기술: 종의 skills 중 레벨 문턱(skillLevel)을 넘은 것만 쓸 수 있다. 피해 = atk × skill.power × 속성 상성.
+//  - 기술: 종의 skills 중 레벨 문턱(skillLevel)을 넘은 것만 쓸 수 있다. 피해 = atk × skill.power × 속성 상성(기술의 속성 skillType 기준).
+//          기술마다 속성이 있다: 보통은 종의 속성, 둘째 기술은 다른 속성(상성 기술 — 약해 보여도 상대에 따라 더 아프다).
+//          센 기술은 한 대결에서 쓸 수 있는 횟수(PP, skillPP)가 적다: 위력 1 은 무제한, 1.25 쯤은 5번, 1.5 쯤은 3번, 1.75 이상은 2번.
 //  - 진화: 종의 evolution.level 에 닿으면 (메가 진화는 메가블럭도 있어야). 진화하면 다음 종이 되고 스탯 보너스를 받는다. 어디서든 할 수 있다.
 //  - 대결이 끝나도 체력은 깎인 채 남는다 (main 의 regenTick 이 3초마다 최대 체력의 1%씩 채운다. 물약·오박사·엄마·침대로 바로). 지면 기절(hp 0)해서 대결에 못 나간다. 오박사·엄마·침대·기운의 열매로 낫는다.
 //  - 레벨은 MAX_LEVEL(50)까지. 50이 되면 경험치를 더 받지 않는다 (gainExp).
@@ -26,6 +28,10 @@ export function expFor(foeLevel, foeGrade = 1, boss = false, myLevel = 5) {
 export function growthOf(sp) { const g = sp.grade || 1; return { atk: 0.55 + 0.05 * g, hp: 1.4 + 0.15 * g }; }
 /** 기술을 배우는 레벨: 종 데이터의 skill.level 이 있으면 그 값, 없으면 예전 공격력 문턱(1·10·20·30)을 레벨(1·9·18·27)로 */
 export function skillLevel(s) { return s.level ?? (s.atk <= 1 ? 1 : Math.round(s.atk * 0.9)); }
+/** 기술의 속성: 기술 데이터의 type 이 있으면 그 값, 없으면 종의 속성 */
+export function skillType(sp, s) { return s?.type || sp?.type || '노말'; }
+/** 한 대결에서 쓸 수 있는 횟수 (Infinity = 무제한). 데이터의 pp 가 있으면 그 값 */
+export function skillPP(s) { if (s?.pp != null) return s.pp; const p = s?.power || 1; return p <= 1 ? Infinity : p < 1.5 ? 5 : p < 1.75 ? 3 : 2; }
 
 export class Party {
   constructor(speciesById) {
