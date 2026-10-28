@@ -603,7 +603,7 @@ function refreshHud() {
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   const L = party.leader;
   if (L) {
-    hudLeader.textContent = `${party.name(L)} Lv.${L.level}${L.hp <= 0 ? ' 😵' : ''}`;
+    hudLeader.textContent = `${party.name(L)} Lv.${L.level} ♥${L.hp}/${L.maxHp}${L.hp <= 0 ? ' 😵' : ''}`;
     const thumb = dex.thumbs(party.species(L))?.color || null; // 대표 포켓몬의 작은 모습
     if (thumb) { hudPokeImg.src = thumb; hudPokeImg.hidden = false; hudPokeIcon.hidden = true; }
     else { hudPokeImg.hidden = true; hudPokeIcon.hidden = false; hudPokeIcon.style.background = party.color(L); }
@@ -2288,6 +2288,17 @@ emoteRow.querySelectorAll('button').forEach((b) => { b.onclick = () => sendEmote
 /** 감정 표현: 내 머리 위에 3초 + 친구들에게 보낸다 */
 function sendEmote(e) { presence.emote = e; presence.emoteAt = Date.now(); presence.myShown = presence.emoteAt; presence.t = 0; sound.click(); }
 /** 매 프레임: 내 위치 올리기(0.3초마다, 움직였을 때) + 친구 유령 맞추기 */
+// ---------- 체력 자연 회복: 대결 밖에서 3초마다 최대 체력의 1% (적어도 1) — 5분쯤이면 가득 (기절한 포켓몬은 안 깨어난다 — 기운의 열매·오박사·엄마·침대로) ----------
+let regenT = 0;
+function regenTick(dt) {
+  if (battle.active || switching) return;
+  regenT += dt;
+  if (regenT < 3) return;
+  regenT = 0;
+  let changed = false;
+  for (const m of party.members) if (m.hp > 0 && m.hp < m.maxHp) { m.hp = Math.min(m.maxHp, m.hp + Math.max(1, Math.round(m.maxHp * 0.01))); changed = true; }
+  if (changed) refreshHud();
+}
 function presenceTick(dt) {
   if (!zone || !player || !cloud.presenceOn) { if (ghosts.count) ghosts.setZone(null, null); emoteRow.hidden = true; return; }
   if (ghosts.zoneName !== zone.name) ghosts.setZone(zone.scene, zone.name);
@@ -2670,6 +2681,7 @@ function frame() {
     return;
   }
   if (saveToastTimer > 0) { saveToastTimer -= dt; if (saveToastTimer <= 0) saveToastEl.classList.add('hidden'); }
+  regenTick(dt); // 체력 자연 회복
   presenceTick(dt); // 같이 놀기: 내 위치 올리기 + 같은 지역 친구 유령 (진화 연출·대결 중에도 친구는 보인다)
   towerTick(); // 동굴탑: 지금 층 근처의 포켓몬만 세운다
 
@@ -2923,7 +2935,7 @@ function frame() {
             if (c.isBoss && !c.data.floorBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
             if (!c.rocketOf && !zone.world.transient) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
-            party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
+            // 이겨도 체력은 그대로 (대결에서 깎인 만큼 남는다). 시간이 지나면 천천히 차고, 물약·오박사·엄마·침대로 바로 낫는다
             const expNote = giveExp(L, c); // 경험치 → 레벨업 (진화 조건)
             const reward = winReward(c);
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
@@ -2970,7 +2982,7 @@ function frame() {
             const L = battle.member;
             c.becomeShy();
             c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
-            party.heal(L);              // 이긴 기쁨으로 대표 체력 회복
+            // 이겨도 체력은 그대로 (위와 같다)
             const winNote = giveExp(L, c); // 경험치 → 레벨업 (잡을 때와 같다)
             const again = !!state.released[c.data.id]; // 같은 종을 전에도 풀어준 적이 있으면 블록은 없다 (같은 포켓몬을 풀어주기만 되풀이해서 블록을 모으지 않게). 경험치는 받는다
             state.released[c.data.id] = true;

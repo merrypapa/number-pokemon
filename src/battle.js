@@ -294,7 +294,7 @@ export class Battle {
     const tGround = ray.y < -0.02 ? (this.groundY(p.x, p.z) - this.camPos.y) / ray.y : 5; // 배 위(갑판)에서도 내 포켓몬은 수면에 선다
     this.mineTo = new THREE.Vector3().copy(this.camPos).addScaledVector(ray, Math.max(3.5, Math.min(7, tGround)));
     this.mineTo.y = this.groundY(this.mineTo.x, this.mineTo.z);
-    this.mineScale = partyScale(this.party.species(member)); // 내 포켓몬은 메가라도 1.6 까지
+    this.mineScale = partyScale(this.party.species(member)); // 내 포켓몬은 메가라도 2.4 까지
     // 둘이 서로 마주 본다: 내 포켓몬은 상대 자리를, 상대는 내 포켓몬 자리를 향한다
     this.mineYaw = Math.atan2(this.stageTo.x - this.mineTo.x, this.stageTo.z - this.mineTo.z);
     this.enemyYaw = Math.atan2(this.mineTo.x - this.stageTo.x, this.mineTo.z - this.stageTo.z);
@@ -506,10 +506,8 @@ export class Battle {
     this.switched = true;
     this.mineFrom = this.mineTo.clone();
     this.particles.stars(this.scene, this.minePoint(), 14, new THREE.Color(this.party.color(x)).getHex(), 0.4);
-    this.msgEl.textContent = `가라, ${this.party.name(x)}! 바꾸는 사이에 ${josa(this.creature.data.name, '이가')} 공격해 온다!`;
     this.sound.throw_();
-    this.phase = 'enemyWind';
-    this.phaseStart = this.timer;
+    this.startEnemyTurn(`가라, ${this.party.name(x)}! 바꾸는 사이에`);
     this.render();
   }
 
@@ -601,18 +599,37 @@ export class Battle {
       // 머리 위에 씌워져 있던 붉은 숫자가 조각나 흩어진다 (넘버로켓단의 가짜 숫자, docs/02_storyline.md)
       this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
     } else {
-      this.phase = 'enemyWind';
-      this.phaseStart = this.timer;
-      this.msgEl.textContent = `${eff ? eff + ' ' : ''}${c.data.name}의 체력이 ${c.hp} 남았어! ${c.data.name}의 공격!`;
+      this.startEnemyTurn(`${eff ? eff + ' ' : ''}${c.data.name}의 체력이 ${c.hp} 남았어!`);
     }
     this.render();
   }
 
   // ----- 상대의 반격 -----
+  /** 상대도 내 포켓몬처럼 레벨에 맞는 기술을 쓴다: 종의 skills 중 상대 레벨(creature.level)로 열린 것 가운데 하나를 고른다.
+   *  센 기술일수록 자주 고르지만(가중치 = 위력), 늘 가장 센 것만 쓰진 않아 매번 피해가 조금씩 다르다. 피해 = 공격력 × 기술 위력 × 속성 상성. */
+  pickEnemySkill() {
+    const c = this.creature, lv = c.level || 5;
+    const all = c.data.skills || [];
+    const open = all.filter((sk, i) => i === 0 || lv >= skillLevel(sk));
+    if (!open.length) return null;
+    const total = open.reduce((a, sk) => a + (sk.power || 1), 0);
+    let r = Math.random() * total;
+    for (const sk of open) { r -= sk.power || 1; if (r <= 0) return sk; }
+    return open[open.length - 1];
+  }
+  /** 상대 차례 시작: 기술을 고르고 "OO의 △△!" 하고 알린 뒤 웅크리기(enemyWind) → 돌진(enemyLunge) → onEnemyHit */
+  startEnemyTurn(prefix = '') {
+    const c = this.creature;
+    this.enemySkill = this.pickEnemySkill();
+    this.msgEl.textContent = `${prefix ? prefix + ' ' : ''}${c.data.name}의 ${this.enemySkill ? `${skillIcon(this.enemySkill)} ${this.enemySkill.name}` : '공격'}!`;
+    this.phase = 'enemyWind';
+    this.phaseStart = this.timer;
+  }
   onEnemyHit() {
     const c = this.creature, m = this.member;
     const mult = effectiveness(c.data.type || '노말', this.party.type(m));
-    const dmg = Math.max(1, Math.round(c.data.baseAtk * mult));
+    const sk = this.enemySkill;
+    const dmg = Math.max(1, Math.round(c.data.baseAtk * (sk?.power || 1) * mult));
     this.enemyEff = effectWord(mult);
     m.hp = Math.max(0, m.hp - dmg);
     const pos = this.minePoint();
@@ -636,7 +653,8 @@ export class Battle {
       this.sound.bounce();
     } else {
       this.phase = 'choose';
-      this.msgEl.textContent = `${this.enemyEff ? this.enemyEff + ' ' : ''}${c.data.name} 체력 ${c.hp}, 내 체력 ${m.hp}. 다음 기술을 고르자!`;
+      const used = this.enemySkill ? `${c.data.name}의 ${this.enemySkill.name}! ` : '';
+      this.msgEl.textContent = `${used}${this.enemyEff ? this.enemyEff + ' ' : ''}${c.data.name} 체력 ${c.hp}, 내 체력 ${m.hp}. 다음 기술을 고르자!`;
     }
     this.render();
   }
@@ -1051,9 +1069,7 @@ export class Battle {
     this.sound.fanfare();
     this.particles.stars(this.scene, this.minePoint(), 14, 0x7ed957, 0.4);
     this.showFloat(`+${healed}`, '#57b947', this.minePoint());
-    this.msgEl.textContent = `${it.emoji} ${it.name}! ${this.party.name(m)}의 체력이 ${m.hp}이 됐어. ${this.creature.data.name}의 공격!`;
-    this.phase = 'enemyWind';
-    this.phaseStart = this.timer;
+    this.startEnemyTurn(`${it.emoji} ${it.name}! ${this.party.name(m)}의 체력이 ${m.hp}이 됐어.`);
     this.render();
   }
   /** 풀어주기: 어질어질한 상대를 볼 없이 놓아준다. 이긴 보상(블록·승수)은 main 의 onReleased 가 준다 */
