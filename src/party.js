@@ -1,6 +1,6 @@
 import { evoTargets, pickEvolution } from './creatures.js';
 // 내 포켓몬(파티). 잡은 몬스터는 여기에 들어오고, 그중 한 마리가 "대표"로 주인공 뒤를 따라다니며 대결에 나간다.
-//  - 레벨: 포켓몬마다 level(1~50)과 exp. 대결에서 이기면(잡든 풀어주든) 경험치를 받고, 다음 레벨 경험치(level × 6)를 채우면 레벨업.
+//  - 레벨: 포켓몬마다 level(1~50)과 exp. 대결에서 이기면(잡든 풀어주든) 경험치를 받고, 다음 레벨 경험치(expNeed: 초반은 싸고 뒤로 갈수록 비싸다)를 채우면 레벨업.
 //          레벨업마다 체력·공격이 종의 성장치만큼 오른다 (등급이 높을수록 조금 더). 블록으로는 키우지 않는다 — 블록은 상점에서 아이템을 산다.
 //  - 스탯: atk(공격력), maxHp(체력), hp(지금 체력). 잡을 때의 스탯(atk0·hp0)과 레벨(lv0)을 기억해 두고, 지금 스탯 = 그때 스탯 + 성장치 × 오른 레벨.
 //  - 기술: 종의 skills 중 레벨 문턱(skillLevel)을 넘은 것만 쓸 수 있다. 피해 = atk × skill.power × 속성 상성(기술의 속성 skillType 기준).
@@ -17,12 +17,15 @@ export const friendStats = (hp, atk) => ({ hp: Math.round(hp * FRIEND_BONUS.hp),
 export const MEGA_BONUS = { atk: 10, hp: 20 }; // 메가 진화 보너스
 export const MAX_LEVEL = 50;
 export const STARTER_LEVEL = 1; // 시작 포켓몬은 Lv.1 부터 (처음엔 한 번 이기면 한 레벨씩 오른다)
-/** 다음 레벨까지 필요한 경험치 (Lv1 → 16, Lv5 → 40, Lv15 → 100, Lv30 → 190: 처음엔 한 번 이기면 한 레벨, 같은 지역 야생을 두세 번 이기면 한 레벨) */
-export const expNeed = (level) => 10 + level * 6;
-/** 이기면 받는 경험치: 상대 레벨·등급으로 (같은 지역 야생이면 두세 번에 한 레벨), 보스는 3배. 나보다 센 상대일수록 많이, 약한 상대는 적게 (0.75~1.5배) */
+/** 다음 레벨까지 필요한 경험치. 초반(Lv.10 까지)은 싸게 해서 빨리 큰다: Lv1 → 12, Lv5 → 28, Lv10 → 48 (푸른숲 야생을 한 번 이기면 한 레벨, 조금 지나면 두 번에 한 레벨),
+ *  그 뒤로는 한 레벨에 7 씩 더: Lv15 → 83, Lv30 → 188, Lv49 → 321 (같은 지역 야생을 두세 번 이기면 한 레벨) */
+export const expNeed = (level) => (level <= 10 ? 8 + level * 4 : 48 + (level - 10) * 7);
+/** 이기면 받는 경험치: 상대 레벨·등급으로 (같은 지역 야생이면 두세 번에 한 레벨), 보스는 3배. 나보다 센 상대일수록 많이, 약한 상대는 적게 (0.75~1.5배).
+ *  초보 보너스: 내 레벨이 10 미만이면 1.5배 — 처음 포켓몬은 푸른숲에서 열 번쯤 이기면 Lv.10 (expNeed 의 싼 초반 곡선과 함께) */
 export function expFor(foeLevel, foeGrade = 1, boss = false, myLevel = 5) {
   const ratio = Math.max(0.75, Math.min(1.5, foeLevel / Math.max(1, myLevel)));
-  return Math.max(1, Math.round((foeLevel * 3 + foeGrade * 3) * (boss ? 3 : 1) * ratio));
+  const rookie = myLevel < 10 ? 1.5 : 1;
+  return Math.max(1, Math.round((foeLevel * 3 + foeGrade * 3) * (boss ? 3 : 1) * ratio * rookie));
 }
 /** 레벨마다 오르는 스탯 (등급이 높을수록 조금 더): 1등급 공격 0.6·체력 1.55, 5등급 0.8·2.15 */
 export function growthOf(sp) { const g = sp.grade || 1; return { atk: 0.55 + 0.05 * g, hp: 1.4 + 0.15 * g }; }
