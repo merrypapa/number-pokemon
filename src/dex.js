@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { ITEMS } from './items.js';
-import { skillLevel, expNeed, MAX_LEVEL } from './party.js';
+import { skillLevel, expNeed, MAX_LEVEL, skillType, skillPP } from './party.js';
 import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
@@ -388,7 +388,8 @@ export class Dex {
     const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
     const skills = (sp.skills || []).map((s) => {
       const locked = rep0 ? rep0.level < skillLevel(s) : false;
-      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}</span>`;
+      const tyTag = skillType(sp, s) !== (sp.type || '노말') ? ` <em class="skill-type">${skillType(sp, s)}</em>` : '', ppTag = Number.isFinite(skillPP(s)) ? ` <i class="skill-pp">${skillPP(s)}번</i>` : '';
+      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name}${tyTag} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${tyTag}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}${ppTag}</span>`;
     }).join('');
     const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;
     const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';

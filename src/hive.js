@@ -6,7 +6,8 @@ import { buildGround, makePortal, makeInstanced, makePillSprite } from './world.
 // 꿀벌집 (160x160). 푸른숲 서남쪽 큰 나무에 매달린 벌집 입구로 들어온다. 벌·풀 포켓몬이 산다.
 // 벌집 안: 육각형 벌집 무늬 바닥, 둘레를 두른 벌집 칸 벽(육각 기둥과 열린 육각 칸), 밀랍 기둥, 빛나는 꿀 웅덩이(끈적해서 못 들어간다),
 // 천장에서 떨어지는 꿀 방울, 날아다니는 꿀벌 떼. 북쪽에는 높은 **벌집 탑**(육각 기둥, 12m)이 있고 그 둘레를 **육각 계단 열한 개**가
-// 나선으로 감아 오른다(한 칸에 1m 씩 높아진다). 걸어서는 못 오르고(ledge 0.6) 점프로 한 칸씩 건너뛰어 꼭대기에 오르면 보스가 있다.
+// 나선으로 감아 오른다(한 칸에 1m 씩 높아진다). 칸과 칸 사이에는 **벌집 다리**(HIVE_BRIDGES, 완만한 비탈)가 놓여 있어 걸어서 올라간다.
+// 바닥→1번 칸, 11번 칸→탑 꼭대기에도 다리. 옆의 🍯 보너스 칸만 점프로 건넌다(ledge 0.6).
 // 남쪽 포탈로 푸른숲에 돌아간다.
 export const HIVE = {
   size: 160,
@@ -49,6 +50,42 @@ export const HIVE_BONUS = [];
     HIVE_BONUS.push({ x: T.x + (dx / d) * ring, z: T.z + (dz / d) * ring, h: st.h + 0.5, r: R, n: `+${n}` });
   }
 }
+/** 벌집 다리: 칸과 칸 사이(그리고 바닥→1번, 11번→탑)를 잇는 완만한 비탈 길 (폭 2m). a·b 는 양 끝 중심, ha·hb 는 양 끝 높이,
+ *  ia·ib 는 양 끝 육각형의 변심거리(그 안은 칸이 맡으니 다리 높이는 칸 가장자리에서 칸 높이와 만난다). */
+export const HIVE_BRIDGES = [];
+/** 육각형(inHex 와 같은 방향) 중심에서 방향 θ(xz 평면, atan2(dz, dx))로 나갔을 때 변까지의 거리 — 다리가 칸 가장자리에서 딱 맞게 만나도록 */
+function hexEdgeDist(theta, R) {
+  const c = Math.max(Math.abs(Math.cos(theta)), Math.abs(Math.cos(theta - Math.PI / 3)), Math.abs(Math.cos(theta + Math.PI / 3)));
+  return (R * Math.sqrt(3) / 2) / Math.max(0.01, c);
+}
+{
+  const T = HIVE.tower, ap = (r) => r * Math.sqrt(3) / 2;
+  const s0 = HIVE_STEPS[0];
+  const out = Math.atan2(s0.z - T.z, s0.x - T.x); // 1번 칸에서 탑 바깥쪽 방향
+  const start = { x: s0.x + Math.cos(out) * (ap(s0.r) + 3.0), z: s0.z + Math.sin(out) * (ap(s0.r) + 3.0) };
+  const link = (ax, az, ha, ra, bx, bz, hb, rb) => { const th = Math.atan2(bz - az, bx - ax); HIVE_BRIDGES.push({ ax, az, bx, bz, ha, hb, ia: ra ? hexEdgeDist(th, ra) : 0, ib: hexEdgeDist(th + Math.PI, rb) }); };
+  link(start.x, start.z, null, 0, s0.x, s0.z, s0.h, s0.r); // ha=null: 바닥 높이
+  for (let i = 1; i < HIVE_STEPS.length; i++) { const a = HIVE_STEPS[i - 1], b = HIVE_STEPS[i]; link(a.x, a.z, a.h, a.r, b.x, b.z, b.h, b.r); }
+  const last = HIVE_STEPS[HIVE_STEPS.length - 1];
+  link(last.x, last.z, last.h, last.r, T.x, T.z, T.h, T.r);
+}
+const BRIDGE_HALF_W = 1.0;
+/** 점이 어느 다리 위에 있으면 그 자리의 다리 높이, 아니면 null */
+function bridgeHeight(x, z, floorY) {
+  for (const b of HIVE_BRIDGES) {
+    const dx = b.bx - b.ax, dz = b.bz - b.az, len = Math.hypot(dx, dz) || 1;
+    const t = ((x - b.ax) * dx + (z - b.az) * dz) / (len * len);
+    if (t < 0 || t > 1) continue;
+    const px = b.ax + dx * t, pz = b.az + dz * t;
+    if (Math.hypot(x - px, z - pz) > BRIDGE_HALF_W) continue;
+    const s = t * len; // 시작 중심에서 간 거리
+    const g0 = b.ia, g1 = len - b.ib; // 틈이 시작·끝나는 거리
+    const u = Math.max(0, Math.min(1, (s - g0) / Math.max(0.01, g1 - g0)));
+    const ha = b.ha ?? floorY;
+    return ha + (b.hb - ha) * u;
+  }
+  return null;
+}
 /** 점이 육각형(CylinderGeometry 6각과 같은 방향: 꼭짓점이 ±z) 안에 있나. R 은 꼭짓점까지의 거리 */
 function inHex(dx, dz, R) {
   const d = Math.max(Math.abs(dx), Math.abs(dx * 0.5 + dz * Math.sqrt(3) / 2), Math.abs(dx * 0.5 - dz * Math.sqrt(3) / 2));
@@ -69,6 +106,8 @@ function hiveHeight(x, z) {
   if (inHex(x - T.x, z - T.z, T.r)) return Math.max(y, T.h);
   for (const s of HIVE_STEPS) if (inHex(x - s.x, z - s.z, s.r)) return Math.max(y, s.h);
   for (const s of HIVE_BONUS) if (inHex(x - s.x, z - s.z, s.r)) return Math.max(y, s.h);
+  const br = bridgeHeight(x, z, y);
+  if (br != null) return Math.max(y, br);
   return y;
 }
 function hiveBlocked(x, z) {
@@ -259,10 +298,32 @@ export function buildHive(scene) {
   }
   decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1.06, 1, 6), new THREE.MeshStandardMaterial({ color: 0xf0b030, roughness: 0.7 }), stepItems, { shadow: true }));
   decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1, 1, 6), new THREE.MeshStandardMaterial({ color: 0xffd86a, emissive: 0xffb300, emissiveIntensity: 0.18 }), capItems));
+  // 벌집 다리: 칸 사이를 잇는 비탈 널빤지 (지형의 HIVE_BRIDGES 와 같은 자리·기울기). 가장자리에 낮은 난간
+  {
+    const plankMat = new THREE.MeshStandardMaterial({ color: 0xd98c1a, roughness: 0.8 });
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x8a5a10, roughness: 0.9 });
+    for (const b of HIVE_BRIDGES) {
+      const dx = b.bx - b.ax, dz = b.bz - b.az, len = Math.hypot(dx, dz);
+      const ux = dx / len, uz = dz / len;
+      const s0 = b.ia, s1 = len - b.ib, span = Math.max(0.5, s1 - s0); // 칸 가장자리 사이(틈)만 그린다. 양 끝은 칸 속으로 0.6m 씩 넣는다
+      const ha = b.ha ?? hiveFloor(b.ax, b.az), hb = b.hb;
+      const mx = b.ax + ux * (s0 + s1) / 2, mz = b.az + uz * (s0 + s1) / 2, my = (ha + hb) / 2;
+      const tilt = Math.atan2(hb - ha, span);
+      const g = new THREE.Group();
+      g.position.set(mx, my - 0.12, mz);
+      g.rotation.y = -Math.atan2(uz, ux); // 다리의 +x 가 진행 방향
+      g.rotation.z = tilt;
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(span, hb - ha) + 1.2, 0.24, BRIDGE_HALF_W * 2), plankMat); plank.castShadow = true; plank.receiveShadow = true;
+      g.add(plank);
+      for (const side of [-1, 1]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(span, hb - ha) + 1.2, 0.3, 0.12), railMat); rail.position.set(0, 0.27, side * (BRIDGE_HALF_W - 0.06)); g.add(rail); }
+      g.userData.noHide = true;
+      decor.add(g);
+    }
+  }
   // 계단 시작 안내판 (첫 칸 앞)
   const s0 = HIVE_STEPS[0];
   const signAt = { x: s0.x + 3.5, z: s0.z + 4.5 };
-  const stepSign = makePillSprite('⬆ 육각 계단을 뛰어서 올라가면 꼭대기에 보스! 🍯 칸에는 블록', { bg: '#ffe08a', fg: '#5a3a08', border: '#d98c1a' }, 0.75);
+  const stepSign = makePillSprite('⬆ 벌집 다리를 따라 걸어 올라가면 꼭대기에 보스! 🍯 칸은 점프로', { bg: '#ffe08a', fg: '#5a3a08', border: '#d98c1a' }, 0.75);
   stepSign.position.set(signAt.x, hiveFloor(signAt.x, signAt.z) + 2.2, signAt.z);
   decor.add(stepSign);
 
@@ -341,7 +402,7 @@ export function buildHive(scene) {
       '주황빛 꿀 웅덩이는 끈적해서 들어갈 수 없어. 천장에서 떨어지는 꿀 방울도 구경해 봐.',
       '넘버로켓단이 여기서 "여럿을 한꺼번에 조종하기"를 연습했대. 대장 독침붕 머리의 붉은 숫자를 깨 주면 벌집이 다시 조용해질 거야.',
       `여기 포켓몬은 벌레·풀 속성이야. 뿔충이는 Lv.12에 딱충이, Lv.20에 독침붕이 돼. 공격 ${c.zone.atkRange}쯤 되면 편하게 이겨. 불 포켓몬이 벌레와 풀에 세!`,
-      c.conquered.hive ? '대장 독침붕을 이겼구나! 이제 벌집도 네 친구들 거야. 어딘가에 메가독침붕이 나타났을지도 몰라!' : `북쪽 벌집 탑 꼭대기에 대장 독침붕이 있어. 육각 계단 열한 개를 폴짝폴짝 뛰어서 올라가야 해. 걸어서는 못 올라가니까 점프 버튼을 써! 체력 ${c.zone.bossHp || 60}, 공격 ${c.zone.targetAtk + 3} 이상이면 도전해 봐.`,
+      c.conquered.hive ? '대장 독침붕을 이겼구나! 이제 벌집도 네 친구들 거야. 어딘가에 메가독침붕이 나타났을지도 몰라!' : `북쪽 벌집 탑 꼭대기에 대장 독침붕이 있어. 육각 계단 열한 개 사이에 벌집 다리가 놓여 있어서 걸어서 올라갈 수 있어. 옆의 🍯 칸은 점프로 건너가 봐! 체력 ${c.zone.bossHp || 60}, 공격 ${c.zone.targetAtk + 3} 이상이면 도전해 봐.`,
       '여기서 숫자블록 친구가 내는 퀴즈는 숫자 문제 대신 꿀벌·꿀·벌집 퀴즈야. 벌집 방은 왜 육각형인지, 꿀은 어떻게 만드는지 잘 들어 두렴!',
       '남쪽 초록 포탈로 나가면 푸른숲 큰 나무 아래야.',
     ] }],
