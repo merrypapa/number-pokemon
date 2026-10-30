@@ -74,7 +74,7 @@ export function buildDraftMesh(c, opts = {}) {
 }
 
 /** 보스 모습이 있는 종의 보스 지역 (boss 가 객체면 그 zone, true 면 사는 지역) */
-/** 진화 대상 목록 [{id,p}] — to 가 문자열이면 하나(p 1), 배열이면 확률대로 (이브이 → 샤미드·부스터·쥬피썬더·엄브레온) */
+/** 진화 대상 목록 [{id,p}] — to 가 문자열이면 하나(p 1), 배열이면 확률대로 (이브이 → 샤미드·부스터·쥬피썬더·블래키) */
 export function evoTargets(e) {
   if (!e) return [];
   if (Array.isArray(e.to)) return e.to.filter((t) => t && t.id);

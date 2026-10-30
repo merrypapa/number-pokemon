@@ -136,7 +136,7 @@ export class Party {
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
   evolve(m) {
     const e = this.species(m).evolution;
-    // 진화 대상이 여럿이면 확률대로 고른다 (이브이 → 샤미드·부스터·쥬피썬더·엄브레온, 리자몽 → 메가리자몽Y 또는 X)
+    // 진화 대상이 여럿이면 확률대로 고른다 (이브이 → 샤미드·부스터·쥬피썬더·블래키, 리자몽 → 메가리자몽Y 또는 X)
     const next = pickEvolution(e, this.speciesById);
     if (e.mega) this.onUseMega(e.mega); // 메가블럭을 쓴다
     m.speciesId = next.id;
