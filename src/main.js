@@ -39,7 +39,7 @@ import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
-import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount } from './goals.js';
+import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, emptyAttend, loadAttend, stampAttend, ATTEND_GIFTS } from './goals.js';
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
@@ -516,7 +516,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend() }; // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -536,6 +536,7 @@ const study = new Study({
   onReward: (n, subject, { homework }) => {
     const merged = n > 0 ? setBlocks(state.blocks + n, { quiet: true }) : null;
     if (homework) confetti.burst(80);
+    bump('study'); // 오늘의 미션 "학교에서 공부하기"
     say(`${subject.emoji} ${subject.name} 공부 끝! 블록 ${n}개를 받았어. 이제 모두 ${state.blocks}개야.${homework ? ' 📒 오늘의 숙제 끝! 오박사님께 말씀드리자.' : ''}${merged ? ' ' + merged : ''}`, { sec: 6 });
     refreshHud();
     autosave();
@@ -548,6 +549,7 @@ const study = new Study({
     if (ball) state.balls.bronze = (state.balls.bronze || 0) + 1;
     if (potion || ball) { confetti.burst(100); sound.fanfare(); }
     say(`💥 상성 퀴즈 ${correct}개 정답! 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 });
+    bump('typequiz'); // 오늘의 미션 "상성 퀴즈 풀기"
     refreshHud(); autosave();
   },
   getSpecies: () => creatureData.creatures.filter((c) => c.catchable && !c.mega && !c.boss && !c.unlockedBy && c.model && (c.grade || 1) <= 3), // 퀴즈에 나오는 포켓몬 (그림이 있는 야생 위주)
@@ -646,7 +648,7 @@ battle.onSuperHit = () => bump('super'); // 대결에서 "효과가 굉장했다
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
   const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
-  const healed = applyItem(it, m); state.items[id]--; refreshHud(); return healed;
+  const healed = applyItem(it, m); state.items[id]--; refreshHud(); if (!it.revive) bump('potion'); return healed; // 오늘의 미션 "물약 쓰기"
 };
 battle.onUseBall = (id) => { if ((state.balls[id] || 0) <= 0) return false; state.balls[id]--; refreshHud(); return true; };
 battle.getBlocks = () => state.blocks;
@@ -848,6 +850,7 @@ function applyZoneEnv() {
   zone.world.setWhirlOpen?.(!!state.conquered[zone.name]); // 물의길 소용돌이: 거북왕을 이겼으면 열린 모습으로 (src/sea.js)
   player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
   zone.world.refreshPads?.(state.tower.best); // 동굴탑 바닥의 워프 패드 (가 본 10층 단위까지)
+  zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   player.gravityScale = zone.world.gravity || 1;
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
   chain.swim = !!zone.world.swim;         // 따라오는 친구들도 함께 떠오른다
@@ -870,6 +873,18 @@ function towerTick() {
   z.towerFloors ||= new Set();
   const cur = floorOfY(player.position.y);
   if (cur > state.tower.best) { state.tower.best = cur; z.world.refreshPads?.(state.tower.best); }
+  if (cur !== z.towerLastFloor) { z.towerLastFloor = cur; if (cur > 1) bump('tower', String(cur)); } // 오늘의 미션 "새 층 오르기" (같은 층은 한 번)
+  if (!battle.active) for (const ch of z.world.chests || []) { // 10층마다 보상 상자: 그 층에 서서 가까이 가면 연다 (한 번만)
+    if (state.tower.chests[ch.n] || Math.abs(player.position.y - ch.y) > 1.5 || Math.hypot(player.position.x - ch.x, player.position.z - ch.z) > 1.6) continue;
+    state.tower.chests[ch.n] = true; z.world.refreshChests?.(state.tower.chests);
+    const blocks = 10 + ch.n, silver = ch.n % 30 === 0;
+    const merged = setBlocks(state.blocks + blocks, { quiet: true });
+    state.items.potion = (state.items.potion || 0) + 1;
+    if (silver) state.balls.silver = (state.balls.silver || 0) + 1;
+    sound.fanfare(); confetti.burst(120); particles.stars(z.scene, new THREE.Vector3(ch.x, ch.y + 1, ch.z), 24, 0xffd93d, 0.5);
+    say(`🎁 ${ch.n}층 보상 상자! 블록 ${blocks}개 + 🧪 물약 1개${silver ? ' + 🥈 실버볼 1개' : ''}를 받았어!${merged ? ' ' + merged : ''}`, { sec: 7 });
+    bump('chest'); refreshHud(); autosave();
+  }
   for (let n = Math.max(1, cur - 1); n <= Math.min(TOWER_TOP, cur + 2); n++) if (!z.towerFloors.has(n)) spawnTowerFloor(z, n);
   for (const c of [...z.creatures]) { // 멀어진 층의 포켓몬은 치운다 (대결 중인 상대는 빼고)
     if (c.towerFloor == null || (c.towerFloor >= cur - 3 && c.towerFloor <= cur + 4) || (battle.active && battle.creature === c)) continue;
@@ -1538,6 +1553,7 @@ function giveExp(L, c) {
   let note = ` 경험치 +${r.amount}!`;
   if (r.to > r.from) {
     sound.fanfare();
+    bump('levelup', null, r.to - r.from); // 오늘의 미션 "레벨업 하기"
     particles.stars(zone.scene, L.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, 0xffd93d, 0.5);
     note += ` ⬆ ${party.name(L)} Lv.${r.to}! (❤ ${L.maxHp} · ⚔ ${L.atk})`;
     if (r.learned.length) note += ` 새 기술 ${josa(r.learned.map((s) => s.name).join('·'), '을를')} 배웠어!`;
@@ -1627,7 +1643,27 @@ function checkWeek(announce = true) {
   if (announce && zone) say(`🏆 새로운 한 주가 시작됐어! ${state.lastWeek ? `지난주엔 ${weekScore(state.lastWk)}점이었어. ` : ''}이번 주 순위에 다시 도전해 보자!`, { sec: 7 });
   return true;
 }
-// ---------- 오늘의 미션 · 스티커 (src/goals.js) ----------
+// ---------- 오늘의 미션 · 스티커 · 출석 (src/goals.js) ----------
+let dayT = 5; // 처음 5초 뒤에 한 번, 그 뒤 30초마다
+function dayTick(dt) {
+  dayT -= dt; if (dayT > 0) return; dayT = 30;
+  if (!zone || switching || !state.name) return;
+  checkDay();
+  checkAttend();
+}
+/** 오늘 처음 들어왔으면 출석 도장 + 선물 */
+function checkAttend() {
+  const r = stampAttend(state.attend);
+  if (!r) return;
+  const g = r.gift;
+  let merged = null;
+  if (g.blocks) merged = setBlocks(state.blocks + g.blocks, { quiet: true });
+  if (g.item) state.items[g.item] = (state.items[g.item] || 0) + g.n;
+  if (g.ball) state.balls[g.ball] = (state.balls[g.ball] || 0) + g.n;
+  sound.fanfare(); confetti.burst(120);
+  queueSay(`📅 출석 도장 ${r.streak}일째! ${r.streak > 1 ? `${r.streak}일 연속이야. ` : ''}오늘 선물: ${g.emoji} ${g.name}${merged ? ' ' + merged : ''} — 도감 🎯 미션 탭에서 도장을 볼 수 있어. 내일도 와!`, { sec: 8 });
+  refreshHud(); checkNewStickers(); autosave();
+}
 /** 하루가 바뀌었으면 오늘의 미션을 새로 뽑는다 */
 function checkDay(announce = true) {
   if (!rollDay(state.goals, state.name)) return false;
@@ -1640,7 +1676,7 @@ function checkNewStickers() {
     caught: state.caught, rescued: state.rescued, blocks: state.blocks,
     bosses: Object.keys(state.conquered).length,
     dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
-    stats: state.goals.stats,
+    stats: state.goals.stats, attendStreak: state.attend.streak, attendTotal: state.attend.total,
   });
   for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
   return got;
@@ -1890,7 +1926,7 @@ function buildSaveData() {
     balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
-    tower: { ...state.tower },
+    tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend },
     returnTo: state.returnTo,
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
@@ -1940,6 +1976,7 @@ function startPhoto() {
     caption: `${state.name} · ${zone.label} · ${today}`,
     onShot: (url) => {
       state.goals.stats.photos++;
+      bump('photo'); // 오늘의 미션 "사진 찍기"
       checkNewStickers();
       autosave();
       if (!url) { say('사진이 잘 안 나왔어… 다시 찍어 보자!', { sec: 4 }); return; }
@@ -2614,7 +2651,12 @@ function renderGoals(el) {
       <span class="stk-how">${escHtml(on ? st.how : '아직 못 받았어')}</span>
     </div>`;
   }).join('');
-  el.innerHTML = `<div class="rank-head">🎯 오늘의 미션 <span class="rank-how">(${escHtml(G.day)} · 날마다 새로 나와요)</span></div>
+  const A = state.attend, idx = A.streak > 0 ? (A.streak - 1) % ATTEND_GIFTS.length : -1;
+  const stamps = ATTEND_GIFTS.map((g, i) => `<div class="att${i <= idx ? ' on' : ''}${i === idx ? ' today' : ''}"><span class="att-day">${i + 1}일</span><span class="att-gift">${g.emoji}</span><span class="att-name">${escHtml(g.name)}</span></div>`).join('');
+  el.innerHTML = `<div class="rank-head">📅 출석 도장 <span class="rank-how">(연속 ${A.streak}일 · 모두 ${A.total}일 · 날마다 처음 들어오면 선물)</span></div>
+    <div class="att-row">${stamps}</div>
+    <div class="rank-how">7일 연속이면 🥈 실버볼! 8일째부터는 다시 1일 선물부터. 하루 건너뛰면 연속이 1일부터 시작해요.</div>
+    <div class="rank-head">🎯 오늘의 미션 <span class="rank-how">(${escHtml(G.day)} · 날마다 새로 나와요)</span></div>
     <div class="goal-rows">${tasks}</div>
     <div class="rank-how">미션 하나를 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)} 1개, 셋을 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 1개를 더 받아요.</div>
     ${allDone(G) ? '<div class="lrn-tip good">🏅 오늘 미션을 다 했어! 내일 새 미션으로 또 만나자.</div>' : ''}
@@ -2645,7 +2687,8 @@ function applySave(d) {
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   state.items = { ...emptyItems(), ...(d.items || {}) };
-  state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1) };
+  state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1), chests: { ...(d.tower?.chests || {}) } };
+  state.attend = loadAttend(d.attend);                          // 출석 도장
   state.rockets = { ...(d.rockets || {}) };
   state.released = { ...(d.released || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
@@ -2698,6 +2741,7 @@ function frame() {
     return;
   }
   if (saveToastTimer > 0) { saveToastTimer -= dt; if (saveToastTimer <= 0) saveToastEl.classList.add('hidden'); }
+  dayTick(dt); // 하루가 바뀌었나 (미션 새로 뽑기 · 출석 도장) — 게임을 켜 둔 채 자정을 넘겨도
   regenTick(dt); // 체력 자연 회복
   presenceTick(dt); // 같이 놀기: 내 위치 올리기 + 같은 지역 친구 유령 (진화 연출·대결 중에도 친구는 보인다)
   towerTick(); // 동굴탑: 지금 층 근처의 포켓몬만 세운다
@@ -2954,6 +2998,7 @@ function frame() {
             if (!c.rocketOf && !zone.world.transient) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
             // 이겨도 체력은 그대로 (대결에서 깎인 만큼 남는다). 시간이 지나면 천천히 차고, 물약·오박사·엄마·침대로 바로 낫는다
             const expNote = giveExp(L, c); // 경험치 → 레벨업 (진화 조건)
+            bump('win'); // 오늘의 미션 "대결 이기기"
             const reward = winReward(c);
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
@@ -3001,6 +3046,7 @@ function frame() {
             c.hp = c.data.baseHp; // 기운을 되찾고 제자리로 (다시 도전할 수 있다)
             // 이겨도 체력은 그대로 (위와 같다)
             const winNote = giveExp(L, c); // 경험치 → 레벨업 (잡을 때와 같다)
+            bump('win'); bump('release'); // 오늘의 미션 "대결 이기기"·"풀어주기"
             const again = !!state.released[c.data.id]; // 같은 종을 전에도 풀어준 적이 있으면 블록은 없다 (같은 포켓몬을 풀어주기만 되풀이해서 블록을 모으지 않게). 경험치는 받는다
             state.released[c.data.id] = true;
             const reward = again ? 0 : winReward(c);

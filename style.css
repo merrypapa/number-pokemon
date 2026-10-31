@@ -956,3 +956,11 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .ty-mon b { font-size: 14px; color: #20232e; } .ty-mon small { font-size: 12px; font-weight: 800; color: #8c4fd0; } .ty-mon.sm b { font-size: 13px; } .ty-mon.sm small { font-size: 11px; }
 .study-big.mons { display: flex; justify-content: center; align-items: center; gap: 14px; font-size: inherit; }
 @media (max-width: 600px) { #btn-lesson { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 54px); } body.touch #btn-lesson { bottom: var(--ctx-bottom); } .ty-mon img, .ty-mon .ty-noimg { width: 70px; height: 70px; } }
+
+/* 출석 도장 (도감 미션 탭) */
+.att-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 6px 0 4px; }
+.att { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff; border: 3px dashed #ddd; border-radius: 14px; padding: 6px 2px; color: #aaa; min-width: 0; }
+.att .att-day { font-size: 11px; font-weight: 900; } .att .att-gift { font-size: 22px; filter: grayscale(1); opacity: .5; } .att .att-name { font-size: 10px; font-weight: 800; text-align: center; word-break: keep-all; line-height: 1.2; }
+.att.on { border-style: solid; border-color: #ffd93d; background: #fff7cc; color: #5a3a08; } .att.on .att-gift { filter: none; opacity: 1; }
+.att.today { border-color: #57b947; box-shadow: 0 0 0 3px rgba(87,185,71,.25); }
+@media (max-width: 600px) { .att-row { gap: 4px; } .att .att-name { display: none; } }

@@ -241,6 +241,26 @@ export function buildTower(scene) {
     pads.push({ n: fl, x: at.x, z: at.z, group: g });
   }
   function refreshPads(best) { for (const p of pads) p.group.visible = best >= p.n; }
+  // 10층마다 층계참 안쪽에 보상 상자 (한 번만 연다: main 의 state.tower.chests). 문지기 옆이라 문지기를 이기지 않아도 가져갈 수 있다
+  const chests = [];
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.5 });
+  {
+    const boxMat = new THREE.MeshStandardMaterial({ color: 0xb8742a, roughness: 0.7 }), lidMat = new THREE.MeshStandardMaterial({ color: 0xd98c1a, roughness: 0.6 });
+    for (const fl of [10, 20, 30, 40, 50, 60, 70, 80, 90]) {
+      const at = landingAt(fl); const cx = at.x - 3.0, cz = at.z - 1.9; // 층계참 안쪽 왼편 (쐐기 안: 각도 -0.3 ~ 0.4)
+      const g = new THREE.Group();
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.8), boxMat); box.position.y = 0.35;
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.3, 0.84), lidMat); lid.position.y = 0.85;
+      const lock = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.1), goldMat); lock.position.set(0, 0.62, 0.43);
+      const lbl = makePillSprite(`🎁 ${fl}층 보상 상자`, { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.7); lbl.position.y = 2.0;
+      g.add(box, lid, lock, lbl); g.position.set(cx, at.y, cz); g.rotation.y = 0.6;
+      g.userData.noHide = true; decor.add(g);
+      chests.push({ n: fl, x: cx, z: cz, y: at.y, group: g, lid, lbl });
+    }
+  }
+  /** 이미 연 상자는 뚜껑이 열린 채 어둡게 (opened: { 층: true }) */
+  function refreshChests(opened = {}) { for (const c of chests) { const o = !!opened[c.n]; c.lid.rotation.x = o ? -1.2 : 0; c.lid.position.z = o ? -0.3 : 0; c.lbl.visible = !o; c.group.children[2].material = o ? boxMatDark : goldMat; } }
+  const boxMatDark = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.9 });
   // 바닥 남쪽 출구 (지하동굴로 나가는 문)
   const exitAt = { x: 0, z: 14.8 };
   {
@@ -259,7 +279,7 @@ export function buildTower(scene) {
   return {
     sun, animate, terrain: TOWER_TERRAIN, decor, spawn: { x: 5, z: 8 }, dark: true, noShrine: true, transient: true, tower: true,
     wildSpots: [], pickupSpots: [[6, -6], [-7, -4]],
-    checkpoints: pads, refreshPads, exitGate: exitAt,
+    checkpoints: pads, refreshPads, chests, refreshChests, exitGate: exitAt,
     skyDoor: skyAt, portal: TOWER.conquered() ? skyAt : null, portalTo: 'cave',
     openSkyDoor: () => { gate.visible = true; },
     npcs: [{ x: keeperAt.x, z: keeperAt.z, mesh: keeper, name: '아이 손오공', warp: true, lines: (c) => [

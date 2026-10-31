@@ -21,6 +21,14 @@ export const MISSIONS = [
   { id: 'zones', emoji: '🗺', need: 2, uniq: true, text: (n) => `다른 지역 ${n}곳 가 보기` },
   { id: 'evolve', emoji: '✨', need: 1, text: (n) => `포켓몬 ${n}마리 진화시키기` },
   { id: 'super', emoji: '💥', need: 3, text: (n) => `상성으로 "효과가 굉장했다!" ${n}번 내기` },
+  { id: 'study', emoji: '🏫', need: 1, text: (n) => `포켓몬 학교에서 공부 ${n}번 하기` },
+  { id: 'typequiz', emoji: '📘', need: 1, text: (n) => `오박사님 상성 퀴즈 ${n}번 풀기` },
+  { id: 'release', emoji: '🕊', need: 2, text: (n) => `포켓몬 ${n}마리 풀어주기` },
+  { id: 'win', emoji: '🏆', need: 3, text: (n) => `대결 ${n}번 이기기` },
+  { id: 'levelup', emoji: '⬆️', need: 2, text: (n) => `포켓몬 레벨업 ${n}번 하기` },
+  { id: 'tower', emoji: '🗼', need: 3, uniq: true, text: (n) => `동굴탑에서 새 층 ${n}개 오르기` },
+  { id: 'photo', emoji: '📸', need: 1, text: (n) => `포켓몬과 사진 ${n}장 찍기` },
+  { id: 'potion', emoji: '🧪', need: 1, text: (n) => `물약 ${n}번 쓰기` },
 ];
 export const MISSION_BY_ID = Object.fromEntries(MISSIONS.map((m) => [m.id, m]));
 export const MISSION_BALL = 'bronze';   // 미션 하나마다
@@ -113,6 +121,8 @@ export const STICKERS = [
   { id: 'duel1', emoji: '⚔️', name: '첫 대결 승리', how: '친구와의 대결에서 이겼어', test: (s) => s.stats.duels >= 1 },
   { id: 'photo1', emoji: '📸', name: '첫 사진', how: '포켓몬과 사진을 찍었어', test: (s) => s.stats.photos >= 1 },
   { id: 'daily1', emoji: '🎯', name: '오늘 완주', how: '하루 미션 셋을 다 했어', test: (s) => s.stats.daily >= 1 },
+  { id: 'attend7', emoji: '📅', name: '일주일 개근', how: '7일 연속 출석했어', test: (s) => (s.attendStreak || 0) >= 7 },
+  { id: 'attend30', emoji: '🗓', name: '한 달 출석', how: '30일 출석했어', test: (s) => (s.attendTotal || 0) >= 30 },
 ];
 export const STICKER_BY_ID = Object.fromEntries(STICKERS.map((s) => [s.id, s]));
 
@@ -128,3 +138,27 @@ export function checkStickers(G, snap) {
   return got;
 }
 export const stickerCount = (G) => Object.keys(G.stickers).length;
+
+// ---------- 출석 도장 ----------
+// 날마다 처음 들어오면 도장 하나. 어제도 왔으면 연속(streak)이 이어지고, 하루 건너뛰면 1부터. 7일 주기로 선물이 커진다.
+export const ATTEND_GIFTS = [
+  { emoji: '🧪', name: '물약 1개', item: 'potion', n: 1 },
+  { emoji: '⚪', name: '브론즈볼 1개', ball: 'bronze', n: 1 },
+  { emoji: '🟦', name: '블록 15개', blocks: 15 },
+  { emoji: '🧴', name: '좋은 물약 1개', item: 'superPotion', n: 1 },
+  { emoji: '⚪', name: '브론즈볼 2개', ball: 'bronze', n: 2 },
+  { emoji: '🍒', name: '기운의 열매 1개', item: 'revive', n: 1 },
+  { emoji: '🥈', name: '실버볼 1개', ball: 'silver', n: 1 },
+];
+export const emptyAttend = () => ({ last: '', streak: 0, total: 0 });
+export function loadAttend(d) { const A = emptyAttend(); if (d && typeof d === 'object') { A.last = typeof d.last === 'string' ? d.last : ''; A.streak = Math.max(0, d.streak | 0); A.total = Math.max(0, d.total | 0); } return A; }
+/** 어제 날짜 키 */
+export function yesterdayKey(d = new Date()) { return dayKey(new Date(d.getTime() - 86400000)); }
+/** 오늘 처음 들어왔으면 도장을 찍고 선물을 돌려준다 (이미 찍었으면 null) */
+export function stampAttend(A) {
+  const today = dayKey();
+  if (A.last === today) return null;
+  A.streak = A.last === yesterdayKey() ? A.streak + 1 : 1;
+  A.total += 1; A.last = today;
+  return { gift: ATTEND_GIFTS[(A.streak - 1) % ATTEND_GIFTS.length], streak: A.streak, total: A.total };
+}
