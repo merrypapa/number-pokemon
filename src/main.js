@@ -14,6 +14,7 @@ import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
 import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerLevelBand, LAND_W } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
+import { pairId, typeBoardHtml, typeSeenCount, TYPE_EMOJI } from './typelesson.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
 import { WarpFx } from './ufo.js';
@@ -39,7 +40,7 @@ import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
-import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount } from './goals.js';
+import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, dayKey } from './goals.js';
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
@@ -516,7 +517,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 }, typeSeen: {} }; // typeSeen: 대결에서 "효과가 굉장했다!"를 낸 상성 짝 ('불>풀' → 날짜, 상성 스티커·수업 화면) // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -541,6 +542,17 @@ const study = new Study({
     autosave();
   },
   onClose: () => { say('자리에서 일어났어. 다시 공부하고 싶으면 ⭐ 내 자리로 와!', { sec: 3 }); },
+  // 상성 수업 퀴즈 보상: 정답마다 블록, 하루 한 번 물약(3개 이상)·브론즈볼(만점)
+  onTypeReward: (correct, { blocks, potion, ball }) => {
+    const merged = blocks > 0 ? setBlocks(state.blocks + blocks, { quiet: true }) : null;
+    if (potion) state.items.potion = (state.items.potion || 0) + 1;
+    if (ball) state.balls.bronze = (state.balls.bronze || 0) + 1;
+    if (potion || ball) { confetti.burst(100); sound.fanfare(); }
+    say(`💥 상성 퀴즈 ${correct}개 정답! 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 });
+    refreshHud(); autosave();
+  },
+  getSpecies: () => creatureData.creatures.filter((c) => c.catchable && !c.mega && (c.grade || 1) <= 3).map((c) => ({ name: c.name, type: c.type })),
+  getTypeSeen: () => state.typeSeen,
 });
 let sleeping = false;
 function sleepInBed() {
@@ -630,6 +642,14 @@ refreshHud();
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
+// 대결에서 "효과가 굉장했다!"를 내면 그 상성 짝이 상성 스티커판에 켜진다 (처음 낸 짝이면 알려 준다)
+battle.onSuperHit = (atk, def) => {
+  const id = pairId(atk, def);
+  if (state.typeSeen[id]) return;
+  state.typeSeen[id] = dayKey();
+  queueSay(`💥 상성 발견! ${TYPE_EMOJI[atk]} ${atk} › ${TYPE_EMOJI[def]} ${def} — 도감 🎯 미션 탭의 상성 스티커판에 켜졌어 (${typeSeenCount(state.typeSeen)}개째)`, { sec: 5 });
+  checkNewStickers();
+};
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
   const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
@@ -875,7 +895,7 @@ function towerCleared() {
   setTimeout(() => say('🌌 동굴탑 94층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
 }
 function switchZone(name, spawn, message) {
-  warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
+  warpBtn.classList.add('hidden'); warpNpc = null; lessonBtn.classList.add('hidden'); lessonNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   boardBtn.classList.add('hidden'); boardNpc = null;
   ufoBtn.classList.add('hidden'); ufoNpc = null;
   if (switching || !BUILDERS[name]) return;
@@ -1152,6 +1172,9 @@ boardBtn.onclick = () => {
   startRide(v);
 };
 const warpBtn = document.getElementById('btn-warp');
+const lessonBtn = document.getElementById('btn-lesson');
+let lessonNpc = null;
+lessonBtn.onclick = () => { if (!lessonNpc) return; sound.click(); lessonBtn.classList.add('hidden'); lessonNpc.talking = false; lessonNpc = null; study.showTypeLesson(); };
 let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
 warpBtn.onclick = () => {
   const npc = warpNpc; if (!npc) return;
@@ -1370,6 +1393,7 @@ function talkTo(npc) {
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
+  if (npc.teacher) { lessonNpc = npc; lessonBtn.classList.remove('hidden'); } // 오박사 선생님: 상성 수업 버튼
   if (npc.ufo && zone.world.ufo && !ufoLocked) { // 손오공: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
     const v = zone.world.ufo;
     boardNpc = npc;
@@ -1623,7 +1647,7 @@ function checkNewStickers() {
     caught: state.caught, rescued: state.rescued, blocks: state.blocks,
     bosses: Object.keys(state.conquered).length,
     dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
-    stats: state.goals.stats,
+    stats: state.goals.stats, typeSeen: typeSeenCount(state.typeSeen),
   });
   for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
   return got;
@@ -1878,7 +1902,7 @@ function buildSaveData() {
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
-    goals: state.goals,
+    goals: state.goals, typeSeen: { ...state.typeSeen },
     school: state.school,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
@@ -2602,7 +2626,8 @@ function renderGoals(el) {
     <div class="rank-how">미션 하나를 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)} 1개, 셋을 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 1개를 더 받아요.</div>
     ${allDone(G) ? '<div class="lrn-tip good">🏅 오늘 미션을 다 했어! 내일 새 미션으로 또 만나자.</div>' : ''}
     <div class="lrn-head2">🏅 스티커 <span class="rank-how">(${got} / ${STICKERS.length})</span></div>
-    <div class="stk-board">${board}</div>`;
+    <div class="stk-board">${board}</div>
+    ${typeBoardHtml(state.typeSeen)}`;
 }
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
@@ -2624,6 +2649,7 @@ function applySave(d) {
   state.learn = loadLearn(d.learn); quiz.learn = state.learn;   // 퀴즈도 새로 읽은 기록을 보게 (참조가 바뀐다)
   state.goals = loadGoals(d.goals, d.name);                    // 오늘의 미션 · 스티커
   state.school = loadSchool(d.school);                         // 포켓몬 학교 공부·숙제
+  state.typeSeen = { ...(d.typeSeen || {}) };                  // 대결에서 낸 상성 짝 (상성 스티커)
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
@@ -2808,7 +2834,7 @@ function frame() {
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
         else offer('💬 대화', () => talkTo(npc), '💬\n대화');
         if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : npc.prompt || `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
-      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
+      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (lessonNpc === npc) { lessonBtn.classList.add('hidden'); lessonNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----
     if (!moved && zone.name === 'arena' && cloud.user) {

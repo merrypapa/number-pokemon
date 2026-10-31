@@ -593,6 +593,7 @@ export class Battle {
     this.showFloat(`-${dmg}${mult > 1 ? ' !!' : mult < 1 ? ' …' : ''}`, mult > 1 ? '#ff5a1f' : mult < 1 ? '#8899aa' : this.party.color(this.member), hitPos);
     const eff = effectWord(mult);
     if (eff) this.showBanner(eff);
+    if (mult > 1) this.onSuperHit?.(skillType(this.party.species(this.member), this.skill), c.data.type || '노말'); // 상성 스티커 (main)
     this.squash = 0.35;
     this.shakeCam = 0.15;
     if (c.hp === 0) {

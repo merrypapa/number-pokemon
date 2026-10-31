@@ -939,3 +939,20 @@ body.photo-mode #msg, body.photo-mode #ctx-action, body.photo-mode #zone-banner,
 #battle-skills .skill.out .skill-dmg { background: #aaa; }
 .skill-chip em.skill-type { font-style: normal; font-size: 11px; color: #fff; background: #6a4a9c; border-radius: 999px; padding: 0 6px; }
 .skill-chip i.skill-pp { font-style: normal; font-size: 11px; color: #8a7a2a; }
+
+/* 상성 수업 (오박사) · 상성 스티커판 */
+#btn-lesson { position: fixed; right: 16px; bottom: calc(var(--ctx-bottom) + 64px); z-index: 8; font-size: 17px; font-weight: 900; padding: 12px 20px; border-radius: 999px; border: 0; background: #8c4fd0; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #5e2fa0, 0 6px 14px rgba(0,0,0,.25); white-space: nowrap; animation: ctxPop .25s ease-out; }
+body.touch #btn-lesson { bottom: var(--ctx-bottom); }
+.ty-ring { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 8px; margin: 10px 0 4px; }
+.ty-ring .ty-big { font-size: 20px; font-weight: 900; background: #fff; border: 3px solid #ffd93d; border-radius: 999px; padding: 4px 14px; }
+.ty-ring .ty-arrow { font-size: 13px; font-weight: 900; color: #c0392b; }
+.ty-ring .ty-sep { color: #bbb; }
+.ty-ring.small { gap: 6px; margin: 8px 0 2px; }
+.ty-ring.small span { font-size: 14px; font-weight: 900; background: #fff4d6; border-radius: 999px; padding: 3px 10px; color: #5a3a08; }
+.ty-head { font-size: 14px; font-weight: 900; color: #2f5d3a; margin: 10px 0 6px; }
+.ty-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+.ty-chips.board { justify-content: flex-start; margin-top: 6px; }
+.ty-chip { font-size: 12px; font-weight: 800; color: #999; background: #f0f0f0; border: 2px solid #e0e0e0; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.ty-chip b { color: #c0392b; margin: 0 2px; }
+.ty-chip.seen { color: #20232e; background: #fff7cc; border-color: #ffd93d; box-shadow: 0 2px 0 #e0b400; }
+@media (max-width: 600px) { #btn-lesson { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 54px); } body.touch #btn-lesson { bottom: var(--ctx-bottom); } }

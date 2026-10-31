@@ -1,11 +1,13 @@
 import { dayKey } from './goals.js';
 import { josa } from './util.js';
+import { typeQuestion, lessonHtml } from './typelesson.js';
 // 포켓몬 학교 공부: 교실의 내 자리에 앉으면 과목(수학·영어·국어·한자·과학)을 골라 다섯 문제를 푼다.
 // 문제마다 보기 셋, 고르면 바로 "왜 그런지" 풀이를 보여 준다. 다 풀면 맞힌 수만큼 블록을 받는다.
 // 오늘의 숙제: 날마다 과목 하나가 숙제로 정해지고(날짜로 정해서 껐다 켜도 같다), 그 과목에서 3문제 이상 맞히면 숙제 끝.
 // 숙제를 끝내고 오박사님께 말을 걸면 칭찬과 함께 보너스 블록을 하루 한 번 준다 (main 의 talkTo).
 //
-// 기록(state.school): { day, studied: { 과목: 오늘 공부한 횟수 }, hwDone, hwPaid, total: { 과목: 지금까지 맞힌 수 } }
+// 기록(state.school): { day, studied: { 과목: 오늘 공부한 횟수 }, hwDone, hwPaid, total: { 과목: 지금까지 맞힌 수 }, typeQuiz: { day, potion, ball, best } }
+// 상성 수업(src/typelesson.js): 오박사 선생님께 말을 걸어 "📘 상성 수업" 을 누르면 같은 창에서 상성표를 배우고 다섯 문제 퀴즈 (showTypeLesson).
 
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -149,6 +151,10 @@ export const SUBJECT_BY_ID = Object.fromEntries(SUBJECTS.map((s) => [s.id, s]));
 export const LESSON_LEN = 5;   // 한 번 공부에 다섯 문제
 export const HW_PASS = 3;      // 숙제는 3문제 이상 맞히면 끝
 export const HW_BONUS = 10;    // 숙제를 끝내고 오박사님께 말하면 받는 블록
+export const TYPE_LEN = 5;     // 상성 퀴즈 다섯 문제
+export const TYPE_BLOCKS = 2;  // 상성 퀴즈 정답마다 블록
+export const TYPE_POTION_AT = 3; // 하루 한 번: 3개 이상 맞히면 물약 1개
+// 다 맞히면 브론즈볼 1개 (하루 한 번)
 
 export function emptySchool() { return { day: dayKey(), studied: {}, hwDone: false, hwPaid: false, total: {} }; }
 /** 저장에서 읽은 기록. 하루가 바뀌었으면 오늘 기록(공부 횟수·숙제)은 새로 시작한다 */
@@ -183,8 +189,8 @@ function makeLesson(subject) {
 
 export class Study {
   /** onReward(correct, subject, { homework }) — 다 풀었을 때 블록을 준다. onClose() — 자리에서 일어날 때 */
-  constructor({ sound, getState, onReward, onClose }) {
-    Object.assign(this, { sound, getState, onReward, onClose });
+  constructor({ sound, getState, onReward, onClose, onTypeReward = null, getSpecies = () => [], getTypeSeen = () => ({}) }) {
+    Object.assign(this, { sound, getState, onReward, onClose, onTypeReward, getSpecies, getTypeSeen });
     this.el = document.getElementById('study');
     this.card = document.getElementById('study-card');
     this.open = false;
@@ -198,11 +204,59 @@ export class Study {
     if (!this.open) return;
     this.open = false;
     this.lesson = null;
+    const wasType = this.typeMode; this.typeMode = false;
     this.el.classList.add('hidden');
-    this.onClose?.();
+    if (!wasType) this.onClose?.();
   }
-  /** ESC: 문제 푸는 중이면 과목 고르기로, 고르기 화면이면 일어서기 */
-  back() { if (this.lesson) this.renderPick(); else this.close(); }
+  /** ESC: 문제 푸는 중이면 과목 고르기로(상성 수업이면 수업 화면으로), 고르기 화면이면 일어서기 */
+  back() { if (this.typeMode) { if (this.lesson) this.renderTypeLesson(); else this.close(); } else if (this.lesson) this.renderPick(); else this.close(); }
+
+  // ---------- 상성 수업 (오박사 선생님) ----------
+  showTypeLesson() {
+    this.open = true; this.typeMode = true;
+    this.el.classList.remove('hidden');
+    this.renderTypeLesson();
+  }
+  renderTypeLesson() {
+    this.lesson = null;
+    const S = rollSchoolDay(this.getState()), T = S.typeQuiz || {};
+    const today = T.day === S.day;
+    this.card.innerHTML = `
+      <div class="study-title">📘 오박사 선생님의 상성 수업</div>
+      ${lessonHtml(this.getTypeSeen())}
+      <div class="study-hw">🎁 상성 퀴즈 ${TYPE_LEN}문제: 정답마다 블록 ${TYPE_BLOCKS}개. 하루 한 번 ${TYPE_POTION_AT}개 이상 맞히면 🧪 물약, 다 맞히면 ⚪ 브론즈볼도!${today && T.potion ? ' (오늘 물약은 받았어' + (T.ball ? '·브론즈볼도 받았어)' : ')') : ''}</div>
+      <div class="study-nav"><button class="study-leave">👋 그만 듣기</button><button class="study-next">🧩 상성 퀴즈 풀기 ▶</button></div>`;
+    this.card.querySelector('.study-leave').onclick = () => { this.sound?.click(); this.close(); };
+    this.card.querySelector('.study-next').onclick = () => this.startTypeQuiz();
+  }
+  startTypeQuiz() {
+    this.sound?.click();
+    const subject = { id: 'types', emoji: '💥', name: '상성 퀴즈', make: () => typeQuestion(this.getSpecies()) };
+    const qs = [], seen = new Set(); let guard = 0;
+    while (qs.length < TYPE_LEN && guard++ < 60) { const q = subject.make(); if (seen.has(q.q)) continue; seen.add(q.q); qs.push({ ...q, choices: shuffle([q.a, ...q.wrong]) }); }
+    this.lesson = { subject, qs, i: 0, correct: 0 };
+    this.renderQuestion();
+  }
+  finishTypeQuiz() {
+    const L = this.lesson, S = rollSchoolDay(this.getState());
+    const T = S.typeQuiz = (S.typeQuiz && S.typeQuiz.day === S.day) ? S.typeQuiz : { day: S.day, potion: false, ball: false, best: S.typeQuiz?.best || 0 };
+    T.best = Math.max(T.best || 0, L.correct);
+    const blocks = L.correct * TYPE_BLOCKS;
+    const potion = L.correct >= TYPE_POTION_AT && !T.potion, ball = L.correct >= L.qs.length && !T.ball;
+    if (potion) T.potion = true; if (ball) T.ball = true;
+    this.onTypeReward?.(L.correct, { blocks, potion, ball });
+    const perfect = L.correct === L.qs.length;
+    this.card.innerHTML = `
+      <div class="study-title">💥 상성 퀴즈 끝!</div>
+      <div class="study-result">${perfect ? '💯' : L.correct >= TYPE_POTION_AT ? '👍' : '💪'}</div>
+      <div class="study-q">${L.qs.length}문제 중 <b>${L.correct}</b>개 맞았어!${perfect ? ' 만점이야!' : ''}</div>
+      <div class="study-why right">🟦 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어!</div>
+      ${!potion && L.correct < TYPE_POTION_AT ? `<div class="study-why wrong">${TYPE_POTION_AT}개 이상 맞히면 물약을 줘. 수업을 다시 보고 도전해 봐!</div>` : ''}
+      <div class="study-nav"><button class="study-back">📘 수업 다시 보기</button><button class="study-leave2">👋 그만 듣기</button></div>`;
+    this.lesson = null;
+    this.card.querySelector('.study-back').onclick = () => { this.sound?.click(); this.renderTypeLesson(); };
+    this.card.querySelector('.study-leave2').onclick = () => { this.sound?.click(); this.close(); };
+  }
 
   renderPick() {
     this.lesson = null;
@@ -239,7 +293,9 @@ export class Study {
       <div class="study-why"></div>
       <div class="study-nav"><button class="study-back">◀ 과목 고르기</button><button class="study-next hidden">다음 ▶</button></div>`;
     for (const b of this.card.querySelectorAll('.study-choices button')) b.onclick = () => this.answer(b);
-    this.card.querySelector('.study-back').onclick = () => { this.sound?.click(); this.renderPick(); };
+    const backBtn = this.card.querySelector('.study-back');
+    if (this.typeMode) backBtn.textContent = '◀ 수업 보기';
+    backBtn.onclick = () => { this.sound?.click(); this.typeMode ? this.renderTypeLesson() : this.renderPick(); };
     this.card.querySelector('.study-next').onclick = () => this.next();
   }
 
@@ -264,7 +320,7 @@ export class Study {
     this.sound?.click();
     L.answered = false;
     if (++L.i < L.qs.length) { this.renderQuestion(); return; }
-    this.finishLesson();
+    this.typeMode ? this.finishTypeQuiz() : this.finishLesson();
   }
 
   finishLesson() {
