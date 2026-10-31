@@ -69,7 +69,14 @@ renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 fitRenderer();
 // 카메라: 주인공을 중심으로 회전(camYaw)/기울기(camPitch). 화면 드래그나 Q/R 로 돌린다.
-const cam = { yaw: 0, pitch: 0 };
+// fp: 1인칭 시점 (주인공 눈높이에서 보는 방향으로). 👁 버튼이나 V 로 바꾼다. 대결·사진·탈것 연출은 전처럼 각자의 카메라를 쓴다.
+const cam = { yaw: 0, pitch: 0, fp: false };
+try { cam.fp = localStorage.getItem('np-view') === 'fp'; } catch (_) { /* 저장 못 해도 그만 */ }
+/** 1인칭에서 보는 방향 (pitch 를 위아래로: 화면을 위로 끌면 하늘을 본다) */
+function fpLookDir() {
+  const p = Math.max(-1.0, Math.min(1.0, -cam.pitch * 0.9));
+  return new THREE.Vector3(-Math.sin(cam.yaw) * Math.cos(p), Math.sin(p), -Math.cos(cam.yaw) * Math.cos(p));
+}
 // pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
 function camOffset() {
   const h = Math.max(1.6, 9 + cam.pitch * 6), d = 11 - cam.pitch * 3;
@@ -611,6 +618,24 @@ const hudBlockIcon = document.querySelector('.hud-icon.block');
 const hudPokeIcon = document.getElementById('hud-poke-icon');
 const hudPokeImg = document.getElementById('hud-poke-img');
 const hudSwap = document.querySelector('#hud-leader-row .hud-swap');
+// ---------- 시점: 3인칭(뒤에서 따라가기) ↔ 1인칭(주인공 눈) ----------
+const viewBtn = document.getElementById('btn-view');
+function setView(fp) {
+  cam.fp = !!fp;
+  try { localStorage.setItem('np-view', cam.fp ? 'fp' : 'tp'); } catch (_) { /* */ }
+  viewBtn.textContent = cam.fp ? '🎥 3인칭' : '👁 1인칭';
+  viewBtn.title = cam.fp ? '뒤에서 보는 시점으로 (V)' : '주인공 눈으로 보는 시점으로 (V)';
+  if (!cam.fp) { if (player.car) player.car.visible = true; else player.setShown(true); }
+  snapCam = true;
+}
+viewBtn.onclick = () => { sound.click(); setView(!cam.fp); };
+viewBtn.textContent = cam.fp ? '🎥 3인칭' : '👁 1인칭';
+/** 1인칭일 때 매 프레임: 주인공 모습(과 차체)은 카메라 안에서 보이지 않게 (사진 찍을 때는 보인다) */
+function fpHideSelf() {
+  if (!cam.fp || photo.active || battle.active) return;
+  player.setShown(false);
+  if (player.car) player.car.visible = false;
+}
 function refreshHud() {
   hudBlocks.textContent = `${state.blocks}개`;
   // 메가블럭 수는 게임 화면에는 안 보이고 도감(블록 알약의 💠)에서 본다
@@ -1969,6 +1994,7 @@ function startPhoto() {
   document.body.classList.add('photo-mode');   // HUD·버튼을 잠깐 숨긴다 (사진에 안 나오게)
   input.enabled = false;
   const today = state.goals.day;
+  if (cam.fp) { if (player.car) player.car.visible = true; else player.setShown(true); } // 1인칭이어도 사진에는 주인공이 나온다
   photo.start({
     camera, player,
     followers: chain.followers.map((f) => f.mesh).filter((m) => m && m.visible),
@@ -2783,6 +2809,7 @@ function frame() {
     cam.pitch = Math.max(-1.25, Math.min(0.6, cam.pitch + look.dy * 0.004));
     if (input.isHeld('camLeft')) cam.yaw += dt * 1.8;
     if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
+    if (input.wasPressed('view') && !battle.active && !dex.open && !quiz.open && !study.open) { sound.click(); setView(!cam.fp); }
 
     player.update(dt, input, cam.yaw);
     const pp = player.position;
@@ -3151,7 +3178,13 @@ function frame() {
 
     // 카메라 따라가기 (대결이 막 끝났으면 눈높이에서 바로 원래 자리로 복귀)
     if (photo.active) photo.update(dt); // 사진 찍는 동안에는 카메라를 photo 가 잡아 둔 자리에 그대로 둔다
-    else {
+    else if (cam.fp) { // 1인칭: 주인공 눈높이에서 보는 방향으로 (주인공 모습은 숨긴다)
+      fpHideSelf();
+      const head = pp.clone(); head.y += player.car ? 1.9 : player.swimming ? 1.0 : 1.55;
+      camera.position.copy(head);
+      camera.lookAt(head.clone().add(fpLookDir()));
+      for (const o of hiddenByCam) o.visible = true; hiddenByCam.clear(); // 3인칭에서 숨겨 둔 장식이 있으면 되돌린다
+    } else {
       const camTarget = resolveCamera(pp.clone().add(camOffset()));
       if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
       else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
