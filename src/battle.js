@@ -400,7 +400,7 @@ export class Battle {
 
     // 기술 버튼: 열린 기술은 이름 + 피해, 아직 안 열린 다음 기술은 잠금 표시. 볼을 고르는 동안은 숨긴다
     this.skillsEl.innerHTML = '';
-    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble' || this.phase === 'released');
+    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble' || this.phase === 'released' || this.phase === 'breakout');
     const unlocked = this.party.skills(m);
     this.sel = Math.max(0, Math.min(this.sel, unlocked.length - 1));
     const choosing = this.phase === 'choose';
@@ -767,7 +767,6 @@ export class Battle {
     if (!this.active) return;
     if (this.phase === 'success') { this.end('caught'); return; } // 성공 연출은 버튼/키로 바로 넘길 수 있다
     if (this.phase === 'lost') { this.end('lost'); return; }
-    if (this.phase === 'escape') { this.end('escaped'); return; }
     if (this.phase === 'released') { this.end('released'); return; }
     if (this.phase !== 'choose' && this.phase !== 'dizzy' && this.phase !== 'enter') return; // 연출 중엔 못 나감
     this.end('later');
@@ -854,7 +853,6 @@ export class Battle {
       if (this.phase === 'choose') this.useSkill(this.sel);
       else if (this.phase === 'dizzy') this.throwBall(this.bestBall());
       else if (this.phase === 'success') this.end('caught');
-      else if (this.phase === 'escape') this.end('escaped');
       else if (this.phase === 'released') this.end('released');
       else if (this.phase === 'lost') this.end('lost');
     }
@@ -985,14 +983,14 @@ export class Battle {
         if (this.catchRoll == null) this.catchRoll = Math.random() * 100;
         if (this.catchRoll < pct) this.startSuccess(); else this.startEscape();
       }
-    } else if (this.phase === 'escape') { // 볼이 열리고 튀어나와 달아난다
-      const t = Math.min(1, (this.timer - this.escapeStart) / 1.4);
+    } else if (this.phase === 'breakout') { // 볼이 열리고 튀어나와 제자리로 폴짝폴짝 돌아온 뒤 반격
+      const t = Math.min(1, (this.timer - this.escapeStart) / 1.1);
       m.visible = true;
       m.scale.setScalar(base * Math.min(1, t * 3));
-      m.position.copy(this.stageTo).addScaledVector(this.dir, t * 9);
-      m.position.y = this.groundY(m.position.x, m.position.z) + Math.abs(Math.sin(t * 14)) * 0.6;
+      m.position.lerpVectors(this.ballLand || this.stageTo, this.stageTo, t);
+      m.position.y = this.groundY(m.position.x, m.position.z) + Math.abs(Math.sin(t * 9)) * 0.5;
       m.rotation.z = 0;
-      if (this.timer - this.escapeStart > 1.7) this.end('escaped');
+      if (t >= 1) { this.showFloat(`+${Math.max(1, Math.round(c.data.baseHp * 0.15))}`, '#57b947', this.targetPoint()); this.startEnemyTurn(`${c.data.name}의 반격!`); this.render(); }
     } else if (this.phase === 'released') { // 풀어줬다: 상대는 제 숫자를 되찾고 기뻐 폴짝폴짝, 내 포켓몬도 이겼다고 폴짝폴짝
       const t = this.timer - this.releaseStart;
       m.visible = true; m.rotation.z = 0; m.scale.setScalar(base);
@@ -1036,8 +1034,10 @@ export class Battle {
     this.showFloat('탁!', '#fff', this.ballHit);
   }
 
+  /** 볼에서 튀어나왔다: 도망가지 않는다. 기운을 조금(최대 체력의 15%) 되찾고 반격한 뒤 대결이 이어진다.
+   *  다시 체력을 0으로 만들면 또 볼을 던질 수 있고, 실패할 때마다 잡힐 확률이 RETRY_BONUS 만큼 올라간다 (catchBonus). */
   startEscape() {
-    this.phase = 'escape';
+    this.phase = 'breakout';
     this.escapeStart = this.timer;
     const c = this.creature;
     c.mesh.position.copy(this.ball.position);
@@ -1046,9 +1046,14 @@ export class Battle {
     this.scene.remove(this.ball); this.ball = null;
     this.sound.bounce();
     c.catchBonus = (c.catchBonus || 0) + RETRY_BONUS;
-    this.showBanner('앗, 도망쳤다!');
-    this.msgEl.textContent = `${josa(c.data.name, '이가')} ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 다시 도전하면 잡힐 확률이 ${RETRY_BONUS}% 올라가.`;
-    this.runBtn.textContent = '돌아가기 ▶';
+    const max = c.data.baseHp, heal = Math.max(1, Math.round(max * 0.15));
+    c.hp = Math.min(max, (c.hp || 0) + heal);
+    this.showBanner('앗, 튀어나왔다!');
+    this.msgEl.textContent = `${josa(c.data.name, '이가')} ${this.ballSpec?.name || '넘버볼'}에서 튀어나왔어! 기운을 조금 되찾고(체력 ${c.hp}) 덤벼든다. 다시 쓰러뜨리면 잡힐 확률이 ${RETRY_BONUS}% 올라가!`;
+    this.ballsEl.classList.add('hidden');
+    this.releaseBtn.classList.add('hidden');
+    this.runBtn.textContent = '도망치기';
+    this.render();
   }
   // ----- 가방: 기술을 고르는 차례에 물약을 쓴다. 쓰면 그 턴은 상대의 공격 -----
   openBag() {
