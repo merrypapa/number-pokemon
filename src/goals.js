@@ -20,6 +20,7 @@ export const MISSIONS = [
   { id: 'blocks', emoji: '🟦', need: 30, text: (n) => `블록 ${n}개 모으기` },
   { id: 'zones', emoji: '🗺', need: 2, uniq: true, text: (n) => `다른 지역 ${n}곳 가 보기` },
   { id: 'evolve', emoji: '✨', need: 1, text: (n) => `포켓몬 ${n}마리 진화시키기` },
+  { id: 'super', emoji: '💥', need: 3, text: (n) => `상성으로 "효과가 굉장했다!" ${n}번 내기` },
 ];
 export const MISSION_BY_ID = Object.fromEntries(MISSIONS.map((m) => [m.id, m]));
 export const MISSION_BALL = 'bronze';   // 미션 하나마다

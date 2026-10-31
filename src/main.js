@@ -541,6 +541,18 @@ const study = new Study({
     autosave();
   },
   onClose: () => { say('자리에서 일어났어. 다시 공부하고 싶으면 ⭐ 내 자리로 와!', { sec: 3 }); },
+  // 상성 수업 퀴즈 보상: 정답마다 블록, 하루 한 번 물약(3개 이상)·브론즈볼(만점)
+  onTypeReward: (correct, { blocks, potion, ball }) => {
+    const merged = blocks > 0 ? setBlocks(state.blocks + blocks, { quiet: true }) : null;
+    if (potion) state.items.potion = (state.items.potion || 0) + 1;
+    if (ball) state.balls.bronze = (state.balls.bronze || 0) + 1;
+    if (potion || ball) { confetti.burst(100); sound.fanfare(); }
+    say(`💥 상성 퀴즈 ${correct}개 정답! 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 });
+    refreshHud(); autosave();
+  },
+  getSpecies: () => creatureData.creatures.filter((c) => c.catchable && !c.mega && !c.boss && !c.unlockedBy && c.model && (c.grade || 1) <= 3), // 퀴즈에 나오는 포켓몬 (그림이 있는 야생 위주)
+  getAllSpecies: () => creatureData.creatures, // 수업의 속성 대표 포켓몬은 전체에서 찾는다
+  thumbOf: (sp) => dex.thumbs(speciesById[sp.id] || sp)?.color || null,
 });
 let sleeping = false;
 function sleepInBed() {
@@ -630,6 +642,7 @@ refreshHud();
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
+battle.onSuperHit = () => bump('super'); // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
   const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
@@ -875,7 +888,7 @@ function towerCleared() {
   setTimeout(() => say('🌌 동굴탑 94층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
 }
 function switchZone(name, spawn, message) {
-  warpBtn.classList.add('hidden'); warpNpc = null; // 지역이 바뀌면 안내원 대화도 끝
+  warpBtn.classList.add('hidden'); warpNpc = null; lessonBtn.classList.add('hidden'); lessonNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   boardBtn.classList.add('hidden'); boardNpc = null;
   ufoBtn.classList.add('hidden'); ufoNpc = null;
   if (switching || !BUILDERS[name]) return;
@@ -1152,6 +1165,9 @@ boardBtn.onclick = () => {
   startRide(v);
 };
 const warpBtn = document.getElementById('btn-warp');
+const lessonBtn = document.getElementById('btn-lesson');
+let lessonNpc = null;
+lessonBtn.onclick = () => { if (!lessonNpc) return; sound.click(); lessonBtn.classList.add('hidden'); lessonNpc.talking = false; lessonNpc = null; study.showTypeLesson(); };
 let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
 warpBtn.onclick = () => {
   const npc = warpNpc; if (!npc) return;
@@ -1370,6 +1386,7 @@ function talkTo(npc) {
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
+  if (npc.teacher) { lessonNpc = npc; lessonBtn.classList.remove('hidden'); } // 오박사 선생님: 상성 수업 버튼
   if (npc.ufo && zone.world.ufo && !ufoLocked) { // 손오공: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
     const v = zone.world.ufo;
     boardNpc = npc;
@@ -2808,7 +2825,7 @@ function frame() {
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
         else offer('💬 대화', () => talkTo(npc), '💬\n대화');
         if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : npc.prompt || `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
-      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
+      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (lessonNpc === npc) { lessonBtn.classList.add('hidden'); lessonNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----
     if (!moved && zone.name === 'arena' && cloud.user) {
