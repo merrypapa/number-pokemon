@@ -464,7 +464,7 @@
      "kind": "bug"
     },
     {
-     "name": "독침",
+     "name": "독실뿜기",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -506,7 +506,7 @@
      "kind": "peck"
     },
     {
-     "name": "발차기",
+     "name": "날개발차기",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -548,7 +548,7 @@
      "kind": "tackle"
     },
     {
-     "name": "발차기",
+     "name": "점프발차기",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -610,7 +610,7 @@
      "kind": "scratch"
     },
     {
-     "name": "발차기",
+     "name": "고양이펀치",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -654,7 +654,7 @@
      "kind": "tackle"
     },
     {
-     "name": "발차기",
+     "name": "바디프레스",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -701,7 +701,7 @@
      "kind": "leaf"
     },
     {
-     "name": "독가루",
+     "name": "독꽃가루",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -742,7 +742,7 @@
      "kind": "peck"
     },
     {
-     "name": "발차기",
+     "name": "두발차기",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -783,7 +783,7 @@
      "kind": "scratch"
     },
     {
-     "name": "발차기",
+     "name": "파뿌리돌려차기",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -824,7 +824,7 @@
      "kind": "whip"
     },
     {
-     "name": "독가루",
+     "name": "독액뿌리기",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -907,7 +907,7 @@
      "kind": "poison"
     },
     {
-     "name": "독침!",
+     "name": "독가시",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -951,7 +951,7 @@
      "kind": "tackle"
     },
     {
-     "name": "독침",
+     "name": "독가시",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -1005,7 +1005,7 @@
      "kind": "poison"
     },
     {
-     "name": "독침!",
+     "name": "맹독바늘",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -1061,7 +1061,7 @@
      "kind": "bug"
     },
     {
-     "name": "독침",
+     "name": "맹독미사일",
      "atk": 20,
      "power": 1.5,
      "kind": "poison",
@@ -1102,7 +1102,7 @@
      "kind": "bug"
     },
     {
-     "name": "독침",
+     "name": "독꿀뿌리기",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -1144,7 +1144,7 @@
      "kind": "rock"
     },
     {
-     "name": "돌던지기",
+     "name": "돌튕기기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -1186,7 +1186,7 @@
      "kind": "wind"
     },
     {
-     "name": "모래뿌리기",
+     "name": "흙먼지날리기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1231,7 +1231,7 @@
      "kind": "wind"
     },
     {
-     "name": "모래뿌리기",
+     "name": "흙먼지폭풍",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1280,7 +1280,7 @@
      "kind": "rock"
     },
     {
-     "name": "모래폭풍",
+     "name": "땅구르기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1329,7 +1329,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "흙차기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1371,7 +1371,7 @@
      "kind": "bone"
     },
     {
-     "name": "돌던지기",
+     "name": "돌멩이치기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -1412,7 +1412,7 @@
      "kind": "poison"
     },
     {
-     "name": "모래뿌리기",
+     "name": "진흙던지기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1453,7 +1453,7 @@
      "kind": "punch"
     },
     {
-     "name": "돌던지기",
+     "name": "바위던지기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -1497,7 +1497,7 @@
      "kind": "poison"
     },
     {
-     "name": "독침",
+     "name": "독비늘",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -1539,7 +1539,7 @@
      "kind": "rock"
     },
     {
-     "name": "모래폭풍",
+     "name": "땅울림",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1599,7 +1599,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "흙뿌리기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1647,7 +1647,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "모래파기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1689,7 +1689,7 @@
      "kind": "tackle"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅파기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1734,7 +1734,7 @@
      "kind": "scratch"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅울림질주",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -1783,7 +1783,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "조약돌던지기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -1831,7 +1831,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "돌머리박치기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -1873,7 +1873,7 @@
      "kind": "tackle"
     },
     {
-     "name": "돌던지기",
+     "name": "돌튀기기",
      "atk": 10,
      "power": 1.15,
      "kind": "rock",
@@ -1919,7 +1919,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "바위꼬리치기",
      "atk": 14,
      "power": 1.35,
      "kind": "rock",
@@ -1968,7 +1968,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "물수제비",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -2009,7 +2009,7 @@
      "kind": "tackle"
     },
     {
-     "name": "돌던지기",
+     "name": "껍질박치기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -2051,7 +2051,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "바위집게",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -2093,7 +2093,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "돌깔고앉기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -2134,7 +2134,7 @@
      "kind": "poison"
     },
     {
-     "name": "돌던지기",
+     "name": "산호찌르기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -2180,7 +2180,7 @@
      "kind": "sing"
     },
     {
-     "name": "염동력",
+     "name": "자장염동력",
      "atk": 10,
      "power": 1.25,
      "kind": "psychic",
@@ -2315,7 +2315,7 @@
      "kind": "bolt"
     },
     {
-     "name": "전광석화",
+     "name": "자석박치기",
      "atk": 10,
      "power": 1.25,
      "kind": "tackle",
@@ -2358,7 +2358,7 @@
      "kind": "ghost"
     },
     {
-     "name": "염동력",
+     "name": "사이코빔",
      "atk": 12,
      "power": 1.3,
      "kind": "psychic",
@@ -2418,7 +2418,7 @@
      "kind": "leaf"
     },
     {
-     "name": "독가루",
+     "name": "독잎사귀",
      "atk": 10,
      "power": 1.3,
      "kind": "poison",
@@ -2468,7 +2468,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "검은모래",
      "atk": 14,
      "power": 1.35,
      "kind": "sand",
@@ -2517,7 +2517,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "등껍질박치기",
      "atk": 12,
      "power": 1.3,
      "kind": "rock",
@@ -2567,7 +2567,7 @@
      "kind": "whip"
     },
     {
-     "name": "독가루",
+     "name": "독덩굴",
      "atk": 10,
      "power": 1.3,
      "kind": "poison",
@@ -2617,7 +2617,7 @@
      "kind": "bolt"
     },
     {
-     "name": "전광석화",
+     "name": "철박치기",
      "atk": 12,
      "power": 1.3,
      "kind": "tackle",
@@ -2666,7 +2666,7 @@
      "kind": "wind"
     },
     {
-     "name": "발차기",
+     "name": "드래곤펀치",
      "atk": 12,
      "power": 1.3,
      "kind": "punch",
@@ -2717,7 +2717,7 @@
      "kind": "wind"
     },
     {
-     "name": "발차기",
+     "name": "용의주먹",
      "atk": 20,
      "power": 1.5,
      "kind": "punch",
@@ -2812,7 +2812,7 @@
      "kind": "leaf"
     },
     {
-     "name": "독가루",
+     "name": "독꽃가루",
      "atk": 10,
      "power": 1.25,
      "kind": "poison",
@@ -2878,7 +2878,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "흙파기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -2930,7 +2930,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅가르기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -2999,7 +2999,7 @@
      "kind": "bolt"
     },
     {
-     "name": "전광석화",
+     "name": "꼬리치기",
      "atk": 10,
      "power": 1.25,
      "kind": "tackle",
@@ -3056,7 +3056,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "껍질박치기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -3107,7 +3107,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "바위깨기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -3172,7 +3172,7 @@
      "kind": "poison"
     },
     {
-     "name": "돌던지기",
+     "name": "산호폭탄",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -3222,7 +3222,7 @@
      "kind": "tackle"
     },
     {
-     "name": "염동력",
+     "name": "달빛염동력",
      "atk": 10,
      "power": 1.25,
      "kind": "psychic",
@@ -3273,7 +3273,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "빙산박치기",
      "atk": 12,
      "power": 1.3,
      "kind": "rock",
@@ -3315,7 +3315,7 @@
      "kind": "psychic"
     },
     {
-     "name": "염동력",
+     "name": "별염동력",
      "atk": 10,
      "power": 1.25,
      "kind": "psychic",
@@ -3363,7 +3363,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "조개껍질던지기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -3405,7 +3405,7 @@
      "kind": "ghost"
     },
     {
-     "name": "염동력",
+     "name": "호박염동력",
      "atk": 10,
      "power": 1.25,
      "kind": "psychic",
@@ -3453,7 +3453,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "뜨거운모래",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -3502,7 +3502,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "자갈뿌리기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -3551,7 +3551,7 @@
      "kind": "tackle"
     },
     {
-     "name": "발차기",
+     "name": "토끼발차기",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -3593,7 +3593,7 @@
      "kind": "tackle"
     },
     {
-     "name": "발차기",
+     "name": "버섯펀치",
      "atk": 10,
      "power": 1.25,
      "kind": "punch",
@@ -3635,7 +3635,7 @@
      "kind": "psychic"
     },
     {
-     "name": "반짝반짝",
+     "name": "요정의빛",
      "atk": 10,
      "power": 1.25,
      "kind": "sing",
@@ -3684,7 +3684,7 @@
      "kind": "whip"
     },
     {
-     "name": "독가루",
+     "name": "맹독가루",
      "atk": 18,
      "power": 1.35,
      "kind": "poison",
@@ -3728,7 +3728,7 @@
      "kind": "rock"
     },
     {
-     "name": "모래폭풍",
+     "name": "대지가르기",
      "atk": 18,
      "power": 1.35,
      "kind": "sand",
@@ -3772,7 +3772,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅울림",
      "atk": 18,
      "power": 1.35,
      "kind": "sand",
@@ -3816,7 +3816,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "바위대포",
      "atk": 18,
      "power": 1.35,
      "kind": "rock",
@@ -3861,7 +3861,7 @@
      "kind": "ghost"
     },
     {
-     "name": "염동력",
+     "name": "사이코키네시스",
      "atk": 18,
      "power": 1.35,
      "kind": "psychic",
@@ -3907,7 +3907,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "대지발톱",
      "atk": 20,
      "power": 1.5,
      "kind": "sand",
@@ -3969,7 +3969,7 @@
      "kind": "psychic"
     },
     {
-     "name": "반짝반짝",
+     "name": "요정의바람",
      "atk": 20,
      "power": 1.5,
      "kind": "sing",
@@ -4016,7 +4016,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "파도바위치기",
      "atk": 10,
      "power": 1.25,
      "kind": "rock",
@@ -4054,7 +4054,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "모래차기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -4092,7 +4092,7 @@
      "kind": "bolt"
     },
     {
-     "name": "전광석화",
+     "name": "덮치기",
      "atk": 10,
      "power": 1.25,
      "kind": "tackle",
@@ -4130,7 +4130,7 @@
      "kind": "psychic"
     },
     {
-     "name": "반짝반짝",
+     "name": "매직스푼",
      "atk": 10,
      "power": 1.25,
      "kind": "sing",
@@ -4174,7 +4174,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅구르기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -4213,7 +4213,7 @@
      "kind": "tackle"
     },
     {
-     "name": "염동력",
+     "name": "꼬마염동력",
      "atk": 8,
      "power": 1.25,
      "kind": "psychic",
@@ -4266,7 +4266,7 @@
      "kind": "punch"
     },
     {
-     "name": "모래뿌리기",
+     "name": "비트땅울림",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -4316,7 +4316,7 @@
      "kind": "scratch"
     },
     {
-     "name": "모래뿌리기",
+     "name": "모래긁기",
      "atk": 10,
      "power": 1.25,
      "kind": "sand",
@@ -4358,7 +4358,7 @@
      "kind": "scratch"
     },
     {
-     "name": "염동력",
+     "name": "재앙예지",
      "atk": 12,
      "power": 1.3,
      "kind": "psychic",
@@ -4402,7 +4402,7 @@
      "kind": "tackle"
     },
     {
-     "name": "전광석화",
+     "name": "닌자박치기",
      "atk": 12,
      "power": 1.3,
      "kind": "tackle",
@@ -4445,7 +4445,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "얼음바위던지기",
      "atk": 10,
      "power": 1.3,
      "kind": "rock",
@@ -4489,7 +4489,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "바위날리기",
      "atk": 15,
      "power": 1.4,
      "kind": "rock",
@@ -4533,7 +4533,7 @@
      "kind": "bolt"
     },
     {
-     "name": "전광석화",
+     "name": "날개치기",
      "atk": 15,
      "power": 1.4,
      "kind": "tackle",
@@ -4577,7 +4577,7 @@
      "kind": "psychic"
     },
     {
-     "name": "반짝반짝",
+     "name": "은빛반짝임",
      "atk": 20,
      "power": 1.5,
      "kind": "sing",
@@ -4621,7 +4621,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "대지날개",
      "atk": 20,
      "power": 1.5,
      "kind": "sand",
@@ -4665,7 +4665,7 @@
      "kind": "bolt"
     },
     {
-     "name": "전광석화",
+     "name": "신속",
      "atk": 12,
      "power": 1.4,
      "kind": "tackle",
@@ -4715,7 +4715,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅울림포효",
      "atk": 12,
      "power": 1.4,
      "kind": "sand",
@@ -4765,7 +4765,7 @@
      "kind": "water"
     },
     {
-     "name": "돌던지기",
+     "name": "바위부수기",
      "atk": 12,
      "power": 1.4,
      "kind": "rock",
@@ -4819,7 +4819,7 @@
      "kind": "fire"
     },
     {
-     "name": "모래뿌리기",
+     "name": "땅울림날개",
      "atk": 15,
      "power": 1.4,
      "kind": "sand",
@@ -4863,7 +4863,7 @@
      "kind": "psychic"
     },
     {
-     "name": "반짝반짝",
+     "name": "별빛축복",
      "atk": 15,
      "power": 1.4,
      "kind": "sing",
