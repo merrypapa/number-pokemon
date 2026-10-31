@@ -14,7 +14,6 @@ import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
 import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerLevelBand, LAND_W } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
-import { pairId, typeBoardHtml, typeSeenCount, TYPE_EMOJI } from './typelesson.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
 import { WarpFx } from './ufo.js';
@@ -40,7 +39,7 @@ import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
-import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, dayKey } from './goals.js';
+import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount } from './goals.js';
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
@@ -517,7 +516,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 }, typeSeen: {} }; // typeSeen: 대결에서 "효과가 굉장했다!"를 낸 상성 짝 ('불>풀' → 날짜, 상성 스티커·수업 화면) // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1 } }; // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -551,8 +550,9 @@ const study = new Study({
     say(`💥 상성 퀴즈 ${correct}개 정답! 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 });
     refreshHud(); autosave();
   },
-  getSpecies: () => creatureData.creatures.filter((c) => c.catchable && !c.mega && (c.grade || 1) <= 3).map((c) => ({ name: c.name, type: c.type })),
-  getTypeSeen: () => state.typeSeen,
+  getSpecies: () => creatureData.creatures.filter((c) => c.catchable && !c.mega && !c.boss && !c.unlockedBy && c.model && (c.grade || 1) <= 3), // 퀴즈에 나오는 포켓몬 (그림이 있는 야생 위주)
+  getAllSpecies: () => creatureData.creatures, // 수업의 속성 대표 포켓몬은 전체에서 찾는다
+  thumbOf: (sp) => dex.thumbs(speciesById[sp.id] || sp)?.color || null,
 });
 let sleeping = false;
 function sleepInBed() {
@@ -642,14 +642,7 @@ refreshHud();
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
-// 대결에서 "효과가 굉장했다!"를 내면 그 상성 짝이 상성 스티커판에 켜진다 (처음 낸 짝이면 알려 준다)
-battle.onSuperHit = (atk, def) => {
-  const id = pairId(atk, def);
-  if (state.typeSeen[id]) return;
-  state.typeSeen[id] = dayKey();
-  queueSay(`💥 상성 발견! ${TYPE_EMOJI[atk]} ${atk} › ${TYPE_EMOJI[def]} ${def} — 도감 🎯 미션 탭의 상성 스티커판에 켜졌어 (${typeSeenCount(state.typeSeen)}개째)`, { sec: 5 });
-  checkNewStickers();
-};
+battle.onSuperHit = () => bump('super'); // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
   const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
@@ -1647,7 +1640,7 @@ function checkNewStickers() {
     caught: state.caught, rescued: state.rescued, blocks: state.blocks,
     bosses: Object.keys(state.conquered).length,
     dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
-    stats: state.goals.stats, typeSeen: typeSeenCount(state.typeSeen),
+    stats: state.goals.stats,
   });
   for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
   return got;
@@ -1902,7 +1895,7 @@ function buildSaveData() {
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
-    goals: state.goals, typeSeen: { ...state.typeSeen },
+    goals: state.goals,
     school: state.school,
     leader: Math.max(0, party.members.findIndex((m) => party.isLeader(m))),
   };
@@ -2626,8 +2619,7 @@ function renderGoals(el) {
     <div class="rank-how">미션 하나를 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)} 1개, 셋을 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 1개를 더 받아요.</div>
     ${allDone(G) ? '<div class="lrn-tip good">🏅 오늘 미션을 다 했어! 내일 새 미션으로 또 만나자.</div>' : ''}
     <div class="lrn-head2">🏅 스티커 <span class="rank-how">(${got} / ${STICKERS.length})</span></div>
-    <div class="stk-board">${board}</div>
-    ${typeBoardHtml(state.typeSeen)}`;
+    <div class="stk-board">${board}</div>`;
 }
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
@@ -2649,7 +2641,6 @@ function applySave(d) {
   state.learn = loadLearn(d.learn); quiz.learn = state.learn;   // 퀴즈도 새로 읽은 기록을 보게 (참조가 바뀐다)
   state.goals = loadGoals(d.goals, d.name);                    // 오늘의 미션 · 스티커
   state.school = loadSchool(d.school);                         // 포켓몬 학교 공부·숙제
-  state.typeSeen = { ...(d.typeSeen || {}) };                  // 대결에서 낸 상성 짝 (상성 스티커)
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };

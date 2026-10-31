@@ -1,13 +1,13 @@
 import { dayKey } from './goals.js';
 import { josa } from './util.js';
-import { typeQuestion, lessonHtml } from './typelesson.js';
+import { typeQuestion, chapterHtml, CHAPTERS } from './typelesson.js';
 // 포켓몬 학교 공부: 교실의 내 자리에 앉으면 과목(수학·영어·국어·한자·과학)을 골라 다섯 문제를 푼다.
 // 문제마다 보기 셋, 고르면 바로 "왜 그런지" 풀이를 보여 준다. 다 풀면 맞힌 수만큼 블록을 받는다.
 // 오늘의 숙제: 날마다 과목 하나가 숙제로 정해지고(날짜로 정해서 껐다 켜도 같다), 그 과목에서 3문제 이상 맞히면 숙제 끝.
 // 숙제를 끝내고 오박사님께 말을 걸면 칭찬과 함께 보너스 블록을 하루 한 번 준다 (main 의 talkTo).
 //
 // 기록(state.school): { day, studied: { 과목: 오늘 공부한 횟수 }, hwDone, hwPaid, total: { 과목: 지금까지 맞힌 수 }, typeQuiz: { day, potion, ball, best } }
-// 상성 수업(src/typelesson.js): 오박사 선생님께 말을 걸어 "📘 상성 수업" 을 누르면 같은 창에서 상성표를 배우고 다섯 문제 퀴즈 (showTypeLesson).
+// 상성 수업(src/typelesson.js): 오박사 선생님께 말을 걸어 "📘 상성 수업" 을 누르면 같은 창에서 다섯 교시로 상성을 배우고(실제 포켓몬 그림) 다섯 문제 퀴즈 (showTypeLesson).
 
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -189,8 +189,8 @@ function makeLesson(subject) {
 
 export class Study {
   /** onReward(correct, subject, { homework }) — 다 풀었을 때 블록을 준다. onClose() — 자리에서 일어날 때 */
-  constructor({ sound, getState, onReward, onClose, onTypeReward = null, getSpecies = () => [], getTypeSeen = () => ({}) }) {
-    Object.assign(this, { sound, getState, onReward, onClose, onTypeReward, getSpecies, getTypeSeen });
+  constructor({ sound, getState, onReward, onClose, onTypeReward = null, getSpecies = () => [], getAllSpecies = null, thumbOf = () => null }) {
+    Object.assign(this, { sound, getState, onReward, onClose, onTypeReward, getSpecies, getAllSpecies: getAllSpecies || getSpecies, thumbOf });
     this.el = document.getElementById('study');
     this.card = document.getElementById('study-card');
     this.open = false;
@@ -209,29 +209,32 @@ export class Study {
     if (!wasType) this.onClose?.();
   }
   /** ESC: 문제 푸는 중이면 과목 고르기로(상성 수업이면 수업 화면으로), 고르기 화면이면 일어서기 */
-  back() { if (this.typeMode) { if (this.lesson) this.renderTypeLesson(); else this.close(); } else if (this.lesson) this.renderPick(); else this.close(); }
+  back() { if (this.typeMode) { if (this.lesson) this.renderTypeLesson(); else if (this.chapter > 0) { this.chapter--; this.renderTypeLesson(); } else this.close(); } else if (this.lesson) this.renderPick(); else this.close(); }
 
   // ---------- 상성 수업 (오박사 선생님) ----------
   showTypeLesson() {
-    this.open = true; this.typeMode = true;
+    this.open = true; this.typeMode = true; this.chapter = 0;
     this.el.classList.remove('hidden');
     this.renderTypeLesson();
   }
+  /** 교시 하나씩 (◀ ▶ 로 넘긴다). 마지막 교시 뒤에 퀴즈 */
   renderTypeLesson() {
     this.lesson = null;
     const S = rollSchoolDay(this.getState()), T = S.typeQuiz || {};
-    const today = T.day === S.day;
+    const today = T.day === S.day, k = this.chapter, last = k === CHAPTERS.length - 1;
     this.card.innerHTML = `
       <div class="study-title">📘 오박사 선생님의 상성 수업</div>
-      ${lessonHtml(this.getTypeSeen())}
-      <div class="study-hw">🎁 상성 퀴즈 ${TYPE_LEN}문제: 정답마다 블록 ${TYPE_BLOCKS}개. 하루 한 번 ${TYPE_POTION_AT}개 이상 맞히면 🧪 물약, 다 맞히면 ⚪ 브론즈볼도!${today && T.potion ? ' (오늘 물약은 받았어' + (T.ball ? '·브론즈볼도 받았어)' : ')') : ''}</div>
-      <div class="study-nav"><button class="study-leave">👋 그만 듣기</button><button class="study-next">🧩 상성 퀴즈 풀기 ▶</button></div>`;
+      <div class="study-progress">${CHAPTERS.map((_, i) => `<i class="${i < k ? 'past' : i === k ? 'now' : ''}"></i>`).join('')}</div>
+      ${chapterHtml(k, this.getAllSpecies(), this.thumbOf)}
+      ${last ? `<div class="study-hw">🎁 상성 퀴즈 ${TYPE_LEN}문제: 정답마다 블록 ${TYPE_BLOCKS}개. 하루 한 번 ${TYPE_POTION_AT}개 이상 맞히면 🧪 물약, 다 맞히면 ⚪ 브론즈볼도!${today && T.potion ? ' (오늘 물약은 받았어' + (T.ball ? '·브론즈볼도 받았어)' : ')') : ''}</div>` : ''}
+      <div class="study-nav"><button class="study-leave">👋 그만 듣기</button>${k > 0 ? '<button class="study-back">◀ 앞 교시</button>' : ''}${last ? '<button class="study-next">🧩 상성 퀴즈 풀기 ▶</button>' : '<button class="study-next">다음 교시 ▶</button>'}</div>`;
     this.card.querySelector('.study-leave').onclick = () => { this.sound?.click(); this.close(); };
-    this.card.querySelector('.study-next').onclick = () => this.startTypeQuiz();
+    this.card.querySelector('.study-back')?.addEventListener('click', () => { this.sound?.click(); this.chapter--; this.renderTypeLesson(); });
+    this.card.querySelector('.study-next').onclick = () => { if (last) this.startTypeQuiz(); else { this.sound?.click(); this.chapter++; this.renderTypeLesson(); } };
   }
   startTypeQuiz() {
     this.sound?.click();
-    const subject = { id: 'types', emoji: '💥', name: '상성 퀴즈', make: () => typeQuestion(this.getSpecies()) };
+    const subject = { id: 'types', emoji: '💥', name: '상성 퀴즈', make: () => typeQuestion(this.getSpecies(), this.thumbOf) };
     const qs = [], seen = new Set(); let guard = 0;
     while (qs.length < TYPE_LEN && guard++ < 60) { const q = subject.make(); if (seen.has(q.q)) continue; seen.add(q.q); qs.push({ ...q, choices: shuffle([q.a, ...q.wrong]) }); }
     this.lesson = { subject, qs, i: 0, correct: 0 };
@@ -287,7 +290,7 @@ export class Study {
     this.card.innerHTML = `
       <div class="study-title">${L.subject.emoji} ${L.subject.name} · ${L.i + 1} / ${L.qs.length} <span class="study-score">⭕ ${L.correct}</span></div>
       <div class="study-progress">${L.qs.map((_, k) => `<i class="${k < L.i ? 'past' : k === L.i ? 'now' : ''}"></i>`).join('')}</div>
-      ${q.big ? `<div class="study-big${L.subject.id === 'hanja' ? ' hanja' : ''}">${q.big}</div>` : ''}
+      ${q.bigHtml ? `<div class="study-big mons">${q.bigHtml}</div>` : q.big ? `<div class="study-big${L.subject.id === 'hanja' ? ' hanja' : ''}">${q.big}</div>` : ''}
       <div class="study-q">${q.q}</div>
       <div class="study-choices">${q.choices.map((c) => `<button data-v="${c.replace(/"/g, '&quot;')}">${c}</button>`).join('')}</div>
       <div class="study-why"></div>

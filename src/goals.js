@@ -20,6 +20,7 @@ export const MISSIONS = [
   { id: 'blocks', emoji: '🟦', need: 30, text: (n) => `블록 ${n}개 모으기` },
   { id: 'zones', emoji: '🗺', need: 2, uniq: true, text: (n) => `다른 지역 ${n}곳 가 보기` },
   { id: 'evolve', emoji: '✨', need: 1, text: (n) => `포켓몬 ${n}마리 진화시키기` },
+  { id: 'super', emoji: '💥', need: 3, text: (n) => `상성으로 "효과가 굉장했다!" ${n}번 내기` },
 ];
 export const MISSION_BY_ID = Object.fromEntries(MISSIONS.map((m) => [m.id, m]));
 export const MISSION_BALL = 'bronze';   // 미션 하나마다
@@ -112,8 +113,6 @@ export const STICKERS = [
   { id: 'duel1', emoji: '⚔️', name: '첫 대결 승리', how: '친구와의 대결에서 이겼어', test: (s) => s.stats.duels >= 1 },
   { id: 'photo1', emoji: '📸', name: '첫 사진', how: '포켓몬과 사진을 찍었어', test: (s) => s.stats.photos >= 1 },
   { id: 'daily1', emoji: '🎯', name: '오늘 완주', how: '하루 미션 셋을 다 했어', test: (s) => s.stats.daily >= 1 },
-  { id: 'types5', emoji: '💥', name: '상성 탐험가', how: '대결에서 상성 짝 5가지로 "효과가 굉장했다!"', test: (s) => (s.typeSeen || 0) >= 5 },
-  { id: 'types15', emoji: '🧠', name: '상성 박사', how: '상성 짝 15가지로 "효과가 굉장했다!"', test: (s) => (s.typeSeen || 0) >= 15 },
 ];
 export const STICKER_BY_ID = Object.fromEntries(STICKERS.map((s) => [s.id, s]));
 
