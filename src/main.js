@@ -1434,7 +1434,12 @@ function updateCtxButton() {
 }
 function talkTo(npc) {
   state.prompt = 8;
-  const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader, towerBest: state.tower.best };
+  // legend: 이 지역의 전설(unlockedBy) 상태 — 안내원이 "왜 아직 안 나오는지"를 말해 준다 (엔테이가 안 보인다는 물음에 답하려고)
+  const legend = creatureData.creatures.filter((c) => c.zone === zone.name && c.unlockedBy).map((sp) => {
+    const needs = unlockNeeds(sp).map((id) => ({ id, name: speciesById[id]?.name || id, ok: caughtFor(id), boss: !!speciesById[id]?.boss, hasAny: (state.dex[id] || 0) > 0 }));
+    return { name: sp.name, caught: (state.dex[sp.id] || 0) > 0, here: zone.creatures.some((c) => c.data.id === sp.id && c.state !== 'caught'), ready: needs.every((n) => n.ok), needs };
+  });
+  const ctx = { name: state.name, conquered: state.conquered, zone: ZONE_INFO[zone.name] || {}, leader: party.leader, towerBest: state.tower.best, legend };
   const lines = typeof npc.lines === 'function' ? npc.lines(ctx) : npc.lines;
   npc.line = ((npc.line ?? -1) + 1) % lines.length;
   let healed = 0;

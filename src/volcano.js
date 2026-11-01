@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
-import { rand } from './util.js';
+import { rand, josa } from './util.js';
 import { buildGround, makePortal, makeSignAt, makeInstanced } from './world.js';
 
 // 불의산 (300x300). 푸른숲 동북쪽 붉은 바위 아치로 들어온다. 불 포켓몬이 산다.
@@ -50,6 +50,16 @@ function volcanoBlocked(x, z) {
 }
 export const VOLCANO_TERRAIN = { height: volcanoHeight, inHole: () => false, blocked: volcanoBlocked, size: VOLCANO.size, obstacles: [] };
 
+/** 전설(엔테이) 상태를 한 줄로 — 왜 아직 안 보이는지까지 (main 의 talkTo 가 c.legend 를 준다) */
+function legendLine(c) {
+  const L = (c.legend || []).find((x) => x.name === '엔테이') || (c.legend || [])[0]; // 엔테이 이야기부터 (힙합리자몽 등 다른 특별 포켓몬은 다음에)
+  if (!L) return '';
+  if (L.caught) return `전설의 ${L.name}도 네 친구가 됐지! 대단해.`;
+  if (L.here) return `소문에 전설의 ${josa(L.name, '이가')} 불의산 어딘가에 내려왔대 — 하늘로 뻗은 금빛 빛기둥을 찾아봐!`;
+  const miss = L.needs.find((n) => !n.ok);
+  if (miss) return miss.hasAny && miss.boss ? `${josa(L.name, '은는')} 화산 꼭대기의 "보스" ${josa(miss.name, '을를')} 넘버볼로 잡아야 내려와. 진화로 얻은 ${miss.name}나 풀어주기는 안 쳐!` : `${josa(L.name, '은는')} 보스 ${josa(miss.name, '을를')} 넘버볼로 잡으면 내려와.`;
+  return `${josa(L.name, '이가')} 내려올 때가 됐는데… 불의산을 나갔다가 다시 들어와 봐!`;
+}
 export function buildVolcano(scene) {
   const S = VOLCANO.size;
   const decor = new THREE.Group();
@@ -230,7 +240,7 @@ export function buildVolcano(scene) {
       `불의산에 온 걸 환영해, ${c.name}! 난 화산을 연구하는 봄이야. 용암은 뜨거우니 밟지 마.`,
       `여기 포켓몬은 전부 불 속성이야. 공격 ${c.zone.atkRange}쯤 되면 편하게 이겨. 물 포켓몬(꼬부기!)이 불에 세고, 풀 포켓몬은 불에 약하니 조심.`,
       '여기선 하루 종일 같은 소리만 들렸어. "하나, 둘, 하나, 둘." 로켓단이 불 포켓몬들에게 명령을 훈련시킨 거야.',
-      c.conquered.volcano ? '보스 리자몽을 이겼구나! 정말 강해졌는걸. 소문에 전설의 엔테이가 불의산 어딘가에 내려왔대 — 하늘로 뻗은 금빛 빛기둥을 찾아봐!' : `큰 화산 꼭대기에 보스 리자몽이 있어. 체력 140! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
+      c.conquered.volcano ? `보스 리자몽을 이겼구나! 정말 강해졌는걸. ${legendLine(c)}` : `${(c.legend || []).some((L) => L.needs.some((n) => n.hasAny && !n.ok)) ? '진화로 얻은 리자몽은 안 쳐 — 전설의 엔테이는 화산 꼭대기의 보스 리자몽을 넘버볼로 잡아야 내려와! ' : ''}큰 화산 꼭대기에 보스 리자몽이 있어. 체력 140! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
       '여기 블록은 하나가 2개 가치야. 대결에서 이기면 상대 공격력만큼 블록을 받으니 싸우는 게 이득이지. 포탈로 푸른숲에 돌아갈 수 있어.',
     ] }],
     wildSpots: [[-40.9, 61.4], [40.9, 75.0], [-75.0, -27.3], [81.8, -40.9], [-34.1, -95.5], [40.9, -102.3], [-115.9, 54.5], [122.7, 68.2], [-95.5, 122.7], [81.8, 129.5], [0.0, 75.0], [-122.7, -54.5], [122.7, -109.1], [-61.4, -129.5], [136.4, 0.0], [-136.4, 122.7], [20.5, -143.2], [-20.5, 20.5], [-72.3, 12.2], [34.7, -119.9], [-134.4, 93.1], [-66.4, -73.3], [92.9, -6.5], [71.3, 25.1], [60.4, 104.6], [-92.5, 52.4]],
