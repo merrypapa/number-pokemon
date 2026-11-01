@@ -47,6 +47,7 @@ export class Dex {
     this.countEl = document.getElementById('dex-count');
     this.filterEl = document.getElementById('dex-filter');
     this.filter = { mode: 'all', type: null }; // 도감 액자 거르기: 전체 · 내 포켓몬(잡은 것) · 아직 못 잡은 것 · 속성
+    this.page = 0; this.PAGE = 20; // 액자는 한 번에 20개씩 (종이 130이 넘어 한꺼번에 그림을 그리면 GPU 메모리가 치솟아 태블릿에서 꺼졌다). 페이지를 넘길 때 그 페이지 그림만 만든다
     this.adminEl = document.getElementById('dex-admin');   // 관리자 탭 (main 이 채운다)
     this.friendsEl = document.getElementById('dex-friends'); // 친구 탭 (main 이 채운다)
     this.feedbackEl = document.getElementById('dex-feedback'); // 요청 탭 (main 이 채운다)
@@ -351,7 +352,7 @@ export class Dex {
       const chip = document.createElement('button');
       chip.className = 'member-chip' + (party.isLeader(m) ? ' leader' : '') + (sp.id === this.selectedId ? ' sel' : '');
       chip.innerHTML = `${t ? `<img src="${t.color}" alt="">` : ''}<span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}${m.hp <= 0 ? '<i>😵</i>' : ''}`;
-      chip.onclick = () => this.select(sp.id);
+      chip.onclick = () => { this.jumpToSelected = true; this.select(sp.id); };
       this.membersEl.appendChild(chip);
     }
   }
@@ -502,15 +503,23 @@ export class Dex {
     this.grid.innerHTML = '';
     let caughtSpecies = 0;
     const F = this.filter;
-    let shown = 0;
+    // 거른 목록을 먼저 뽑고, 지금 페이지의 20개만 그린다 (선택한 포켓몬이 다른 페이지에 있으면 그 페이지로)
+    const list = [];
     for (const sp of this.species) {
-      const n = caughtById[sp.id] || 0;
-      const known = n > 0;
+      const n = caughtById[sp.id] || 0, known = n > 0;
       if (known) caughtSpecies++;
       if (F.mode === 'caught' && !known) continue;   // 내 포켓몬 = 한 번이라도 잡은 종
       if (F.mode === 'unknown' && known) continue;   // 아직 못 잡은 종
       if (F.type && (sp.type || '노말') !== F.type) continue;
-      shown++;
+      list.push(sp);
+    }
+    const pages = Math.max(1, Math.ceil(list.length / this.PAGE));
+    if (this.jumpToSelected && this.selectedId) { const i = list.findIndex((s) => s.id === this.selectedId); if (i >= 0) this.page = Math.floor(i / this.PAGE); }
+    this.jumpToSelected = false;
+    this.page = Math.max(0, Math.min(pages - 1, this.page));
+    const shown = list.length;
+    for (const sp of list.slice(this.page * this.PAGE, (this.page + 1) * this.PAGE)) {
+      const n = caughtById[sp.id] || 0, known = n > 0;
       const t = this.thumbs(sp);
       const item = document.createElement('div');
       item.className = 'dex-item ' + (known ? 'caught' : 'unknown') + (sp.id === this.selectedId ? ' sel' : '');
@@ -530,10 +539,29 @@ export class Dex {
       this.grid.appendChild(item);
     }
     this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종${ctx?.isDexAll?.() ? ' · 🌟 포켓몬 마스터' : ''}`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
+    this.renderPager(pages, shown, caughtById);
     if (!shown) { const empty = document.createElement('div'); empty.className = 'dex-empty'; empty.textContent = F.mode === 'caught' ? (F.type ? '아직 이 속성의 내 포켓몬이 없어. 잡으러 가 보자!' : '아직 잡은 포켓몬이 없어.') : F.mode === 'unknown' ? (F.type ? '이 속성은 다 잡았어! 🎉' : '전부 다 잡았어! 🎉') : '이 속성의 포켓몬은 없어.'; this.grid.appendChild(empty); }
 
   }
 
+  /** 액자 아래 페이지 넘기기: ◀ 이전 · 1 2 3 … · 다음 ▶ (한 페이지 20개) */
+  renderPager(pages, total, caughtById) {
+    let el = document.getElementById('dex-pager');
+    if (!el) { el = document.createElement('div'); el.id = 'dex-pager'; this.grid.insertAdjacentElement('afterend', el); }
+    if (pages <= 1) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    const p = this.page;
+    const nums = [];
+    for (let i = 0; i < pages; i++) { if (pages <= 7 || i === 0 || i === pages - 1 || Math.abs(i - p) <= 1) nums.push(i); else if (nums[nums.length - 1] !== '…') nums.push('…'); }
+    el.innerHTML = `<button class="pg-prev" ${p === 0 ? 'disabled' : ''}>◀ 이전</button>
+      <span class="pg-nums">${nums.map((n) => n === '…' ? '<i>…</i>' : `<button data-page="${n}" class="${n === p ? 'on' : ''}">${n + 1}</button>`).join('')}</span>
+      <button class="pg-next" ${p >= pages - 1 ? 'disabled' : ''}>다음 ▶</button>
+      <small class="pg-info">${p * this.PAGE + 1}~${Math.min(total, (p + 1) * this.PAGE)} / ${total}</small>`;
+    const go = (n) => { this.page = n; this.render(this.lastCaught || caughtById || {}); this.grid.scrollIntoView({ block: 'start', behavior: 'smooth' }); };
+    el.querySelector('.pg-prev').onclick = () => go(p - 1);
+    el.querySelector('.pg-next').onclick = () => go(p + 1);
+    el.querySelectorAll('button[data-page]').forEach((b) => { b.onclick = () => go(+b.dataset.page); });
+  }
   /** 거르기 줄: [전체] [내 포켓몬] [잡은 것] + 속성 칩 (속성은 모드와 겹쳐 쓸 수 있다) */
   renderFilter(caughtById) {
     const F = this.filter;
@@ -543,8 +571,8 @@ export class Dex {
     const modes = [['all', `전체 ${this.species.length}`], ['caught', `내 포켓몬 ${known}`], ['unknown', `아직 못 잡은 것 ${this.species.length - known}`]];
     this.filterEl.innerHTML = `<div class="dex-fmodes">${modes.map(([id, label]) => `<button data-mode="${id}" class="${F.mode === id ? 'on' : ''}">${label}</button>`).join('')}</div>
       <div class="dex-ftypes"><button data-type="" class="${F.type ? '' : 'on'}">모든 속성</button>${types.map((t) => `<button data-type="${t}" class="${F.type === t ? 'on' : ''}">${EMO[t] || '✨'} ${t}</button>`).join('')}</div>`;
-    this.filterEl.querySelectorAll('button[data-mode]').forEach((b) => { b.onclick = () => { F.mode = b.dataset.mode; this.render(this.lastCaught || caughtById || {}); }; });
-    this.filterEl.querySelectorAll('button[data-type]').forEach((b) => { b.onclick = () => { F.type = b.dataset.type || null; this.render(this.lastCaught || caughtById || {}); }; });
+    this.filterEl.querySelectorAll('button[data-mode]').forEach((b) => { b.onclick = () => { F.mode = b.dataset.mode; this.page = 0; this.render(this.lastCaught || caughtById || {}); }; });
+    this.filterEl.querySelectorAll('button[data-type]').forEach((b) => { b.onclick = () => { F.type = b.dataset.type || null; this.page = 0; this.render(this.lastCaught || caughtById || {}); }; });
   }
 
   show(caughtById) { this.render(caughtById); if (this.tab === 'map') this.renderMap(caughtById); if (this.tab === 'balls') this.renderBalls(); this.el.classList.remove('hidden'); this.open = true; }
