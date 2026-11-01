@@ -2416,6 +2416,12 @@ document.getElementById('btn-install-copy').onclick = (e) => {
   if (navigator.clipboard) navigator.clipboard.writeText(INSTALL_LINK).then(done, () => prompt('이 주소를 복사해 주세요', INSTALL_LINK));
   else prompt('이 주소를 복사해 주세요', INSTALL_LINK);
 };
+// 처음 화면 아래에 버전과 업데이트 날짜 (version.js 의 NP_VERSION = 'v2026-11-01-7' → "버전 2026-11-01-7 · 업데이트 2026년 11월 1일")
+{
+  const v = String(self.NP_VERSION || ''), m = v.match(/^v(\d{4})-(\d{2})-(\d{2})(?:-(\d+))?$/);
+  const el = document.getElementById('title-version');
+  if (el) el.textContent = m ? `버전 ${v.slice(1)} · 업데이트 ${+m[1]}년 ${+m[2]}월 ${+m[3]}일` : (v ? `버전 ${v}` : '');
+}
 if ('serviceWorker' in navigator && !location.search.includes('nosw') && location.protocol !== 'file:') {
   const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
   const updateBar = document.getElementById('update-bar');
