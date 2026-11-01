@@ -22,7 +22,8 @@
     "m51e",
     "m31",
     "m28",
-    "m01"
+    "m01",
+    "m69"
    ],
    "wildOverride": {
     "swim": false,
@@ -47,7 +48,11 @@
     "m03",
     "m41",
     "m11j",
-    "m56"
+    "m56",
+    "m61",
+    "m71",
+    "m72",
+    "m73"
    ],
    "wildOverride": {
     "swim": false,
@@ -95,7 +100,9 @@
     "m21",
     "m20",
     "m22",
-    "m39"
+    "m39",
+    "m75",
+    "m76"
    ],
    "wildOverride": {
     "swim": false,
@@ -185,7 +192,9 @@
     "m02",
     "m09",
     "m08",
-    "m28"
+    "m28",
+    "m64",
+    "m62"
    ],
    "wildOverride": {
     "swim": false,
@@ -225,7 +234,9 @@
     "m03e",
     "m41",
     "m11j",
-    "m56"
+    "m56",
+    "m71",
+    "m72"
    ],
    "wildOverride": {
     "swim": false,
@@ -1342,7 +1353,10 @@
      "kind": "fire"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m66",
+    "level": 20
+   },
    "favoriteNumber": 7,
    "personality": "밝음",
    "ability": "light",
@@ -4839,13 +4853,13 @@
   },
   {
    "id": "t94",
-   "name": "탑의 수호신",
+   "name": "뮤츠",
    "type": "에스퍼",
    "zone": "tower",
    "catchable": true,
    "boss": true,
-   "model": "루기아.glb",
-   "scale": 3.2,
+   "model": "뮤츠.glb",
+   "scale": 2.4,
    "draftShape": {
     "body": "capsule",
     "color": "#DFE8F5",
@@ -4878,8 +4892,1371 @@
    ],
    "evolution": null,
    "favoriteNumber": 94,
-   "personality": "고요하고 거대함",
-   "story": "동굴탑 94층 꼭대기, 하늘이 뚫린 방에서 탑을 지키는 수호신. 94층을 걸어 올라온 트레이너에게만 모습을 보여. 친구가 되면 하늘의 문을 열어 준대."
+   "personality": "고독함",
+   "story": "동굴탑 94층 꼭대기를 지키는 전설의 에스퍼 포켓몬. 뮤의 유전자로 만들어졌지만 마음은 스스로 길렀어. 탑의 모든 계단을 오른 사람만 만날 수 있어."
+  },
+  {
+   "id": "m64",
+   "name": "피츄",
+   "type": "전기",
+   "zone": "forest",
+   "catchable": true,
+   "model": "피츄.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFE066"
+   },
+   "baseHp": 9,
+   "baseAtk": 2,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "찌릿찌릿",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "박치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "전기쇼크",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": {
+    "to": "m03",
+    "level": 10
+   },
+   "favoriteNumber": 2,
+   "personality": "장난꾸러기",
+   "story": "아기 피카츄. 볼에 전기를 모으는 연습 중이라 가끔 저 혼자 찌릿! 하고 놀라. 숫자 2를 세면서 뺨을 두 번 두드려."
+  },
+  {
+   "id": "m62",
+   "name": "꼬렛",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "꼬렛.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9B7BD3"
+   },
+   "baseHp": 9,
+   "baseAtk": 2,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "깨물기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "scratch",
+     "type": "고스트"
+    },
+    {
+     "name": "전광석화",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": {
+    "to": "m62e",
+    "level": 16
+   },
+   "favoriteNumber": 4,
+   "personality": "재빠름",
+   "story": "앞니가 쑥쑥 자라는 보라색 쥐 포켓몬. 뭐든 갉아 보고, 숫자 4처럼 네 발로 재빨리 달려."
+  },
+  {
+   "id": "m62e",
+   "name": "레트라",
+   "type": "노말",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "레트라.glb",
+   "scale": 1.1,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#B08A5A"
+   },
+   "baseHp": 22,
+   "baseAtk": 6,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "깨물기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch",
+     "type": "고스트"
+    },
+    {
+     "name": "필살앞니",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "으르렁",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "고집 셈",
+   "story": "꼬렛이 진화한 모습. 커다란 앞니는 돌도 갉아. 수염으로 바람의 방향을 안다.",
+   "evolvedFrom": "m62"
+  },
+  {
+   "id": "m63",
+   "name": "냄새꼬",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "model": "냄새꼬.glb",
+   "scale": 0.8,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#4C7BD9"
+   },
+   "baseHp": 11,
+   "baseAtk": 3,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "흡수",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "독가루",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison",
+     "type": "독"
+    },
+    {
+     "name": "잎날가르기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": {
+    "to": "m63e",
+    "level": 18
+   },
+   "favoriteNumber": 5,
+   "personality": "느긋함",
+   "story": "낮에는 땅에 뿌리를 박고 자다가 밤에 걸어 다니는 풀 포켓몬. 머리의 잎 다섯 장이 숫자 5."
+  },
+  {
+   "id": "m63e",
+   "name": "라플레시아",
+   "type": "풀",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "라플레시아.glb",
+   "scale": 1.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#D9534F"
+   },
+   "baseHp": 28,
+   "baseAtk": 8,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "흡수",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "독가루",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison",
+     "type": "독"
+    },
+    {
+     "name": "꽃잎댄스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    },
+    {
+     "name": "솔라빔",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "leaf"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "냄새 폴폴",
+   "story": "냄새꼬가 진화한 모습. 세상에서 제일 큰 꽃을 머리에 이고 있고 꽃가루는 조금 지독해.",
+   "evolvedFrom": "m63"
+  },
+  {
+   "id": "m67",
+   "name": "페라페",
+   "type": "노말",
+   "zone": "forest",
+   "catchable": true,
+   "model": "페라페.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2E2E2E"
+   },
+   "baseHp": 10,
+   "baseAtk": 3,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "노래하기",
+     "atk": 1,
+     "power": 1,
+     "kind": "sing"
+    },
+    {
+     "name": "쪼기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "peck"
+    },
+    {
+     "name": "재잘재잘",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "수다쟁이",
+   "story": "사람 말을 흉내 내는 음표 머리 새. 들은 말을 다 따라 해서 비밀을 못 지켜. 음계 여덟 개를 좋아해."
+  },
+  {
+   "id": "m68",
+   "name": "토게피",
+   "type": "페어리",
+   "zone": "forest",
+   "catchable": true,
+   "model": "토게피.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFF6C9"
+   },
+   "baseHp": 10,
+   "baseAtk": 2,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "요정의바람",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing"
+    },
+    {
+     "name": "반짝반짝",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic",
+     "type": "에스퍼"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "순수함",
+   "story": "알껍질을 아직 입고 있는 아기 요정 포켓몬. 착한 마음을 모아 행복을 나눠 줘. 숫자 1처럼 첫째로 태어났어."
+  },
+  {
+   "id": "m69",
+   "name": "버터플",
+   "type": "벌레",
+   "zone": "hive",
+   "catchable": true,
+   "model": "버터플.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#CBA0E6"
+   },
+   "baseHp": 20,
+   "baseAtk": 4,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "날개치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "wind"
+    },
+    {
+     "name": "수면가루",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "poison",
+     "type": "독"
+    },
+    {
+     "name": "은빛바람",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bug"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "팔랑팔랑",
+   "story": "꽃밭 위를 팔랑이는 나비 포켓몬. 날개 가루로 상대를 잠들게 해. 다리 여섯 개로 꽃에 앉아."
+  },
+  {
+   "id": "m60",
+   "name": "리올루",
+   "type": "격투",
+   "zone": "cave",
+   "catchable": true,
+   "model": "리올루.glb",
+   "scale": 0.8,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#4C7BD9"
+   },
+   "baseHp": 22,
+   "baseAtk": 6,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "속여때리기",
+     "atk": 1,
+     "power": 1,
+     "kind": "punch",
+     "type": "고스트"
+    },
+    {
+     "name": "카운터",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "punch"
+    },
+    {
+     "name": "파동탄",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic",
+     "type": "격투"
+    }
+   ],
+   "evolution": {
+    "to": "m60e",
+    "level": 22
+   },
+   "favoriteNumber": 7,
+   "personality": "의리",
+   "story": "마음의 파동을 읽는 꼬마 격투 포켓몬. 혼자서도 산을 넘을 만큼 튼튼해. 진화하면 루카리오가 돼."
+  },
+  {
+   "id": "m60e",
+   "name": "루카리오",
+   "type": "격투",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "루카리오.glb",
+   "scale": 1.25,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2F55A4"
+   },
+   "baseHp": 70,
+   "baseAtk": 18,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "파동탄",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic",
+     "type": "격투"
+    },
+    {
+     "name": "인파이트",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "punch"
+    },
+    {
+     "name": "러스터캐논",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "파동의힘",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "punch"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "늠름함",
+   "story": "리올루가 진화한 모습. 파동의 힘으로 멀리 있는 것도 느껴. 숫자 7의 행운을 지킨다.",
+   "evolvedFrom": "m60"
+  },
+  {
+   "id": "m70",
+   "name": "애버라스",
+   "type": "바위",
+   "zone": "cave",
+   "catchable": true,
+   "model": "애버라스.glb",
+   "scale": 0.8,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#7FBF7F"
+   },
+   "baseHp": 24,
+   "baseAtk": 6,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "깨물기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch",
+     "type": "고스트"
+    },
+    {
+     "name": "모래뿌리기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sand",
+     "type": "땅"
+    },
+    {
+     "name": "바위떨구기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "rock"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "먹보",
+   "story": "흙을 산만큼 먹어야 자라는 바위 포켓몬. 땅속 깊이에서 태어나 흙을 먹으며 위로 올라와."
+  },
+  {
+   "id": "m61",
+   "name": "메리프",
+   "type": "전기",
+   "zone": "thunder",
+   "catchable": true,
+   "model": "메리프.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFF3C4"
+   },
+   "baseHp": 40,
+   "baseAtk": 10,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "전기쇼크",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bolt"
+    },
+    {
+     "name": "전자파",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": {
+    "to": "m61e",
+    "level": 20
+   },
+   "favoriteNumber": 2,
+   "personality": "포근함",
+   "story": "양털에 정전기를 모으는 양 포켓몬. 털이 부풀수록 전기가 가득. 두 뿔이 숫자 2."
+  },
+  {
+   "id": "m61e",
+   "name": "전룡",
+   "type": "전기",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "전룡.glb",
+   "scale": 1.3,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F5C542"
+   },
+   "baseHp": 80,
+   "baseAtk": 20,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "10만볼트",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bolt"
+    },
+    {
+     "name": "용의파동",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "번개",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": {
+    "to": "x12",
+    "level": 30,
+    "mega": 1
+   },
+   "favoriteNumber": 2,
+   "personality": "듬직함",
+   "story": "메리프가 진화한 모습. 꼬리 끝 빨간 구슬이 등대처럼 빛나 먼바다의 배를 이끌어. 메가블럭으로 메가전룡이 돼.",
+   "evolvedFrom": "m61"
+  },
+  {
+   "id": "x12",
+   "name": "메가전룡",
+   "type": "전기",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "메가전룡.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFE680"
+   },
+   "baseHp": 170,
+   "baseAtk": 34,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "번개",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "용의파동",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "기가드레인",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf",
+     "type": "풀"
+    },
+    {
+     "name": "볼트체인지",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "찬란함",
+   "story": "전룡이 메가 진화한 모습. 긴 흰 갈기가 번개처럼 흘러내리고 꼬리 구슬이 더 밝게 빛나.",
+   "mega": true,
+   "evolvedFrom": "m61e"
+  },
+  {
+   "id": "m71",
+   "name": "플러시",
+   "type": "전기",
+   "zone": "thunder",
+   "catchable": true,
+   "model": "플러시.glb",
+   "scale": 0.8,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F7D33D"
+   },
+   "baseHp": 44,
+   "baseAtk": 11,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "응원하기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "스파크",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "응원단",
+   "story": "꼬리가 더하기(+) 모양인 응원 포켓몬. 친구를 응원할 때 몸에서 불꽃이 튀어. 마이농과 늘 함께야."
+  },
+  {
+   "id": "m72",
+   "name": "마이농",
+   "type": "전기",
+   "zone": "thunder",
+   "catchable": true,
+   "model": "마이농.glb",
+   "scale": 0.8,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8CC9F0"
+   },
+   "baseHp": 44,
+   "baseAtk": 11,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "응원하기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "스파크",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "응원단",
+   "story": "꼬리가 빼기(−) 모양인 응원 포켓몬. 플러시와 짝을 이루면 전기가 두 배. 더하기와 빼기를 가르쳐 줘."
+  },
+  {
+   "id": "m73",
+   "name": "레어코일",
+   "type": "전기",
+   "zone": "thunder",
+   "catchable": true,
+   "model": "레어코일.glb",
+   "scale": 1.1,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#A0A8B8"
+   },
+   "baseHp": 50,
+   "baseAtk": 13,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "전기쇼크",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "철벽",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "rock",
+     "type": "바위"
+    },
+    {
+     "name": "3연발",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    },
+    {
+     "name": "번개",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "기계적",
+   "story": "코일 셋이 붙은 자석 포켓몬. 셋이 번갈아 전기를 쏘니까 숫자 3을 좋아해. 둥둥 떠다녀."
+  },
+  {
+   "id": "m66",
+   "name": "날쌩마",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "model": "날쌩마.glb",
+   "scale": 1.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F28C28"
+   },
+   "baseHp": 66,
+   "baseAtk": 13,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "불꽃",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "짓밟기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "화염바퀴",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃질주",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "질주",
+   "story": "포니타가 진화한 불꽃 말. 갈기의 불이 바람처럼 날려 한 시간에 240km 로 달려.",
+   "evolvedFrom": "m07"
+  },
+  {
+   "id": "m65",
+   "name": "야도란",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "야도란.glb",
+   "scale": 1.1,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F5A3C7"
+   },
+   "baseHp": 36,
+   "baseAtk": 8,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "염동력",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "하품",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "느릿느릿",
+   "story": "꼬리를 셀러에게 물린 뒤 느긋해진 물 포켓몬. 뭘 물어보면 6초 뒤에 대답해."
+  },
+  {
+   "id": "m74",
+   "name": "몰라용",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "몰라용.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8FD3F4"
+   },
+   "baseHp": 30,
+   "baseAtk": 7,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "물대포",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "고개갸웃",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "거품",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 0,
+   "personality": "몰라",
+   "story": "바다에 떠 있는 작은 용 모양 포켓몬. 뭘 물어도 \"몰라용~\" 하고 고개를 갸웃. 숫자 0처럼 동글동글해.",
+   "swim": true
+  },
+  {
+   "id": "m75",
+   "name": "야도킹",
+   "type": "에스퍼",
+   "zone": "deepsea",
+   "catchable": true,
+   "model": "야도킹.glb",
+   "scale": 1.3,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F5A3C7"
+   },
+   "baseHp": 80,
+   "baseAtk": 18,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "물대포",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water",
+     "type": "물"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water",
+     "type": "물"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "현명함",
+   "story": "머리의 셀러가 왕관이 되어 똑똑해진 야도란. 심해의 비밀을 다 알지만 설명이 느려."
+  },
+  {
+   "id": "m76",
+   "name": "루주라",
+   "type": "에스퍼",
+   "zone": "deepsea",
+   "catchable": true,
+   "model": "루주라.glb",
+   "scale": 1.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#D86BA8"
+   },
+   "baseHp": 76,
+   "baseAtk": 18,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "얼음숨결",
+     "atk": 1,
+     "power": 1,
+     "kind": "water",
+     "type": "물"
+    },
+    {
+     "name": "키스",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "눈보라",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water",
+     "type": "물"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "춤꾼",
+   "story": "얼음 바다에서 춤추는 포켓몬. 춤을 보면 저절로 따라 추게 돼. 아홉 가지 춤을 알아."
+  },
+  {
+   "id": "x13",
+   "name": "메가샤크니아",
+   "type": "물",
+   "zone": "deepsea",
+   "catchable": true,
+   "model": "메가샤크니아.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#2F55A4"
+   },
+   "baseHp": 200,
+   "baseAtk": 40,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "깨물기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch",
+     "type": "고스트"
+    },
+    {
+     "name": "아쿠아제트",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "씹어부수기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "거대폭포",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "사나움",
+   "story": "상어 포켓몬 샤크니아의 메가 모습. 코의 노란 흉터가 빛나고 이빨이 톱처럼 돋아. 루기아를 만난 뒤 심해 깊은 곳에 나타나.",
+   "mega": true,
+   "unlockedBy": "b06"
+  },
+  {
+   "id": "m77",
+   "name": "삐삐",
+   "type": "페어리",
+   "zone": "space",
+   "catchable": true,
+   "model": "삐삐.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F7B7D4"
+   },
+   "baseHp": 60,
+   "baseAtk": 13,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "손가락흔들기",
+     "atk": 1,
+     "power": 1,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "달의빛",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "매지컬샤인",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "귀여움",
+   "story": "달이 밝은 밤에 춤추는 요정 포켓몬. 별똥별을 타고 우주에서 왔대. 네 손가락을 흔들어 마법을 써."
+  },
+  {
+   "id": "m78",
+   "name": "메타몽",
+   "type": "노말",
+   "zone": "space",
+   "catchable": true,
+   "model": "메타몽.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#B48CD9"
+   },
+   "baseHp": 60,
+   "baseAtk": 14,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "변신",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "몸통박치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle"
+    },
+    {
+     "name": "흉내내기",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "말랑말랑",
+   "story": "뭐든 똑같이 변신하는 보라색 젤리 포켓몬. 웃으면 모양이 흐트러져. 숫자 8처럼 늘었다 줄었다."
+  },
+  {
+   "id": "b11",
+   "name": "썬더",
+   "type": "전기",
+   "zone": "thunder",
+   "catchable": true,
+   "model": "썬더.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F7D33D"
+   },
+   "baseHp": 115,
+   "baseAtk": 21,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "번개",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "드릴쪼기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "peck",
+     "type": "노말"
+    },
+    {
+     "name": "10만볼트",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    },
+    {
+     "name": "전기폭풍",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "bolt"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "번개 폭풍",
+   "story": "먹구름 속에 사는 전설의 번개 새. 날개를 치면 천둥이 울려. 라이코와 친구가 되면 번개동굴에 내려와.",
+   "unlockedBy": "b07"
+  },
+  {
+   "id": "b12",
+   "name": "파이어",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "model": "파이어.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F28C28"
+   },
+   "baseHp": 125,
+   "baseAtk": 23,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "불꽃",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "날개치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "wind",
+     "type": "노말"
+    },
+    {
+     "name": "화염방사",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "불꽃폭풍",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "뜨거움",
+   "story": "불꽃 날개를 가진 전설의 새. 다친 날개도 용암에 담그면 나아. 엔테이와 친구가 되면 불의산에 내려와.",
+   "unlockedBy": "b08"
+  },
+  {
+   "id": "b13",
+   "name": "프리저",
+   "type": "물",
+   "zone": "deepsea",
+   "catchable": true,
+   "model": "프리저.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9FD8F0"
+   },
+   "baseHp": 120,
+   "baseAtk": 22,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "얼음숨결",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "날개치기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "wind",
+     "type": "노말"
+    },
+    {
+     "name": "냉동빔",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "water"
+    },
+    {
+     "name": "눈보라",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 5,
+   "personality": "차가움",
+   "story": "얼음 날개의 전설의 새. 날면 공기가 얼어 눈이 내려. 루기아를 만난 뒤 심해에 나타나.",
+   "unlockedBy": "b06"
+  },
+  {
+   "id": "b14",
+   "name": "라티아스",
+   "type": "에스퍼",
+   "zone": "space",
+   "catchable": true,
+   "model": "라티아스.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#E05A7A"
+   },
+   "baseHp": 130,
+   "baseAtk": 24,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "용의숨결",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "미스트볼",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "상냥함",
+   "story": "마음이 통하는 사람 앞에만 모습을 보이는 전설의 용. 깃털로 빛을 꺾어 투명해져. 메가팬텀을 잡으면 꿈의우주에 와.",
+   "unlockedBy": "x05"
+  },
+  {
+   "id": "b15",
+   "name": "레시라무",
+   "type": "불",
+   "zone": "p_sun",
+   "catchable": true,
+   "model": "레시라무.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F4F4F4"
+   },
+   "baseHp": 150,
+   "baseAtk": 27,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "화염방사",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire"
+    },
+    {
+     "name": "용의파동",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "크로스플레임",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "푸른불꽃",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "진실",
+   "story": "하얀 전설의 용. 꼬리의 엔진이 돌면 하늘이 불타. 진실을 찾는 사람과 함께해. 태양에서 리흑회를 잡으면 나타나.",
+   "unlockedBy": "px02"
   }
  ]
 }
