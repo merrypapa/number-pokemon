@@ -3,7 +3,14 @@ import { buildDraftMesh , dexSizeFactor } from './creatures.js';
 
 // 작은 360° 3D 화면: 포켓몬 한 마리를 캔버스에 그려 저절로 돌리고, 끌면 직접 돌릴 수 있다 (도감 카드·대결 교체 팝업에서 쓴다)
 export class View3D {
-  constructor() { this.renderer = null; this.mesh = null; this.raf = null; }
+  constructor() { this.renderer = null; this.mesh = null; this.raf = null; this.canvas = null; }
+  /** 자기 캔버스 하나를 돌려쓴다. 카드를 다시 그려 slot 이 새로 생겨도 캔버스(와 WebGL 컨텍스트)는 그대로 옮겨 붙인다 — 연달아 눌러도 컨텍스트가 늘지 않는다 */
+  mount(slot, { id = 'view3d', size = 440 } = {}) {
+    if (!slot) return null;
+    if (!this.canvas) { this.canvas = document.createElement('canvas'); this.canvas.width = size; this.canvas.height = size; this.canvas.id = id; }
+    if (this.canvas.parentNode !== slot) slot.prepend(this.canvas);
+    return this.canvas;
+  }
   ensure(canvas) {
     try {
       if (!this.renderer) {
@@ -12,7 +19,8 @@ export class View3D {
         this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
         const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.scene.add(sun);
         this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-      } else if (this.renderer.domElement !== canvas) { // 캔버스가 새로 만들어졌다
+      } else if (this.renderer.domElement !== canvas) { // 캔버스가 새로 만들어졌다 (mount 를 쓰면 일어나지 않는다): 옛 컨텍스트를 확실히 놓아준다
+        try { this.renderer.forceContextLoss(); } catch (_) {}
         this.renderer.dispose(); this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
       }
       this.renderer.setSize(canvas.width, canvas.height, false);

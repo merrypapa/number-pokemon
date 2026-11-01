@@ -418,7 +418,7 @@ export class Dex {
     const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';
     card.innerHTML = `
       <div class="detail-top">
-        <div class="detail-view"><div class="view-wrap"><canvas id="dex-view" width="440" height="440"></canvas>${star}</div><div class="view-hint">${rep0 ? '★ 별을 누르면 대표 · ' : ''}끌어서 돌려 보기</div></div>
+        <div class="detail-view"><div class="view-wrap">${star}</div><div class="view-hint">${rep0 ? '★ 별을 누르면 대표 · ' : ''}끌어서 돌려 보기</div></div>
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}${sp.mega ? ' <span class="party-badge mega">✨ 메가</span>' : ''}</div>
           <div class="detail-chips">
@@ -483,7 +483,7 @@ export class Dex {
   }
 
   // ----- 360° 보기: 선택한 포켓몬을 작은 3D 화면에서 천천히 돌리고, 끌면 직접 돌릴 수 있다 -----
-  startView(sp) { this.view.show(document.getElementById('dex-view'), sp, () => this.open); }
+  startView(sp) { this.view.show(this.view.mount(this.partyEl.querySelector('.view-wrap'), { id: 'dex-view' }), sp, () => this.open); }
   stopView() { this.view.stop(); }
 
   render(caughtById) {

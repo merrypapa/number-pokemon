@@ -5973,7 +5973,10 @@
      "kind": "sing"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m77e",
+    "level": 24
+   },
    "favoriteNumber": 4,
    "personality": "귀여움",
    "story": "달이 밝은 밤에 춤추는 요정 포켓몬. 별똥별을 타고 우주에서 왔대. 네 손가락을 흔들어 마법을 써."
@@ -6257,6 +6260,145 @@
    "personality": "진실",
    "story": "하얀 전설의 용. 꼬리의 엔진이 돌면 하늘이 불타. 진실을 찾는 사람과 함께해. 태양에서 리흑회를 잡으면 나타나.",
    "unlockedBy": "px02"
+  },
+  {
+   "id": "m77e",
+   "name": "픽시",
+   "type": "페어리",
+   "zone": "evolution",
+   "catchable": false,
+   "model": "픽시.glb",
+   "scale": 1.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F7B7D4"
+   },
+   "baseHp": 84,
+   "baseAtk": 18,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "손가락흔들기",
+     "atk": 1,
+     "power": 1,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "달의빛",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "매지컬샤인",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    },
+    {
+     "name": "문포스",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "sing"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "요정 같음",
+   "story": "삐삐가 진화한 모습. 소리 없이 걸어서 보름달 밤에만 살짝 보여. 달빛을 모아 큰 마법을 써.",
+   "evolvedFrom": "m77"
+  },
+  {
+   "id": "m79",
+   "name": "삐",
+   "type": "페어리",
+   "zone": "space",
+   "catchable": true,
+   "model": "삐.glb",
+   "scale": 0.9,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFB6C1"
+   },
+   "baseHp": 58,
+   "baseAtk": 13,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "달콤한키스",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing"
+    },
+    {
+     "name": "반짝반짝",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic",
+     "type": "에스퍼"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "부끄럼쟁이",
+   "story": "볼이 늘 발그레한 분홍 솜뭉치 포켓몬. 달이 뜨면 통통 튀어 다니고 부끄러우면 더 빨개져. 숫자 2처럼 귀가 둘."
+  },
+  {
+   "id": "b16",
+   "name": "엠라이트",
+   "type": "에스퍼",
+   "zone": "sea",
+   "catchable": true,
+   "model": "엠라이트.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F27AA3"
+   },
+   "baseHp": 118,
+   "baseAtk": 22,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "물의파동",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water",
+     "type": "물"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "감정의파동",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "다정함",
+   "story": "호수 바닥에 사는 전설의 감정 요정. 사람에게 기쁨과 슬픔을 가르쳐 줬대. 스이쿤을 친구로 만들면 물의길에 나타나.",
+   "unlockedBy": "b09"
   }
  ]
 }

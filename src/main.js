@@ -81,6 +81,10 @@ function fpLookDir() {
 }
 // pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
 function camOffset() {
+  if (zone?.world?.tower) { // 동굴탑: 보통 카메라(9m 위·11m 뒤)는 위 바퀴 계단 너머로 올라가 주인공이 가려졌다 → 낮고 가깝게 (한 층 7m 안에서)
+    const h = Math.max(1.4, 3.4 + cam.pitch * 3), d = 6.5 - cam.pitch * 2;
+    return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
+  }
   const h = Math.max(1.6, 9 + cam.pitch * 6), d = 11 - cam.pitch * 3;
   return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
 }
@@ -972,15 +976,15 @@ function applyZoneEnv() {
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
   chain.swim = !!zone.world.swim;         // 따라오는 친구들도 함께 떠오른다
 }
-// ---------- 동굴탑 (src/tower.js): 한 지역에 94층이 세로로 쌓여 있다. 포켓몬은 지금 있는 층 근처(아래 1층 ~ 위 2층)만 세우고, 멀어지면 치운다 ----------
+// ---------- 동굴탑 (src/tower.js): 한 지역에 10층이 세로로 쌓여 있다. 포켓몬은 지금 있는 층 근처(아래 1층 ~ 위 2층)만 세우고, 멀어지면 치운다 ----------
 function towerFloorNow() { return zone?.world?.tower ? floorOfY(player.position.y) : 0; }
-/** n 층 층계참에 포켓몬을 세운다 (야생 셋, 10층마다 문지기, 94층은 수호신) */
+/** n 층 층계참에 포켓몬을 세운다 (야생 하나, 3·7·9층 정예, 5층 문지기, 10층은 뮤츠) */
 function spawnTowerFloor(z, n) {
   z.towerFloors.add(n);
   const at = landingAt(n), band = towerLevelBand(n);
-  const spots = n >= TOWER_TOP ? [[6, 6], [-6, 6], [7, -5]] : [[at.x - 2, 1.6], [at.x + 2.5, 2.8], [at.x + 0.5, 0.4]]; // 층계참 쐐기 안 (각도 0~LAND_W)
+  const spots = n >= TOWER_TOP ? [[6, 6], [-6, 6], [7, -5]] : [[at.x - 2, 2.2], [at.x + 3, 3.6], [at.x + 0.5, 0.6]]; // 층계참 쐐기 안 (각도 0~LAND_W)
   const fb = towerFloorBoss(n), el = towerElite(n);
-  const wild = towerWild(n, n >= TOWER_TOP ? 2 : 1); // 층마다 야생은 한 마리 (대신 5층마다 정예, 10층마다 문지기)
+  const wild = towerWild(n, n >= TOWER_TOP ? 2 : 1); // 층마다 야생은 한 마리 (대신 3·7·9층 정예, 5층 문지기)
   if (el) { const [x, zz] = spots[1]; const c = spawnCreature(z, el.id, x, zz, { homeY: at.y, baseHp: el.hp, baseAtk: el.atk, scale: el.scale, level: el.level, swim: false, deepSea: false }); c.towerFloor = n; c.elite = true; }
   wild.forEach((id, i) => { const [x, zz] = spots[i]; const c = spawnCreature(z, id, x, zz, { homeY: at.y, level: band[0] + Math.floor(Math.random() * (band[1] - band[0] + 1)), swim: false, deepSea: false }); c.towerFloor = n; });
   if (fb) { const c = spawnCreature(z, fb.id, at.x, at.z, { homeY: at.y, boss: true, floorBoss: true, baseHp: fb.hp, baseAtk: fb.atk, scale: fb.scale, grade: 6, level: fb.level, swim: false, deepSea: false }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
@@ -992,10 +996,10 @@ function towerTick() {
   const cur = floorOfY(player.position.y);
   if (cur > state.tower.best) { state.tower.best = cur; z.world.refreshPads?.(state.tower.best); }
   if (cur !== z.towerLastFloor) { z.towerLastFloor = cur; if (cur > 1) bump('tower', String(cur)); } // 오늘의 미션 "새 층 오르기" (같은 층은 한 번)
-  if (!battle.active) for (const ch of z.world.chests || []) { // 10층마다 보상 상자: 그 층에 서서 가까이 가면 연다 (한 번만)
+  if (!battle.active) for (const ch of z.world.chests || []) { // 5층 보상 상자: 그 층에 서서 가까이 가면 연다 (한 번만)
     if (state.tower.chests[ch.n] || Math.abs(player.position.y - ch.y) > 1.5 || Math.hypot(player.position.x - ch.x, player.position.z - ch.z) > 1.6) continue;
     state.tower.chests[ch.n] = true; z.world.refreshChests?.(state.tower.chests);
-    const blocks = 10 + ch.n, silver = ch.n % 30 === 0;
+    const blocks = 10 + ch.n * 5, silver = true;
     const merged = setBlocks(state.blocks + blocks, { quiet: true });
     state.items.potion = (state.items.potion || 0) + 1;
     if (silver) state.balls.silver = (state.balls.silver || 0) + 1;
@@ -1009,7 +1013,7 @@ function towerTick() {
     z.scene.remove(c.mesh); z.creatures.splice(z.creatures.indexOf(c), 1); z.towerFloors.delete(c.towerFloor);
   }
 }
-/** 94층 수호신을 친구로 만들었다: 하늘의 문이 열리고 특별 보상 */
+/** 10층 뮤츠를 친구로 만들었다: 하늘의 문이 열리고 특별 보상 */
 function towerCleared() {
   state.megaBlocks += 3;
   state.balls.diamond = (state.balls.diamond || 0) + 2;
@@ -1018,7 +1022,7 @@ function towerCleared() {
   const z = zones.tower;
   if (z) { z.world.openSkyDoor?.(); z.world.portal = z.world.skyDoor; z.world.refreshPads?.(TOWER_TOP); }
   confetti.burst(300);
-  setTimeout(() => say('🌌 동굴탑 94층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
+  setTimeout(() => say('🌌 동굴탑 10층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
 }
 function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; lessonBtn.classList.add('hidden'); lessonNpc = null; // 지역이 바뀌면 안내원 대화도 끝
@@ -2870,11 +2874,12 @@ function renderGuide(el) {
         <li>${chk(got('b06'))} 루기아를 친구로 만들면 심해에 얼음 새 <b>프리저</b> ${legend('b13')}와 <b>메가샤크니아</b>(7등급) ${legend('x13')}</li>
         <li>${chk(got('x05'))} 메가팬텀을 잡으면 꿈의우주에 <b>라티아스</b> ${legend('b14')}</li>
         <li>${chk(got('px02'))} 태양의 리흑회를 잡으면 태양에 하얀 용 <b>레시라무</b> ${legend('b15')}</li>
-        <li>동굴탑 94층 꼭대기에는 <b>뮤츠</b>(7등급, 메가큐브)가 기다려요.</li>
+        <li>${chk(got('b09'))} 스이쿤을 친구로 만들면 물의길에 호수의 요정 <b>엠라이트</b> ${legend('b16')}</li>
+        <li>동굴탑 10층 꼭대기에는 <b>뮤츠</b>(7등급, 메가큐브)가 기다려요.</li>
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
-    ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 94층까지! 10층마다 문지기 보스와 🎁 보상 상자, 5층마다 정예 포켓몬이 있어요. 1층의 워프 패드로 가 본 10층 단위까지 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 94층 수호신을 친구로 만들면 하늘의 문이 열려요.`)}
+    ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
     ${sec('🦊 이브이 진화는 장소로', `이브이를 Lv.16까지 키운 뒤 진화시키는 곳에 따라 모습이 달라요: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키. 다른 곳에서는 랜덤!`)}
     ${sec('🔮 넘버볼과 등급', `포켓몬마다 등급(★)이 있고 등급이 높을수록 좋은 볼이 필요해요: ★~★★ 브론즈 · ★★★ 실버 · ★★★★~★★★★★ 골드 · ★★★★★★ 이상 메가큐브. 볼에서 튀어나와도 도망가지 않고, 실패할 때마다 잡힐 확률이 15%씩 올라요. 볼은 상점에서 블록으로 사요.`)}
     ${sec('💥 상성과 기술', `불 › 풀 › 물 › 불, 전기 › 물, 땅 › 전기. 포켓몬 학교의 오박사님께 "📘 상성 수업"을 들으면 다 배울 수 있어요. 기술마다 속성이 있어 둘째 기술은 종과 다른 속성이고, 센 기술은 한 대결에서 쓸 수 있는 횟수(PP)가 적어요.`)}
@@ -2938,7 +2943,7 @@ function applySave(d) {
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, ...(d.balls || {}) };
   state.items = { ...emptyItems(), ...(d.items || {}) };
-  state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1), chests: { ...(d.tower?.chests || {}) } };
+  state.tower = { best: Math.min(TOWER_TOP, Math.max(1, (d.tower?.best | 0) || 1)), chests: { ...(d.tower?.chests || {}) } }; // 옛 94층 저장은 10층으로 맞춘다
   state.attend = loadAttend(d.attend);                          // 출석 도장
   state.masters = { ...(d.masters || {}) }; state.dexAll = d.dexAll || null; // 마스터 타이틀 · 도감 완성
   state.trainer = trainerOf(d.trainer).id; // 고른 주인공 (옛 저장은 지우)
@@ -2974,7 +2979,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
+  window.__game = { camera, get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
 }
 
 // ---------- 루프 ----------
@@ -3089,7 +3094,7 @@ function frame() {
       }
     } else if (zone.name === 'cave' && zone.world.towerGate && near(zone.world.towerGate, 2.4)) { // 지하동굴 서쪽 벽의 동굴탑 문
       moved = true;
-      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 오른쪽(동쪽) 벽의 금빛 띠가 둘린 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 94층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
+      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 오른쪽(동쪽) 벽의 금빛 띠가 둘린 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 10층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
     } else if (zone.name === 'tower' && zone.world.exitGate && player.position.y < 1 && near(zone.world.exitGate, 2.2)) { // 동굴탑 바닥의 출구 → 지하동굴
       moved = true;
       const dest = getZone('cave'); switchZone('cave', dest.world.arrivals?.tower || dest.world.spawn, { text: '지하동굴로 나왔어!', sec: 4 });
@@ -3097,7 +3102,7 @@ function frame() {
       moved = true;
       const cp = zone.world.checkpoints.find((cp) => cp.group.visible && near(cp, 1.3)), at = landingAt(cp.n);
       player.teleport(at.x, at.z, at.y); snapCam = true; sound.portal();
-      say(cp.n >= TOWER_TOP ? '🗼 94층 꼭대기!' : `🗼 ${cp.n}층 층계참으로 올라왔어!`, { sec: 3 });
+      say(cp.n >= TOWER_TOP ? '🗼 10층 꼭대기!' : `🗼 ${cp.n}층 층계참으로 올라왔어!`, { sec: 3 });
     } else if (zone.name === 'cave' && zone.world.thunderGate && near(zone.world.thunderGate, 2.4)) { // 지하동굴 동쪽 벽의 번개 굴
       moved = true;
       switchZone('thunder', getZone('thunder').world.spawn, { text: '⚡ 번개동굴에 들어왔어! 전기 포켓몬의 고향이야. 푸른 웅덩이는 감전되니 들어가지 마. 천장에서 번개가 쳐! 남쪽 노란 포탈로 지하동굴에 돌아가.', sec: 8 });
