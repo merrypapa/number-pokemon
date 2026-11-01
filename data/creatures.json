@@ -541,8 +541,7 @@
    "favoriteNumber": 9,
    "personality": "장난꾸러기",
    "story": "작고 순한 새 포켓몬. 풀숲에 숨어 있다가 모래를 차서 상대를 놀라게 해. 방향을 잘 찾아서 집으로 꼭 돌아와.",
-   "grade": 1,
-   "flying": true
+   "grade": 1
   },
   {
    "id": "m11",
@@ -1051,8 +1050,7 @@
    "favoriteNumber": 3,
    "personality": "용맹함",
    "story": "딱충이가 진화한 말벌 포켓몬. 독침 세 개로 세 번 연달아 찔러. 꿀벌집 탑 꼭대기를 지키는 대장이기도 해서, 보스를 잡으면 내 독침붕이 보스 능력치가 돼.",
-   "evolvedFrom": "m51e",
-   "flying": true
+   "evolvedFrom": "m51e"
   },
   {
    "id": "x09",
@@ -1097,8 +1095,7 @@
    "evolution": null,
    "favoriteNumber": 3,
    "personality": "번개같음",
-   "story": "하얀 날개가 커지고 독침이 더 날카로워진 독침붕의 메가 모습. 꿀벌집 보스 독침붕을 잡은 트레이너 앞에만 나타나. 메가급이라 메가큐브라야 잡혀.",
-   "flying": true
+   "story": "하얀 날개가 커지고 독침이 더 날카로워진 독침붕의 메가 모습. 꿀벌집 보스 독침붕을 잡은 트레이너 앞에만 나타나. 메가급이라 메가큐브라야 잡혀."
   },
   {
    "id": "m52",
@@ -1227,8 +1224,7 @@
    "favoriteNumber": 7,
    "personality": "장난꾸러기",
    "story": "눈이 없는 대신 초음파로 길을 찾는 박쥐 포켓몬. 어두운 동굴 천장에 매달려 살아.",
-   "grade": 2,
-   "flying": true
+   "grade": 2
   },
   {
    "id": "m17e",
@@ -1277,8 +1273,7 @@
    "evolvedFrom": "m17",
    "personality": "사나움",
    "story": "주뱃이 진화한 큰 박쥐 포켓몬. 입이 커서 한입에 많이 빨아 먹어. 어두운 동굴 깊은 곳을 소리 없이 날아다녀.",
-   "grade": 2,
-   "flying": true
+   "grade": 2
   },
   {
    "id": "m18",
@@ -2358,8 +2353,7 @@
    "favoriteNumber": 3,
    "personality": "둥둥",
    "story": "자석과 나사로 된 전기 포켓몬. 둥둥 떠다니며 전기를 모아. 인공위성 근처를 맴돌기를 좋아해.",
-   "grade": 5,
-   "flying": true
+   "grade": 5
   },
   {
    "id": "b05",
@@ -2715,8 +2709,7 @@
    "evolution": null,
    "favoriteNumber": 9,
    "personality": "상냥함",
-   "story": "토성의 고리 사이를 날아다니는 주황빛 드래곤. 힘은 세지만 마음씨가 고와서 길 잃은 우주선을 도와준대. 토성 북쪽 아레나를 지키는 보스야.",
-   "flying": true
+   "story": "토성의 고리 사이를 날아다니는 주황빛 드래곤. 힘은 세지만 마음씨가 고와서 길 잃은 우주선을 도와준대. 토성 북쪽 아레나를 지키는 보스야."
   },
   {
    "id": "x08",
@@ -2761,8 +2754,7 @@
    "evolution": null,
    "favoriteNumber": 9,
    "personality": "위풍당당",
-   "story": "하얀 깃털 날개가 돋아난 망나뇽의 메가 모습. 토성의 보스 망나뇽을 잡은 트레이너 앞에만 토성 어딘가에 나타나. 메가급이라 메가큐브라야 잡혀.",
-   "flying": true
+   "story": "하얀 깃털 날개가 돋아난 망나뇽의 메가 모습. 토성의 보스 망나뇽을 잡은 트레이너 앞에만 토성 어딘가에 나타나. 메가급이라 메가큐브라야 잡혀."
   },
   {
    "id": "m01e",
@@ -3002,8 +2994,7 @@
     "atk": 12,
     "scale": 2.6,
     "grade": 6
-   },
-   "flying": true
+   }
   },
   {
    "id": "m03e",
@@ -3820,8 +3811,7 @@
    "personality": "위풍당당",
    "story": "불의산 하늘 신전에 나타나는 푸른 불꽃의 리자몽. 날개를 펴면 화산도 작아 보인다.",
    "grade": 7,
-   "shrine": true,
-   "flying": true
+   "shrine": true
   },
   {
    "id": "x04",
@@ -3961,8 +3951,7 @@
     "atk": 22,
     "scale": 3.0,
     "grade": 6
-   },
-   "flying": true
+   }
   },
   {
    "id": "x07",
@@ -4023,8 +4012,7 @@
    "evolution": null,
    "favoriteNumber": 10,
    "personality": "신비로움",
-   "story": "태양계 열 곳의 보스를 모두 잡은 트레이너 앞에만 나타나는 전설의 포켓몬. 모든 포켓몬의 조상이라고 전해지며, 꿈의우주 어딘가에서 장난스럽게 숨바꼭질을 해. 넘버랜드에서 가장 강한 포켓몬이니 메가큐브을 꼭 준비하자.",
-   "flying": true
+   "story": "태양계 열 곳의 보스를 모두 잡은 트레이너 앞에만 나타나는 전설의 포켓몬. 모든 포켓몬의 조상이라고 전해지며, 꿈의우주 어딘가에서 장난스럽게 숨바꼭질을 해. 넘버랜드에서 가장 강한 포켓몬이니 메가큐브을 꼭 준비하자."
   },
   {
    "id": "m11v",
@@ -4321,8 +4309,7 @@
    "evolution": null,
    "favoriteNumber": 8,
    "personality": "흥이 넘침",
-   "story": "불의산 메가리자몽Y를 이긴 트레이너 앞에만 나타나는 리자몽. 용암이 보글보글 끓는 소리에 맞춰 박자를 타며 춤을 춰. 불꽃도 비트에 맞춰 터뜨린대.",
-   "flying": true
+   "story": "불의산 메가리자몽Y를 이긴 트레이너 앞에만 나타나는 리자몽. 용암이 보글보글 끓는 소리에 맞춰 박자를 타며 춤을 춰. 불꽃도 비트에 맞춰 터뜨린대."
   },
   {
    "id": "m54",
@@ -4539,8 +4526,7 @@
    "evolution": null,
    "favoriteNumber": 10,
    "personality": "조용하고 커다람",
-   "story": "심해 보스 갸라도스를 이긴 트레이너 앞에 소용돌이 저 아래에서 천천히 떠오르는 전설의 포켓몬. 바다의 신이라 불리며, 날개를 한 번 치면 파도가 산처럼 솟아.",
-   "flying": true
+   "story": "심해 보스 갸라도스를 이긴 트레이너 앞에 소용돌이 저 아래에서 천천히 떠오르는 전설의 포켓몬. 바다의 신이라 불리며, 날개를 한 번 치면 파도가 산처럼 솟아."
   },
   {
    "id": "px07",
@@ -4628,8 +4614,7 @@
    "evolution": null,
    "favoriteNumber": 10,
    "personality": "신비로움",
-   "story": "해왕성 보스 보라거북왕을 이긴 트레이너 앞에만 나타나는 은빛 뮤. 꿈의우주의 분홍 뮤와 형제라고도 하고, 물빛 바다 행성이 만든 그림자라고도 해. 메가큐브를 꼭 준비하자.",
-   "flying": true
+   "story": "해왕성 보스 보라거북왕을 이긴 트레이너 앞에만 나타나는 은빛 뮤. 꿈의우주의 분홍 뮤와 형제라고도 하고, 물빛 바다 행성이 만든 그림자라고도 해. 메가큐브를 꼭 준비하자."
   },
   {
    "id": "x11",
@@ -4673,8 +4658,7 @@
    "evolution": null,
    "favoriteNumber": 10,
    "personality": "당당함",
-   "story": "화성 보스 이상해불을 이기면 붉은 하늘을 가르며 내려오는 불의 새. 재가 되어도 다시 타오르기 때문에 아무도 쓰러뜨린 적이 없대. 메가큐브를 꼭 준비하자.",
-   "flying": true
+   "story": "화성 보스 이상해불을 이기면 붉은 하늘을 가르며 내려오는 불의 새. 재가 되어도 다시 타오르기 때문에 아무도 쓰러뜨린 적이 없대. 메가큐브를 꼭 준비하자."
   },
   {
    "id": "b07",
@@ -4872,8 +4856,7 @@
    "evolution": null,
    "favoriteNumber": 7,
    "personality": "기품 있음",
-   "story": "라이코·엔테이·스이쿤을 모두 친구로 만든 트레이너 앞에만 무지개를 타고 푸른숲에 내려오는 전설의 새. 날개가 일곱 빛깔로 빛나고, 세 마리 전설의 포켓몬을 되살린 장본인이래.",
-   "flying": true
+   "story": "라이코·엔테이·스이쿤을 모두 친구로 만든 트레이너 앞에만 무지개를 타고 푸른숲에 내려오는 전설의 새. 날개가 일곱 빛깔로 빛나고, 세 마리 전설의 포켓몬을 되살린 장본인이래."
   },
   {
    "id": "t94",
@@ -5179,8 +5162,7 @@
    "evolution": null,
    "favoriteNumber": 8,
    "personality": "수다쟁이",
-   "story": "사람 말을 흉내 내는 음표 머리 새. 들은 말을 다 따라 해서 비밀을 못 지켜. 음계 여덟 개를 좋아해.",
-   "flying": true
+   "story": "사람 말을 흉내 내는 음표 머리 새. 들은 말을 다 따라 해서 비밀을 못 지켜. 음계 여덟 개를 좋아해."
   },
   {
    "id": "m68",
@@ -5263,8 +5245,7 @@
    "evolution": null,
    "favoriteNumber": 6,
    "personality": "팔랑팔랑",
-   "story": "꽃밭 위를 팔랑이는 나비 포켓몬. 날개 가루로 상대를 잠들게 해. 다리 여섯 개로 꽃에 앉아.",
-   "flying": true
+   "story": "꽃밭 위를 팔랑이는 나비 포켓몬. 날개 가루로 상대를 잠들게 해. 다리 여섯 개로 꽃에 앉아."
   },
   {
    "id": "m60",
@@ -5675,8 +5656,7 @@
    "evolution": null,
    "favoriteNumber": 3,
    "personality": "기계적",
-   "story": "코일 셋이 붙은 자석 포켓몬. 셋이 번갈아 전기를 쏘니까 숫자 3을 좋아해. 둥둥 떠다녀.",
-   "flying": true
+   "story": "코일 셋이 붙은 자석 포켓몬. 셋이 번갈아 전기를 쏘니까 숫자 3을 좋아해. 둥둥 떠다녀."
   },
   {
    "id": "m66",
@@ -6095,8 +6075,7 @@
    "favoriteNumber": 3,
    "personality": "번개 폭풍",
    "story": "먹구름 속에 사는 전설의 번개 새. 날개를 치면 천둥이 울려. 라이코와 친구가 되면 번개동굴에 내려와.",
-   "unlockedBy": "b07",
-   "flying": true
+   "unlockedBy": "b07"
   },
   {
    "id": "b12",
@@ -6144,8 +6123,7 @@
    "favoriteNumber": 7,
    "personality": "뜨거움",
    "story": "불꽃 날개를 가진 전설의 새. 다친 날개도 용암에 담그면 나아. 엔테이와 친구가 되면 불의산에 내려와.",
-   "unlockedBy": "b08",
-   "flying": true
+   "unlockedBy": "b08"
   },
   {
    "id": "b13",
@@ -6193,8 +6171,7 @@
    "favoriteNumber": 5,
    "personality": "차가움",
    "story": "얼음 날개의 전설의 새. 날면 공기가 얼어 눈이 내려. 루기아를 만난 뒤 심해에 나타나.",
-   "unlockedBy": "b06",
-   "flying": true
+   "unlockedBy": "b06"
   },
   {
    "id": "b14",
@@ -6242,8 +6219,7 @@
    "favoriteNumber": 6,
    "personality": "상냥함",
    "story": "마음이 통하는 사람 앞에만 모습을 보이는 전설의 용. 깃털로 빛을 꺾어 투명해져. 메가팬텀을 잡으면 꿈의우주에 와.",
-   "unlockedBy": "x05",
-   "flying": true
+   "unlockedBy": "x05"
   },
   {
    "id": "b15",
@@ -6290,8 +6266,7 @@
    "favoriteNumber": 9,
    "personality": "진실",
    "story": "하얀 전설의 용. 꼬리의 엔진이 돌면 하늘이 불타. 진실을 찾는 사람과 함께해. 태양에서 리흑회를 잡으면 나타나.",
-   "unlockedBy": "px02",
-   "flying": true
+   "unlockedBy": "px02"
   },
   {
    "id": "m77e",
@@ -6431,99 +6406,6 @@
    "personality": "다정함",
    "story": "호수 바닥에 사는 전설의 감정 요정. 사람에게 기쁨과 슬픔을 가르쳐 줬대. 스이쿤을 친구로 만들면 물의길에 나타나.",
    "unlockedBy": "b09"
-  },
-  {
-   "id": "m80",
-   "name": "야부엉",
-   "type": "노말",
-   "zone": "forest",
-   "catchable": true,
-   "model": "야부엉.glb",
-   "scale": 0.8,
-   "flying": true,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#A0724A",
-    "eyes": 2
-   },
-   "baseHp": 11,
-   "baseAtk": 3,
-   "grade": 1,
-   "skills": [
-    {
-     "name": "쪼기",
-     "atk": 1,
-     "power": 1,
-     "kind": "peck"
-    },
-    {
-     "name": "최면술",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "psychic",
-     "type": "에스퍼"
-    },
-    {
-     "name": "날개치기",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "wind"
-    }
-   ],
-   "favoriteNumber": 1,
-   "personality": "올빼미",
-   "story": "한 발로 서서 고개를 갸웃거리는 부엉이 포켓몬. 밤에도 눈이 밝아. 날개가 있어서 타고 날 수 있어! 숫자 1처럼 한 발로 서.",
-   "evolution": null
-  },
-  {
-   "id": "b17",
-   "name": "아그놈",
-   "type": "에스퍼",
-   "zone": "sea",
-   "catchable": true,
-   "model": "아그놈.glb",
-   "scale": 1.6,
-   "flying": true,
-   "draftShape": {
-    "body": "capsule",
-    "color": "#3FA7E0",
-    "glow": true
-   },
-   "baseHp": 118,
-   "baseAtk": 23,
-   "grade": 5,
-   "skills": [
-    {
-     "name": "염동력",
-     "atk": 1,
-     "power": 1,
-     "kind": "psychic"
-    },
-    {
-     "name": "불꽃",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "fire",
-     "type": "불"
-    },
-    {
-     "name": "사이코키네시스",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "psychic"
-    },
-    {
-     "name": "의지의힘",
-     "atk": 30,
-     "power": 1.75,
-     "kind": "psychic"
-    }
-   ],
-   "favoriteNumber": 3,
-   "personality": "용감함",
-   "story": "호수에 사는 전설의 의지 요정. 엠라이트의 형제로, 사람에게 \"하고 싶은 마음\"을 가르쳐 줬대. 엠라이트를 친구로 만들면 물의길에 나타나.",
-   "unlockedBy": "b16",
-   "evolution": null
   }
  ]
 }

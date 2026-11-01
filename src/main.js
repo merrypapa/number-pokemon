@@ -372,7 +372,7 @@ function dismountCar({ park = true } = {}) {
 function toggleCar() { driving ? dismountCar() : mountCar(); }
 carBtn.onclick = toggleCar;
 
-// ---------- 날개 있는 포켓몬 타고 날기 ----------
+// ---------- 날개 있는 포켓몬 타고 날기 (아직 꺼져 있음: creatures.json 에 `flying: true` 인 종이 없어 버튼이 안 나온다. 켜려면 날개 종에 flying 을 적는다) ----------
 // 대표 포켓몬이 날개 있는 종(creatures.json `flying`)이면 HUD 에 🕊 버튼이 나온다. 누르면 그 포켓몬을 타고 날아오른다:
 // 점프 버튼을 누르고 있으면 올라가고(지면 위 16m 까지) 놓으면 천천히 내려온다(지면 위 2.5m 까지). 걷기의 2배 속도로 물·울타리·나무 위를 지난다.
 // 야생 포켓몬은 날고 있는 동안 못 덤빈다. 바깥 지역에서만(동굴·탑·실내·심해·꿀벌집에서는 못 탄다). 🛬 버튼이나 액션 버튼으로 내린다 (물 위면 가까운 땅으로).
@@ -1027,41 +1027,50 @@ function applyZoneEnv() {
 // 포켓몬에게 가까이 가면 액션 버튼이 "💪 훈련하기": 경험치(다음 레벨의 30%, 적어도 5)를 받고 폴짝폴짝. 한 마리에 하루 3번 (state.gym).
 let gymPets = []; // { m, mesh, label, target, wait, hop }
 const GYM_TRAIN_MAX = 3;
-function gymSpot() {
-  const f = zone.world.field;
-  for (let i = 0; i < 30; i++) { const x = rand(-f.w / 2, f.w / 2), z = rand(-f.d / 2, f.d / 2); if (!insideObstacle(x, z, 1.4) && !isBlocked(x, z, 0)) return { x, z }; }
-  return { x: 0, z: 0 };
+const isWaterSp = (sp) => (sp.type || '노말') === '물' || !!sp.swim; // 물 포켓몬은 연못에서 논다
+function gymSpot(p) { // 집 근처의 새 목표 (땅은 연못 밖, 물은 연못 안)
+  for (let i = 0; i < 6; i++) { const s = zone.world.spotNear(p.home, p.water ? 10 : 9, p.water); if (p.water || !insideObstacle(s.x, s.z, 1.2)) return s; }
+  return { ...p.home };
 }
 function petLabel(m) { return makePillSprite(`${party.name(m)} Lv.${m.level}`, { bg: '#ffffff', fg: '#20232e', border: '#57b947' }, 0.5); }
 function spawnGymPets() {
   clearGymPets();
   for (const f of chain.followers) f.mesh.visible = false;
-  for (const m of party.members) {
+  const landM = party.members.filter((m) => !isWaterSp(party.species(m))), waterM = party.members.filter((m) => isWaterSp(party.species(m)));
+  const H = zone.world.homes(landM.length, waterM.length);
+  const place = (m, home, water) => {
     const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
-    const at = gymSpot(); mesh.position.set(at.x, 0, at.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
+    mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
     const label = petLabel(m); zone.scene.add(label);
-    gymPets.push({ m, mesh, label, target: gymSpot(), wait: rand(0, 3), hop: 0 });
-  }
+    const p = { m, mesh, label, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6) }; p.target = gymSpot(p); gymPets.push(p);
+  };
+  landM.forEach((m, i) => place(m, H.land[i], false));
+  waterM.forEach((m, i) => place(m, H.water[i], true));
 }
 function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); p.label.parent?.remove(p.label); } gymPets = []; }
 function gymTick(dt) {
   if (!zone?.world?.gym || !gymPets.length) return;
   const pp = player.position;
-  let nearest = null, nd = 2.4;
+  let nearest = null, nd = Infinity;
+  const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
+  let closestWater = null, cwd = Infinity;
   for (const p of gymPets) {
-    const mp = p.mesh.position;
-    if (p.hop > 0) { p.hop -= dt; mp.y = Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
-    else if (p.wait > 0) { p.wait -= dt; mp.y = 0; tickModel(p.mesh, dt, 'idle'); if (p.wait <= 0) p.target = gymSpot(); }
+    const mp = p.mesh.position; p.t += dt;
+    const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
+    if (p.hop > 0) { p.hop -= dt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
+    else if (p.wait > 0) { p.wait -= dt; mp.y = base; tickModel(p.mesh, dt, p.water ? 'swimidle' : 'idle'); if (p.wait <= 0) p.target = gymSpot(p); }
     else {
       const dx = p.target.x - mp.x, dz = p.target.z - mp.z, d = Math.hypot(dx, dz);
       if (d < 0.5) { p.wait = rand(1, 4); if (Math.random() < 0.35) p.hop = 0.8; }
-      else { const st = 3.2 * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (insideObstacle(mp.x, mp.z, 0.6)) p.target = gymSpot(); tickModel(p.mesh, dt, 'walk'); }
-      mp.y = 0;
+      else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && insideObstacle(mp.x, mp.z, 0.6)) p.target = gymSpot(p); tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
+      mp.y = base;
     }
     p.label.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
     const d = Math.hypot(pp.x - mp.x, pp.z - mp.z);
-    if (d < nd && pp.y < 1) { nd = d; nearest = p; }
+    if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
+    if (p.water && d < cwd) { cwd = d; closestWater = p; }
   }
+  if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
   if (nearest && !battle.active) offer(`💪 ${party.name(nearest.m)} 훈련하기`, () => trainPet(nearest), '💪\n훈련');
 }
 function trainPet(p) {
@@ -3042,13 +3051,11 @@ function renderGuide(el) {
         <li>${chk(got('x05'))} 메가팬텀을 잡으면 꿈의우주에 <b>라티아스</b> ${legend('b14')}</li>
         <li>${chk(got('px02'))} 태양의 리흑회를 잡으면 태양에 하얀 용 <b>레시라무</b> ${legend('b15')}</li>
         <li>${chk(got('b09'))} 스이쿤을 친구로 만들면 물의길에 호수의 요정 <b>엠라이트</b> ${legend('b16')}</li>
-        <li>${chk(got('b16'))} 엠라이트를 친구로 만들면 물의길에 의지의 요정 <b>아그놈</b> ${legend('b17')}</li>
         <li>동굴탑 10층 꼭대기에는 <b>뮤츠</b>(7등급, 메가큐브)가 기다려요.</li>
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
     ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
-    ${sec('🕊 포켓몬 타고 날기', `날개 있는 포켓몬(구구·버터플·야부엉·리자몽·파이어·썬더·프리저·루기아·칠색조·라티아스·레시라무 …)이 대표면 화면 위 <b>🕊 타고 날기</b> 버튼이 나와요. 점프 버튼을 누르고 있으면 올라가고 놓으면 천천히 내려와요. 물·울타리·나무 위를 지나고, 날 때는 야생 포켓몬이 못 덤벼요. 동굴·탑·실내·심해에서는 못 타요.`)}
     ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
     ${sec('🦊 이브이 진화는 장소로', `이브이를 Lv.16까지 키운 뒤 진화시키는 곳에 따라 모습이 달라요: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키. 다른 곳에서는 랜덤!`)}

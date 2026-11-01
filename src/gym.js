@@ -6,17 +6,24 @@ import { makeLabelTexture, makePillSprite, makeInstanced } from './world.js';
 // 포켓몬에게 가까이 가서 "💪 훈련하기"를 누르면 경험치를 받는다(하루에 한 마리 3번). 가운데 흙 트랙, 서쪽 샌드백 셋, 동쪽 공, 벤치,
 // 그리고 **올라갈 수 있는 큰 나무** 둘: 줄기 옆에서 점프 버튼을 꾹 누르면 줄기를 타고 올라가 6m 위 나무 위 집(둥근 단)에 선다 (player.climbAt).
 // 코치는 코리. 몬스터·블록·퀴즈는 없다. 남쪽 문으로 나가면 푸른숲.
-export const GYM = { size: 120, field: { w: 96, d: 72 }, spawn: { x: 0, z: 28 }, door: { x: 0, z: 36.4 }, trees: [{ x: 30, z: -20 }, { x: -30, z: -20 }], platY: 6, platR: 3.6,
-  dummies: [{ x: -36, z: 8 }, { x: -36, z: 14 }, { x: -36, z: 20 }], track: { x: 0, z: -4, rx: 24, rz: 14 } };
-const F = GYM.field, PI2 = Math.PI / 2;
+// 운동장은 넓게(140×100): 잡은 포켓몬이 50마리가 넘어도 빽빽하지 않게. 동쪽에 **연못**(타원 20×24)이 있어 물 포켓몬(물 속성·헤엄치는 종)은 거기서 헤엄치며 논다.
+// 연못 서쪽 가장자리에서 나무 잔교가 연못 안으로 뻗어 있어(걸어갈 수 있다) 잔교 끝에서 물 포켓몬을 훈련시킨다. 연못 물은 못 들어간다.
+export const GYM = { size: 170, field: { w: 140, d: 100 }, spawn: { x: 0, z: 42 }, door: { x: 0, z: 50.4 }, trees: [{ x: -40, z: -30 }, { x: 4, z: -34 }], platY: 6, platR: 3.6,
+  dummies: [{ x: -60, z: 2 }, { x: -60, z: 9 }, { x: -60, z: 16 }], track: { x: -14, z: 2, rx: 26, rz: 15 },
+  pond: { x: 46, z: -4, rx: 20, rz: 24 }, dock: { x0: 25, x1: 38, z0: -5.6, z1: -2.4 } };
+const F = GYM.field, PI2 = Math.PI / 2, P = GYM.pond, DK = GYM.dock;
 const inDoorway = (x, z) => Math.abs(x) < 1.8 && z > F.d / 2 - 0.6;
 const treeDist = (x, z) => GYM.trees.map((t) => Math.hypot(x - t.x, z - t.z));
+/** 연못 안인가 (k: 1 = 물가, 0.9 = 물 안쪽, 1.15 = 물가 밖 여유) */
+export const inPond = (x, z, k = 1) => ((x - P.x) / (P.rx * k)) ** 2 + ((z - P.z) / (P.rz * k)) ** 2 < 1;
+const onDock = (x, z) => x >= DK.x0 - 0.5 && x <= DK.x1 + 0.5 && z >= DK.z0 - 0.5 && z <= DK.z1 + 0.5;
 export const GYM_TERRAIN = {
   size: GYM.size, inHole: () => false, obstacles: [],
   /** 나무 위 집: 줄기 둘레 platR 안쪽은, 그 높이 가까이 있을 때만(refY) 6m 단이 된다 (동굴탑처럼 층이 겹치는 지형) */
   height: (x, z, refY) => (treeDist(x, z).some((d) => d < GYM.platR) && (refY ?? 0) >= GYM.platY - 1.0 ? GYM.platY : 0),
   blocked: (x, z, refY) => {
     if (!inDoorway(x, z) && (Math.abs(x) > F.w / 2 - 0.6 || Math.abs(z) > F.d / 2 - 0.6)) return true; // 울타리
+    if (inPond(x, z) && !onDock(x, z)) return true; // 연못 물 (잔교 위는 괜찮다)
     if ((refY ?? 0) >= GYM.platY - 1.0) { const d = Math.min(...treeDist(x, z)); if (d > GYM.platR - 0.45 && d < GYM.platR + 0.8) return true; } // 나무 위 집 난간 (떨어지지 않게)
     return false;
   },
@@ -85,6 +92,17 @@ export function buildGym(scene) {
   const benchMat = new THREE.MeshStandardMaterial({ color: 0xb8742a });
   for (const [x, z] of [[-14, 30], [14, 30]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), benchMat); b.position.set(x, 0.6, z); b.castShadow = true; decor.add(b); for (const s of [-1.6, 1.6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 0.8), benchMat); leg.position.set(x + s, 0.3, z); decor.add(leg); } block(x, z, 2.0); }
 
+  // 연못: 모래 테두리 + 물(살짝 투명한 파랑) + 연잎 + 잔교
+  const sand = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0xe8d9a8, roughness: 1 }));
+  sand.rotation.x = -PI2; sand.scale.set(P.rx + 2.2, P.rz + 2.2, 1); sand.position.set(P.x, 0.012, P.z); sand.userData.noHide = true; decor.add(sand);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, transparent: true, opacity: 0.85, roughness: 0.3 }));
+  water.rotation.x = -PI2; water.scale.set(P.rx, P.rz, 1); water.position.set(P.x, 0.02, P.z); water.userData.noHide = true; decor.add(water);
+  const pads = []; for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, r = 0.35 + Math.random() * 0.55; pads.push({ x: P.x + Math.cos(a) * P.rx * r, y: 0.04, z: P.z + Math.sin(a) * P.rz * r, sx: 0.9, sy: 1, sz: 0.9, ry: Math.random() * 3 }); }
+  decor.add(makeInstanced(new THREE.CircleGeometry(0.6, 10).rotateX(-PI2), new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), pads));
+  const dockMat = new THREE.MeshStandardMaterial({ color: 0xb8742a, roughness: 0.85 });
+  const dock = new THREE.Mesh(new THREE.BoxGeometry(DK.x1 - DK.x0, 0.25, DK.z1 - DK.z0), dockMat); dock.position.set((DK.x0 + DK.x1) / 2, 0.15, (DK.z0 + DK.z1) / 2); dock.castShadow = true; dock.userData.noHide = true; decor.add(dock);
+  for (let x = DK.x0 + 2; x < DK.x1; x += 3) for (const z of [DK.z0 + 0.2, DK.z1 - 0.2]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.9, 0.25), dockMat); post.position.set(x, 0.45, z); decor.add(post); }
+  const pondSign = makePillSprite('🌊 연못 · 물 포켓몬이 노는 곳. 잔교 끝에서 훈련!', { bg: '#1f5f8a', fg: '#ffffff', border: '#9fe8ff' }, 0.9); pondSign.position.set(DK.x0 - 1, 3.2, DK.z0 - 2); decor.add(pondSign);
   // 올라갈 수 있는 큰 나무 둘: 줄기 + 나무 위 집(둥근 단 + 난간 + 작은 지붕) + 잎 덩어리
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.95 }), leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9d3a });
   const plankMat = new THREE.MeshStandardMaterial({ color: 0xc9924a, roughness: 0.8 });
@@ -107,20 +125,46 @@ export function buildGym(scene) {
   decor.add(makeInstanced(new THREE.SphereGeometry(0.5, 7, 5), new THREE.MeshStandardMaterial({ color: 0xff8fb4 }), flowers));
 
   // 코치 코리
-  const coachAt = { x: 7, z: 24 };
+  const coachAt = { x: 8, z: 38 };
   const coach = makeNpc({ outfit: 'ranger', name: '코리', model: '코리.glb' });
   coach.position.set(coachAt.x, 0, coachAt.z); coach.rotation.y = Math.PI; decor.add(coach); block(coachAt.x, coachAt.z, 0.6);
 
-  function animate(t) { title.position.y = 4.5 + Math.sin(t * 1.5) * 0.12; ball.rotation.y = t * 0.3; }
+  function animate(t) { title.position.y = 4.5 + Math.sin(t * 1.5) * 0.12; ball.rotation.y = t * 0.3; water.position.y = 0.02 + Math.sin(t * 1.2) * 0.01; }
+  /** 포켓몬들의 집 자리: 땅은 연못·나무·기구를 피해 격자에 고르게(흔들어서), 물은 연못 안에 고르게. 서로 겹치지 않게 넓게 퍼진다 */
+  function homes(nLand, nWater) {
+    const land = [], waterSpots = [];
+    const cols = Math.max(1, Math.ceil(Math.sqrt(nLand * 1.5))), rows = Math.max(1, Math.ceil(nLand / cols));
+    const W = F.w - 10, D = F.d - 14; let k = 0;
+    for (let r = 0; r < rows && land.length < nLand; r++) for (let c = 0; c < cols && land.length < nLand; c++, k++) {
+      for (let tries = 0; tries < 8; tries++) {
+        const x = -W / 2 + ((c + 0.5 + (Math.random() - 0.5) * 0.7) / cols) * W, z = -D / 2 + 2 + ((r + 0.5 + (Math.random() - 0.5) * 0.7) / rows) * D;
+        if (inPond(x, z, 1.2) || treeDist(x, z).some((d) => d < 4.5) || GYM.dummies.some((d) => Math.hypot(x - d.x, z - d.z) < 3) || (Math.abs(x - GYM.spawn.x) < 5 && Math.abs(z - GYM.spawn.z) < 5)) continue;
+        land.push({ x, z }); break;
+      }
+    }
+    while (land.length < nLand) land.push({ x: (Math.random() - 0.5) * W * 0.6, z: (Math.random() - 0.5) * D * 0.6 }); // 자리가 모자라면 가운데 아무 데나
+    for (let i = 0; i < nWater; i++) { const a = (i / Math.max(1, nWater)) * Math.PI * 2 + Math.random() * 0.4, rr = 0.35 + 0.5 * ((i % 3) / 2); waterSpots.push({ x: P.x + Math.cos(a) * P.rx * rr, z: P.z + Math.sin(a) * P.rz * rr }); }
+    return { land, water: waterSpots };
+  }
+  /** 집 근처(반지름 r)의 새 목표 자리. water 면 연못 안에서만, 아니면 연못 밖에서만 */
+  function spotNear(home, r, water) {
+    for (let i = 0; i < 20; i++) {
+      const a = Math.random() * Math.PI * 2, d = Math.random() * r, x = home.x + Math.cos(a) * d, z = home.z + Math.sin(a) * d;
+      if (Math.abs(x) > F.w / 2 - 2 || Math.abs(z) > F.d / 2 - 2) continue;
+      if (water ? !inPond(x, z, 0.92) || onDock(x, z) : inPond(x, z, 1.15) || treeDist(x, z).some((t) => t < 2.6)) continue;
+      return { x, z };
+    }
+    return { ...home };
+  }
   return {
     sun, animate, terrain: GYM_TERRAIN, decor, spawn: GYM.spawn, portal: GYM.door, portalTo: 'forest', dark: false, gym: true, noShrine: true,
     wildSpots: [], pickupSpots: [], climbAt: GYM_TERRAIN.climbAt,
-    field: { w: F.w - 6, d: F.d - 6 }, dummies: GYM.dummies,
+    field: { w: F.w - 6, d: F.d - 6 }, dummies: GYM.dummies, homes, spotNear, inPond, waterY: -0.35,
     npcs: [{ x: coachAt.x, z: coachAt.z, mesh: coach, name: '코리', lines: (c) => [
       `안녕, ${c.name}! 여기는 야외 체육관이야. 네가 잡은 포켓몬들이 전부 나와서 뛰어놀고 있어. 가까이 가서 "💪 훈련하기"를 누르면 경험치를 받아!`,
+      '동쪽 연못에는 물 포켓몬들이 헤엄치고 있어. 물에는 못 들어가니까 나무 잔교 끝까지 걸어가서 가까이 온 아이를 훈련시켜 줘.',
       '훈련은 한 마리에 하루 세 번까지. 매일 와서 골고루 훈련시켜 주면 레벨이 쑥쑥 올라.',
       '저 큰 나무 보이지? 줄기 옆에 서서 점프 버튼을 꾹 누르면 줄기를 타고 올라가. 나무 위 집에서 운동장이 다 보여!',
-      '날개 있는 포켓몬이 대표면 화면 위 🕊 버튼으로 타고 날 수 있어. 점프 버튼을 누르고 있으면 올라가고, 놓으면 천천히 내려와.',
       `${c.leader ? `${c.leader.speciesId ? '대표 포켓몬도 트랙을 한 바퀴 돌게 해 보렴.' : ''}` : '대표 포켓몬이 없네? 먼저 포켓몬을 잡아 오렴.'} 운동장 서쪽 샌드백은 훈련하는 자리야.`,
     ] }],
   };
