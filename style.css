@@ -562,7 +562,7 @@ body.intro #btn-save { display: none !important; }
 /* 도감 넘버볼 탭 */
 #dex-balls { padding: 6px 2px; overflow-y: auto; min-height: 0; } /* 아이패드에서 넘버볼 탭이 안 내려가던 것: 스크롤 허용 */
 /* 도감 안의 스크롤 판들: body 의 touch-action:none 을 풀어 손가락으로 내릴 수 있게 */
-#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank, #dex-learn, #dex-goals { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+#dex-body, #dex-balls, #dex-mapview, #dex-admin, #dex-friends, #dex-feedback, #dex-rank, #dex-learn, #dex-goals, #dex-guide { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 #dex-tabs button[hidden] { display: none; }
 /* 관리자 탭: 지역 바로 가기 버튼들 (관리자 모드에서만 탭이 보인다) */
 #dex-admin { padding: 12px; overflow-y: auto; }
@@ -1009,3 +1009,10 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #cheer-text { font-size: 16px; font-weight: 800; color: #20232e; line-height: 1.6; word-break: keep-all; }
 #cheer-ok { margin-top: 16px; font-family: inherit; font-size: 19px; font-weight: 900; padding: 12px 26px; border-radius: 999px; border: 0; background: #ffd93d; color: #20232e; box-shadow: 0 4px 0 #c99400; cursor: pointer; }
 .party-badge.master { background: #ffd93d; color: #5a3a08; border: 2px solid #c99400; }
+
+/* 길잡이 탭 */
+#dex-guide { padding: 12px 14px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.guide-sec { background: #fff; border: 3px solid #ffe08a; border-radius: 16px; padding: 10px 14px; }
+.guide-title { font-size: 16px; font-weight: 900; color: #5a3a08; margin-bottom: 6px; }
+.guide-body { font-size: 14px; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
+.guide-body ol, .guide-body ul { margin: 0; padding-left: 20px; } .guide-body li { margin: 3px 0; }
