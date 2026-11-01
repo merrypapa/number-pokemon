@@ -50,6 +50,18 @@ export class DuelStage {
     this.active = true;
   }
 
+  /** 교체: 무대 위 포켓몬을 새 모습으로 (mineSide 면 내 쪽). 전 포켓몬은 치우고 새 포켓몬이 제자리에서 뿅 */
+  replace(mineSide, next) {
+    if (!this.active || !next?.mesh) return;
+    const old = mineSide ? this.mine : this.theirs, home = mineSide ? this.myHome : this.theirHome, look = mineSide ? this.theirHome : this.myHome;
+    if (this.anim && (this.anim.att === old || this.anim.def === old)) this.anim = null;
+    if (old?.mesh) this.scene.remove(old.mesh);
+    next.mesh.position.copy(home); next.mesh.rotation.y = Math.atan2(look.x - home.x, look.z - home.z); next.mesh.visible = true; next.bob = Math.random() * 6;
+    if (!next.mesh.parent) this.scene.add(next.mesh);
+    if (mineSide) this.mine = next; else this.theirs = next;
+    this.particles?.stars(this.scene, home.clone().add(new THREE.Vector3(0, 0.9, 0)), 16, 0xffffff, 0.5);
+    this.sound?.throw_();
+  }
   /** 기술 한 방. mineAttacks 면 내 포켓몬이 달려든다 */
   attack(mineAttacks, { dmg = 0, mult = 1, kind = 'tackle' } = {}) {
     if (!this.active) return;

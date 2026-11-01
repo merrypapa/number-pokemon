@@ -44,7 +44,7 @@ import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './lear
 import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, emptyAttend, loadAttend, stampAttend, ATTEND_GIFTS, dayKey } from './goals.js';
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite, PHRASES } from './presence.js';
-import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
+import { snapshotMon, snapshotTeam, acceptPatch, readyPatch, switchPatch, attackPatch, duelCardHtml, sideOf, teamOf, activeMon, curIdx, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
 import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
 import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
 
@@ -2555,7 +2555,7 @@ function presenceTick(dt) {
   if (presence.t <= 0) {
     presence.t = player.moving ? 0.1 : 0.3; // 움직일 때는 초당 10번 (친구 화면에서 끊기지 않게), 가만히 있으면 0.3초
     const p = player.position;
-    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, b: sailing ? 1 : 0, tm: trainerOf(state.trainer).model, th: trainerOf(state.trainer).height, e: presence.emote, et: presence.emoteAt }; // b: 배를 타는 중 (친구 화면에서 배 위에 보이게)
+    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, r: player.running ? 1 : 0, b: sailing ? 1 : 0, tm: trainerOf(state.trainer).model, th: trainerOf(state.trainer).height, e: presence.emote, et: presence.emoteAt }; // b: 배를 타는 중 (친구 화면에서 배 위에 보이게)
     const L = presence.last;
     const changed = !L || L.zone !== d.zone || Math.hypot(L.x - d.x, L.z - d.z) > 0.05 || Math.abs(L.y - d.y) > 0.05 || L.f !== d.f || L.m !== d.m || L.et !== d.et || L.l !== d.l || Math.abs(L.vx - d.vx) > 0.2 || Math.abs(L.vz - d.vz) > 0.2;
     if (changed || presence.heart > 5) { presence.last = d; presence.heart = 0; cloud.setPresence(d).catch((e) => console.warn('[presence]', e)); } // 5초마다는 그대로라도 한 번 (살아 있다는 표시)
@@ -2593,7 +2593,8 @@ window.addEventListener('pagehide', () => { cloud.clearPresence(); });
 // ---------- 같이 놀기 2단계: 친구 대결 (src/duel.js, Firestore duels/{id}) ----------
 const duelBadge = document.getElementById('duel-badge'); // 친구 탭 배지: 내가 할 일(받은 신청·내 차례) 수
 const duels = { list: [], off: null, seen: new Map(), created: new Set() }; // seen: id → 마지막으로 본 상태 (알림은 바뀔 때만), created: 이번에 내가 신청한 대결 (수락되면 팝업)
-const duelKey = (d) => `${d.state}:${d.turn}:${(d.log || []).length}`;
+const duelKey = (d) => `${d.state}:${d.turn}:${(d.log || []).length}:${d.ready?.a ? 1 : 0}${d.ready?.b ? 1 : 0}:${d.cur?.a || 0}${d.cur?.b || 0}`;
+let duelAutoEnter = null; // 둘 다 "대결 시작"을 눌러 active 가 된 대결: 자리에 서 있으면 바로 무대로
 const myDuelSide = (d) => sideOf(d, cloud.user?.uid);
 const duelNeedsMe = (d) => (d.state === 'pending' && d.b === cloud.user?.uid) || (d.state === 'active' && d.turn === myDuelSide(d));
 function startDuelWatch() { stopDuelWatch(); duels.off = cloud.watchDuels((list) => { duels.list = list; onDuelsChanged(); }); }
@@ -2633,14 +2634,16 @@ function enterDuelStage(d) {
   const me = cloud.user?.uid, side = sideOf(d, me);
   if (!side || d.state !== 'active') return;
   const other = side === 'a' ? 'b' : 'a';
-  const myMesh = duelMonMesh(d.mons[side]), theirMesh = duelMonMesh(d.mons[other]);
+  const myMon = activeMon(d, side), theirMon = activeMon(d, other);
+  const myMesh = duelMonMesh(myMon), theirMesh = duelMonMesh(theirMon);
   if (!myMesh || !theirMesh) { say('포켓몬 모습을 못 불러왔어… 도감 대결 탭에서 해 보자.', { sec: 5 }); return; }
   duelStage.start({
     scene: zone.scene,
     mySpot: monSpot(side), theirSpot: monSpot(other), stageY: 0.32,
-    mine: { mesh: myMesh, name: d.mons[side].name }, theirs: { mesh: theirMesh, name: d.mons[other].name },
-    hide: [player.group, ...chain.followers.map((f) => f.mesh)], // 주인공과 따라다니는 친구는 무대에서 비킨다
+    mine: { mesh: myMesh, name: myMon.name }, theirs: { mesh: theirMesh, name: theirMon.name },
+    hide: [player.group, ...chain.followers.map((f) => f.mesh), ...[...ghosts.map.values()].flatMap((g) => [g.pet].filter(Boolean))], // 주인공·따라다니는 포켓몬·친구 유령의 대표는 무대에서 비킨다 (싸우는 둘만 보이게)
   });
+  duelAutoEnter = null;
   duelPlay = { id: d.id, side, logSeen: (d.log || []).length };
   duelModalId = d.id;
   duelModal.classList.add('stage'); // 카드를 화면 아래 띠로 (무대가 보이게)
@@ -2648,7 +2651,7 @@ function enterDuelStage(d) {
   renderDuelModal();
   bgmRefresh();
   input.endFrame();
-  say(`⚔ ${d.mons[side].name} vs ${d.mons[other].name}! ${d.turn === side ? '내 차례야 — 아래에서 기술을 골라!' : '상대 차례야, 잠깐 기다리자.'}`, { sec: 6 });
+  say(`⚔ ${myMon.name} vs ${theirMon.name}! ${d.turn === side ? '내 차례야 — 아래에서 기술을 골라! 🔄 교체도 돼.' : '상대 차례야, 잠깐 기다리자.'}`, { sec: 6 });
 }
 function leaveDuelStage(msg) {
   if (!duelStage.active) return;
@@ -2667,10 +2670,10 @@ function renderDuelModal() {
   const side = myDuelSide(d), other = side === 'a' ? 'b' : 'a', name = d.names?.[other] || '친구';
   let html;
   if (d.state === 'pending' && d.b === me) { // 받은 신청
-    const mon = d.mons.a;
+    const team = teamOf(d, 'a'), myTeam = snapshotTeam(party);
     html = `<div class="duel-invite"><div class="menu-title">⚔ ${josa(name, '이가')} 대결을 신청했어!</div>
-      <div class="menu-sub">${name}의 대표 ${mon?.name || '?'} (⚔ ${mon?.atk} · ❤ ${mon?.maxHp}) 이(가) 기다리고 있어. 수락하면 내 대표 ${josa(party.leader ? party.name(party.leader) : '포켓몬', '이가')} 나가고, 넘버볼 아레나로 이동해!</div>
-      ${mon ? `<div class="duel-mon"><div class="duel-who">${name}</div>${duelThumb(mon.speciesId) ? `<img src="${duelThumb(mon.speciesId)}" alt="">` : ''}<div class="duel-name">${mon.name} <span class="party-type">${mon.type}</span></div></div>` : ''}
+      <div class="menu-sub">${name}의 팀 ${team.length}마리가 기다리고 있어. 수락하면 내 팀 <b>${myTeam.map((m) => m.name).join(' · ') || '(기절하지 않은 포켓몬이 없어!)'}</b>이(가) 나가고, 넘버볼 아레나로 이동해! 둘 다 무대의 자리(1P·2P)에 서서 "대결 시작"을 누르면 시작돼.</div>
+      <div class="duel-mons">${team.map((mon) => `<div class="duel-mon"><div class="duel-who">${name}</div>${duelThumb(mon.speciesId) ? `<img src="${duelThumb(mon.speciesId)}" alt="">` : ''}<div class="duel-name">${mon.name} <span class="party-type">${mon.type}</span></div><small>⚔ ${mon.atk} · ❤ ${mon.maxHp}</small></div>`).join('')}</div>
       <div class="duel-actions"><button class="duel-accept">✅ 수락 → 아레나로!</button><button class="duel-decline">거절</button></div>
       <div class="friend-note">닫기(✕)를 누르면 나중에 도감 → 대결 탭에서 다시 볼 수 있어.</div></div>`;
   } else if (d.state === 'pending') { // 내가 보낸 신청
@@ -2686,18 +2689,20 @@ function renderDuelModal() {
 function bindDuelCard(box, d, { onAccept = null } = {}) {
   const me = cloud.user?.uid, id = d.id;
   box.querySelector('.duel-accept')?.addEventListener('click', async () => {
-    const L = party.leader;
-    if (!L) { say('대표 포켓몬이 있어야 대결할 수 있어!', { sec: 4 }); return; }
-    if (party.isFainted(L)) { say(`${josa(party.name(L), '은는')} 기절했어. 오박사님이나 아레나의 봄이에게 치료받고 수락하자.`, { sec: 5 }); return; }
-    const mon = snapshotMon(party, L);
-    const ok = await cloud.duelTx(id, (cur) => acceptPatch(cur, me, mon)).catch(() => false);
-    if (ok) { sound.fanfare(); say(`⚔ 대결 시작! ${josa(d.names.a, '이가')} 먼저 공격해.`, { sec: 5 }); onAccept?.(); }
+    const team = snapshotTeam(party);
+    if (!team.length) { say('기절하지 않은 포켓몬이 있어야 대결할 수 있어! 오박사님이나 아레나의 봄이에게 치료받고 수락하자.', { sec: 5 }); return; }
+    const ok = await cloud.duelTx(id, (cur) => acceptPatch(cur, me, team)).catch(() => false);
+    if (ok) { sound.fanfare(); say(`⚔ 수락했어! 아레나 무대의 빨간 2P 자리에 올라서서 "대결 시작"을 누르면 돼.`, { sec: 6 }); onAccept?.(); }
   });
   box.querySelector('.duel-decline')?.addEventListener('click', async () => { await cloud.deleteDuel(id); closeDuelModal(); });
   box.querySelector('.duel-go')?.addEventListener('click', goToArena);
   box.querySelectorAll('.duel-skill').forEach((b) => b.addEventListener('click', async () => {
     const ok = await cloud.duelTx(id, (cur) => attackPatch(cur, me, +b.dataset.skill)).catch(() => false);
     if (ok) sound.hit(); else say('지금은 내 차례가 아니야!', { sec: 3 });
+  }));
+  box.querySelectorAll('.duel-switch').forEach((b) => b.addEventListener('click', async () => {
+    const ok = await cloud.duelTx(id, (cur) => switchPatch(cur, me, +b.dataset.idx)).catch(() => false);
+    if (ok) sound.throw_(); else say('지금은 교체할 수 없어! (내 차례에, 기절하지 않은 포켓몬으로만)', { sec: 3 });
   }));
 }
 /** 대결 문서가 바뀔 때마다: 알림(신청·내 차례), 끝난 대결 보상(각자 한 번), 오래된 대결 정리, 탭 배지 */
@@ -2710,16 +2715,26 @@ function onDuelsChanged() {
     if (prev !== key) {
       duels.seen.set(d.id, key);
       if (d.state === 'pending' && d.b === me && prev === undefined) { sound.pickup(); say(`⚔ ${josa(name, '이가')} 대결을 신청했어!`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
+      else if (d.state === 'ready' && d.a === me && (prev?.startsWith('pending') || (prev === undefined && duels.created.has(d.id)))) { duels.created.delete(d.id); sound.fanfare(); say(`⚔ ${josa(name, '이가')} 수락했어! 아레나 무대의 파란 1P 자리에 올라서서 "대결 시작"을 눌러.`, { sec: 7 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
+      else if (d.state === 'ready' && prev?.startsWith('ready') && d.ready?.[other] && !d.ready?.[side]) { sound.pickup(); say(`⚔ ${josa(name, '이가')} 자리에서 기다리고 있어! 무대의 ${side === 'a' ? '파란 1P' : '빨간 2P'} 자리에서 "대결 시작"을 눌러.`, { sec: 6 }); }
+      else if (d.state === 'active' && prev?.startsWith('ready')) { sound.fanfare(); duelAutoEnter = d.id; say(`⚔ 둘 다 준비됐어, 대결 시작! ${josa(d.names.a, '이가')} 먼저 공격해.`, { sec: 6 }); }
       else if (d.state === 'active' && d.a === me && (prev?.startsWith('pending') || (prev === undefined && duels.created.has(d.id)))) { duels.created.delete(d.id); sound.fanfare(); say(`⚔ ${josa(name, '이가')} 수락했어! 아레나로 가서 만나자.`, { sec: 6 }); if (!battle.active && !ride && !evo) openDuelModal(d.id); }
       else if (d.state === 'active' && d.turn === side && prev !== undefined) { sound.pickup(); if (duelModalId !== d.id) say(`⚔ ${josa(name, '과와')}의 대결, 내 차례야! ${zone?.name === 'arena' ? '친구 가까이서 대결! 버튼을' : '도감 → 대결 탭을'} 눌러.`, { sec: 6 }); }
     }
     // 무대에서 보고 있는 대결이면, 새로 쌓인 공격을 그대로 보여 준다 (달려들어 때리기)
     if (duelStage.active && duelPlay && d.id === duelPlay.id) {
       const log = d.log || [];
+      let delay = 0;
       for (let i = duelPlay.logSeen; i < log.length; i++) {
         const l = log[i];
-        const skill = d.mons?.[l.who]?.skills?.find((s) => s.name === l.skill);
-        setTimeout(() => { if (duelStage.active) duelStage.attack(l.who === duelPlay.side, { dmg: l.dmg, mult: l.mult, kind: skill?.kind || 'tackle' }); }, (i - duelPlay.logSeen) * 1500);
+        if (l.switch) { // 교체(직접 또는 기절해서 자동): 무대 위 포켓몬을 바꾼다
+          const who = l.who, mon = teamOf(d, who).find((m) => m.name === l.switch), isMe = who === duelPlay.side;
+          setTimeout(() => { if (!duelStage.active || !mon) return; const mesh = duelMonMesh(mon); if (mesh) duelStage.replace(isMe, { mesh, name: mon.name }); say(`🔄 ${isMe ? '내' : name + '의'} ${josa(mon.name, '이가')} ${l.auto ? '대신 나왔어!' : '교체로 나왔어!'}`, { sec: 4 }); }, delay);
+          delay += 1200; continue;
+        }
+        const skill = teamOf(d, l.who).flatMap((m) => m.skills || []).find((s) => s.name === l.skill);
+        setTimeout(() => { if (duelStage.active) duelStage.attack(l.who === duelPlay.side, { dmg: l.dmg, mult: l.mult, kind: skill?.kind || 'tackle' }); }, delay);
+        delay += 1500;
       }
       duelPlay.logSeen = log.length;
       if (d.state === 'done') {
@@ -2751,7 +2766,7 @@ async function challengeFriend(f) {
   if (!L) { say('대표 포켓몬이 있어야 대결할 수 있어!', { sec: 4 }); return; }
   if (party.isFainted(L)) { say(`${josa(party.name(L), '은는')} 기절했어. 오박사님께 치료받고 신청하자.`, { sec: 5 }); return; }
   if (duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid))) { say(`${josa(f.name, '과와')}는 이미 대결 중이야! 도감 → 대결 탭을 봐.`, { sec: 5 }); return; }
-  try { const id = await cloud.createDuel(f, snapshotMon(party, L)); duels.created.add(id); sound.click(); say(`⚔ ${f.name}에게 ${josa(party.name(L), '으로')} 대결을 신청했어! 수락하면 알려 줄게.`, { sec: 6 }); }
+  try { const team = snapshotTeam(party); const id = await cloud.createDuel(f, team); duels.created.add(id); sound.click(); say(`⚔ ${f.name}에게 ${team.map((m) => m.name).join('·')}(으)로 대결을 신청했어! 수락하면 알려 줄게.`, { sec: 6 }); }
   catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
 }
 // ---------- 주간 순위표: 도감 "순위" 탭과 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
@@ -3110,15 +3125,27 @@ function frame() {
     }
     // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----
     if (!moved && zone.name === 'arena' && cloud.user) {
-      const mineDuels = duels.list.filter((d) => d.state === 'active' && sideOf(d, cloud.user.uid));
+      const me = cloud.user.uid;
+      const mineDuels = duels.list.filter((d) => (d.state === 'active' || d.state === 'ready') && sideOf(d, me));
       if (mineDuels.length) {
-        const d = mineDuels[0], side = sideOf(d, cloud.user.uid), spot = arenaSpot(side);
-        const nm = d.names?.[side === 'a' ? 'b' : 'a'] || '친구';
-        if (near(spot, 2.4)) offer(`⚔ ${josa(nm, '과와')} 대결!`, () => enterDuelStage(d), '⚔\n대결');
-        else if (state.prompt <= 0) { // 어디로 올라가야 하는지 알려 준다
+        const d = mineDuels[0], side = sideOf(d, me), other = side === 'a' ? 'b' : 'a', spot = arenaSpot(side);
+        const nm = d.names?.[other] || '친구', mySeat = side === 'a' ? '파란 1P' : '빨간 2P', theirSeat = side === 'a' ? '빨간 2P' : '파란 1P';
+        if (near(spot, 2.4)) {
+          if (d.state === 'active' && duelAutoEnter === d.id && !duelStage.active) enterDuelStage(d); // 둘 다 "대결 시작"을 눌렀고 자리에 서 있으면 바로 무대로
+          else if (d.state === 'active') offer(`⚔ ${josa(nm, '과와')} 대결!`, () => enterDuelStage(d), '⚔\n대결');
+          else if (!d.ready?.[side]) offer('⚔ 대결 시작!', async () => {
+            const ok = await cloud.duelTx(d.id, (cur) => readyPatch(cur, me)).catch(() => false);
+            if (ok) { sound.click(); say(d.ready?.[other] ? '⚔ 둘 다 준비됐어! 대결 시작!' : `⚔ 준비 완료! ${josa(nm, '이가')} ${theirSeat} 자리에서 "대결 시작"을 누르면 시작돼.`, { sec: 6 }); }
+          }, '⚔\n시작');
+          else if (state.prompt <= 0) { state.prompt = 10; say(`⏳ ${josa(nm, '이가')} ${theirSeat} 자리에서 "대결 시작"을 누르면 시작돼. 조금만 기다리자!`, { sec: 5 }); }
+        } else if (state.prompt <= 0) { // 어디로 올라가야 하는지 알려 준다
           state.prompt = 12;
-          say(`⚔ ${nm}와의 대결이 기다리고 있어! 무대 위 ${side === 'a' ? '파란 1P' : '빨간 2P'} 자리에 올라서면 시작해.`, { sec: 7 });
+          say(`⚔ ${nm}와의 대결이 기다리고 있어! 무대 위 ${mySeat} 자리에 올라서서 "${d.state === 'active' ? '대결' : '대결 시작'}" 버튼을 눌러.`, { sec: 7 });
         }
+      } else if (near(ARENA.spots.a, 2.4) || near(ARENA.spots.b, 2.4)) { // 대결이 없을 때 자리에 서면: 아레나에 있는 친구에게 바로 신청
+        const here = [...presence.friends.values()].filter((f) => f.uid !== me && f.zone === 'arena' && (!f.at || Date.now() - f.at < 60000) && !duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid)));
+        if (here.length) { const f = here[0]; offer(`⚔ ${f.name}에게 대결 신청`, () => challengeFriend({ uid: f.uid, name: f.name }), '⚔\n신청'); }
+        else if (state.prompt <= 0) { state.prompt = 12; say('🏟 대결 자리야! 친구가 아레나에 오면 여기서 바로 대결을 신청할 수 있어. (도감 → 친구 탭에서도 신청할 수 있어)', { sec: 6 }); }
       }
     }
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
