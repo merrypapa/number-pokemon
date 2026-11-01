@@ -369,8 +369,24 @@ export class Dex {
     const evo = sp.evolution;
     const evoNames = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => x.name).join(' / ') || null; // 여럿이면 '샤미드 / 부스터 / …'
     // 여러 갈래 진화: 어디서 진화하면 어떤 모습인지 (부스터 ← 불의산 …). 장소가 없는 갈래는 확률
-    const evoWhere = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => { const z = evoZoneFor(evo, x); return z ? `${this.zoneName[z] || z}에서 ${x.name}` : null; }).filter(Boolean);
+    let evoWhere = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => { const z = evoZoneFor(evo, x); return z ? { z, text: `${this.zoneName[z] || z}에서 ${x.name}` } : null; }).filter(Boolean);
+    if (new Set(evoWhere.map((w) => w.z)).size < 2) evoWhere = []; // 갈래가 모두 같은 지역이면(리자몽 → 메가 X/Y) 장소로 못 고르니 랜덤 안내
+    evoWhere = evoWhere.map((w) => w.text);
     const card = document.createElement('div');
+    // 🔑 나타나는 조건 (전설·특별 포켓몬·보스·메가 성역). 조건 포켓몬마다 ✅/⬜
+    let howLine = '';
+    const needs = ctx?.unlockInfo ? ctx.unlockInfo(sp) : null;
+    if (needs && needs.length) {
+      const items = needs.map((x) => `${x.ok ? '✅' : '⬜'} ${x.boss ? `${this.zoneName[x.zone] || ''} 보스 ${x.name}` : x.name}${x.boss ? ' 잡기' : ' 친구로'}`).join(' · ');
+      const done = needs.filter((x) => x.ok).length;
+      howLine = `<li>🔑 <b>나타나는 조건</b> (${done}/${needs.length}): ${items}${needs.every((x) => x.ok) ? ` → ${zone} 어딘가에 나타나 있어! 금빛 빛기둥을 찾아봐` : ` → 다 채우면 ${zone}에 나타나`}${needs.some((x) => x.boss) ? '<br><small>보스는 넘버볼로 잡아야 세고, 풀어주기·진화로 얻은 건 안 쳐</small>' : ''}</li>`;
+    } else if (sp.shrine) {
+      howLine = `<li>🔑 <b>나타나는 조건</b>: ${zone}의 보스를 잡아 정복하면 그 지역의 <b>메가 성역</b>에 나타나</li>`;
+    } else if (sp.boss && !from) {
+      howLine = `<li>🔑 <b>${this.zoneName[bossZoneOf(sp)] || zone}의 보스</b>: 지역 어딘가에 크게 서 있어. 넘버볼로 잡으면 정복!</li>`;
+    } else if (sp.special === 'sleepSpot') {
+      howLine = `<li>🔑 ${zone}의 정해진 자리에서 쿨쿨 자고 있어. 가까이 가서 깨워 봐</li>`;
+    }
     card.className = 'detail-card' + (known ? '' : ' unknown');
     card.style.borderColor = known ? (sp.draftShape?.color || '#ffd93d') : '#ccc';
     if (!known) {
@@ -381,6 +397,7 @@ export class Dex {
             <div class="detail-name">???</div>
             <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}` : `사는 곳: ${zone}${sp.boss ? ` (${this.zoneName[bossZoneOf(sp)] || ''} 보스)` : ''}`}</div>
             <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${this.zoneName[bossZoneOf(sp)] || zone}의 보스를 찾아 잡아 보자!` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
+            ${howLine ? `<ul class="detail-facts">${howLine}</ul>` : ''}
           </div>
         </div>`;
       this.partyEl.appendChild(card);
@@ -411,6 +428,7 @@ export class Dex {
           <ul class="detail-facts">
             ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
             <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
+            ${howLine}
             <li class="skills">🎯 ${skills}</li>
             ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>${evo.mega ? ` + 메가블럭 ${evo.mega}개` : ''}가 되면 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? (evoWhere.length ? ` 중 하나로 진화! 진화하는 곳에 따라 모습이 달라져: ${evoWhere.join(' · ')}${evoWhere.length < evoTargets(evo).length ? ' · 다른 곳에서는 랜덤' : ''}` : ' 중 하나로 (랜덤!) 진화!') : '로 진화!'}</li>` : ''}
             ${(sp.skills || []).some((s) => skillLevel(s) > 1) ? `<li>📈 레벨이 오르면 체력·공격이 세지고 기술도 열려 (대결에서 이기면 경험치!)</li>` : ''}
