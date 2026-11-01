@@ -827,6 +827,8 @@ dex.bindParty({
   getConquered: () => state.conquered,
   getZoneName: () => zone?.name,
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
+  // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
+  unlockInfo: (sp) => (sp.unlockedBy ? unlockNeeds(sp).map((id) => { const n = speciesById[id]; return { id, name: n?.name || id, boss: !!n?.boss, zone: n ? (n.boss ? bossZoneOf(n) : n.zone) : null, ok: caughtFor(id) }; }) : null),
   getBalls: () => state.balls,
   getItems: () => state.items,
   onBuyItem: (id) => {
