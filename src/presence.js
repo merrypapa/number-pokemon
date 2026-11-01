@@ -16,7 +16,7 @@ export const EMOTES = ['👋', '🎉', '😆', '❤️'];
 export const PHRASES = ['같이 가자!', '여기 보스 있어!', '도와줘!', '잘했어!', '잠깐만!', '고마워!', '안녕, 또 봐!'];
 const STALE_MS = 20000, EMOTE_MS = 3000;
 
-function makeGhost(name) {
+function makeGhost(name, model = PLAYER_MODEL, height = PLAYER_HEIGHT) {
   const g = new THREE.Group();
   const draft = new THREE.Group();
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.4, 6, 12), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }));
@@ -26,7 +26,7 @@ function makeGhost(name) {
   draft.add(body, head);
   g.add(draft);
   g.userData.draft = draft;
-  swapDraftWithModel(g, PLAYER_MODEL, { scale: PLAYER_HEIGHT, onSwap: (m) => { m.userData.popT = 1; m.scale.setScalar(PLAYER_HEIGHT); } });
+  swapDraftWithModel(g, model, { scale: height, onSwap: (m) => { m.userData.popT = 1; m.scale.setScalar(height); } });
   const tag = makePillSprite(`👫 ${name}`, { bg: '#20232e', fg: '#ffffff', border: '#57b947' }, 0.5);
   tag.position.y = PLAYER_HEIGHT + 0.5;
   g.add(tag);
@@ -58,7 +58,7 @@ export class Ghosts {
       keep.add(p.uid);
       let g = this.map.get(p.uid);
       if (!g) {
-        g = { mesh: makeGhost(p.name || '친구'), target: new THREE.Vector3(p.x, p.y || 0, p.z), facing: p.f || 0, moving: false, vx: 0, vz: 0, predicted: 0, emote: null, emoteAt: 0, emoteSprite: null, name: p.name || '친구' };
+        g = { mesh: makeGhost(p.name || '친구', p.tm || undefined, p.th || undefined), target: new THREE.Vector3(p.x, p.y || 0, p.z), facing: p.f || 0, moving: false, vx: 0, vz: 0, predicted: 0, emote: null, emoteAt: 0, emoteSprite: null, name: p.name || '친구' };
         g.mesh.position.copy(g.target);
         this.scene.add(g.mesh);
         this.map.set(p.uid, g);

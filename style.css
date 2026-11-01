@@ -256,7 +256,7 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 .party-side .btn-evolve:disabled { background: #e9e9e9; box-shadow: 0 2px 0 #bbb; color: #999; animation: none; cursor: default; }
 
 /* ---------- 시작 포켓몬 고르기 ---------- */
-#starter { position: fixed; inset: 0; z-index: 21; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(20,30,50,.35); }
+#starter, #trainer { position: fixed; inset: 0; z-index: 21; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(20,30,50,.35); }
 #starter-card { background: rgba(255,251,230,.97); border-radius: 22px; padding: 18px 16px; width: min(860px, 100%); max-height: 94vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,.3); text-align: center; }
 #starter-title { font-size: clamp(22px, 4vw, 30px); font-weight: 900; color: #20232e; }
 #starter-sub { font-size: 14px; font-weight: 700; color: #666; margin: 6px 0 14px; }
@@ -1016,3 +1016,9 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .guide-title { font-size: 16px; font-weight: 900; color: #5a3a08; margin-bottom: 6px; }
 .guide-body { font-size: 14px; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
 .guide-body ol, .guide-body ul { margin: 0; padding-left: 20px; } .guide-body li { margin: 3px 0; }
+
+/* 주인공 고르기 · 💛 찰떡 */
+#trainer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.starter-item.trainer-item img { width: 96px; height: 96px; aspect-ratio: auto; border-radius: 50%; object-fit: cover; background: #e8f4ff; margin: 0 auto; }
+.trainer-emoji { width: 96px; height: 96px; border-radius: 50%; background: #e8f4ff; display: flex; align-items: center; justify-content: center; font-size: 46px; margin: 0 auto; }
+.party-badge.affinity, .chip.affinity { background: #fff0b3; color: #7a5a00; border: 2px solid #ffd93d; }

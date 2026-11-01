@@ -21,9 +21,11 @@ import { strongAgainst, weakTo, skillIcon } from './types.js';
 import { portrait, setPortraitRenderer } from './portrait.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
+import { TRAINERS, trainerOf, DEFAULT_TRAINER, AFFINITY_EXP } from './trainers.js';
 import { makeCar, CAR_MODEL, CAR_NAME } from './car.js';
 import { Creature, buildDraftMesh, bossZoneOf, bossOverride, partyScale } from './creatures.js';
-import { preloadModels, onModelLoaded, swapDraftWithModel, tickModel } from './models.js';
+import { preloadModels, onModelLoaded, swapDraftWithModel, tickModel, hasModel } from './models.js';
+import { makeNpc } from './npc.js';
 import { buildIntro } from './intro.js';
 import { Numberblock, FollowChain, buildNumberblockMesh, animateNumberblock, GOLD_BLOCK, SILVER_BLOCK } from './numberblocks.js';
 import { NUMBER_COLORS, colorForCount } from './palette.js';
@@ -541,10 +543,11 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null }; // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id }; // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
+party.affinity = () => trainerOf(state.trainer).type; // 찰떡 속성: 공격 1.2배 (party.damage)
 const dex = new Dex(
   creatureData.creatures,
   Object.fromEntries(Object.entries(ZONE_INFO).map(([k, v]) => [k, v.name])),
@@ -870,6 +873,8 @@ dex.bindParty({
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
   // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
   isMaster: (sp) => !!state.masters[sp.id], // 👑 Lv.50 마스터 타이틀
+  isAffinity: (sp) => (sp.type || '노말') === trainerOf(state.trainer).type, // 💛 찰떡 (트레이너 속성)
+  trainerInfo: () => trainerOf(state.trainer),
   isDexAll: () => !!state.dexAll, // 🌟 도감 완성 칭호
   unlockInfo: (sp) => (sp.unlockedBy ? unlockNeeds(sp).map((id) => { const n = speciesById[id]; return { id, name: n?.name || id, boss: !!n?.boss, zone: n ? (n.boss ? bossZoneOf(n) : n.zone) : null, ok: caughtFor(id) }; }) : null),
   getBalls: () => state.balls,
@@ -1669,7 +1674,7 @@ function askRescueQuiz(z, nb) {
 
 /** 이긴 포켓몬에게 경험치를 준다. 레벨업·새 기술·진화 가능을 한 줄로 돌려준다 (말풍선에 이어 붙인다) */
 function giveExp(L, c) {
-  const r = party.gainExp(L, expFor(c.level || 5, c.data.grade || 1, c.isBoss, L.level));
+  const r = party.gainExp(L, Math.round(expFor(c.level || 5, c.data.grade || 1, c.isBoss, L.level) * (party.isAffinity(L) ? AFFINITY_EXP : 1))); // 찰떡 포켓몬은 경험치 1.25배
   let note = ` 경험치 +${r.amount}!`;
   if (r.to > r.from) {
     sound.fanfare();
@@ -1908,7 +1913,7 @@ function renderStarter() {
     const first = sp.skills?.[0];
     item.innerHTML = `
       ${t ? `<img src="${t.color}" alt="">` : ''}
-      <div class="starter-name">${sp.name}</div>
+      <div class="starter-name">${sp.name}${(sp.type || '노말') === trainerOf(state.trainer).type ? ' <span class="party-badge affinity">💛 찰떡</span>' : ''}</div>
       <div class="starter-stat">Lv.${STARTER_LEVEL} · ${sp.type} 속성 · ❤ 체력 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).hp} · ⚔ 공격 ${friendStats(sp.starterHp ?? sp.baseHp, sp.starterAtk ?? sp.baseAtk).atk}</div>
       <div class="starter-skill">기술: ${first ? `${skillIcon(first)} ${first.name}` : '-'}${sp.skills?.[1] ? ` → ${skillIcon(sp.skills[1])} ${sp.skills[1].name}` : ''}</div>`;
     item.onclick = () => chooseStarter(sp.id);
@@ -1923,7 +1928,8 @@ function startGame({ zoneName = 'forest', pos = null } = {}) {
   getZone('forest');
   zone = getZone(zoneName);
   setActiveTerrain(zone.terrain);
-  player = new Player(zone.scene);
+  const tr = trainerOf(state.trainer);
+  player = new Player(zone.scene, { model: tr.model, height: tr.height });
   chain = new FollowChain(player);
   if (pos) player.teleport(pos.x, pos.z, pos.y ?? null);
   applyZoneEnv();
@@ -1945,7 +1951,7 @@ function chooseStarter(id) {
   confetti.burst(120);
   sound.fanfare();
   if (state.admin) startAdmin();
-  else say(`안녕, ${state.name}! 난 원이야. ${party.name(member)}와 함께 가자! 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 6 });
+  else { const tr = trainerOf(state.trainer); say(`안녕, ${state.name}! 난 ${tr.name}야. ${party.name(member)}와 함께 가자! ${tr.emoji} ${tr.type} 포켓몬은 나와 찰떡이라 더 세게 자라. 방향키(또는 왼쪽 화면을 눌러 조이스틱)로 움직여 봐!`, { sec: 7 }); }
   autosave();
 }
 
@@ -2036,9 +2042,26 @@ function confirmName() {
   state.name = name;
   state.admin = accountAdmin(name); // 관리자 계정이면 관리자 모드로 시작한다
   newgameEl.classList.add('hidden');
-  starterEl.classList.remove('hidden');
-  renderStarter();
+  trainerEl.classList.remove('hidden');
+  renderTrainers();
 }
+// ---------- 주인공 고르기 (src/trainers.js): 이름 → 트레이너 → 시작 포켓몬 ----------
+const trainerEl = document.getElementById('trainer'), trainerGrid = document.getElementById('trainer-grid');
+function renderTrainers() {
+  trainerGrid.innerHTML = '';
+  for (const t of TRAINERS) {
+    const item = document.createElement('button');
+    item.className = 'starter-item trainer-item';
+    const face = hasModel(t.model) ? portrait(makeNpc({ name: t.name, model: t.model }), `trainer:${t.id}`) : null;
+    item.innerHTML = `${face ? `<img src="${face}" alt="">` : `<div class="trainer-emoji">${t.emoji}</div>`}
+      <div class="starter-name">${t.name}</div>
+      <div class="starter-stat">${t.emoji} ${t.type} 속성과 찰떡</div>
+      <div class="starter-skill">${t.desc}</div>`;
+    item.onclick = () => { sound.click(); state.trainer = t.id; trainerEl.classList.add('hidden'); starterEl.classList.remove('hidden'); renderStarter(); };
+    trainerGrid.appendChild(item);
+  }
+}
+document.getElementById('btn-trainer-back').onclick = () => { trainerEl.classList.add('hidden'); newgameEl.classList.remove('hidden'); };
 document.getElementById('btn-name-ok').onclick = confirmName;
 nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmName(); e.stopPropagation(); });
 nameInput.addEventListener('keyup', (e) => e.stopPropagation());
@@ -2079,7 +2102,7 @@ function buildSaveData() {
     balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
-    tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null,
+    tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
     returnTo: state.returnTo,
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
@@ -2532,7 +2555,7 @@ function presenceTick(dt) {
   if (presence.t <= 0) {
     presence.t = player.moving ? 0.1 : 0.3; // 움직일 때는 초당 10번 (친구 화면에서 끊기지 않게), 가만히 있으면 0.3초
     const p = player.position;
-    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, b: sailing ? 1 : 0, e: presence.emote, et: presence.emoteAt }; // b: 배를 타는 중 (친구 화면에서 배 위에 보이게)
+    const d = { zone: zone.name, x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), f: +player.facing.toFixed(2), vx: +player.vx.toFixed(2), vz: +player.vz.toFixed(2), l: party.leader?.speciesId || null, m: !!player.moving, b: sailing ? 1 : 0, tm: trainerOf(state.trainer).model, th: trainerOf(state.trainer).height, e: presence.emote, et: presence.emoteAt }; // b: 배를 타는 중 (친구 화면에서 배 위에 보이게)
     const L = presence.last;
     const changed = !L || L.zone !== d.zone || Math.hypot(L.x - d.x, L.z - d.z) > 0.05 || Math.abs(L.y - d.y) > 0.05 || L.f !== d.f || L.m !== d.m || L.et !== d.et || L.l !== d.l || Math.abs(L.vx - d.vx) > 0.2 || Math.abs(L.vz - d.vz) > 0.2;
     if (changed || presence.heart > 5) { presence.last = d; presence.heart = 0; cloud.setPresence(d).catch((e) => console.warn('[presence]', e)); } // 5초마다는 그대로라도 한 번 (살아 있다는 표시)
@@ -2897,6 +2920,7 @@ function applySave(d) {
   state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1), chests: { ...(d.tower?.chests || {}) } };
   state.attend = loadAttend(d.attend);                          // 출석 도장
   state.masters = { ...(d.masters || {}) }; state.dexAll = d.dexAll || null; // 마스터 타이틀 · 도감 완성
+  state.trainer = trainerOf(d.trainer).id; // 고른 주인공 (옛 저장은 지우)
   state.rockets = { ...(d.rockets || {}) };
   state.released = { ...(d.released || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
