@@ -910,6 +910,10 @@ function applyZoneEnv() {
   zone.world.setWhirlOpen?.(!!state.conquered[zone.name]); // 물의길 소용돌이: 거북왕을 이겼으면 열린 모습으로 (src/sea.js)
   player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
   zone.world.refreshPads?.(state.tower.best); // 동굴탑 바닥의 워프 패드 (가 본 10층 단위까지)
+  // 조건을 채웠는데 어떤 이유로든 아직 안 세워진 특별 포켓몬이 있으면 지금 세운다 (지역이 만들어진 뒤에 조건이 채워졌거나 옛 저장)
+  for (const sp of creatureData.creatures.filter((c) => c.zone === zone.name && c.unlockedBy)) {
+    if (megaUnlocked(sp) && !(state.dex[sp.id] > 0) && !zone.creatures.some((c) => c.data.id === sp.id)) spawnUnlocked(zone, sp);
+  }
   const legend = zone.creatures.find((c) => c.isMega && c.state !== 'caught'); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 하늘로 뻗은 금빛 빛기둥을 찾아가 봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
