@@ -134,10 +134,10 @@ export class Party {
     return true;
   }
   /** 진화. 새 종의 데이터를 돌려준다. mesh 교체는 부르는 쪽(main)에서 한다. */
-  evolve(m) {
+  evolve(m, zoneName = null) {
     const e = this.species(m).evolution;
-    // 진화 대상이 여럿이면 확률대로 고른다 (이브이 → 샤미드·부스터·쥬피썬더·블래키, 리자몽 → 메가리자몽Y 또는 X)
-    const next = pickEvolution(e, this.speciesById);
+    // 진화 대상이 여럿이면 지금 있는 지역에 맞는 모습으로 (이브이: 불의산 부스터 · 물의길 샤미드 · 번개동굴 쥬피썬더 · 꿈의우주 블래키), 맞는 곳이 아니면 확률대로 (리자몽 → 메가리자몽Y 또는 X)
+    const next = pickEvolution(e, this.speciesById, zoneName);
     if (e.mega) this.onUseMega(e.mega); // 메가블럭을 쓴다
     m.speciesId = next.id;
     const bonus = e.mega ? MEGA_BONUS : EVOLVE_BONUS; // 메가 진화는 더 크게 오른다

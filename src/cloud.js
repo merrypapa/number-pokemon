@@ -11,6 +11,7 @@ import { josa } from './util.js';
 //   duels/{id}        { players:[a,b], a, b, names, mons:{a,b}, state, turn, log, winner, rewarded, createdAt, updatedAt }  ← 친구 대결(우편 대결), 두 사람만 읽고 씀 (src/duel.js)
 //   Realtime Database presence/{uid} { name, zone, x, y, z, f(방향), l(대표 id), m(움직임), e/et(감정 표현), at }  ← 같이 놀기: 같은 지역의 친구 보이기 (database.rules.json)
 //   saves/{uid}      { name, savedAt, data(JSON 문자열) }                                                              ← 본인만
+//   gifts/{toUid}/list/{id}   { fromUid, fromName, item, n, at }  친구에게 보낸 선물(물약·열매·넘버볼). 친구만 보내고 받는 사람만 읽고 지운다
 //   friends/{uid}/list/{friendUid} { addedAt }                                                                       ← 본인만 (수락한 쪽이 상대 목록에도 넣는다: 규칙이 요청이 있을 때만 허용)
 //   requests/{toUid}/list/{fromUid} { fromName, at }  친구 요청. 받은 사람이 수락하면 양쪽 friends 에 들어가고 요청은 지워진다
 //   feedback/{id}       { uid, name, text, mime, data(base64, ≤600KB 원본), at, reply, repliedAt }  ← 아이가 개발자에게 보내는 요청(글·목소리·사진). 본인과 관리자만 읽고, 답장은 관리자만
@@ -129,6 +130,9 @@ class FirebaseBackend {
     } catch (e) { throw new Error(koError(e)); }
   }
   async declineRequest(uid, fromUid) { await this.F.deleteDoc(this.F.doc(this.db, 'requests', uid, 'list', fromUid)); }
+  async sendGift(me, toUid, gift) { try { await this.F.addDoc(this.F.collection(this.db, 'gifts', toUid, 'list'), { fromUid: me.uid, fromName: me.name, ...gift, at: Date.now() }); } catch (e) { throw new Error(koError(e)); } }
+  async listGifts(uid) { const s = await this.F.getDocs(this.F.collection(this.db, 'gifts', uid, 'list')); return s.docs.map((d) => ({ id: d.id, ...d.data() })); }
+  async takeGift(uid, id) { await this.F.deleteDoc(this.F.doc(this.db, 'gifts', uid, 'list', id)); }
   async sendFeedback(item) { try { const r = await this.F.addDoc(this.F.collection(this.db, 'feedback'), item); return r.id; } catch (e) { throw new Error(koError(e)); } }
   async listMyFeedback(uid) { const s = await this.F.getDocs(this.F.query(this.F.collection(this.db, 'feedback'), this.F.where('uid', '==', uid))); return s.docs.map((d) => ({ id: d.id, ...d.data() })); }
   async listAllFeedback() { try { const s = await this.F.getDocs(this.F.query(this.F.collection(this.db, 'feedback'), this.F.orderBy('at', 'desc'), this.F.limit(100))); return s.docs.map((d) => ({ id: d.id, ...d.data() })); } catch (e) { throw new Error(koError(e)); } }
@@ -185,6 +189,9 @@ class MockBackend {
   async listRequests(uid) { const r = this.read().requests?.[uid] || {}; return Object.entries(r).map(([k, v]) => ({ uid: k, ...v })); }
   async acceptRequest(uid, fromUid) { const db = this.read(); this.addPair(db, uid, fromUid); this.addPair(db, fromUid, uid); if (db.requests?.[uid]) delete db.requests[uid][fromUid]; this.write(db); }
   async declineRequest(uid, fromUid) { const db = this.read(); if (db.requests?.[uid]) delete db.requests[uid][fromUid]; this.write(db); }
+  async sendGift(me, toUid, gift) { const db = this.read(); db.gifts ||= {}; db.gifts[toUid] ||= {}; db.gifts[toUid]['g' + Math.random().toString(36).slice(2, 10)] = { fromUid: me.uid, fromName: me.name, ...gift, at: Date.now() }; this.write(db); }
+  async listGifts(uid) { return Object.entries(this.read().gifts?.[uid] || {}).map(([id, v]) => ({ id, ...v })); }
+  async takeGift(uid, id) { const db = this.read(); if (db.gifts?.[uid]) delete db.gifts[uid][id]; this.write(db); }
   async sendFeedback(item) { const db = this.read(); db.feedback ||= {}; const id = 'f' + Math.random().toString(36).slice(2, 10); db.feedback[id] = item; this.write(db); return id; }
   async listMyFeedback(uid) { return Object.entries(this.read().feedback || {}).filter(([, v]) => v.uid === uid).map(([id, v]) => ({ id, ...v })); }
   async listAllFeedback() { return Object.entries(this.read().feedback || {}).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.at - a.at); }
@@ -261,4 +268,8 @@ export const cloud = {
   async acceptRequest(fromUid) { if (this.user) await this.backend.acceptRequest(this.user.uid, fromUid); },
   async declineRequest(fromUid) { if (this.user) await this.backend.declineRequest(this.user.uid, fromUid); },
   async removeFriend(fid) { if (this.user) await this.backend.removeFriend(this.user.uid, fid); },
+  /** 친구에게 선물: gift = { item: 'potion'|'superPotion'|'revive'|'bronze', n } (내 재고에서 빼는 건 main) */
+  async sendGift(fid, gift) { if (!this.user) throw new Error('먼저 로그인해 주세요'); await this.backend.sendGift(this.user, fid, gift); },
+  async listGifts() { return this.user ? this.backend.listGifts(this.user.uid) : []; },
+  async takeGift(id) { if (this.user) await this.backend.takeGift(this.user.uid, id); },
 };

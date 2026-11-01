@@ -983,3 +983,15 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #lv-banner small { display: block; font-size: 42%; -webkit-text-stroke: 1px #1f6b2f; text-shadow: 0 3px 0 #1f6b2f; margin-top: 4px; }
 #lv-banner.pop { animation: lvPop .6s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes lvPop { 0% { transform: translateX(-50%) scale(.2); opacity: 0; } 60% { transform: translateX(-50%) scale(1.15); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+
+/* 💬 정해진 문장 메뉴 · 🎁 친구 선물 */
+#phrase-menu { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 52px); left: 12px; z-index: 7; display: flex; flex-direction: column; gap: 4px; background: rgba(255,255,255,.96); border-radius: 14px; padding: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+#phrase-menu.hidden { display: none; }
+#phrase-menu button { font-family: inherit; font-size: 15px; font-weight: 800; padding: 7px 14px; border-radius: 999px; border: 2px solid #ffd93d; background: #fff; color: #20232e; cursor: pointer; text-align: left; }
+#phrase-menu button:active { background: #ffe9a8; }
+.friend-gift { font-size: 15px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #ffd6e8; color: #333; box-shadow: 0 2px 0 #d48aa8; cursor: pointer; margin-left: 4px; }
+.friend-giftmenu { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.friend-giftmenu.hidden { display: none; }
+.friend-giftmenu button { font-family: inherit; font-size: 13px; font-weight: 800; padding: 5px 10px; border-radius: 999px; border: 2px solid #ffd6e8; background: #fff; cursor: pointer; }
+.friend-giftmenu button:disabled { opacity: .45; cursor: default; }
+.friend-giftmenu button small { color: #888; }

@@ -12,6 +12,8 @@ import { lerpAngle } from './util.js';
 import { buildDraftMesh, partyScale } from './creatures.js';
 
 export const EMOTES = ['👋', '🎉', '😆', '❤️'];
+/** 정해진 문장 (글자 채팅 대신): 감정 표현과 같은 길(presence.e)로 보내고 머리 위 말풍선 + 받는 쪽 말풍선으로 보인다 */
+export const PHRASES = ['같이 가자!', '여기 보스 있어!', '도와줘!', '잘했어!', '잠깐만!', '고마워!', '안녕, 또 봐!'];
 const STALE_MS = 20000, EMOTE_MS = 3000;
 
 function makeGhost(name) {
@@ -38,7 +40,7 @@ export function makeEmoteSprite(emoji) {
 }
 
 export class Ghosts {
-  constructor(speciesById = {}) { this.speciesById = speciesById; this.map = new Map(); this.scene = null; this.zoneName = null; this.seen = new Set(); this.onAppear = () => {}; }
+  constructor(speciesById = {}) { this.speciesById = speciesById; this.map = new Map(); this.scene = null; this.zoneName = null; this.seen = new Set(); this.onAppear = () => {}; this.onPhrase = () => {}; }
   removeGhost(g) { g.mesh.parent?.remove(g.mesh); g.pet?.parent?.remove(g.pet); g.boat?.group.parent?.remove(g.boat.group); }
   /** 지역이 바뀌면 이전 지역의 유령을 모두 치운다 */
   setZone(scene, zoneName) {
@@ -74,7 +76,7 @@ export class Ghosts {
         const sp = p.l ? this.speciesById[p.l] : null;
         if (sp) { g.pet = buildDraftMesh(sp); g.pet.scale.setScalar(partyScale(sp)); g.pet.position.copy(g.mesh.position); this.scene.add(g.pet); }
       }
-      if (p.e && p.et && p.et !== g.emoteAt && now - p.et < EMOTE_MS + 5000) { g.emoteAt = p.et; g.emote = p.e; g.emoteShown = now; }
+      if (p.e && p.et && p.et !== g.emoteAt && now - p.et < EMOTE_MS + 5000) { g.emoteAt = p.et; g.emote = p.e; g.emoteShown = now; if (PHRASES.includes(p.e)) this.onPhrase(g.name, p.e); }
     }
     for (const [uid, g] of this.map) if (!keep.has(uid)) { this.removeGhost(g); this.map.delete(uid); }
   }

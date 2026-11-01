@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { ITEMS } from './items.js';
 import { skillLevel, expNeed, MAX_LEVEL, skillType, skillPP } from './party.js';
-import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets } from './creatures.js';
+import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets, evoZoneFor } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
@@ -367,7 +367,9 @@ export class Dex {
     const zone = this.zoneName[sp.zone] || '???';
     const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
     const evo = sp.evolution;
-    const evoNames = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => x.name).join(' / ') || null; // 여럿이면 '샤미드 / 부스터 / …' (확률)
+    const evoNames = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => x.name).join(' / ') || null; // 여럿이면 '샤미드 / 부스터 / …'
+    // 여러 갈래 진화: 어디서 진화하면 어떤 모습인지 (부스터 ← 불의산 …). 장소가 없는 갈래는 확률
+    const evoWhere = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => { const z = evoZoneFor(evo, x); return z ? `${this.zoneName[z] || z}에서 ${x.name}` : null; }).filter(Boolean);
     const card = document.createElement('div');
     card.className = 'detail-card' + (known ? '' : ' unknown');
     card.style.borderColor = known ? (sp.draftShape?.color || '#ffd93d') : '#ccc';
@@ -410,7 +412,7 @@ export class Dex {
             ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
             <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
             <li class="skills">🎯 ${skills}</li>
-            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>${evo.mega ? ` + 메가블럭 ${evo.mega}개` : ''}가 되면 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? ' 중 하나로 (랜덤!)' : '로'} 진화!</li>` : ''}
+            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>${evo.mega ? ` + 메가블럭 ${evo.mega}개` : ''}가 되면 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? (evoWhere.length ? ` 중 하나로 진화! 진화하는 곳에 따라 모습이 달라져: ${evoWhere.join(' · ')}${evoWhere.length < evoTargets(evo).length ? ' · 다른 곳에서는 랜덤' : ''}` : ' 중 하나로 (랜덤!) 진화!') : '로 진화!'}</li>` : ''}
             ${(sp.skills || []).some((s) => skillLevel(s) > 1) ? `<li>📈 레벨이 오르면 체력·공격이 세지고 기술도 열려 (대결에서 이기면 경험치!)</li>` : ''}
           </ul>
         </div>

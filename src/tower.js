@@ -5,7 +5,7 @@ import { makeInstanced, makePillSprite } from './world.js';
 
 // 동굴탑 (지하동굴 서쪽 벽 안의 거대한 세로 굴, 94층). 문도 포탈도 없이 **벽을 따라 도는 돌계단**(나선 비탈)을 걸어서
 // 꼭대기까지 올라간다. 한 바퀴(360°)에 4m 씩 높아지고 한 바퀴가 한 층이다. 층마다 동쪽(각도 0°)에 넓은 **층계참**(평평한 쐐기 단)이
-// 있어 포켓몬 몇 마리가 살고 층 이름표가 떠 있다. 올라갈수록 세진다(1층 Lv.6 → 94층 Lv.48). 10층마다 층계참에 문지기 보스,
+// 있어 포켓몬 한 마리가 살고 층 이름표가 떠 있다(5층마다 한 등급 위의 **정예** 한 마리가 더). 올라갈수록 세진다(1층 Lv.6 → 94층 Lv.48). 10층마다 층계참에 문지기 보스,
 // 94층 꼭대기(굴 전체를 덮는 둥근 단, 하늘이 뚫려 별이 보인다)에는 탑의 수호신. 수호신을 친구로 만들면 하늘의 문(지하동굴로
 // 내려가는 포탈)이 열리고 특별 보상. 1층(바닥) 서쪽의 워프 패드로 가 본 10층 단위 층계참에 바로 올라갈 수 있다.
 //
@@ -40,6 +40,15 @@ export function towerWild(floor, count = 3) {
   const out = [], list = [...pool];
   while (out.length < count && list.length) out.push(list.splice(Math.floor(rnd() * list.length), 1)[0].id);
   return out;
+}
+/** 5층마다(10층 단위는 빼고) 정예 한 마리: 한 등급 위의 종이 크고 세게 (체력 1.5배·공격 1.3배, 레벨은 층 꼭대기+2). 잡으면 등급이 높아 경험치·블록이 많다 */
+export function towerElite(floor) {
+  if (floor % 5 !== 0 || floor % 10 === 0 || floor >= TOWER_TOP) return null;
+  const g = Math.min(5, gradeCap(floor) + 1);
+  const pool = TOWER.species.filter((c) => c.catchable && !c.boss && !c.mega && !c.unlockedBy && !c.special && !c.sleeping && !c.swim && !c.deepSea && c.model && (c.grade || 1) === g);
+  const sp = pool[Math.floor(seeded(floor * 11 + 5)() * pool.length)];
+  if (!sp) return null;
+  return { id: sp.id, hp: Math.round(sp.baseHp * 1.5), atk: Math.round(sp.baseAtk * 1.3), scale: Math.min(2.4, (sp.scale || 1) * 1.25), level: towerLevelBand(floor)[1] + 2 };
 }
 /** 10층마다 문지기 보스: 그 층 등급의 종 하나가 크고 세게 */
 export function towerFloorBoss(floor) {
