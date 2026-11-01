@@ -230,7 +230,7 @@ export const cloud = {
   async clearPresence() { if (this.user && this.backend?.presenceOk) await this.backend.clearPresence(this.user.uid); },
   watchPresence(uid, cb) { return this.backend?.presenceOk ? this.backend.watchPresence(uid, cb) : () => {}; },
   // ----- 친구 대결 -----
-  /** 친구에게 대결 신청: 내 대표 포켓몬 모습(mon)을 넣어 문서를 만든다 */
+  /** 친구에게 대결 신청: 내 팀(최대 3마리, 기절 안 한 포켓몬) 모습을 넣어 문서를 만든다. 수락하면 ready(둘 다 자리에서 "대결 시작") → active */
   async createDuel(friend, mon) {
     if (!this.user) throw new Error('먼저 로그인해 주세요');
     const me = this.user;

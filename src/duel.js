@@ -3,8 +3,10 @@ import { josa } from './util.js';
 // 친구 탭에서 "⚔ 대결"을 누르면 내 대표 포켓몬의 지금 모습(공격·체력·기술)을 찍어 Firestore duels/{id} 문서를 만들고,
 // 상대가 도감 "대결" 탭에서 수락하면 자기 대표를 찍어 넣는다. 그 뒤로는 서로 번갈아 기술을 하나씩 고른다(내 차례일 때만 버튼이 켜진다).
 // 상대가 접속해 있지 않아도 문서에 차례가 남아 있어서 나중에 이어서 할 수 있다. 피해 = 공격 × 기술 배수 × 속성 상성 (대결 화면과 같은 식).
-// 문서: { players:[a,b], a, b, names:{a,b}, mons:{a:{speciesId,name,type,atk,hp,maxHp,skills:[{name,power,kind}]}, b}, state:'pending'|'active'|'done',
-//         turn:'a'|'b', log:[{who,skill,dmg,mult,left}], winner, rewarded:{uid:true}, createdAt, updatedAt }
+// 문서: { players:[a,b], a, b, names:{a,b}, mons:{a:[포켓몬 최대 3], b:[...]}, cur:{a,b}(지금 싸우는 번호), ready:{a,b}(무대 자리에서 "대결 시작"을 눌렀나),
+//         state:'pending'(수락 기다림)|'ready'(둘 다 골랐고 자리에서 시작 버튼 기다림)|'active'|'done', turn:'a'|'b', log:[{who,skill,dmg,mult,left} | {who,switch}], winner, rewarded:{uid:true}, createdAt, updatedAt }
+//  - 3마리씩: 대표 + 다음 둘(기절 안 한 포켓몬). 내 차례에 "🔄 교체"를 누르면 한 턴을 쓴다. 싸우던 포켓몬이 쓰러지면 다음 포켓몬이 저절로 나온다. 셋 다 쓰러지면 끝.
+//  - 옛 문서(mons.a 가 포켓몬 하나)는 한 마리 팀으로 읽는다 (teamOf).
 import { effectiveness, effectWord, skillIcon } from './types.js';
 
 export const DUEL_REWARD = { win: 30, lose: 10 }; // 끝나면 받는 블록
@@ -15,6 +17,18 @@ export function snapshotMon(party, m) {
   const sp = party.species(m);
   return { speciesId: sp.id, name: sp.name, type: sp.type || '노말', atk: m.atk, hp: m.maxHp, maxHp: m.maxHp, skills: party.skills(m).map((s) => ({ name: s.name, power: s.power || 1, kind: s.kind || 'tackle' })) };
 }
+/** 팀 (옛 문서의 포켓몬 하나도 한 마리 팀으로) */
+export const teamOf = (d, side) => { const m = d?.mons?.[side]; return Array.isArray(m) ? m : m ? [m] : []; };
+export const curIdx = (d, side) => Math.max(0, Math.min(teamOf(d, side).length - 1, d?.cur?.[side] || 0));
+/** 지금 싸우는 포켓몬 */
+export const activeMon = (d, side) => teamOf(d, side)[curIdx(d, side)] || null;
+/** 내 팀 찍기: 대표 먼저, 기절 안 한 포켓몬 최대 3 */
+export function snapshotTeam(party, max = 3) {
+  const L = party.leader;
+  const list = [...(L && L.hp > 0 ? [L] : []), ...party.members.filter((m) => m !== L && m.hp > 0)].slice(0, max);
+  return list.map((m) => snapshotMon(party, m));
+}
+const nextAlive = (team, from) => { for (let i = 0; i < team.length; i++) { const k = (from + 1 + i) % team.length; if (team[k].hp > 0) return k; } return -1; };
 export function duelDamage(att, skill, def) {
   const mult = effectiveness(att.type, def.type);
   return { dmg: Math.max(1, Math.round(att.atk * (skill.power || 1) * mult)), mult };
@@ -23,23 +37,47 @@ export function duelDamage(att, skill, def) {
 export const sideOf = (d, uid) => (d.a === uid ? 'a' : d.b === uid ? 'b' : null);
 export const otherSide = (s) => (s === 'a' ? 'b' : 'a');
 
-/** 수락: b 의 대표를 넣고 시작 (신청한 a 가 먼저) */
-export function acceptPatch(d, uid, mon) {
+/** 수락: b 의 팀을 넣고 'ready' — 둘 다 아레나 자리(1P·2P)에서 "대결 시작"을 눌러야 active 가 된다 */
+export function acceptPatch(d, uid, team) {
   if (d.state !== 'pending' || d.b !== uid) return null;
-  return { mons: { ...d.mons, b: mon }, state: 'active', turn: 'a', updatedAt: Date.now() };
+  const b = Array.isArray(team) ? team : [team];
+  return { mons: { a: teamOf(d, 'a'), b }, cur: { a: 0, b: 0 }, ready: { a: false, b: false }, state: 'ready', turn: 'a', updatedAt: Date.now() };
+}
+/** 자리에서 "대결 시작": 내 쪽 준비 완료. 둘 다 되면 active (a 가 먼저) */
+export function readyPatch(d, uid) {
+  const side = sideOf(d, uid);
+  if (!side || d.state !== 'ready') return null;
+  const ready = { ...(d.ready || { a: false, b: false }), [side]: true };
+  const both = ready.a && ready.b;
+  return { ready, state: both ? 'active' : 'ready', turn: 'a', updatedAt: Date.now() };
+}
+/** 내 차례에 교체 (한 턴을 쓴다). idx: 내 팀 번호 (기절 안 했고 지금 포켓몬이 아니어야) */
+export function switchPatch(d, uid, idx) {
+  const side = sideOf(d, uid);
+  if (!side || d.state !== 'active' || d.turn !== side) return null;
+  const team = teamOf(d, side);
+  if (!team[idx] || team[idx].hp <= 0 || idx === curIdx(d, side)) return null;
+  const log = [...(d.log || []), { who: side, switch: team[idx].name }].slice(-20);
+  return { cur: { ...(d.cur || {}), [side]: idx }, log, turn: otherSide(side), updatedAt: Date.now() };
 }
 /** 내 차례에 기술 하나 쓰기 → 문서에 덮어쓸 값 (차례가 아니면 null) */
 export function attackPatch(d, uid, skillIndex) {
   const side = sideOf(d, uid);
   if (!side || d.state !== 'active' || d.turn !== side) return null;
-  const att = d.mons[side], def = { ...d.mons[otherSide(side)] };
+  const other = otherSide(side), att = activeMon(d, side);
+  const defTeam = teamOf(d, other).map((m) => ({ ...m })), di = curIdx(d, other), def = defTeam[di];
+  if (!att || !def) return null;
   const skill = att.skills[skillIndex] || att.skills[0];
   if (!skill) return null;
   const { dmg, mult } = duelDamage(att, skill, def);
   def.hp = Math.max(0, def.hp - dmg);
-  const log = [...(d.log || []), { who: side, skill: skill.name, dmg, mult, left: def.hp }].slice(-20);
-  const done = def.hp <= 0;
-  return { mons: { ...d.mons, [otherSide(side)]: def }, log, state: done ? 'done' : 'active', winner: done ? side : null, turn: done ? null : otherSide(side), updatedAt: Date.now() };
+  const log = [...(d.log || []), { who: side, skill: skill.name, dmg, mult, left: def.hp }];
+  let cur = { ...(d.cur || {}), [other]: di }, done = false;
+  if (def.hp <= 0) { // 쓰러졌다 → 다음 포켓몬이 저절로 나온다. 더 없으면 끝
+    const nx = nextAlive(defTeam, di);
+    if (nx < 0) done = true; else { cur[other] = nx; log.push({ who: other, switch: defTeam[nx].name, auto: true }); }
+  }
+  return { mons: { ...d.mons, [other]: defTeam }, cur, log: log.slice(-20), state: done ? 'done' : 'active', winner: done ? side : null, turn: done ? null : other, updatedAt: Date.now() };
 }
 
 const hpBar = (mon) => { const r = Math.max(0, Math.min(1, mon.hp / mon.maxHp)); return `<div class="duel-hp"><div class="duel-hp-fill${r < 0.3 ? ' low' : ''}" style="width:${Math.round(r * 100)}%"></div><span>❤ ${mon.hp}/${mon.maxHp}</span></div>`; };
@@ -48,17 +86,21 @@ const hpBar = (mon) => { const r = Math.max(0, Math.min(1, mon.hp / mon.maxHp));
  */
 export function duelCardHtml(d, me, thumb) {
   const side = sideOf(d, me), other = otherSide(side);
-  const mine = d.mons[side], theirs = d.mons[other];
+  const mine = activeMon(d, side), theirs = activeMon(d, other);
+  const myTeam = teamOf(d, side), theirTeam = teamOf(d, other);
   const myName = d.names[side], theirName = d.names[other];
+  // 팀 줄: 작은 그림 셋 (지금 싸우는 포켓몬은 테두리, 쓰러진 포켓몬은 흐리게). 내 차례엔 내 벤치 포켓몬이 교체 버튼
+  const teamRow = (team, who) => team.length > 1 ? `<div class="duel-team">${team.map((m, i) => { const cur = i === curIdx(d, who), out = m.hp <= 0, canSwitch = who === side && d.state === 'active' && d.turn === side && !cur && !out; return `<${canSwitch ? 'button' : 'span'} class="duel-tm${cur ? ' cur' : ''}${out ? ' out' : ''}${canSwitch ? ' duel-switch' : ''}" ${canSwitch ? `data-idx="${i}"` : ''} title="${m.name} ❤ ${m.hp}/${m.maxHp}">${thumb(m.speciesId) ? `<img src="${thumb(m.speciesId)}" alt="">` : '❔'}<small>${out ? '😵' : canSwitch ? '🔄' : `${m.hp}`}</small></${canSwitch ? 'button' : 'span'}>`; }).join('')}</div>` : '';
   const monBox = (mon, who, label) => mon
     ? `<div class="duel-mon${who === side ? ' me' : ''}"><div class="duel-who">${label}</div>${thumb(mon.speciesId) ? `<img src="${thumb(mon.speciesId)}" alt="">` : '<div class="friend-noimg"></div>'}<div class="duel-name">${mon.name} <span class="party-type">${mon.type}</span></div><div class="duel-atk">⚔ ${mon.atk}</div>${hpBar(mon)}</div>`
     : `<div class="duel-mon"><div class="duel-who">${label}</div><div class="friend-noimg"></div><div class="duel-name">아직 안 골랐어</div></div>`;
-  const status = d.state === 'pending' ? (d.b === me ? '📨 대결 신청이 왔어! 수락하면 내 대표 포켓몬이 나가.' : `⏳ ${theirName}의 수락을 기다리는 중`)
+  const status = d.state === 'pending' ? (d.b === me ? '📨 대결 신청이 왔어! 수락하면 내 포켓몬 셋이 나가.' : `⏳ ${theirName}의 수락을 기다리는 중`)
+    : d.state === 'ready' ? (d.ready?.[side] ? `⏳ ${josa(theirName, '이가')} 아레나 자리에서 "대결 시작"을 누르면 시작돼` : '🏟 아레나 무대의 내 자리(1P·2P)에 올라서서 "대결 시작"을 눌러!')
     : d.state === 'done' ? (d.winner === side ? '🏆 내가 이겼어!' : `😢 ${josa(theirName, '이가')} 이겼어. 다음엔 꼭!`)
     : d.turn === side ? '👉 내 차례야! 기술을 골라' : `⏳ ${theirName}의 차례 (기다리면 알려 줄게)`;
   const skills = d.state === 'active' && d.turn === side && mine
     ? `<div class="duel-skills">${mine.skills.map((s, i) => `<button class="duel-skill" data-skill="${i}">${skillIcon(s)} ${s.name} <small>⚔ ${duelDamage(mine, s, theirs).dmg}</small></button>`).join('')}</div>` : '';
-  const log = (d.log || []).slice(-4).map((l) => `<div class="duel-log-line">${l.who === side ? myName : theirName}의 ${d.mons[l.who]?.name || ''}: ${l.skill}! <b>${l.dmg}</b> 피해 ${effectWord(l.mult)} (남은 체력 ${l.left})</div>`).join('');
+  const log = (d.log || []).slice(-4).map((l) => l.switch ? `<div class="duel-log-line">🔄 ${l.who === side ? myName : theirName}: ${josa(l.switch, '이가')} ${l.auto ? '대신 나왔어!' : '교체로 나왔어!'}</div>` : `<div class="duel-log-line">${l.who === side ? myName : theirName}: ${l.skill}! <b>${l.dmg}</b> 피해 ${effectWord(l.mult)} (남은 체력 ${l.left})</div>`).join('');
   const actions = d.state === 'pending' && d.b === me ? '<div class="duel-actions"><button class="duel-accept">✅ 수락하고 대결!</button><button class="duel-decline">거절</button></div>'
     : d.state === 'pending' ? '<div class="duel-actions"><button class="duel-decline">신청 취소</button></div>'
     : d.state === 'done' ? '<div class="duel-actions"><button class="duel-decline">지우기</button></div>' : '';
@@ -66,6 +108,7 @@ export function duelCardHtml(d, me, thumb) {
     <div class="duel-head">⚔ ${myName} vs ${theirName}</div>
     <div class="duel-status">${status}</div>
     <div class="duel-arena">${monBox(mine, side, `나 · ${myName}`)}<div class="duel-vs">VS</div>${monBox(theirs, other, theirName)}</div>
+    ${myTeam.length > 1 || theirTeam.length > 1 ? `<div class="duel-teams"><div>${teamRow(myTeam, side)}</div><div>${teamRow(theirTeam, other)}</div></div>` : ''}
     ${skills}${log ? `<div class="duel-log">${log}</div>` : ''}${actions}
   </div>`;
 }

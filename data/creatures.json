@@ -3952,7 +3952,7 @@
     "m24e"
    ],
    "model": "뮤.glb",
-   "scale": 2.6,
+   "scale": 1.6,
    "draftShape": {
     "body": "capsule",
     "color": "#F7B7D4",

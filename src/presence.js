@@ -69,7 +69,7 @@ export class Ghosts {
       }
       g.vx = p.vx || 0; g.vz = p.vz || 0;
       g.facing = p.f || 0;
-      g.moving = !!p.m;
+      g.moving = !!p.m; g.running = !!p.r; // r: 뛰는 중 (친구 화면에서 달리는 모습으로)
       g.sailing = !!p.b;
       if ((p.l || null) !== (g.leaderId || null)) { // 친구의 대표 포켓몬이 뒤를 따라온다 (바뀌면 새로)
         g.pet?.parent?.remove(g.pet); g.pet = null; g.leaderId = p.l || null;
@@ -91,7 +91,7 @@ export class Ghosts {
       const ground = terrainHeight(m.position.x, m.position.z);
       m.position.y += (Math.max(ground, g.target.y) - m.position.y) * k;
       m.rotation.y = lerpAngle(m.rotation.y, g.facing, 0.3);
-      tickModel(m, dt, g.moving ? 'walk' : 'idle');
+      tickModel(m, dt, g.moving ? (g.running ? 'run' : 'walk') : 'idle');
       if (g.sailing) { // 배를 타는 중: 친구 밑에 모험선을 그린다 (내 배와 같은 규칙: 수면 위, 뱃머리가 가는 방향)
         if (!g.boat) { g.boat = buildShip(); this.scene.add(g.boat.group); }
         const b = g.boat.group, surface = waterLevel() ?? 0;
@@ -109,7 +109,7 @@ export class Ghosts {
         pet.position.x += ddx * kp; pet.position.z += ddz * kp;
         pet.position.y += (terrainHeight(pet.position.x, pet.position.z) - pet.position.y) * kp;
         if (dd > 0.2) pet.rotation.y = lerpAngle(pet.rotation.y, Math.atan2(ddx, ddz), 0.25);
-        tickModel(pet, dt, dd > 0.3 ? 'walk' : 'idle');
+        tickModel(pet, dt, dd > 0.3 ? (g.running && dd > 0.8 ? 'run' : 'walk') : 'idle');
       }
       // 감정 표현: 3초 동안 머리 위에
       if (g.emote && g.emoteShown && now - g.emoteShown < EMOTE_MS) {

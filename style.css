@@ -1022,3 +1022,16 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .starter-item.trainer-item img { width: 96px; height: 96px; aspect-ratio: auto; border-radius: 50%; object-fit: cover; background: #e8f4ff; margin: 0 auto; }
 .trainer-emoji { width: 96px; height: 96px; border-radius: 50%; background: #e8f4ff; display: flex; align-items: center; justify-content: center; font-size: 46px; margin: 0 auto; }
 .party-badge.affinity, .chip.affinity { background: #fff0b3; color: #7a5a00; border: 2px solid #ffd93d; }
+
+/* 3대3 팀 대결: 카드 위 팀 줄 (지금 싸우는 포켓몬은 테두리, 기절은 흐리게), 내 차례엔 🔄 교체 버튼 */
+.duel-teams { display: flex; gap: 8px; justify-content: space-between; margin: 4px 0 6px; }
+.duel-team { display: flex; gap: 4px; flex-wrap: wrap; }
+.duel-tm { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; background: #fff; border: 2px solid #e8e2cf; border-radius: 999px; padding: 2px 8px 2px 3px; }
+.duel-tm img { width: 22px; height: 22px; object-fit: contain; }
+.duel-tm.cur { border-color: #57b947; background: #eefbe9; font-weight: 700; }
+.duel-tm.out { opacity: 0.45; text-decoration: line-through; }
+.duel-switch { background: #fffbe6; border-color: #f0c43a; }
+.duel-switch:hover { background: #fff2b8; }
+.duel-mons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.duel-mons .duel-mon { max-width: 150px; }
+#duel-modal.stage .duel-teams { margin: 0 0 4px; }
