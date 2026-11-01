@@ -116,7 +116,7 @@ export const STICKERS = [
   { id: 'boss1', emoji: '👑', name: '첫 보스', how: '보스를 처음 이겼어', test: (s) => s.bosses >= 1 },
   { id: 'boss3', emoji: '🏆', name: '보스 셋', how: '보스를 셋이나 이겼어', test: (s) => s.bosses >= 3 },
   { id: 'zones5', emoji: '🌍', name: '여행자', how: '다섯 지역에 가 봤어', test: (s) => Object.keys(s.stats.zones).length >= 5 },
-  { id: 'tower94', emoji: '🗼', name: '탑의 챔피언', how: '동굴탑 94층 수호신을 친구로', test: (s) => !!s.stats.tower94 },
+  { id: 'tower94', emoji: '🗼', name: '탑의 챔피언', how: '동굴탑 94층 뮤츠를 친구로', test: (s) => !!s.stats.tower94 },
   { id: 'dex20', emoji: '📖', name: '도감 스무 종', how: '도감에 스무 종을 채웠어', test: (s) => s.dexCount >= 20 },
   { id: 'duel1', emoji: '⚔️', name: '첫 대결 승리', how: '친구와의 대결에서 이겼어', test: (s) => s.stats.duels >= 1 },
   { id: 'photo1', emoji: '📸', name: '첫 사진', how: '포켓몬과 사진을 찍었어', test: (s) => s.stats.photos >= 1 },
