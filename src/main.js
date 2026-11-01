@@ -3355,17 +3355,25 @@ function frame() {
     }
     if (!sailing) chain.update(dt); // 사진 중에도 돌린다 (모델 등장·걷기 애니메이션이 여기서 돈다). 포즈는 그 뒤 photo.update 가 다시 잡는다
     else for (const f of chain.followers) if (!(battle.active && f.isLeader)) f.mesh.visible = false; // 대결이 끝나 돌아와도 물 위를 걷지 않게 (대결 중인 대표는 수면 무대에 선다)
-    // 따라오는 친구가 카메라와 주인공 사이에 끼면 반투명하게
+    // 따라오는 친구가 카메라와 주인공 사이에 정말로 끼었을 때만 반투명하게 — 카메라에서 주인공 머리로 가는 시선 가까이(1m 안)에 있고 카메라 쪽에 가까울 때.
+    // 전에는 "주인공보다 카메라에 가까우면" 이었는데, 뒤따르는 포켓몬은 늘 주인공보다 카메라에 가까워서 큰 포켓몬(뮤·갸라도스)이 걸핏하면 흐려지고 깜빡였다
+    const headPos = pp.clone().add(new THREE.Vector3(0, 1.2, 0));
     for (const f of chain.followers) {
-      const occluding = f.mesh.position.distanceTo(camera.position) < pp.distanceTo(camera.position) - 0.3 && f.mesh.position.distanceTo(pp) < 3.5;
+      const fp = f.mesh.position.clone().add(new THREE.Vector3(0, 0.8 * (f.mesh.scale.x || 1), 0));
+      const seg = headPos.clone().sub(camera.position), len = seg.length() || 1; seg.divideScalar(len);
+      const t = fp.clone().sub(camera.position).dot(seg); // 시선 위의 자리 (0 = 카메라, len = 머리)
+      const perp = fp.clone().sub(camera.position).addScaledVector(seg, -t).length();
+      const occluding = !cam.fp && t > 0.5 && t < len - 1.0 && perp < 1.0;
       const target = occluding ? 0.35 : 1;
-      if (f.mesh.userData.opacity === target) continue;
-      f.mesh.userData.opacity = target;
+      const cur = f.mesh.userData.opacity ?? 1;
+      if (Math.abs(cur - target) < 0.01) continue;
+      const next = cur + (target - cur) * Math.min(1, dt * 8); // 스르륵 (툭툭 바뀌지 않게)
+      f.mesh.userData.opacity = next;
       f.mesh.traverse((o) => {
         if (!o.material || o.isLine) return;
         if (!o.userData.ownMaterial) { o.material = o.material.clone(); o.userData.ownMaterial = true; }
-        o.material.transparent = target < 1;
-        o.material.opacity = target;
+        o.material.transparent = next < 0.995;
+        o.material.opacity = next;
       });
     }
     if (myStack.mesh && myStack.pop > 0) {
