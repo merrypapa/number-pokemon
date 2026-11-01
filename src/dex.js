@@ -453,7 +453,7 @@ export class Dex {
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
-          <div class="member-head"><span class="lv">Lv.${m.level}</span>내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
+          <div class="member-head"><span class="lv">Lv.${m.level}</span>${ctx.isMaster?.(sp) ? '<span class="party-badge master" title="Lv.50 마스터">👑 마스터</span> ' : ''}내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
             <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span></div>
           <div class="exp-bar"><div style="width:${party.expRatio(m) * 100}%"></div></div>
           <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)} · 대결에서 이기면 쌓여`}${nextSkill ? ` · Lv.${skillLevel(nextSkill)}에 ${skillIcon(nextSkill)} ${nextSkill.name}` : ''}${need && !canEvolve && !need.mega ? ` · Lv.${need.level}에 진화` : ''}</div>
@@ -522,12 +522,12 @@ export class Dex {
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}
-        <div class="dex-name">${known ? sp.name : '???'}</div>
+        <div class="dex-name">${known ? `${ctx?.isMaster?.(sp) ? '👑 ' : ''}${sp.name}` : '???'}</div>
         <div class="dex-sub">${sub}</div>`;
       item.onclick = () => this.select(sp.id);
       this.grid.appendChild(item);
     }
-    this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
+    this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종${ctx?.isDexAll?.() ? ' · 🌟 포켓몬 마스터' : ''}`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
     if (!shown) { const empty = document.createElement('div'); empty.className = 'dex-empty'; empty.textContent = F.mode === 'caught' ? (F.type ? '아직 이 속성의 내 포켓몬이 없어. 잡으러 가 보자!' : '아직 잡은 포켓몬이 없어.') : F.mode === 'unknown' ? (F.type ? '이 속성은 다 잡았어! 🎉' : '전부 다 잡았어! 🎉') : '이 속성의 포켓몬은 없어.'; this.grid.appendChild(empty); }
 
   }

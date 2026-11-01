@@ -390,7 +390,7 @@ export class Battle {
     this.tagFillEl.style.background = ratio > 0.5 ? '#57b947' : ratio > 0.25 ? '#f7cf3e' : '#e8453c';
     this.tagHpEl.textContent = `❤ ${c.hp}/${c.data.baseHp}`;
     this.tagAtkEl.textContent = `· ⚔ ${c.data.baseAtk}`;
-    this.mineNameEl.textContent = `${this.party.name(m)} Lv.${m.level}`;
+    this.mineNameEl.textContent = `${this.isMaster?.(m) ? '👑 ' : ''}${this.party.name(m)} Lv.${m.level}`;
     this.bagBtn.classList.toggle('hidden', this.phase !== 'choose' || !this.onUseItem);
     this.mineNameEl.style.color = this.party.color(m);
     const mr = Math.max(0, Math.min(1, m.hp / m.maxHp));

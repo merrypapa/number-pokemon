@@ -122,6 +122,9 @@ export const STICKERS = [
   { id: 'photo1', emoji: '📸', name: '첫 사진', how: '포켓몬과 사진을 찍었어', test: (s) => s.stats.photos >= 1 },
   { id: 'daily1', emoji: '🎯', name: '오늘 완주', how: '하루 미션 셋을 다 했어', test: (s) => s.stats.daily >= 1 },
   { id: 'attend7', emoji: '📅', name: '일주일 개근', how: '7일 연속 출석했어', test: (s) => (s.attendStreak || 0) >= 7 },
+  { id: 'master1', emoji: '👑', name: '첫 마스터', how: '포켓몬 한 마리를 Lv.50 마스터로 키웠어', test: (s) => (s.masters || 0) >= 1 },
+  { id: 'master5', emoji: '🏵', name: '마스터 다섯', how: '포켓몬 다섯 마리를 마스터로 키웠어', test: (s) => (s.masters || 0) >= 5 },
+  { id: 'dexAll', emoji: '🌟', name: '포켓몬 마스터', how: '도감을 전부 채웠어!', test: (s) => !!s.dexAll },
   { id: 'attend30', emoji: '🗓', name: '한 달 출석', how: '30일 출석했어', test: (s) => (s.attendTotal || 0) >= 30 },
 ];
 export const STICKER_BY_ID = Object.fromEntries(STICKERS.map((s) => [s.id, s]));

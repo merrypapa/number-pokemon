@@ -129,4 +129,12 @@ export class Sound {
     [262, 330, 392].forEach((f, i) => this.tone(f, 0.9, 'triangle', 0.06, 0.5 + i * 0.02));
   }
   portal() { for (let i = 0; i < 6; i++) this.tone(400 + i * 120, 0.12, 'sine', 0.08, i * 0.06); }
+  /** 큰 축하 (도감 완성·마스터): 팡파르를 길게 — 올라가는 음계 두 번 + 화음 길게 */
+  victory() {
+    const run = [523, 587, 659, 698, 784, 880, 988, 1047];
+    run.forEach((f, i) => this.tone(f, 0.14, 'square', 0.1, i * 0.09));
+    run.forEach((f, i) => this.tone(f * 1.5, 0.14, 'square', 0.08, 0.8 + i * 0.09));
+    [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 1.6, 'triangle', 0.07, 1.6 + i * 0.03));
+    [1319, 1568].forEach((f, i) => this.tone(f, 0.5, 'square', 0.08, 2.0 + i * 0.25));
+  }
 }

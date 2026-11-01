@@ -32,14 +32,14 @@ import { Confetti, Particles, Sound } from './effects.js';
 import { Bgm, trackFor } from './bgm.js';
 import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
-import { Party, friendStats, expFor, STARTER_LEVEL } from './party.js';
+import { Party, friendStats, expFor, STARTER_LEVEL, MAX_LEVEL } from './party.js';
 import { ITEMS, ITEM_BY_ID, emptyItems, canUseItem, applyItem } from './items.js';
 import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
 import { cloud, validName, validPin } from './cloud.js';
 import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WEIGHTS, TOP_N } from './rank.js';
 import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
-import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, emptyAttend, loadAttend, stampAttend, ATTEND_GIFTS } from './goals.js';
+import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, emptyAttend, loadAttend, stampAttend, ATTEND_GIFTS, dayKey } from './goals.js';
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite, PHRASES } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
@@ -540,7 +540,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend() }; // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null }; // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -659,7 +659,7 @@ function refreshHud() {
   hudBlockIcon.style.background = state.blocks > 0 ? colorForCount(state.blocks) : '#fff';
   const L = party.leader;
   if (L) {
-    hudLeader.textContent = `${party.name(L)} Lv.${L.level} ♥${L.hp}/${L.maxHp}${L.hp <= 0 ? ' 😵' : ''}`;
+    hudLeader.textContent = `${state.masters[L.speciesId] ? '👑 ' : ''}${party.name(L)} Lv.${L.level} ♥${L.hp}/${L.maxHp}${L.hp <= 0 ? ' 😵' : ''}`;
     const thumb = dex.thumbs(party.species(L))?.color || null; // 대표 포켓몬의 작은 모습
     if (thumb) { hudPokeImg.src = thumb; hudPokeImg.hidden = false; hudPokeIcon.hidden = true; }
     else { hudPokeImg.hidden = true; hudPokeIcon.hidden = false; hudPokeIcon.style.background = party.color(L); }
@@ -686,6 +686,7 @@ refreshHud();
 const battle = new Battle({ input, camera, say, sound, particles, confetti, party });
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
+battle.isMaster = (m) => !!state.masters[m.speciesId]; // 대결 내 이름표에 👑
 battle.onSuperHit = () => bump('super'); // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
@@ -745,6 +746,45 @@ function showLevelUp(L, r) {
   const at = L.mesh.position.clone().add(new THREE.Vector3(0, 0.6, 0));
   setTimeout(() => { if (zone) particles.stars(zone.scene, at.clone().add(new THREE.Vector3(0, 0.8, 0)), 18, 0xfff6a0, 0.45); }, 350);
   clearTimeout(lvBannerTimer); lvBannerTimer = setTimeout(() => lvBanner.classList.add('hidden'), 2600);
+}
+// ---------- 큰 축하 (마스터 타이틀 · 도감 완성): 화면 가득 카드 + 색종이 여러 번 + 축하 노래 ----------
+const cheerEl = document.getElementById('cheer');
+let cheerTimers = [];
+function cheer(title, text, big = '🎉') {
+  document.getElementById('cheer-big').textContent = big;
+  document.getElementById('cheer-title').textContent = title;
+  document.getElementById('cheer-text').innerHTML = text;
+  cheerEl.classList.remove('hidden');
+  sound.victory();
+  for (const t of cheerTimers) clearTimeout(t); cheerTimers = [];
+  for (let i = 0; i < 6; i++) cheerTimers.push(setTimeout(() => confetti.burst(160), i * 650));
+  if (zone && player) cheerTimers.push(setTimeout(() => particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 40, 0xffd93d, 0.9), 300));
+}
+document.getElementById('cheer-ok').onclick = () => { sound.click(); cheerEl.classList.add('hidden'); };
+/** Lv.50 이 된 포켓몬에게 👑 마스터 타이틀 (종마다 한 번). silent: 불러올 때 이미 50 인 것은 조용히 */
+function checkMaster(m, silent = false) {
+  if (!m || m.level < MAX_LEVEL || state.masters[m.speciesId]) return false;
+  state.masters[m.speciesId] = dayKey();
+  const n = Object.keys(state.masters).length;
+  if (!silent) {
+    cheer(`👑 ${party.name(m)} 마스터!`, `${josa(party.name(m), '을를')} <b>Lv.${MAX_LEVEL}</b>까지 키웠어! 이제 이름 옆에 👑 왕관이 붙어.<br>마스터 ${n}마리째 · 블록 30개를 받았어!`, '👑');
+    setBlocks(state.blocks + 30, { quiet: true });
+    refreshHud(); checkNewStickers(); autosave();
+  }
+  return true;
+}
+/** 도감을 전부 채웠나 (한 번만 축하). silent: 불러올 때는 축하 없이 기록만 */
+function checkDexComplete(silent = false) {
+  if (state.dexAll) return false;
+  const all = dex.species, got = all.filter((sp) => (state.dex[sp.id] || 0) > 0).length;
+  if (got < all.length) return false;
+  state.dexAll = dayKey();
+  if (!silent) {
+    state.balls.diamond = (state.balls.diamond || 0) + 3; state.megaBlocks += 3;
+    cheer('🌟 도감 완성! 포켓몬 마스터!', `넘버랜드의 포켓몬 <b>${all.length}종</b>을 모두 친구로 만들었어!<br>도감에 🌟 포켓몬 마스터 칭호가 붙고, 메가큐브 3개와 메가블럭 3개를 받았어. 정말 대단해!`, '🌟');
+    refreshHud(); checkNewStickers(); autosave();
+  }
+  return true;
 }
 function evolveMember(m) {
   if (!party.canEvolve(m) || evo) return;
@@ -828,6 +868,8 @@ dex.bindParty({
   getZoneName: () => zone?.name,
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
   // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
+  isMaster: (sp) => !!state.masters[sp.id], // 👑 Lv.50 마스터 타이틀
+  isDexAll: () => !!state.dexAll, // 🌟 도감 완성 칭호
   unlockInfo: (sp) => (sp.unlockedBy ? unlockNeeds(sp).map((id) => { const n = speciesById[id]; return { id, name: n?.name || id, boss: !!n?.boss, zone: n ? (n.boss ? bossZoneOf(n) : n.zone) : null, ok: caughtFor(id) }; }) : null),
   getBalls: () => state.balls,
   getItems: () => state.items,
@@ -1633,6 +1675,7 @@ function giveExp(L, c) {
     bump('levelup', null, r.to - r.from); // 오늘의 미션 "레벨업 하기"
     particles.stars(zone.scene, L.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, 0xffd93d, 0.5);
     showLevelUp(L, r);
+    checkMaster(L);
     note += ` ⬆ ${party.name(L)} Lv.${r.to}! (❤ ${L.maxHp} · ⚔ ${L.atk})`;
     if (r.learned.length) note += ` 새 기술 ${josa(r.learned.map((s) => s.name).join('·'), '을를')} 배웠어!`;
     if (party.canEvolve(L) && !L.evolveTold) { L.evolveTold = true; note += ` ✨ ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 진화!`; }
@@ -1787,7 +1830,7 @@ function checkNewStickers() {
     caught: state.caught, rescued: state.rescued, blocks: state.blocks,
     bosses: Object.keys(state.conquered).length,
     dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
-    stats: state.goals.stats, attendStreak: state.attend.streak, attendTotal: state.attend.total,
+    stats: state.goals.stats, attendStreak: state.attend.streak, attendTotal: state.attend.total, masters: Object.keys(state.masters).length, dexAll: !!state.dexAll,
   });
   for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
   return got;
@@ -2035,7 +2078,7 @@ function buildSaveData() {
     balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
-    tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend },
+    tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null,
     returnTo: state.returnTo,
     carTold: !!state.carTold,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
@@ -2815,6 +2858,7 @@ function applySave(d) {
   state.items = { ...emptyItems(), ...(d.items || {}) };
   state.tower = { best: Math.max(1, (d.tower?.best | 0) || 1), chests: { ...(d.tower?.chests || {}) } };
   state.attend = loadAttend(d.attend);                          // 출석 도장
+  state.masters = { ...(d.masters || {}) }; state.dexAll = d.dexAll || null; // 마스터 타이틀 · 도감 완성
   state.rockets = { ...(d.rockets || {}) };
   state.released = { ...(d.released || {}) };
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
@@ -2836,6 +2880,8 @@ function applySave(d) {
   if (leader) party.setLeader(leader); // 대표를 미리 정해 두고(레벨 참고용), 모습은 지역이 준비된 뒤 붙인다
   startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
   if (leader) attachLeader(leader);
+  for (const m of party.members) checkMaster(m, true); // 이미 Lv.50 인 포켓몬은 조용히 마스터
+  setTimeout(() => checkDexComplete(), 4000); // 이미 다 채웠는데 축하를 못 받았으면 지금
   setBlocks(d.blocks || 0, { quiet: true, mission: false }); // 불러오기: 금빛 블록 축하도, 오늘의 미션 셈도 하지 않는다
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
   if (state.admin) { adminGrantAll(); showAdminPanel(); }
@@ -3119,7 +3165,7 @@ function frame() {
               const hp = Math.max(already.maxHp, fs.hp), atk = Math.max(already.atk, fs.atk);
               upgraded = hp > already.maxHp || atk > already.atk;
               already.maxHp = hp; already.hp = hp; already.atk = atk;
-              if (party.raiseTo(already, c.level)) upgraded = true; // 레벨도 보스 레벨로
+              if (party.raiseTo(already, c.level)) { upgraded = true; checkMaster(already); } // 레벨도 보스 레벨로
               party.rebase(already); // 올라간 스탯이 다음 레벨업 때 되돌아가지 않게
             }
             if (c.isBoss && !c.data.floorBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
@@ -3132,6 +3178,7 @@ function frame() {
             setBlocks(Math.min(MAX_BLOCKS, state.blocks + reward));
             state.dex[c.data.id] = (state.dex[c.data.id] || 0) + 1;
             const cnt = state.dex[c.data.id];
+            setTimeout(() => checkDexComplete(), 1200); // 도감을 다 채웠나 (잡기 말풍선 뒤에 큰 축하)
             checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
             wkAdd('caught');
             bump('catch');
