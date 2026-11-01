@@ -417,7 +417,7 @@ function buildShrine(z) {
 /** 성역을 드러내고 메가 포켓몬을 불러낸다 */
 /** 조건 포켓몬(메가리자몽X·리자풀·뮤 …)을 잡을 수 있게 됐나: unlockedBy 종을 이미 잡았으면 열린다 (배열이면 그 종을 모두 잡아야 한다 — 뮤는 행성 보스 열 마리) */
 function unlockNeeds(sp) { return Array.isArray(sp.unlockedBy) ? sp.unlockedBy : [sp.unlockedBy]; }
-function caughtFor(id) { const sp = speciesById[id]; return sp?.boss ? (state.bossDex[id] || 0) > 0 : (state.dex[id] || 0) > 0; } // 보스 모습이 있는 종은 보스로 잡아야 센다 (야생 꼬마돌은 안 됨)
+function caughtFor(id) { const sp = speciesById[id]; return sp?.boss ? ((state.bossDex[id] || 0) > 0 || !!state.conquered[bossZoneOf(sp)]) : (state.dex[id] || 0) > 0; } // 보스로 잡은 기록이 없는 옛 저장이라도 그 지역을 정복했으면(=보스를 잡았으면) 센다 // 보스 모습이 있는 종은 보스로 잡아야 센다 (야생 꼬마돌은 안 됨)
 function megaUnlocked(sp) { return unlockNeeds(sp).every(caughtFor); }
 /** 그 포켓몬을 지역의 빈 자리에 세운다 (성역이 아니라 일반 맵) */
 function spawnUnlocked(z, sp) {
@@ -429,7 +429,13 @@ function spawnUnlocked(z, sp) {
   const prev = zone?.terrain;
   setActiveTerrain(z.terrain);
   const c = spawnCreature(z, sp.id, spot[0], spot[1]);
-  if (c) c.isMega = true;
+  if (c) {
+    c.isMega = true;
+    // 멀리서도 찾을 수 있게 하늘로 뻗은 금빛 빛기둥 (포켓몬을 따라다니고, 잡히면 같이 사라진다)
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, 60, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+    beam.position.y = 30 / (c.data.scale || 1); beam.scale.setScalar(1 / (c.data.scale || 1)); beam.userData.noHide = true;
+    c.mesh.add(beam); c.beam = beam;
+  }
   if (prev) setActiveTerrain(prev);
   return c;
 }
@@ -904,6 +910,8 @@ function applyZoneEnv() {
   zone.world.setWhirlOpen?.(!!state.conquered[zone.name]); // 물의길 소용돌이: 거북왕을 이겼으면 열린 모습으로 (src/sea.js)
   player.lamp.intensity = zone.world.dark ? (state.glow ? 13 : 8) : 0;
   zone.world.refreshPads?.(state.tower.best); // 동굴탑 바닥의 워프 패드 (가 본 10층 단위까지)
+  const legend = zone.creatures.find((c) => c.isMega && c.state !== 'caught'); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다
+  if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 하늘로 뻗은 금빛 빛기둥을 찾아가 봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   player.gravityScale = zone.world.gravity || 1;
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다

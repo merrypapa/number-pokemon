@@ -46,7 +46,7 @@ export class Dex {
     this.blocksEl = document.getElementById('dex-blocks');
     this.countEl = document.getElementById('dex-count');
     this.filterEl = document.getElementById('dex-filter');
-    this.filter = { mode: 'all', type: null }; // 도감 액자 거르기: 전체 · 내 포켓몬 · 잡은 것 · 속성
+    this.filter = { mode: 'all', type: null }; // 도감 액자 거르기: 전체 · 내 포켓몬(잡은 것) · 아직 못 잡은 것 · 속성
     this.adminEl = document.getElementById('dex-admin');   // 관리자 탭 (main 이 채운다)
     this.friendsEl = document.getElementById('dex-friends'); // 친구 탭 (main 이 채운다)
     this.feedbackEl = document.getElementById('dex-feedback'); // 요청 탭 (main 이 채운다)
@@ -481,15 +481,14 @@ export class Dex {
     this.renderFilter(caughtById);
     this.grid.innerHTML = '';
     let caughtSpecies = 0;
-    const mineIds = new Set(ctx ? ctx.party.members.map((m) => m.speciesId) : []);
     const F = this.filter;
     let shown = 0;
     for (const sp of this.species) {
       const n = caughtById[sp.id] || 0;
       const known = n > 0;
       if (known) caughtSpecies++;
-      if (F.mode === 'mine' && !mineIds.has(sp.id)) continue;
-      if (F.mode === 'caught' && !known) continue;
+      if (F.mode === 'caught' && !known) continue;   // 내 포켓몬 = 한 번이라도 잡은 종
+      if (F.mode === 'unknown' && known) continue;   // 아직 못 잡은 종
       if (F.type && (sp.type || '노말') !== F.type) continue;
       shown++;
       const t = this.thumbs(sp);
@@ -511,16 +510,17 @@ export class Dex {
       this.grid.appendChild(item);
     }
     this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
-    if (!shown) { const empty = document.createElement('div'); empty.className = 'dex-empty'; empty.textContent = F.mode === 'mine' ? '아직 이 속성의 내 포켓몬이 없어. 잡으러 가 보자!' : F.mode === 'caught' ? '아직 잡은 포켓몬이 없어.' : '이 속성의 포켓몬은 없어.'; this.grid.appendChild(empty); }
+    if (!shown) { const empty = document.createElement('div'); empty.className = 'dex-empty'; empty.textContent = F.mode === 'caught' ? (F.type ? '아직 이 속성의 내 포켓몬이 없어. 잡으러 가 보자!' : '아직 잡은 포켓몬이 없어.') : F.mode === 'unknown' ? (F.type ? '이 속성은 다 잡았어! 🎉' : '전부 다 잡았어! 🎉') : '이 속성의 포켓몬은 없어.'; this.grid.appendChild(empty); }
 
   }
 
   /** 거르기 줄: [전체] [내 포켓몬] [잡은 것] + 속성 칩 (속성은 모드와 겹쳐 쓸 수 있다) */
   renderFilter(caughtById) {
-    const ctx = this.partyCtx, F = this.filter;
+    const F = this.filter;
     const types = [...new Set(this.species.map((sp) => sp.type || '노말'))];
     const EMO = { '불': '🔥', '물': '💧', '풀': '🌿', '전기': '⚡', '땅': '🏜️', '바위': '🪨', '벌레': '🐛', '독': '🧪', '에스퍼': '🔮', '고스트': '👻', '페어리': '🎀', '격투': '👊', '노말': '⭐' };
-    const modes = [['all', '전체'], ['mine', `내 포켓몬${ctx ? ` ${new Set(ctx.party.members.map((m) => m.speciesId)).size}` : ''}`], ['caught', '잡은 것']];
+    const known = this.species.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
+    const modes = [['all', `전체 ${this.species.length}`], ['caught', `내 포켓몬 ${known}`], ['unknown', `아직 못 잡은 것 ${this.species.length - known}`]];
     this.filterEl.innerHTML = `<div class="dex-fmodes">${modes.map(([id, label]) => `<button data-mode="${id}" class="${F.mode === id ? 'on' : ''}">${label}</button>`).join('')}</div>
       <div class="dex-ftypes"><button data-type="" class="${F.type ? '' : 'on'}">모든 속성</button>${types.map((t) => `<button data-type="${t}" class="${F.type === t ? 'on' : ''}">${EMO[t] || '✨'} ${t}</button>`).join('')}</div>`;
     this.filterEl.querySelectorAll('button[data-mode]').forEach((b) => { b.onclick = () => { F.mode = b.dataset.mode; this.render(this.lastCaught || caughtById || {}); }; });
