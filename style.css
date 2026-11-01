@@ -1045,3 +1045,5 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #dex-pager .pg-nums button.on { background: #ffd93d; border-color: #e0b100; }
 #dex-pager .pg-nums i { color: #999; padding: 0 2px; }
 #dex-pager .pg-info { color: #999; font-weight: 700; width: 100%; text-align: center; }
+
+.dex-item img.pending { background: radial-gradient(circle, #eee 40%, transparent 41%); opacity: 0.5; }
