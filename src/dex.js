@@ -83,7 +83,7 @@ export class Dex {
     if (this.renderer) return true;
     try {
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-      this.renderer.setSize(180, 180);
+      this.renderer.setSize(150, 150); // 액자 그림 크기 (150px 칸에 맞춤)
       this.scene = new THREE.Scene();
       this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -108,18 +108,36 @@ export class Dex {
     this.camera.lookAt(0, center.y * f, 0);
     mesh.rotation.y = -0.4;
     this.renderer.render(this.scene, this.camera);
-    const color = this.renderer.domElement.toDataURL();
-    // 실루엣: 모든 재질을 검정으로
-    const dark = new THREE.MeshBasicMaterial({ color: 0x20232e });
-    mesh.traverse((o) => { if (o.isMesh) o.material = dark; if (o.isLight || o.isSprite) o.visible = false; });
-    this.renderer.render(this.scene, this.camera);
-    const silhouette = this.renderer.domElement.toDataURL();
+    // 한 번만 그리고 2D 캔버스로 복사한다. 실루엣은 다시 그리지 않고 같은 그림을 'source-in' 으로 어둡게 칠해서 만든다
+    // (전에는 재질을 검게 바꿔 두 번 그리고 두 번 읽어 와서 종마다 GPU 를 두 번 기다렸다 — 도감 여는 시간의 대부분)
+    const S = 150, c = this.tmpCanvas ||= document.createElement('canvas'); c.width = c.height = S;
+    const ctx = c.getContext('2d');
+    ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, S, S); ctx.drawImage(this.renderer.domElement, 0, 0, S, S);
+    const color = c.toDataURL();
+    ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = '#20232e'; ctx.fillRect(0, 0, S, S); ctx.globalCompositeOperation = 'source-over';
+    const silhouette = c.toDataURL();
     this.scene.remove(mesh);
     const out = { color, silhouette };
     this.cache.set(sp.id, out);
     return out;
   }
 
+  /** 액자 그림을 한 프레임에 몇 개씩 나눠 만든다: 도감은 바로 열리고 그림이 하나씩 채워진다 (한꺼번에 만들면 열릴 때 1~2초 멈췄다) */
+  queueThumb(sp, img, known) {
+    (this.thumbQueue ||= []).push({ sp, img, known });
+    if (!this.thumbTimer) this.thumbTimer = requestAnimationFrame(() => this.pumpThumbs());
+  }
+  pumpThumbs() {
+    this.thumbTimer = null;
+    const t0 = performance.now();
+    while (this.thumbQueue.length && performance.now() - t0 < 14) { // 한 프레임에 14ms 까지만
+      const { sp, img, known } = this.thumbQueue.shift();
+      if (!img.isConnected) continue; // 그 사이 다른 페이지로 넘어갔다
+      const t = this.thumbs(sp);
+      if (t) { img.src = known ? t.color : t.silhouette; img.classList.remove('pending'); }
+    }
+    if (this.thumbQueue.length) this.thumbTimer = requestAnimationFrame(() => this.pumpThumbs());
+  }
   select(id) { this.selectedId = id; this.render(this.lastCaught || {}); }
   setTab(tab) {
     this.tab = tab;
@@ -518,9 +536,10 @@ export class Dex {
     this.jumpToSelected = false;
     this.page = Math.max(0, Math.min(pages - 1, this.page));
     const shown = list.length;
+    if (this.thumbQueue) this.thumbQueue.length = 0; // 이전 페이지의 남은 그림 만들기는 버린다
     for (const sp of list.slice(this.page * this.PAGE, (this.page + 1) * this.PAGE)) {
       const n = caughtById[sp.id] || 0, known = n > 0;
-      const t = this.thumbs(sp);
+      const t = this.cache.get(sp.id) || null; // 이미 만든 그림만 바로 쓰고, 없으면 빈 칸을 두고 나중에 채운다
       const item = document.createElement('div');
       item.className = 'dex-item ' + (known ? 'caught' : 'unknown') + (sp.id === this.selectedId ? ' sel' : '');
       const zone = this.zoneName[sp.zone] || '???';
@@ -531,12 +550,13 @@ export class Dex {
         ? (from ? `${from.name}의 진화형${sp.zone !== 'evolution' ? ` · ${zone}` : ''}${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
         : (from ? `${fromKnown ? from.name : '???'}의 진화형${sp.zone !== 'evolution' ? ` · ${zone}` : ''}${megaTag}` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag}`)) + ` · ${gradeStars(sp.grade || 1)}`; // 진화형이면서 야생으로도 나오면(부스터·샤미드·쥬피썬더·블래키) 지역도
       item.innerHTML = `
-        ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
+        ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : '<img class="pending" alt="">'}
         ${known ? '' : '<div class="dex-q">?</div>'}
         <div class="dex-name">${known ? `${ctx?.isMaster?.(sp) ? '👑 ' : ''}${sp.name}` : '???'}</div>
         <div class="dex-sub">${sub}</div>`;
       item.onclick = () => this.select(sp.id);
       this.grid.appendChild(item);
+      if (!t) this.queueThumb(sp, item.querySelector('img'), known);
     }
     this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종${ctx?.isDexAll?.() ? ' · 🌟 포켓몬 마스터' : ''}`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
     this.renderPager(pages, shown, caughtById);
