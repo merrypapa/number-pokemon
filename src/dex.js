@@ -397,8 +397,8 @@ export class Dex {
           ${t ? `<img src="${t.silhouette}" alt="">` : ''}
           <div class="detail-info">
             <div class="detail-name">???</div>
-            <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}` : `사는 곳: ${zone}${sp.boss ? ` (${this.zoneName[bossZoneOf(sp)] || ''} 보스)` : ''}`}</div>
-            <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${this.zoneName[bossZoneOf(sp)] || zone}의 보스를 찾아 잡아 보자!` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
+            <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형${sp.zone !== 'evolution' ? ` · 사는 곳: ${zone}` : ''}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}` : `사는 곳: ${zone}${sp.boss ? ` (${this.zoneName[bossZoneOf(sp)] || ''} 보스)` : ''}`}</div>
+            <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${this.zoneName[bossZoneOf(sp)] || zone}의 보스를 찾아 잡아 보자!` : from && sp.zone !== 'evolution' ? `${zone}에서 찾거나 진화시키면 돼.` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
             ${howLine ? `<ul class="detail-facts">${howLine}</ul>` : ''}
           </div>
         </div>`;
@@ -422,7 +422,7 @@ export class Dex {
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}${sp.mega ? ' <span class="party-badge mega">✨ 메가</span>' : ''}</div>
           <div class="detail-chips">
-            <span class="chip">🏠 ${from ? `${from.name}의 진화형` : zone}</span>
+            <span class="chip">🏠 ${from ? `${from.name}의 진화형${sp.zone !== 'evolution' ? ` · ${zone} 야생` : ''}` : zone}</span>
             <span class="chip hp">❤ ${sp.baseHp}</span><span class="chip atk">⚔ ${sp.baseAtk}</span>
             <span class="chip gold">${gradeStars(sp.grade || 1)}</span>${ctx?.isAffinity?.(sp) ? `<span class="chip affinity" title="${ctx.trainerInfo?.().name}와 찰떡">💛 찰떡 (공격 1.2배 · 경험치 1.25배)</span>` : ''}
             <span class="chip">잡은 수 ${n}</span>
@@ -519,8 +519,8 @@ export class Dex {
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
       const megaTag = sp.mega ? ' · ✨메가' : '';
       const sub = (known
-        ? (from ? `${from.name}의 진화형${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형${megaTag}` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag}`)) + ` · ${gradeStars(sp.grade || 1)}`;
+        ? (from ? `${from.name}의 진화형${sp.zone !== 'evolution' ? ` · ${zone}` : ''}${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형${sp.zone !== 'evolution' ? ` · ${zone}` : ''}${megaTag}` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag}`)) + ` · ${gradeStars(sp.grade || 1)}`; // 진화형이면서 야생으로도 나오면(부스터·샤미드·쥬피썬더·블래키) 지역도
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : ''}
         ${known ? '' : '<div class="dex-q">?</div>'}
