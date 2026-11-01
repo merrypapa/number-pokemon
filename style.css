@@ -998,3 +998,8 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 
 /* 처음 화면 아래 버전·업데이트 날짜 */
 #title-version { margin-top: 10px; font-size: 12px; font-weight: 800; color: rgba(255,255,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+
+/* ✨ 전설에게 데려다줘 (안내원 대화 중, 연구소 가기 버튼 위) */
+#btn-legend { position: fixed; right: 16px; bottom: calc(var(--ctx-bottom) + 124px); z-index: 8; font-size: 17px; font-weight: 900; padding: 12px 20px; border-radius: 999px; border: 0; background: #ffb300; color: #20232e; cursor: pointer; box-shadow: 0 4px 0 #c98400, 0 6px 14px rgba(0,0,0,.25); white-space: nowrap; animation: ctxPop .25s ease-out; }
+body.touch #btn-legend { bottom: calc(var(--ctx-bottom) + 60px); }
+@media (max-width: 600px) { #btn-legend { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 108px); } body.touch #btn-legend { bottom: calc(var(--ctx-bottom) + 52px); } }

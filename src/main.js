@@ -914,7 +914,7 @@ function applyZoneEnv() {
   for (const sp of creatureData.creatures.filter((c) => c.zone === zone.name && c.unlockedBy)) {
     if (megaUnlocked(sp) && !(state.dex[sp.id] > 0) && !zone.creatures.some((c) => c.data.id === sp.id)) spawnUnlocked(zone, sp);
   }
-  const legend = zone.creatures.find((c) => c.isMega && c.state !== 'caught'); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다
+  const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 하늘로 뻗은 금빛 빛기둥을 찾아가 봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   player.gravityScale = zone.world.gravity || 1;
@@ -970,7 +970,7 @@ function towerCleared() {
   setTimeout(() => say('🌌 동굴탑 94층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
 }
 function switchZone(name, spawn, message) {
-  warpBtn.classList.add('hidden'); warpNpc = null; lessonBtn.classList.add('hidden'); lessonNpc = null; // 지역이 바뀌면 안내원 대화도 끝
+  warpBtn.classList.add('hidden'); warpNpc = null; lessonBtn.classList.add('hidden'); lessonNpc = null; legendBtn.classList.add('hidden'); legendNpc = null; // 지역이 바뀌면 안내원 대화도 끝
   boardBtn.classList.add('hidden'); boardNpc = null;
   ufoBtn.classList.add('hidden'); ufoNpc = null;
   if (switching || !BUILDERS[name]) return;
@@ -1250,6 +1250,21 @@ const warpBtn = document.getElementById('btn-warp');
 const lessonBtn = document.getElementById('btn-lesson');
 let lessonNpc = null;
 lessonBtn.onclick = () => { if (!lessonNpc) return; sound.click(); lessonBtn.classList.add('hidden'); lessonNpc.talking = false; lessonNpc = null; study.showTypeLesson(); };
+// 안내원(warp 가 있는 NPC)과 이야기할 때 이 지역에 나타난 전설이 있으면 "✨ ○○에게 데려다줘" — 넓은 지역에서 못 찾는 아이를 위해 바로 옆까지 옮겨 준다
+const legendBtn = document.getElementById('btn-legend');
+let legendNpc = null;
+function legendHere() { const list = (zone?.creatures || []).filter((c) => c.isMega && c.state !== 'caught'); return list.find((c) => c.data.unlockedBy) || list[0] || null; } // 전설(unlockedBy)을 먼저, 없으면 성역의 메가
+legendBtn.onclick = () => {
+  const c = legendHere();
+  legendBtn.classList.add('hidden'); if (legendNpc) legendNpc.talking = false; legendNpc = null;
+  if (!c) { say('지금은 이 지역에 전설 포켓몬이 없어.', { sec: 3 }); return; }
+  sound.portal();
+  const fwd = camForward();
+  const at = c.mesh.position.clone().addScaledVector(fwd, -3.5); // 전설이 앞에 보이는 자리
+  player.teleport(at.x, at.z, c.mesh.position.y); snapCam = true;
+  c.mesh.visible = true; c.hint.visible = true;
+  say(`✨ ${josa(c.data.name, '이가')} 바로 앞에 있어! 다가가면 대결이 시작돼.`, { sec: 5 });
+};
 let warpNpc = null; // 지금 이야기 중인, 연구소로 데려다줄 수 있는 NPC
 warpBtn.onclick = () => {
   const npc = warpNpc; if (!npc) return;
@@ -1474,6 +1489,7 @@ function talkTo(npc) {
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
   if (npc.teacher) { lessonNpc = npc; lessonBtn.classList.remove('hidden'); } // 오박사 선생님: 상성 수업 버튼
+  const lg = npc.warp ? legendHere() : null; if (lg) { legendNpc = npc; legendBtn.textContent = `✨ ${lg.data.name}에게 데려다줘`; legendBtn.classList.remove('hidden'); } // 안내원: 전설이 나타나 있으면 데려다주기
   if (npc.ufo && zone.world.ufo && !ufoLocked) { // 손오공: 행성에서는 빨간 "꿈의우주로 돌아가기" + 보라 "다른 행성으로 가기", 꿈의우주에서는 행성 고르기 팝업 버튼
     const v = zone.world.ufo;
     boardNpc = npc;
@@ -2993,7 +3009,7 @@ function frame() {
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
         else offer('💬 대화', () => talkTo(npc), '💬\n대화');
         if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : npc.prompt || `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
-      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (lessonNpc === npc) { lessonBtn.classList.add('hidden'); lessonNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
+      } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (lessonNpc === npc) { lessonBtn.classList.add('hidden'); lessonNpc = null; } if (legendNpc === npc) { legendBtn.classList.add('hidden'); legendNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----
     if (!moved && zone.name === 'arena' && cloud.user) {
