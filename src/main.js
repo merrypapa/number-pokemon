@@ -2454,7 +2454,7 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
     updateBar.hidden = false; // 게임 중에는 묻는다 (갑자기 새로고침되면 곤란하니까)
     document.getElementById('btn-update').onclick = () => { if (zone && player) doSave(false); applyUpdate(worker); };
   };
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => { // sw.js 를 HTTP 캐시(깃허브 페이지 10분) 없이 늘 서버에서 확인
     if (reg.waiting && hadController) offerUpdate(reg.waiting);
     reg.addEventListener('updatefound', () => { const w = reg.installing; w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); }); });
     reg.update().catch(() => {}); // 열 때마다 새 버전 확인 (이게 없으면 새 버전을 올려도 한 시간 뒤에야 알아챘다)
