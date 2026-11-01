@@ -969,3 +969,17 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #btn-view { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 48px); right: max(12px, env(safe-area-inset-right)); z-index: 6; font-size: 15px; font-weight: 800; padding: 6px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.9); color: #333; box-shadow: 0 2px 6px rgba(0,0,0,.15); cursor: pointer; }
 
 @media (max-width: 600px) { #btn-view { top: calc(max(10px, env(safe-area-inset-top)) + 42px); font-size: 13px; padding: 5px 10px; } }
+
+/* 도감 거르기 (전체 · 내 포켓몬 · 잡은 것 · 속성) */
+#dex-filter { padding: 6px 12px 0; display: flex; flex-direction: column; gap: 6px; }
+.dex-fmodes, .dex-ftypes { display: flex; flex-wrap: wrap; gap: 5px; }
+#dex-filter button { font-family: inherit; font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 999px; border: 2px solid #e6e6e6; background: #fff; color: #555; cursor: pointer; }
+.dex-fmodes button { font-size: 14px; padding: 5px 13px; }
+#dex-filter button.on { background: #ffd93d; border-color: #e0b400; color: #20232e; }
+.dex-empty { grid-column: 1 / -1; text-align: center; color: #888; font-weight: 800; padding: 24px 0; }
+/* 레벨업 띠 */
+#lv-banner { position: fixed; left: 50%; top: 22%; transform: translateX(-50%) scale(1); font-size: clamp(24px, 4.8vw, 42px); font-weight: 900; color: #fff; -webkit-text-stroke: 1.2px #1f6b2f; text-shadow: 0 5px 0 #1f6b2f, 0 9px 16px rgba(0,0,0,.35); z-index: 26; white-space: nowrap; text-align: center; pointer-events: none; }
+#lv-banner b { color: #ffd93d; }
+#lv-banner small { display: block; font-size: 42%; -webkit-text-stroke: 1px #1f6b2f; text-shadow: 0 3px 0 #1f6b2f; margin-top: 4px; }
+#lv-banner.pop { animation: lvPop .6s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes lvPop { 0% { transform: translateX(-50%) scale(.2); opacity: 0; } 60% { transform: translateX(-50%) scale(1.15); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
