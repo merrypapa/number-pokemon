@@ -6312,11 +6312,11 @@
   },
   {
    "id": "m79",
-   "name": "문퍼프",
+   "name": "삐",
    "type": "페어리",
    "zone": "space",
    "catchable": true,
-   "model": "달토끼퍼프.glb",
+   "model": "삐.glb",
    "scale": 0.9,
    "draftShape": {
     "body": "sphere",
@@ -6354,11 +6354,11 @@
   },
   {
    "id": "b16",
-   "name": "에무리트",
+   "name": "엠라이트",
    "type": "에스퍼",
    "zone": "sea",
    "catchable": true,
-   "model": "에무리트.glb",
+   "model": "엠라이트.glb",
    "scale": 1.6,
    "draftShape": {
     "body": "sphere",
