@@ -431,10 +431,11 @@ function spawnUnlocked(z, sp) {
   const c = spawnCreature(z, sp.id, spot[0], spot[1]);
   if (c) {
     c.isMega = true;
-    // 멀리서도 찾을 수 있게 하늘로 뻗은 금빛 빛기둥 (포켓몬을 따라다니고, 잡히면 같이 사라진다)
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, 60, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, fog: false }));
-    beam.position.y = 30 / (c.data.scale || 1); beam.scale.setScalar(1 / (c.data.scale || 1)); beam.userData.noHide = true;
-    c.mesh.add(beam); c.beam = beam;
+    // 발밑에 은은한 금빛 고리 (포켓몬을 따라다니고, 잡히면 같이 사라진다). 과하지 않게 — 빛기둥은 보기 안 좋아 뺐다
+    const sc = c.data.scale || 1;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true;
+    c.mesh.add(ring); c.ring = ring;
   }
   if (prev) setActiveTerrain(prev);
   return c;
@@ -960,7 +961,7 @@ function applyZoneEnv() {
     if (megaUnlocked(sp) && !(state.dex[sp.id] > 0) && !zone.creatures.some((c) => c.data.id === sp.id && c.state !== 'caught')) spawnUnlocked(zone, sp);
   }
   const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
-  if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 하늘로 뻗은 금빛 빛기둥을 찾아가 봐.`, { sec: 7 });
+  if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 발밑에 금빛 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   player.gravityScale = zone.world.gravity || 1;
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
@@ -2419,7 +2420,7 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; takeGifts().then(() => renderFriends()); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; takeGifts().then(() => renderFriends()); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'guide') renderGuide(dex.guideEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 // ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
@@ -2798,6 +2799,43 @@ function renderLearn(el) {
 }
 
 // ---------- 미션 탭 (src/goals.js): 오늘의 미션 셋 + 지금까지 모은 스티커 ----------
+// ---------- 길잡이 탭: 큰 목표를 어떻게 하는지, 지금 어디까지 왔는지 ----------
+function renderGuide(el) {
+  const zn = (z) => ZONE_INFO[z]?.name || z;
+  const sp = (id) => speciesById[id];
+  const got = (id) => (state.dex[id] || 0) > 0;
+  const bossOk = (id) => caughtFor(id);
+  const chk = (ok) => (ok ? '✅' : '⬜');
+  const esc = escHtml;
+  const legend = (id) => { const s = sp(id); if (!s) return ''; const needs = unlockNeeds(s).map((n) => ({ n, ok: caughtFor(n) })); const done = needs.filter((x) => x.ok).length; return `${got(id) ? '🏆 친구가 됐어!' : needs.every((x) => x.ok) ? `✨ ${zn(s.zone)} 어딘가에 나타나 있어 — 발밑의 금빛 고리를 찾아봐!` : `(${done}/${needs.length})`}`; };
+  const planetBosses = unlockNeeds(sp('x07'));
+  const sec = (title, body) => `<div class="guide-sec"><div class="guide-title">${title}</div><div class="guide-body">${body}</div></div>`;
+  el.innerHTML = `<div class="rank-head">📘 길잡이 <span class="rank-how">(큰 목표를 어떻게 하는지 · ✅ 는 이미 한 것)</span></div>
+    ${sec('🌟 전설의 뮤 찾기 ' + legend('x07'), `
+      <ol>
+        <li>푸른숲 로켓 발사장에서 코리에게 말을 걸어 <b>꿈의우주</b>로 가요.</li>
+        <li>${chk(state.conquered.space)} 꿈의우주 북쪽 제단의 보스 <b>팬텀</b>을 넘버볼로 잡아 별의 문을 열어요.</li>
+        <li>${chk(got('x05'))} 메가 성역에 나타난 <b>메가팬텀</b>(7등급, 메가큐브로)을 잡아야 UFO가 떠요.</li>
+        <li>착륙장 서쪽 UFO 정거장의 <b>손오공</b>에게 말을 걸어 행성으로 가요.</li>
+        <li>행성 열 곳의 보스를 모두 <b>넘버볼로</b> 잡아요 (풀어주기·진화로 얻은 건 안 쳐요):<br>${planetBosses.map((id) => `${chk(bossOk(id))} ${esc(zn(bossZoneOf(sp(id))))} ${esc(sp(id).name)}`).join(' · ')}</li>
+        <li>열 번째 보스를 잡으면 꿈의우주에 <b>뮤</b>가 내려와요. 7등급(체력 320·공격 60)이라 메가큐브로만 잡혀요. 벌레·고스트 기술이 잘 통해요.</li>
+      </ol>`)}
+    ${sec('🔥⚡💧 전설 삼총사와 칠색조', `
+      <ul>
+        <li>${chk(bossOk('m03e'))} 번개동굴 보스 <b>라이츄</b>를 잡으면 번개동굴에 <b>라이코</b> ${legend('b07')}</li>
+        <li>${chk(bossOk('m02ee'))} 불의산 보스 <b>리자몽</b>을 잡으면 불의산에 <b>엔테이</b> ${legend('b08')}</li>
+        <li>${chk(bossOk('m05ee'))} 물의길 보스 <b>거북왕</b>을 잡으면 물의길에 <b>스이쿤</b> ${legend('b09')}</li>
+        <li>셋을 모두 친구로 만들면 푸른숲에 무지개 새 <b>칠색조</b> ${legend('b10')}</li>
+        <li>${chk(bossOk('m21e'))} 심해 보스 <b>갸라도스</b>를 잡으면 심해에 <b>루기아</b> ${legend('b06')}</li>
+        <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
+      </ul>`)}
+    ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
+    ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 94층까지! 10층마다 문지기 보스와 🎁 보상 상자, 5층마다 정예 포켓몬이 있어요. 1층의 워프 패드로 가 본 10층 단위까지 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 94층 수호신을 친구로 만들면 하늘의 문이 열려요.`)}
+    ${sec('🦊 이브이 진화는 장소로', `이브이를 Lv.16까지 키운 뒤 진화시키는 곳에 따라 모습이 달라요: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키. 다른 곳에서는 랜덤!`)}
+    ${sec('🔮 넘버볼과 등급', `포켓몬마다 등급(★)이 있고 등급이 높을수록 좋은 볼이 필요해요: ★~★★ 브론즈 · ★★★ 실버 · ★★★★~★★★★★ 골드 · ★★★★★★ 이상 메가큐브. 볼에서 튀어나와도 도망가지 않고, 실패할 때마다 잡힐 확률이 15%씩 올라요. 볼은 상점에서 블록으로 사요.`)}
+    ${sec('💥 상성과 기술', `불 › 풀 › 물 › 불, 전기 › 물, 땅 › 전기. 포켓몬 학교의 오박사님께 "📘 상성 수업"을 들으면 다 배울 수 있어요. 기술마다 속성이 있어 둘째 기술은 종과 다른 속성이고, 센 기술은 한 대결에서 쓸 수 있는 횟수(PP)가 적어요.`)}
+    ${sec('👑 마스터와 도감 완성', `포켓몬을 Lv.50까지 키우면 👑 마스터 타이틀 (마스터 ${Object.keys(state.masters).length}마리). 도감 ${dex.species.length}종을 모두 잡으면 🌟 포켓몬 마스터! 지금 ${Object.keys(state.dex).filter((k) => state.dex[k] > 0 && speciesById[k]).length} / ${dex.species.length}종.`)}`;
+}
 function renderGoals(el) {
   checkDay();
   const G = state.goals;

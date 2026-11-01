@@ -53,6 +53,7 @@ export class Dex {
     this.rankEl = document.getElementById('dex-rank');         // 주간 순위 탭 (main 이 채운다)
     this.learnEl = document.getElementById('dex-learn');       // 배움 탭 — 무엇을 잘하고 무엇을 연습하면 좋은지 (main 이 채운다)
     this.goalsEl = document.getElementById('dex-goals');       // 미션 탭 — 오늘의 미션과 스티커 (main 이 채운다)
+    this.guideEl = document.getElementById('dex-guide');       // 길잡이 탭 — 전설·뮤·메가·동굴탑 같은 큰 목표를 어떻게 하는지 (main 이 채운다)
     this.onTab = null; // (tab) → main 이 탭이 열릴 때 할 일 (친구 목록 새로 고침)
     this.open = false;
     this.cache = new Map(); // id -> { color, silhouette }
@@ -131,6 +132,7 @@ export class Dex {
     this.rankEl.classList.toggle('hidden', tab !== 'rank');
     this.learnEl.classList.toggle('hidden', tab !== 'learn');
     this.goalsEl.classList.toggle('hidden', tab !== 'goals');
+    this.guideEl.classList.toggle('hidden', tab !== 'guide');
     this.onTab?.(tab);
     if (tab !== 'poke') this.stopView(); else if (this.selectedId && this.byId[this.selectedId]) this.render(this.lastCaught || {});
     if (tab === 'map') this.renderMap(this.lastCaught || {});
@@ -379,7 +381,7 @@ export class Dex {
     if (needs && needs.length) {
       const items = needs.map((x) => `${x.ok ? '✅' : '⬜'} ${x.boss ? `${this.zoneName[x.zone] || ''} 보스 ${x.name}` : x.name}${x.boss ? ' 잡기' : ' 친구로'}`).join(' · ');
       const done = needs.filter((x) => x.ok).length;
-      howLine = `<li>🔑 <b>나타나는 조건</b> (${done}/${needs.length}): ${items}${needs.every((x) => x.ok) ? ` → ${zone} 어딘가에 나타나 있어! 금빛 빛기둥을 찾아봐` : ` → 다 채우면 ${zone}에 나타나`}${needs.some((x) => x.boss) ? '<br><small>보스는 넘버볼로 잡아야 세고, 풀어주기·진화로 얻은 건 안 쳐</small>' : ''}</li>`;
+      howLine = `<li>🔑 <b>나타나는 조건</b> (${done}/${needs.length}): ${items}${needs.every((x) => x.ok) ? ` → ${zone} 어딘가에 나타나 있어! 발밑의 금빛 고리를 찾아봐` : ` → 다 채우면 ${zone}에 나타나`}${needs.some((x) => x.boss) ? '<br><small>보스는 넘버볼로 잡아야 세고, 풀어주기·진화로 얻은 건 안 쳐</small>' : ''}</li>`;
     } else if (sp.shrine) {
       howLine = `<li>🔑 <b>나타나는 조건</b>: ${zone}의 보스를 잡아 정복하면 그 지역의 <b>메가 성역</b>에 나타나</li>`;
     } else if (sp.boss && !from) {
