@@ -83,9 +83,19 @@ export function evoTargets(e) {
   return out;
 }
 /** 확률대로 진화 대상 하나를 고른다 (없는 종은 건너뛴다) */
-export function pickEvolution(e, byId) {
-  const list = evoTargets(e).filter((t) => byId[t.id]);
+/** 진화 장소로 모습 고르기: 그 지역이 "고향"인 속성의 진화형이 있으면 그중에서 고른다 (이브이: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키).
+ *  맞는 게 없는 곳(푸른숲 등)에서는 확률대로. 리자몽 → 메가리자몽 X/Y 처럼 속성이 같은 갈래는 여전히 확률 */
+export const EVO_ZONE_TYPES = { volcano: ['불'], sea: ['물'], deepsea: ['물'], thunder: ['전기'], space: ['고스트', '에스퍼', '페어리'], cave: ['땅', '바위', '독'], hive: ['벌레'] };
+/** 이 진화형을 고르려면 어느 지역에서 진화해야 하나 (여러 갈래 진화일 때만, 없으면 null) */
+export function evoZoneFor(e, sp) {
+  if (evoTargets(e).length < 2 || !sp) return null;
+  return Object.keys(EVO_ZONE_TYPES).find((z) => EVO_ZONE_TYPES[z].includes(sp.type)) || null;
+}
+export function pickEvolution(e, byId, zoneName = null) {
+  let list = evoTargets(e).filter((t) => byId[t.id]);
   if (!list.length) return null;
+  const here = zoneName && EVO_ZONE_TYPES[zoneName];
+  if (here && list.length > 1) { const fit = list.filter((t) => here.includes(byId[t.id].type)); if (fit.length) list = fit; }
   let r = Math.random() * list.reduce((s, t) => s + (t.p ?? 1), 0);
   for (const t of list) { r -= t.p ?? 1; if (r <= 0) return byId[t.id]; }
   return byId[list[list.length - 1].id];

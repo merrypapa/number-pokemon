@@ -744,7 +744,7 @@ function evolveMember(m) {
   state.goals.stats.evolved++; bump('evolve');
   const wasLeader = party.isLeader(m);
   const oldSp = party.species(m), oldMesh = m.mesh;
-  const sp = party.evolve(m);
+  const sp = party.evolve(m, zone?.name); // 지역에 따라 모습이 정해진다 (이브이)
   const newMesh = buildDraftMesh(sp);
   m.mesh = newMesh;
   state.dex[sp.id] = (state.dex[sp.id] || 0) + 1;
