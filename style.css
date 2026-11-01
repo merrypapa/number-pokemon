@@ -1035,3 +1035,13 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .duel-mons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .duel-mons .duel-mon { max-width: 150px; }
 #duel-modal.stage .duel-teams { margin: 0 0 4px; }
+
+/* 도감 액자 페이지 넘기기 (한 페이지 20개) */
+#dex-pager { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px 16px; }
+#dex-pager button { font: inherit; font-weight: 800; border: 2px solid #ddd; background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+#dex-pager button:disabled { opacity: 0.4; cursor: default; }
+#dex-pager .pg-nums { display: inline-flex; gap: 4px; align-items: center; }
+#dex-pager .pg-nums button { min-width: 36px; padding: 6px 8px; }
+#dex-pager .pg-nums button.on { background: #ffd93d; border-color: #e0b100; }
+#dex-pager .pg-nums i { color: #999; padding: 0 2px; }
+#dex-pager .pg-info { color: #999; font-weight: 700; width: 100%; text-align: center; }
