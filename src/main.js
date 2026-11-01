@@ -1056,13 +1056,16 @@ function gymTick(dt) {
   let closestWater = null, cwd = Infinity;
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
+    const far = Math.hypot(pp.x - mp.x, pp.z - mp.z) > 45; // 멀리 있는 포켓몬은 애니메이션·이름표를 쉬게 한다 (130마리여도 태블릿이 버티게)
+    p.label.visible = !far;
+    if (far) { if (p.wait > 0) p.wait -= dt; else p.wait = rand(2, 6); continue; }
     const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
     if (p.hop > 0) { p.hop -= dt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
     else if (p.wait > 0) { p.wait -= dt; mp.y = base; tickModel(p.mesh, dt, p.water ? 'swimidle' : 'idle'); if (p.wait <= 0) p.target = gymSpot(p); }
     else {
       const dx = p.target.x - mp.x, dz = p.target.z - mp.z, d = Math.hypot(dx, dz);
       if (d < 0.5) { p.wait = rand(1, 4); if (Math.random() < 0.35) p.hop = 0.8; }
-      else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && insideObstacle(mp.x, mp.z, 0.6)) p.target = gymSpot(p); tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
+      else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
       mp.y = base;
     }
     p.label.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);

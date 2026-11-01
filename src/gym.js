@@ -6,11 +6,11 @@ import { makeLabelTexture, makePillSprite, makeInstanced } from './world.js';
 // 포켓몬에게 가까이 가서 "💪 훈련하기"를 누르면 경험치를 받는다(하루에 한 마리 3번). 가운데 흙 트랙, 서쪽 샌드백 셋, 동쪽 공, 벤치,
 // 그리고 **올라갈 수 있는 큰 나무** 둘: 줄기 옆에서 점프 버튼을 꾹 누르면 줄기를 타고 올라가 6m 위 나무 위 집(둥근 단)에 선다 (player.climbAt).
 // 코치는 코리. 몬스터·블록·퀴즈는 없다. 남쪽 문으로 나가면 푸른숲.
-// 운동장은 넓게(140×100): 잡은 포켓몬이 50마리가 넘어도 빽빽하지 않게. 동쪽에 **연못**(타원 20×24)이 있어 물 포켓몬(물 속성·헤엄치는 종)은 거기서 헤엄치며 논다.
+// 운동장은 넓게(170×120): 도감 130종을 다 잡아 130마리가 나와도 한 마리에 100㎡ 넘게 돌아가게. 동쪽에 **연못**(타원 20×24)이 있어 물 포켓몬(물 속성·헤엄치는 종)은 거기서 헤엄치며 논다.
 // 연못 서쪽 가장자리에서 나무 잔교가 연못 안으로 뻗어 있어(걸어갈 수 있다) 잔교 끝에서 물 포켓몬을 훈련시킨다. 연못 물은 못 들어간다.
-export const GYM = { size: 170, field: { w: 140, d: 100 }, spawn: { x: 0, z: 42 }, door: { x: 0, z: 50.4 }, trees: [{ x: -40, z: -30 }, { x: 4, z: -34 }], platY: 6, platR: 3.6,
-  dummies: [{ x: -60, z: 2 }, { x: -60, z: 9 }, { x: -60, z: 16 }], track: { x: -14, z: 2, rx: 26, rz: 15 },
-  pond: { x: 46, z: -4, rx: 20, rz: 24 }, dock: { x0: 25, x1: 38, z0: -5.6, z1: -2.4 } };
+export const GYM = { size: 200, field: { w: 170, d: 120 }, spawn: { x: 0, z: 52 }, door: { x: 0, z: 60.4 }, trees: [{ x: -50, z: -36 }, { x: 0, z: -42 }], platY: 6, platR: 3.6,
+  dummies: [{ x: -75, z: 2 }, { x: -75, z: 9 }, { x: -75, z: 16 }], track: { x: -18, z: 4, rx: 28, rz: 16 },
+  pond: { x: 58, z: -4, rx: 24, rz: 28 }, dock: { x0: 33, x1: 47, z0: -5.6, z1: -2.4 } };
 const F = GYM.field, PI2 = Math.PI / 2, P = GYM.pond, DK = GYM.dock;
 const inDoorway = (x, z) => Math.abs(x) < 1.8 && z > F.d / 2 - 0.6;
 const treeDist = (x, z) => GYM.trees.map((t) => Math.hypot(x - t.x, z - t.z));
@@ -85,12 +85,12 @@ export function buildGym(scene) {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.8, 0.2, 12), ironMat); base.position.y = 0.1; g.add(base);
     g.position.set(d.x, 0, d.z); decor.add(g); block(d.x, d.z, 0.7); block(d.x + 1.2, d.z, 0.5);
   }
-  const bagSign = makePillSprite('🥊 샌드백 · 훈련 장소', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.8); bagSign.position.set(-36, 4.6, 14); decor.add(bagSign);
-  const ball = new THREE.Mesh(new THREE.SphereGeometry(1.1, 18, 14), new THREE.MeshStandardMaterial({ color: 0xe8453c })); ball.position.set(34, 1.1, 10); ball.castShadow = true; decor.add(ball);
+  const bagSign = makePillSprite('🥊 샌드백 · 훈련 장소', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.8); bagSign.position.set(GYM.dummies[1].x, 4.6, GYM.dummies[1].z); decor.add(bagSign);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(1.1, 18, 14), new THREE.MeshStandardMaterial({ color: 0xe8453c })); ball.position.set(20, 1.1, 30); ball.castShadow = true; decor.add(ball);
   const band = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.08, 8, 32), new THREE.MeshStandardMaterial({ color: 0x20232e })); band.rotation.x = PI2; band.position.copy(ball.position); decor.add(band);
-  block(34, 10, 1.3);
+  block(20, 30, 1.3);
   const benchMat = new THREE.MeshStandardMaterial({ color: 0xb8742a });
-  for (const [x, z] of [[-14, 30], [14, 30]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), benchMat); b.position.set(x, 0.6, z); b.castShadow = true; decor.add(b); for (const s of [-1.6, 1.6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 0.8), benchMat); leg.position.set(x + s, 0.3, z); decor.add(leg); } block(x, z, 2.0); }
+  for (const [x, z] of [[-14, 44], [14, 44]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), benchMat); b.position.set(x, 0.6, z); b.castShadow = true; decor.add(b); for (const s of [-1.6, 1.6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 0.8), benchMat); leg.position.set(x + s, 0.3, z); decor.add(leg); } block(x, z, 2.0); }
 
   // 연못: 모래 테두리 + 물(살짝 투명한 파랑) + 연잎 + 잔교
   const sand = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0xe8d9a8, roughness: 1 }));
@@ -125,7 +125,7 @@ export function buildGym(scene) {
   decor.add(makeInstanced(new THREE.SphereGeometry(0.5, 7, 5), new THREE.MeshStandardMaterial({ color: 0xff8fb4 }), flowers));
 
   // 코치 코리
-  const coachAt = { x: 8, z: 38 };
+  const coachAt = { x: 8, z: 48 };
   const coach = makeNpc({ outfit: 'ranger', name: '코리', model: '코리.glb' });
   coach.position.set(coachAt.x, 0, coachAt.z); coach.rotation.y = Math.PI; decor.add(coach); block(coachAt.x, coachAt.z, 0.6);
 
@@ -142,7 +142,7 @@ export function buildGym(scene) {
         land.push({ x, z }); break;
       }
     }
-    while (land.length < nLand) land.push({ x: (Math.random() - 0.5) * W * 0.6, z: (Math.random() - 0.5) * D * 0.6 }); // 자리가 모자라면 가운데 아무 데나
+    while (land.length < nLand) { const x = (Math.random() - 0.5) * W * 0.9, z = (Math.random() - 0.5) * D * 0.9; if (!inPond(x, z, 1.2)) land.push({ x, z }); } // 자리가 모자라면 연못 밖 아무 데나
     for (let i = 0; i < nWater; i++) { const a = (i / Math.max(1, nWater)) * Math.PI * 2 + Math.random() * 0.4, rr = 0.35 + 0.5 * ((i % 3) / 2); waterSpots.push({ x: P.x + Math.cos(a) * P.rx * rr, z: P.z + Math.sin(a) * P.rz * rr }); }
     return { land, water: waterSpots };
   }
