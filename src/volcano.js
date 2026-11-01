@@ -55,7 +55,7 @@ function legendLine(c) {
   const L = (c.legend || []).find((x) => x.name === '엔테이') || (c.legend || [])[0]; // 엔테이 이야기부터 (힙합리자몽 등 다른 특별 포켓몬은 다음에)
   if (!L) return '';
   if (L.caught) return `전설의 ${L.name}도 네 친구가 됐지! 대단해.`;
-  if (L.here) return `소문에 전설의 ${josa(L.name, '이가')} 불의산 어딘가에 내려왔대 — 하늘로 뻗은 금빛 빛기둥을 찾아봐!`;
+  if (L.here) return `소문에 전설의 ${josa(L.name, '이가')} 불의산 어딘가에 내려왔대 — 발밑의 금빛 고리를 찾아봐!`;
   const miss = L.needs.find((n) => !n.ok);
   if (miss) return miss.hasAny && miss.boss ? `${josa(L.name, '은는')} 화산 꼭대기의 "보스" ${josa(miss.name, '을를')} 넘버볼로 잡아야 내려와. 진화로 얻은 ${miss.name}나 풀어주기는 안 쳐!` : `${josa(L.name, '은는')} 보스 ${josa(miss.name, '을를')} 넘버볼로 잡으면 내려와.`;
   return `${josa(L.name, '이가')} 내려올 때가 됐는데… 불의산을 나갔다가 다시 들어와 봐!`;

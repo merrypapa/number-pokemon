@@ -381,7 +381,7 @@ export class Dex {
     if (needs && needs.length) {
       const items = needs.map((x) => `${x.ok ? '✅' : '⬜'} ${x.boss ? `${this.zoneName[x.zone] || ''} 보스 ${x.name}` : x.name}${x.boss ? ' 잡기' : ' 친구로'}`).join(' · ');
       const done = needs.filter((x) => x.ok).length;
-      howLine = `<li>🔑 <b>나타나는 조건</b> (${done}/${needs.length}): ${items}${needs.every((x) => x.ok) ? ` → ${zone} 어딘가에 나타나 있어! 금빛 빛기둥을 찾아봐` : ` → 다 채우면 ${zone}에 나타나`}${needs.some((x) => x.boss) ? '<br><small>보스는 넘버볼로 잡아야 세고, 풀어주기·진화로 얻은 건 안 쳐</small>' : ''}</li>`;
+      howLine = `<li>🔑 <b>나타나는 조건</b> (${done}/${needs.length}): ${items}${needs.every((x) => x.ok) ? ` → ${zone} 어딘가에 나타나 있어! 발밑의 금빛 고리를 찾아봐` : ` → 다 채우면 ${zone}에 나타나`}${needs.some((x) => x.boss) ? '<br><small>보스는 넘버볼로 잡아야 세고, 풀어주기·진화로 얻은 건 안 쳐</small>' : ''}</li>`;
     } else if (sp.shrine) {
       howLine = `<li>🔑 <b>나타나는 조건</b>: ${zone}의 보스를 잡아 정복하면 그 지역의 <b>메가 성역</b>에 나타나</li>`;
     } else if (sp.boss && !from) {

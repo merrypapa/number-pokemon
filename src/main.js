@@ -431,10 +431,11 @@ function spawnUnlocked(z, sp) {
   const c = spawnCreature(z, sp.id, spot[0], spot[1]);
   if (c) {
     c.isMega = true;
-    // 멀리서도 찾을 수 있게 하늘로 뻗은 금빛 빛기둥 (포켓몬을 따라다니고, 잡히면 같이 사라진다)
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, 60, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, fog: false }));
-    beam.position.y = 30 / (c.data.scale || 1); beam.scale.setScalar(1 / (c.data.scale || 1)); beam.userData.noHide = true;
-    c.mesh.add(beam); c.beam = beam;
+    // 발밑에 은은한 금빛 고리 (포켓몬을 따라다니고, 잡히면 같이 사라진다). 과하지 않게 — 빛기둥은 보기 안 좋아 뺐다
+    const sc = c.data.scale || 1;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true;
+    c.mesh.add(ring); c.ring = ring;
   }
   if (prev) setActiveTerrain(prev);
   return c;
@@ -960,7 +961,7 @@ function applyZoneEnv() {
     if (megaUnlocked(sp) && !(state.dex[sp.id] > 0) && !zone.creatures.some((c) => c.data.id === sp.id && c.state !== 'caught')) spawnUnlocked(zone, sp);
   }
   const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
-  if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 하늘로 뻗은 금빛 빛기둥을 찾아가 봐.`, { sec: 7 });
+  if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 발밑에 금빛 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   player.gravityScale = zone.world.gravity || 1;
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
@@ -2806,7 +2807,7 @@ function renderGuide(el) {
   const bossOk = (id) => caughtFor(id);
   const chk = (ok) => (ok ? '✅' : '⬜');
   const esc = escHtml;
-  const legend = (id) => { const s = sp(id); if (!s) return ''; const needs = unlockNeeds(s).map((n) => ({ n, ok: caughtFor(n) })); const done = needs.filter((x) => x.ok).length; return `${got(id) ? '🏆 친구가 됐어!' : needs.every((x) => x.ok) ? `✨ ${zn(s.zone)} 어딘가에 나타나 있어 — 금빛 빛기둥을 찾아봐!` : `(${done}/${needs.length})`}`; };
+  const legend = (id) => { const s = sp(id); if (!s) return ''; const needs = unlockNeeds(s).map((n) => ({ n, ok: caughtFor(n) })); const done = needs.filter((x) => x.ok).length; return `${got(id) ? '🏆 친구가 됐어!' : needs.every((x) => x.ok) ? `✨ ${zn(s.zone)} 어딘가에 나타나 있어 — 발밑의 금빛 고리를 찾아봐!` : `(${done}/${needs.length})`}`; };
   const planetBosses = unlockNeeds(sp('x07'));
   const sec = (title, body) => `<div class="guide-sec"><div class="guide-title">${title}</div><div class="guide-body">${body}</div></div>`;
   el.innerHTML = `<div class="rank-head">📘 길잡이 <span class="rank-how">(큰 목표를 어떻게 하는지 · ✅ 는 이미 한 것)</span></div>
@@ -2826,7 +2827,7 @@ function renderGuide(el) {
         <li>${chk(bossOk('m05ee'))} 물의길 보스 <b>거북왕</b>을 잡으면 물의길에 <b>스이쿤</b> ${legend('b09')}</li>
         <li>셋을 모두 친구로 만들면 푸른숲에 무지개 새 <b>칠색조</b> ${legend('b10')}</li>
         <li>${chk(bossOk('m21e'))} 심해 보스 <b>갸라도스</b>를 잡으면 심해에 <b>루기아</b> ${legend('b06')}</li>
-        <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 하늘로 뻗은 <b>금빛 빛기둥</b>이 붙어 있어요.</li>
+        <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 94층까지! 10층마다 문지기 보스와 🎁 보상 상자, 5층마다 정예 포켓몬이 있어요. 1층의 워프 패드로 가 본 10층 단위까지 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 94층 수호신을 친구로 만들면 하늘의 문이 열려요.`)}
