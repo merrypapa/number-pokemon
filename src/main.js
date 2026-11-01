@@ -203,14 +203,24 @@ let pendingCaught = {}; // 불러온 저장 데이터의 "이미 잡은 몬스�
 // 지역마다 야생 포켓몬의 레벨대. 보스는 그 지역 꼭대기 + 3, 숨은 전설은 + 4, 로켓단 포켓몬은 가운데 + 2. 이기면 상대 레벨만큼 경험치 (src/party.js expFor)
 const ZONE_LEVEL = { forest: [2, 6], hive: [3, 7], cave: [8, 14], thunder: [14, 20], sea: [16, 24], deepsea: [22, 30], volcano: [24, 32], space: [32, 40], arena: [10, 10] };
 for (const p of PLANETS) ZONE_LEVEL[p.zone] = [34, 46];
+/** 야생이 내 대표보다 많이 약하면 조금 따라온다: 대표 레벨이 지역 꼭대기보다 높은 만큼의 절반 (최대 +10). 보스·전설·메가는 그대로 */
+function wildBonus(hi) {
+  const L = typeof party !== 'undefined' ? party.leader : null;
+  if (!L) return 0;
+  return Math.max(0, Math.min(10, Math.round((L.level - hi) * 0.5)));
+}
 function wildLevel(zoneName, data, band = null) {
   const [lo, hi] = band || ZONE_LEVEL[zoneName] || [5, 10];
   if (data.boss) return hi + 3;
   if (data.unlockedBy || data.mega) return hi + 4;
-  return lo + Math.floor(Math.random() * (hi - lo + 1));
+  return lo + wildBonus(hi) + Math.floor(Math.random() * (hi - lo + 1));
 }
 function spawnCreature(z, speciesId, x, zz, extra = {}) {
   const data = { ...speciesById[speciesId], ...extra };
+  if (!extra.level && !data.boss && !data.unlockedBy && !data.mega && !extra.baseHp) { // 레벨이 따라오면 체력·공격도 조금 (레벨 하나에 체력 6%·공격 5%)
+    const b = wildBonus((z.world.levelBand || ZONE_LEVEL[z.name] || [5, 10])[1]);
+    if (b > 0) { data.baseHp = Math.round(data.baseHp * (1 + b * 0.06)); data.baseAtk = Math.round(data.baseAtk * (1 + b * 0.05)); }
+  }
   const c = new Creature(z.scene, data, new THREE.Vector3(x, extra.homeY || 0, zz)); // homeY: 층이 겹치는 지형(동굴탑)에서 어느 층인지
   c.level = extra.level || wildLevel(z.name, data, z.world.levelBand);
   z.creatures.push(c);
@@ -718,6 +728,17 @@ function addStarter(speciesId) {
 // 진화 연출: 도감을 닫고, 카메라가 포켓몬 앞으로 가서 빛나며 커졌다가 번쩍! 새 모습으로.
 let evo = null; // { t, m, oldSp, sp, oldMesh, newMesh, wasLeader, stage }
 const evoFlash = document.getElementById('evo-flash'), evoBanner = document.getElementById('evo-banner');
+// 레벨업 연출: 화면 가운데 큰 "LEVEL UP!" 띠 + 색종이 + 별 고리 두 번. 띠는 2.6초 뒤 사라진다
+const lvBanner = document.getElementById('lv-banner');
+let lvBannerTimer = null;
+function showLevelUp(L, r) {
+  lvBanner.innerHTML = `⬆ LEVEL UP! <b>${party.name(L)} Lv.${r.to}</b><small>❤ ${L.maxHp} · ⚔ ${L.atk}${r.learned.length ? ` · 새 기술 ${r.learned.map((s) => s.name).join('·')}` : ''}</small>`;
+  lvBanner.classList.remove('hidden'); lvBanner.classList.remove('pop'); void lvBanner.offsetWidth; lvBanner.classList.add('pop');
+  confetti.burst(70);
+  const at = L.mesh.position.clone().add(new THREE.Vector3(0, 0.6, 0));
+  setTimeout(() => { if (zone) particles.stars(zone.scene, at.clone().add(new THREE.Vector3(0, 0.8, 0)), 18, 0xfff6a0, 0.45); }, 350);
+  clearTimeout(lvBannerTimer); lvBannerTimer = setTimeout(() => lvBanner.classList.add('hidden'), 2600);
+}
 function evolveMember(m) {
   if (!party.canEvolve(m) || evo) return;
   state.goals.stats.evolved++; bump('evolve');
@@ -763,6 +784,11 @@ function updateEvolution(dt) {
     e.oldMesh.visible = false; zone.scene.remove(e.oldMesh);
     e.newMesh.visible = true;
     sound.fanfare();
+    // 충격파 고리: 발밑에서 퍼져 나가며 옅어진다 (3단계에서 키운다)
+    e.ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 1.0, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false }));
+    e.ring.rotation.x = -Math.PI / 2; e.ring.position.copy(e.stage).add(new THREE.Vector3(0, 0.08, 0));
+    zone.scene.add(e.ring);
+    particles.stars(zone.scene, e.stage.clone().add(up), 40, 0xffffff, 0.8);
     evoBanner.innerHTML = `✨ ${josa(e.sp.name, '으로')} 진화했다! ✨<small>공격 ${e.m.atk} · 체력 ${e.m.maxHp}</small>`;
   } else if (T < 4.2) { // 3) 새 모습이 커지며 등장, 색종이
     const k = Math.min(1, (T - 2.2) / 0.8);
@@ -770,11 +796,14 @@ function updateEvolution(dt) {
     e.newMesh.scale.setScalar(Math.max(0.001, partyScale(e.sp) * back));
     e.newMesh.rotation.y += dt * 1.5 * (1 - k);
     evoFlash.style.opacity = String(Math.max(0, 1 - (T - 2.2) * 2));
-    if (T - 2.2 < 0.1) confetti.burst(220);
+    if (e.ring) { const rk = Math.min(1, (T - 2.2) / 0.9); e.ring.scale.setScalar(1 + rk * 7); e.ring.material.opacity = 0.95 * (1 - rk); if (rk >= 1) { zone.scene.remove(e.ring); e.ring = null; } }
+    if (T - 2.2 < 0.1) confetti.burst(320);
+    if (T - 2.2 > 0.6 && T - 2.2 < 0.7) confetti.burst(120);
     if (Math.random() < 0.3) particles.stars(zone.scene, e.stage.clone().add(up), 3, new THREE.Color(party.color(e.m)).getHex(), 0.5);
   } else { // 끝: 원래 자리로
     evoFlash.style.opacity = '0';
     evoBanner.classList.add('hidden');
+    if (e.ring) { zone.scene.remove(e.ring); e.ring = null; }
     e.newMesh.scale.setScalar(partyScale(e.sp));
     if (e.wasLeader) attachLeader(e.m); else zone.scene.remove(e.newMesh);
     say(`축하해! ${josa(e.oldSp.name, '이가')} ${josa(e.sp.name, '으로')} 진화했어! 공격 ${e.m.atk}, 체력 ${e.m.maxHp}!`, { sec: 7 });
@@ -1580,6 +1609,7 @@ function giveExp(L, c) {
     sound.fanfare();
     bump('levelup', null, r.to - r.from); // 오늘의 미션 "레벨업 하기"
     particles.stars(zone.scene, L.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, 0xffd93d, 0.5);
+    showLevelUp(L, r);
     note += ` ⬆ ${party.name(L)} Lv.${r.to}! (❤ ${L.maxHp} · ⚔ ${L.atk})`;
     if (r.learned.length) note += ` 새 기술 ${josa(r.learned.map((s) => s.name).join('·'), '을를')} 배웠어!`;
     if (party.canEvolve(L) && !L.evolveTold) { L.evolveTold = true; note += ` ✨ ${josa(party.name(L), '이가')} 진화할 수 있어! 도감에서 진화!`; }
@@ -2720,7 +2750,7 @@ function applySave(d) {
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
-  startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
+  // 파티를 먼저 채운다 — 지역을 만들 때 야생 레벨이 대표 레벨을 본다 (wildBonus)
   const seenSpecies = new Set();
   for (const m of d.party || []) {
     m.speciesId = ALIAS[m.speciesId] || m.speciesId;
@@ -2733,6 +2763,8 @@ function applySave(d) {
     party.migrate(member); // 레벨이 없던 옛 저장: 공격력에서 레벨을 어림한다
   }
   const leader = party.healthy().includes(party.members[d.leader]) ? party.members[d.leader] : (party.healthy()[0] || party.members[0]);
+  if (leader) party.setLeader(leader); // 대표를 미리 정해 두고(레벨 참고용), 모습은 지역이 준비된 뒤 붙인다
+  startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
   if (leader) attachLeader(leader);
   setBlocks(d.blocks || 0, { quiet: true, mission: false }); // 불러오기: 금빛 블록 축하도, 오늘의 미션 셈도 하지 않는다
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
@@ -2743,7 +2775,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData };
+  window.__game = { get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
 }
 
 // ---------- 루프 ----------
