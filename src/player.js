@@ -11,7 +11,7 @@ export const PLAYER_HEIGHT = 1.9;      // 주인공 모델 키(m). 몬스터(1m 
 const SPEED = 6.5, RUN = 1.7, JUMP = 7, GRAVITY = -20, ACCEL = 14; // RUN: 달리기 배속 (Shift/Ctrl 또는 달리기 버튼), ACCEL: 조이스틱처럼 부드럽게 가속/감속
 
 export class Player {
-  constructor(scene) {
+  constructor(scene, { model = PLAYER_MODEL, height = PLAYER_HEIGHT } = {}) { // model/height: 고른 트레이너의 모습 (src/trainers.js)
     this.group = new THREE.Group();
     const draft = new THREE.Group(); // 드래프트 주인공 부품 (모델이 있으면 통째로 교체)
     this.group.add(draft);
@@ -32,7 +32,7 @@ export class Player {
     draft.add(body, head, hat, brim, bag);
     this.body = body;
     // 모델이 준비돼 있으면 바로, 아직 받는 중이면 도착했을 때 드래프트 → 모델로 바뀐다
-    swapDraftWithModel(this.group, PLAYER_MODEL, { scale: PLAYER_HEIGHT, onSwap: (m) => { this.body = m; } }); // 걷기 기울임을 모델 전체에
+    swapDraftWithModel(this.group, model, { scale: height, onSwap: (m) => { this.body = m; } }); // 걷기 기울임을 모델 전체에
 
     this.group.position.set(0, 0, 12);
     this.vy = 0;

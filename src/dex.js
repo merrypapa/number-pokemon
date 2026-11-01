@@ -424,7 +424,7 @@ export class Dex {
           <div class="detail-chips">
             <span class="chip">🏠 ${from ? `${from.name}의 진화형` : zone}</span>
             <span class="chip hp">❤ ${sp.baseHp}</span><span class="chip atk">⚔ ${sp.baseAtk}</span>
-            <span class="chip gold">${gradeStars(sp.grade || 1)}</span>
+            <span class="chip gold">${gradeStars(sp.grade || 1)}</span>${ctx?.isAffinity?.(sp) ? `<span class="chip affinity" title="${ctx.trainerInfo?.().name}와 찰떡">💛 찰떡 (공격 1.2배 · 경험치 1.25배)</span>` : ''}
             <span class="chip">잡은 수 ${n}</span>
           </div>
           <ul class="detail-facts">
@@ -455,7 +455,7 @@ export class Dex {
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
-          <div class="member-head"><span class="lv">Lv.${m.level}</span>${ctx.isMaster?.(sp) ? '<span class="party-badge master" title="Lv.50 마스터">👑 마스터</span> ' : ''}내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
+          <div class="member-head"><span class="lv">Lv.${m.level}</span>${ctx.isMaster?.(sp) ? '<span class="party-badge master" title="Lv.50 마스터">👑 마스터</span> ' : ''}${ctx.isAffinity?.(sp) ? '<span class="party-badge affinity" title="트레이너와 찰떡: 공격 1.2배 · 경험치 1.25배">💛 찰떡</span> ' : ''}내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
             <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span></div>
           <div class="exp-bar"><div style="width:${party.expRatio(m) * 100}%"></div></div>
           <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)} · 대결에서 이기면 쌓여`}${nextSkill ? ` · Lv.${skillLevel(nextSkill)}에 ${skillIcon(nextSkill)} ${nextSkill.name}` : ''}${need && !canEvolve && !need.mega ? ` · Lv.${need.level}에 진화` : ''}</div>

@@ -75,7 +75,10 @@ function drawWithOwn() {
 export function portrait(obj, key, { head = 0.86, zoom = 0.19 } = {}) {
   if (key && cache.has(key)) return cache.get(key);
   if (!ensure()) return null;
-  const clone = skeletonClone(obj); // 뼈가 있는 모델도 제자리에서 그려지게 (Object3D.clone 은 원본 뼈를 같이 써서 엉뚱한 곳에 그려진다)
+  // 애니메이션 믹서(userData.anim)는 복제할 때 JSON 으로 못 바꿔 터진다 → 잠시 떼었다가 되돌린다
+  const stripped = []; obj.traverse((o) => { if (o.userData && o.userData.anim) { stripped.push([o, o.userData.anim]); o.userData.anim = null; } });
+  let clone;
+  try { clone = skeletonClone(obj); } finally { for (const [o, a] of stripped) o.userData.anim = a; } // 뼈가 있는 모델도 제자리에서 그려지게 (Object3D.clone 은 원본 뼈를 같이 써서 엉뚱한 곳에 그려진다)
   clone.position.set(0, 0, 0); clone.rotation.set(0, 0, 0); clone.scale.setScalar(1);
   const strip = []; // 이름표(스프라이트)·조명은 크기 계산에 끼지 않게 떼어낸다
   clone.traverse((o) => {

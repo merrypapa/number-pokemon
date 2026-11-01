@@ -44,6 +44,7 @@ export class Party {
     this.nextUid = 1;
     this.megaBlocks = () => 0;         // main 이 가진 메가블럭 수를 넣어 준다 (메가 진화 조건)
     this.onUseMega = () => {};         // 메가 진화할 때 메가블럭을 쓴다
+    this.affinity = () => null;        // 트레이너가 잘 맞는 속성 (main 이 넣어 준다, src/trainers.js). 그 속성 포켓몬은 공격 1.2배
   }
 
   species(m) { return this.speciesById[m.speciesId]; }
@@ -79,7 +80,9 @@ export class Party {
   skills(m) { return (this.species(m).skills || []).filter((s) => m.level >= skillLevel(s)); }
   /** 다음에 열릴 기술 (없으면 null) */
   nextSkill(m) { return (this.species(m).skills || []).find((s) => m.level < skillLevel(s)) || null; }
-  damage(m, skill, mult = 1) { return Math.max(1, Math.round(m.atk * (skill?.power || 1) * mult)); }
+  /** 찰떡 포켓몬인가 (트레이너의 속성과 같은 종) */
+  isAffinity(m) { const t = this.affinity(); return !!t && (this.type(m) === t); }
+  damage(m, skill, mult = 1) { return Math.max(1, Math.round(m.atk * (skill?.power || 1) * mult * (this.isAffinity(m) ? 1.2 : 1))); }
 
   /** 이 레벨일 때의 스탯 (잡을 때 스탯 + 성장치 × 오른 레벨) */
   statsAt(m, level) {
