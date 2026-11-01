@@ -41,7 +41,7 @@ import { weekKey, weekRange, weekScore, emptyWeek, rankEntry, renderRankRows, WE
 import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './learn.js';
 import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, emptyAttend, loadAttend, stampAttend, ATTEND_GIFTS } from './goals.js';
 import { Photo } from './photo.js';
-import { Ghosts, makeEmoteSprite } from './presence.js';
+import { Ghosts, makeEmoteSprite, PHRASES } from './presence.js';
 import { snapshotMon, acceptPatch, attackPatch, duelCardHtml, sideOf, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
 import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
 import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
@@ -1705,6 +1705,39 @@ function dayTick(dt) {
   if (!zone || switching || !state.name) return;
   checkDay();
   checkAttend();
+  takeGifts();
+}
+// ---------- 친구 선물 (물약·열매·넘버볼): 보내면 내 재고에서 빠지고, 받는 쪽은 30초마다·친구 탭에서 받는다 ----------
+const GIFT_KINDS = [
+  { id: 'potion', label: '🧪 물약', kind: 'item' }, { id: 'superPotion', label: '🧴 좋은 물약', kind: 'item' }, { id: 'revive', label: '🍒 기운의 열매', kind: 'item' }, { id: 'bronze', label: '⚪ 브론즈볼', kind: 'ball' },
+];
+const giftStock = (g) => (g.kind === 'ball' ? state.balls[g.id] : state.items[g.id]) || 0;
+async function sendGiftTo(f, g) {
+  if (giftStock(g) <= 0) { say(`${g.label}이 없어. 상점에서 사거나 미션으로 모아 보자!`, { sec: 4 }); return; }
+  try {
+    await cloud.sendGift(f.uid, { item: g.id, n: 1 });
+    if (g.kind === 'ball') state.balls[g.id]--; else state.items[g.id]--;
+    sound.fanfare(); refreshHud(); autosave();
+    say(`🎁 ${f.name}에게 ${g.label} 1개를 선물했어! 친구가 게임에 들어오면 받아.`, { sec: 5 });
+  } catch (e) { say(`😢 선물을 못 보냈어: ${e.message}`, { sec: 5 }); }
+}
+let takingGifts = false;
+async function takeGifts() {
+  if (!cloud.user || takingGifts) return;
+  takingGifts = true;
+  try {
+    const list = await cloud.listGifts();
+    for (const gf of list) {
+      const g = GIFT_KINDS.find((k) => k.id === gf.item); const n = Math.max(1, Math.min(3, gf.n | 0));
+      await cloud.takeGift(gf.id);
+      if (!g) continue;
+      if (g.kind === 'ball') state.balls[g.id] = (state.balls[g.id] || 0) + n; else state.items[g.id] = (state.items[g.id] || 0) + n;
+      sound.fanfare(); confetti.burst(80);
+      queueSay(`🎁 ${josa(gf.fromName || '친구', '이가')} ${g.label} ${n}개를 선물했어! 도감 가방·넘버볼에서 봐.`, { sec: 6 });
+    }
+    if (list.length) { refreshHud(); autosave(); }
+  } catch (e) { console.warn('[gift]', e); }
+  takingGifts = false;
 }
 /** 오늘 처음 들어왔으면 출석 도장 + 선물 */
 function checkAttend() {
@@ -2185,10 +2218,14 @@ async function renderFriendList() {
     const row = document.createElement('div'); row.className = 'friend-row' + (on ? ' online' : '') + (friendsOpen.has(f.uid) ? ' open' : '');
     row.innerHTML = `${t ? `<img src="${t.color}" alt="">` : '<div class="friend-noimg"></div>'}
       <div class="save-info"><div class="save-name">${f.name} <span class="friend-status ${on ? 'on' : 'off'}">${on ? `🟢 접속 중 · ${ZONE_INFO[on.zone]?.name || ''}` : '⚪ 로그오프'}</span></div></div>
-      <button class="friend-duel" ${busy ? 'disabled title="이미 대결 중"' : 'title="내 대표 포켓몬으로 대결 신청"'}>⚔ 대결</button><span class="friend-toggle">▾</span>
+      <button class="friend-duel" ${busy ? 'disabled title="이미 대결 중"' : 'title="내 대표 포켓몬으로 대결 신청"'}>⚔ 대결</button><button class="friend-gift" title="물약·열매·넘버볼 선물하기">🎁</button><span class="friend-toggle">▾</span>
+      <div class="friend-giftmenu hidden">${GIFT_KINDS.map((g) => `<button data-gift="${g.id}" ${giftStock(g) > 0 ? '' : 'disabled'}>${g.label} <small>×${giftStock(g)}</small></button>`).join('')}</div>
       <div class="friend-detail"><div>📍 ${ZONE_INFO[f.zone]?.name || '?'} · 친구 ${f.caught || 0}마리 · 도감 ${f.dexCount || 0}종 · 정복 ${f.conquered || 0}/${ZONE_COUNT} · 블록 ${f.blocks || 0}개${sp ? ` · 대표 ${sp.name}` : ''}${f.updatedAt ? `<br>🕒 마지막 저장 ${formatWhen(f.updatedAt)}` : ''}</div><button class="save-del" title="친구 삭제">✕ 친구 삭제</button></div>`;
     row.onclick = (e) => { if (e.target.closest('button')) return; row.classList.toggle('open'); if (row.classList.contains('open')) friendsOpen.add(f.uid); else friendsOpen.delete(f.uid); };
     row.querySelector('.friend-duel').onclick = () => challengeFriend(f);
+    const giftMenu = row.querySelector('.friend-giftmenu');
+    row.querySelector('.friend-gift').onclick = () => { sound.click(); giftMenu.classList.toggle('hidden'); };
+    giftMenu.querySelectorAll('button[data-gift]').forEach((b) => { b.onclick = async () => { await sendGiftTo(f, GIFT_KINDS.find((g) => g.id === b.dataset.gift)); renderFriendList(); }; });
     row.querySelector('.save-del').onclick = async () => { if (confirm(`${josa(f.name, '을를')} 친구 목록에서 뺄까요?`)) { await cloud.removeFriend(f.uid); friendsOpen.delete(f.uid); renderFriendList(); } };
     list.appendChild(row);
   }
@@ -2318,7 +2355,7 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; renderFriends(); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; takeGifts().then(() => renderFriends()); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 // ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
@@ -2394,7 +2431,13 @@ const ghosts = new Ghosts(speciesById);
 ghosts.onAppear = (name) => say(`👫 ${josa(name, '이가')} 같은 지역에 있어! 손을 흔들어 봐 👋`, { sec: 5 });
 const presence = { t: 0, heart: 0, last: null, friends: new Map(), watches: new Map(), refreshT: 0, emote: null, emoteAt: 0, mySprite: null, myShown: 0 };
 const emoteRow = document.getElementById('hud-emote-row');
-emoteRow.querySelectorAll('button').forEach((b) => { b.onclick = () => sendEmote(b.textContent.trim()); });
+emoteRow.querySelectorAll('button.emote:not(.phrase)').forEach((b) => { b.onclick = () => sendEmote(b.textContent.trim()); });
+// 💬 정해진 문장: 작은 메뉴에서 하나 고르면 감정 표현과 같은 길로 보낸다 (글자 채팅은 없다)
+const phraseMenu = document.getElementById('phrase-menu');
+phraseMenu.innerHTML = PHRASES.map((t) => `<button>${t}</button>`).join('');
+phraseMenu.querySelectorAll('button').forEach((b) => { b.onclick = () => { sendEmote(b.textContent); phraseMenu.classList.add('hidden'); }; });
+document.getElementById('btn-phrase').onclick = () => { sound.click(); phraseMenu.classList.toggle('hidden'); };
+ghosts.onPhrase = (name, text) => say(`💬 ${name}: ${text}`, { sec: 4 });
 /** 감정 표현: 내 머리 위에 3초 + 친구들에게 보낸다 */
 function sendEmote(e) { presence.emote = e; presence.emoteAt = Date.now(); presence.myShown = presence.emoteAt; presence.t = 0; sound.click(); }
 /** 매 프레임: 내 위치 올리기(0.3초마다, 움직였을 때) + 친구 유령 맞추기 */
