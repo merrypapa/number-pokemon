@@ -1948,9 +1948,7 @@ function showAdminPanel() {
   row2.appendChild(more);
   const note = document.createElement('div'); note.className = 'admin-note'; note.textContent = '관리자 모드: 모든 지역이 열려 있고, 모든 포켓몬이 도감에 있어 대표로 고를 수 있어요. 메가블럭 30개, 넘버볼 각 30개로 시작해요.'; box.appendChild(note);
 }
-// 화면에 보이는 버전 — 태블릿이 옛 파일을 캐시에 갖고 있으면 이 숫자가 그대로 남는다 (고칠 때마다 바꾼다)
-const BUILD = 'v2026-09-21', UPDATED = '2026년 9월 21일';
-document.getElementById('title-help').textContent = `버전 ${BUILD} · 업데이트 ${UPDATED}`;
+// 화면에 보이는 버전은 version.js 의 NP_VERSION 하나로 (아래 #title-version). 태블릿이 옛 파일을 캐시에 갖고 있으면 그 숫자가 그대로 남는다
 const titleEl = document.getElementById('title');
 const newgameEl = document.getElementById('newgame');
 const continueEl = document.getElementById('continue');
@@ -2416,6 +2414,12 @@ document.getElementById('btn-install-copy').onclick = (e) => {
   if (navigator.clipboard) navigator.clipboard.writeText(INSTALL_LINK).then(done, () => prompt('이 주소를 복사해 주세요', INSTALL_LINK));
   else prompt('이 주소를 복사해 주세요', INSTALL_LINK);
 };
+// 처음 화면 아래에 버전과 업데이트 날짜 (version.js 의 NP_VERSION = 'v2026-11-01-7' → "버전 2026-11-01-7 · 업데이트 2026년 11월 1일")
+{
+  const v = String(self.NP_VERSION || ''), m = v.match(/^v(\d{4})-(\d{2})-(\d{2})(?:-(\d+))?$/);
+  const el = document.getElementById('title-version');
+  if (el) el.textContent = m ? `버전 ${v.slice(1)} · 업데이트 ${+m[1]}년 ${+m[2]}월 ${+m[3]}일` : (v ? `버전 ${v}` : '');
+}
 if ('serviceWorker' in navigator && !location.search.includes('nosw') && location.protocol !== 'file:') {
   const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
   const updateBar = document.getElementById('update-bar');

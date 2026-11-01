@@ -995,3 +995,6 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .friend-giftmenu button { font-family: inherit; font-size: 13px; font-weight: 800; padding: 5px 10px; border-radius: 999px; border: 2px solid #ffd6e8; background: #fff; cursor: pointer; }
 .friend-giftmenu button:disabled { opacity: .45; cursor: default; }
 .friend-giftmenu button small { color: #888; }
+
+/* 처음 화면 아래 버전·업데이트 날짜 */
+#title-version { margin-top: 10px; font-size: 12px; font-weight: 800; color: rgba(255,255,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.4); }
