@@ -421,7 +421,7 @@ function caughtFor(id) { const sp = speciesById[id]; return sp?.boss ? ((state.b
 function megaUnlocked(sp) { return unlockNeeds(sp).every(caughtFor); }
 /** 그 포켓몬을 지역의 빈 자리에 세운다 (성역이 아니라 일반 맵) */
 function spawnUnlocked(z, sp) {
-  if (z.creatures.some((c) => c.data.id === sp.id)) return null;
+  if (z.creatures.some((c) => c.data.id === sp.id && c.state !== 'caught')) return null; // 이미 서 있으면 (잘못 '잡힌' 상태로 남은 것은 다시 세운다)
   if ((state.dex[sp.id] || 0) > 0) return null; // 이미 잡았으면 다시 나오지 않는다
   const spots = (z.world.wildSpots || []).filter(([x, zz]) => !z.creatures.some((c) => Math.hypot(c.home.x - x, c.home.z - zz) < 6));
   const all = spots.length ? spots : (z.world.wildSpots || []);
@@ -523,7 +523,8 @@ function getZone(name) {
 }
 /** 저장에서 "이미 잡은" 몬스터를 그 지역에서 뺀다 (지역을 만들 때, 그리고 미리 만들어 둔 지역에 불러올 때) */
 function applyPendingCaught(z) {
-  for (const i of pendingCaught[z.name] || []) { const c = z.creatures[i]; if (c && c.state !== 'caught') { c.becomeFriend(); z.scene.remove(c.mesh); } }
+  // 번호로 지운다(야생 목록 순서). 전설·메가(isMega)는 번호가 아니라 도감으로 세므로 건너뛴다 — 목록이 달라진 옛 저장의 번호가 전설을 가리켜 '잡힌 것'으로 만들던 버그 (엔테이가 안 보이던 원인)
+  for (const i of pendingCaught[z.name] || []) { const c = z.creatures[i]; if (c && !c.isMega && c.state !== 'caught') { c.becomeFriend(); z.scene.remove(c.mesh); } }
 }
 function removeBoulder() {
   const f = zones.forest;
@@ -912,7 +913,7 @@ function applyZoneEnv() {
   zone.world.refreshPads?.(state.tower.best); // 동굴탑 바닥의 워프 패드 (가 본 10층 단위까지)
   // 조건을 채웠는데 어떤 이유로든 아직 안 세워진 특별 포켓몬이 있으면 지금 세운다 (지역이 만들어진 뒤에 조건이 채워졌거나 옛 저장)
   for (const sp of creatureData.creatures.filter((c) => c.zone === zone.name && c.unlockedBy)) {
-    if (megaUnlocked(sp) && !(state.dex[sp.id] > 0) && !zone.creatures.some((c) => c.data.id === sp.id)) spawnUnlocked(zone, sp);
+    if (megaUnlocked(sp) && !(state.dex[sp.id] > 0) && !zone.creatures.some((c) => c.data.id === sp.id && c.state !== 'caught')) spawnUnlocked(zone, sp);
   }
   const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 하늘로 뻗은 금빛 빛기둥을 찾아가 봐.`, { sec: 7 });
@@ -3135,7 +3136,7 @@ function frame() {
             }
             if (c.isBoss && !c.data.floorBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
-            if (!c.rocketOf && !zone.world.transient) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없으니 빼 둔다)
+            if (!c.rocketOf && !c.isMega && !zone.world.transient) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없고, 전설·메가는 도감으로 세니 빼 둔다)
             // 이겨도 체력은 그대로 (대결에서 깎인 만큼 남는다). 시간이 지나면 천천히 차고, 물약·오박사·엄마·침대로 바로 낫는다
             const expNote = giveExp(L, c); // 경험치 → 레벨업 (진화 조건)
             bump('win'); // 오늘의 미션 "대결 이기기"
