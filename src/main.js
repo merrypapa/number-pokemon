@@ -2441,7 +2441,7 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
     setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000); // 오래 켜 두어도 한 시간마다 새 버전을 확인
   }).catch((e) => console.warn('[sw] 등록 실패', e));
   let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloading) return; reloading = true; location.reload(); });
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloading) return; reloading = true; if (zone && player) { try { doSave(false); } catch (_) { /* 저장 실패해도 새로고침은 한다 */ } } location.reload(); }); // 새 워커가 스스로 넘겨받으면(sw.js skipWaiting) 진행을 저장하고 새로고침
 }
 // ---------- 같이 놀기 1단계: 같은 지역에 있는 친구가 보인다 (src/presence.js, Realtime Database presence/{uid}) ----------
 const ghosts = new Ghosts(speciesById);

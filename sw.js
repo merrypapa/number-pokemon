@@ -9,7 +9,7 @@ const VERSION = self.NP_VERSION;
 const ASSET_VERSION = '3';
 const SHELL = `np-shell-${VERSION}`, ASSETS = `np-assets-${ASSET_VERSION}`, VENDOR = 'np-vendor'; // VENDOR: gstatic 의 Firebase SDK (주소에 버전이 있어 오래 둬도 된다)
 const SHELL_FILES = [
-  './', './index.html', './install.html', './style.css', './manifest.webmanifest', './version.js',
+  './', './index.html', './install.html', './reset.html', './style.css', './manifest.webmanifest', './version.js',
   './data/creatures.json', './data/numberblocks.json', './data/zones.json',
   './vendor/three/three.module.js', './vendor/three/loaders/GLTFLoader.js', './vendor/three/utils/BufferGeometryUtils.js', './vendor/three/utils/SkeletonUtils.js',
   './src/arena.js', './src/balls.js', './src/battle.js', './src/bgm.js', './src/boat.js', './src/car.js', './src/cave.js', './src/cloud-config.js', './src/cloud.js', './src/creatures.js', './src/deepsea.js', './src/dex.js', './src/duel.js', './src/duelstage.js', './src/effects.js', './src/goals.js', './src/hive.js', './src/home.js', './src/input.js', './src/intro.js', './src/items.js', './src/lab.js', './src/learn.js', './src/main.js', './src/mega.js', './src/models.js', './src/npc.js', './src/numberblocks.js', './src/palette.js', './src/photo.js', './src/party.js', './src/planetquiz.js', './src/planets.js', './src/player.js', './src/portrait.js', './src/presence.js', './src/quiz.js', './src/rank.js', './src/rocket.js', './src/save.js', './src/school.js', './src/sea.js', './src/space.js', './src/study.js', './src/thunder.js', './src/tower.js', './src/typelesson.js', './src/types.js', './src/ufo.js', './src/util.js', './src/view3d.js', './src/volcano.js', './src/world.js',
@@ -20,6 +20,9 @@ self.addEventListener('install', (e) => {
     const c = await caches.open(SHELL);
     // 하나가 실패해도 나머지는 넣는다 (파일 목록이 조금 어긋나도 설치가 막히지 않게)
     await Promise.all(SHELL_FILES.map((f) => c.add(f).catch((err) => console.warn('[sw] 미리 받기 실패', f, err))));
+    // 설치되면 기다리지 않고 바로 넘겨받는다 — 태블릿이 앱을 몇 주씩 닫지 않아 새 버전이 "대기" 상태로 영영 머무르던 일을 막는다.
+    // 게임 중이던 화면은 controllerchange 에서 저장한 뒤 새로고침한다 (main.js)
+    self.skipWaiting();
   })());
 });
 self.addEventListener('activate', (e) => {
