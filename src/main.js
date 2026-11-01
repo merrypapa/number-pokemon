@@ -12,7 +12,7 @@ import { buildLab } from './lab.js';
 import { buildSchool } from './school.js';
 import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
-import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerLevelBand, LAND_W } from './tower.js';
+import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerElite, towerLevelBand, LAND_W } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
@@ -916,8 +916,9 @@ function spawnTowerFloor(z, n) {
   z.towerFloors.add(n);
   const at = landingAt(n), band = towerLevelBand(n);
   const spots = n >= TOWER_TOP ? [[6, 6], [-6, 6], [7, -5]] : [[at.x - 2, 1.6], [at.x + 2.5, 2.8], [at.x + 0.5, 0.4]]; // 층계참 쐐기 안 (각도 0~LAND_W)
-  const fb = towerFloorBoss(n);
-  const wild = towerWild(n, fb || n >= TOWER_TOP ? 2 : 3);
+  const fb = towerFloorBoss(n), el = towerElite(n);
+  const wild = towerWild(n, n >= TOWER_TOP ? 2 : 1); // 층마다 야생은 한 마리 (대신 5층마다 정예, 10층마다 문지기)
+  if (el) { const [x, zz] = spots[1]; const c = spawnCreature(z, el.id, x, zz, { homeY: at.y, baseHp: el.hp, baseAtk: el.atk, scale: el.scale, level: el.level, swim: false, deepSea: false }); c.towerFloor = n; c.elite = true; }
   wild.forEach((id, i) => { const [x, zz] = spots[i]; const c = spawnCreature(z, id, x, zz, { homeY: at.y, level: band[0] + Math.floor(Math.random() * (band[1] - band[0] + 1)), swim: false, deepSea: false }); c.towerFloor = n; });
   if (fb) { const c = spawnCreature(z, fb.id, at.x, at.z, { homeY: at.y, boss: true, floorBoss: true, baseHp: fb.hp, baseAtk: fb.atk, scale: fb.scale, grade: 6, level: fb.level, swim: false, deepSea: false }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
   if (n >= TOWER_TOP && !state.conquered.tower) { const boss = speciesById.t94; const c = spawnCreature(z, boss.id, 0, 0, { ...bossOverride(boss), homeY: at.y, level: band[1] + 3 }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }

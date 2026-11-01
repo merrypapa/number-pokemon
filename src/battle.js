@@ -335,7 +335,7 @@ export class Battle {
       }
     }
 
-    this.tagNameEl.textContent = `${creature.isBoss ? '보스 ' : ''}${creature.data.name} Lv.${creature.level || 5}`;
+    this.tagNameEl.textContent = `${creature.isBoss ? '보스 ' : creature.elite ? '정예 ' : ''}${creature.data.name} Lv.${creature.level || 5}`;
     this.tagNameEl.style.color = colorForCount(creature.data.favoriteNumber || creature.data.baseHp);
     const myName = this.party.name(member);
     this.msgEl.textContent = creature.hp === creature.data.baseHp
