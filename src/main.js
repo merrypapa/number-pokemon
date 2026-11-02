@@ -508,7 +508,7 @@ function revealShrine(z, silent = false) {
   if (z.shrineObstacle) z.shrineObstacle.r = 15.5;
   for (const p of z.shrinePillars || []) p.r = p.pillarR;
   const mega = creatureData.creatures.find((c) => c.zone === z.name && c.shrine);
-  if (mega && !(state.caughtCreatures[z.name] || []).includes(z.creatures.length)) {
+  if (mega) {
     setActiveTerrain(z.terrain); // Creature 는 지형 높이를 쓰므로 잠시 전환
     const c = spawnCreature(z, mega.id, z.shrine.megaSpot.x, z.shrine.megaSpot.z);
     c.isMega = true;
@@ -545,11 +545,13 @@ function getZone(name) {
   if (land.length) {
     const order = [...land].sort((a, b) => (a.grade || 1) - (b.grade || 1) || (a.baseHp || 0) - (b.baseHp || 0));
     const spots = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => a.d - b.d);
-    spots.forEach((s, i) => {
-      const band = Math.floor((i + rand(-0.9, 0.9)) * order.length / spots.length); // 띠 경계가 칼같지 않게 살짝 섞는다
-      const c = order[Math.max(0, Math.min(order.length - 1, band))];
-      spawnCreature(z, c.id, s.x, s.z, extraFor(c));
-    });
+    // 종마다 자리 수가 고르고(자리가 종보다 많으면 모든 종이 적어도 한 자리) 늘 같은 배치가 되게 띠를 자른 뒤, 이웃 자리끼리만 살짝 섞는다(지역 이름으로 고정된 난수).
+    // 전에는 띠 경계를 무작위로 흔들어서 (1) 운이 나쁘면 어떤 종(냄새꼬 등)이 한 마리도 안 나왔고 (2) 불러올 때마다 배치가 달라져 저장된 "잡은 번호"가 엉뚱한 포켓몬을 지웠다
+    const n = spots.length, m = order.length, idx = spots.map((_, i) => Math.min(m - 1, Math.floor((i * m) / n)));
+    let seed = 0; for (const ch of z.name) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    for (let i = 0; i + 1 < n; i++) if (rnd() < 0.3) { const t = idx[i]; idx[i] = idx[i + 1]; idx[i + 1] = t; }
+    spots.forEach((s, i) => { const c = order[idx[i]]; spawnCreature(z, c.id, s.x, s.z, extraFor(c)); });
   }
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
   (z.world.waterSpots || []).forEach(([x, zz], i) => { if (swimmers.length) { const c = swimmers[i % swimmers.length]; spawnCreature(z, c.id, x, zz, extraFor(c)); } });
@@ -574,9 +576,22 @@ function getZone(name) {
   return z;
 }
 /** 저장에서 "이미 잡은" 몬스터를 그 지역에서 뺀다 (지역을 만들 때, 그리고 미리 만들어 둔 지역에 불러올 때) */
+/** 야생 자리 열쇠: 종 id + 집 자리 (불러올 때마다 같은 자리에 같은 종이 서므로 번호 대신 이걸로 '잡은 포켓몬'을 기억한다) */
+const spotKey = (c) => `${c.data.id}@${Math.round(c.home.x)},${Math.round(c.home.z)}`;
+/** 잡힌 야생 포켓몬이 날이 바뀌면 다시 나온다 (하루마다 새로): 만들어 둔 지역들의 잡힌 야생을 되살리고 기록을 비운다 */
+function respawnWild() {
+  for (const z of Object.values(zones)) for (const c of z.creatures) {
+    if (c.state !== 'caught' || c.isMega || c.isBoss || c.rocketOf || z.world.transient) continue;
+    c.state = c.sleeping ? 'sleep' : 'wander'; c.hp = c.data.baseHp; c.mesh.visible = true; c.mesh.position.copy(c.home); c.mesh.position.y = c.groundY(c.home.x, c.home.z);
+    if (c.mesh.parent !== z.scene) z.scene.add(c.mesh);
+    if (c.sleeping) { const m = c.mesh.userData.model; if (m) c.lieDown?.(m); } // 잠만보는 다시 눕는다
+  }
+  state.caughtSpots = { day: dayKey(), list: {} }; pendingCaught = {};
+}
 function applyPendingCaught(z) {
   // 번호로 지운다(야생 목록 순서). 전설·메가(isMega)는 번호가 아니라 도감으로 세므로 건너뛴다 — 목록이 달라진 옛 저장의 번호가 전설을 가리켜 '잡힌 것'으로 만들던 버그 (엔테이가 안 보이던 원인)
-  for (const i of pendingCaught[z.name] || []) { const c = z.creatures[i]; if (c && !c.isMega && c.state !== 'caught') { c.becomeFriend(); z.scene.remove(c.mesh); } }
+  const keys = new Set(pendingCaught[z.name] || []); if (!keys.size) return;
+  for (const c of z.creatures) if (keys.has(spotKey(c)) && !c.isMega && !c.isBoss && c.state !== 'caught') { c.becomeFriend(); z.scene.remove(c.mesh); }
 }
 function removeBoulder() {
   const f = zones.forest;
@@ -592,7 +607,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -2015,7 +2030,8 @@ function checkAttend() {
 /** 하루가 바뀌었으면 오늘의 미션을 새로 뽑는다 */
 function checkDay(announce = true) {
   if (!rollDay(state.goals, state.name)) return false;
-  if (announce && zone) queueSay('🎯 새로운 하루야! 오늘의 미션이 새로 나왔어 — 도감의 "미션" 탭에서 보자!', { sec: 7 });
+  respawnWild(); // 날이 바뀌면 잡힌 야생 포켓몬도 다시 나온다
+  if (announce && zone) queueSay('🎯 새로운 하루야! 오늘의 미션이 새로 나왔고, 야생 포켓몬들도 다시 나왔어 — 도감의 "미션" 탭에서 보자!', { sec: 7 });
   return true;
 }
 /** 지금까지 해낸 것으로 새 스티커를 받았는지 본다 */
@@ -2285,7 +2301,7 @@ function buildSaveData() {
     v: 1, name: state.name, admin: !!state.admin, savedAt: Date.now(),
     zone: zone.name, pos: sailing ? { ...dockLanding() } : { x: +player.position.x.toFixed(1), z: +player.position.z.toFixed(1), y: +player.position.y.toFixed(1) }, // y: 동굴탑처럼 층이 겹치는 곳에서 어느 층인지 // 배 위에서 저장하면 선착장에서 다시 시작
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
-    conquered: { ...state.conquered }, caughtCreatures: state.caughtCreatures, dex: { ...state.dex }, bossDex: { ...state.bossDex },
+    conquered: { ...state.conquered }, caughtSpots: { day: state.caughtSpots.day, list: Object.fromEntries(Object.entries(state.caughtSpots.list).map(([k, v]) => [k, [...v]])) }, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
     balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
@@ -3140,7 +3156,9 @@ function applySave(d) {
   for (const k of Object.keys(state.bossDex)) delete state.bossDex[k];
   for (const [k, v] of Object.entries(d.dex || {})) { const id = ALIAS[k] || k; state.dex[id] = (state.dex[id] || 0) + v; if (BOSS_ALIAS.has(k)) state.bossDex[id] = (state.bossDex[id] || 0) + v; }
   Object.assign(state.bossDex, d.bossDex || {});
-  pendingCaught = d.caughtCreatures || {};
+  // 잡은 야생은 그날만 기억한다(날이 바뀌면 모두 다시 나온다). 옛 저장의 번호 목록(caughtCreatures)은 배치가 바뀌어 믿을 수 없으니 버린다 → 모두 다시 나온다
+  state.caughtSpots = d.caughtSpots && d.caughtSpots.day === dayKey() && d.caughtSpots.list ? { day: d.caughtSpots.day, list: { ...d.caughtSpots.list } } : { day: dayKey(), list: {} };
+  pendingCaught = state.caughtSpots.list;
   state.returnTo = d.returnTo || null;
   state.carTold = !!d.carTold;
   state.lastWeek = d.lastWeek || null; state.lastWk = d.lastWk ? { ...emptyWeek(), ...d.lastWk } : null;
@@ -3488,7 +3506,7 @@ function frame() {
             }
             if (c.isBoss && !c.data.floorBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
-            if (!c.rocketOf && !c.isMega && !zone.world.transient) (state.caughtCreatures[zone.name] ||= []).push(zone.creatures.indexOf(c)); // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없고, 전설·메가는 도감으로 세니 빼 둔다)
+            if (!c.rocketOf && !c.isMega && !zone.world.transient) { if (state.caughtSpots.day !== dayKey()) state.caughtSpots = { day: dayKey(), list: {} }; (state.caughtSpots.list[zone.name] ||= []).push(spotKey(c)); } // 저장용: 어느 몬스터를 잡았는지 (대원이 내보낸 포켓몬은 원래 이 지역 목록에 없고, 전설·메가는 도감으로 세니 빼 둔다)
             // 이겨도 체력은 그대로 (대결에서 깎인 만큼 남는다). 시간이 지나면 천천히 차고, 물약·오박사·엄마·침대로 바로 낫는다
             const expNote = giveExp(L, c); // 경험치 → 레벨업 (진화 조건)
             bump('win'); // 오늘의 미션 "대결 이기기"
