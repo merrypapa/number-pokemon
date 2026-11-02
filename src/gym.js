@@ -94,7 +94,7 @@ export function buildGym(scene) {
   // 연못: 모래 테두리 + 물(살짝 투명한 파랑) + 연잎 + 잔교
   const sand = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0xe8d9a8, roughness: 1 }));
   sand.rotation.x = -PI2; sand.scale.set(P.rx + 2.2, P.rz + 2.2, 1); sand.position.set(P.x, 0.012, P.z); sand.userData.noHide = true; decor.add(sand);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, transparent: true, opacity: 0.85, roughness: 0.3 }));
+  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, roughness: 0.3 })); // 불투명: 반투명이면 물에 잠긴 주인공의 몸(살색)이 물 너머로 비쳐 깜빡였다
   water.rotation.x = -PI2; water.scale.set(P.rx, P.rz, 1); water.position.set(P.x, 0.02, P.z); water.userData.noHide = true; decor.add(water);
   const pads = []; for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, r = 0.35 + Math.random() * 0.55; pads.push({ x: P.x + Math.cos(a) * P.rx * r, y: 0.04, z: P.z + Math.sin(a) * P.rz * r, sx: 0.9, sy: 1, sz: 0.9, ry: Math.random() * 3 }); }
   decor.add(makeInstanced(new THREE.CircleGeometry(0.6, 10).rotateX(-PI2), new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), pads));

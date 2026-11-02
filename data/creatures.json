@@ -4443,11 +4443,11 @@
   },
   {
    "id": "m57",
-   "name": "얼음토끼",
+   "name": "글레이시아",
    "type": "물",
    "zone": "p_uranus",
    "catchable": true,
-   "model": "얼음토끼.glb",
+   "model": "글레이시아.glb",
    "scale": 0.9,
    "draftShape": {
     "body": "sphere",
@@ -4481,8 +4481,8 @@
    ],
    "evolution": null,
    "favoriteNumber": 7,
-   "personality": "깡충깡충",
-   "story": "천왕성의 파란 얼음 들판에 사는 토끼. 귀 끝이 고드름처럼 반짝여. 깡충 뛸 때마다 발자국이 얼어붙어 길이 생긴대."
+   "personality": "차분함",
+   "story": "천왕성의 파란 얼음 들판에 사는 이브이의 진화형. 몸의 털을 얼려 고드름처럼 반짝이게 해. 뛸 때마다 발자국이 얼어붙어 길이 생긴대."
   },
   {
    "id": "b06",
