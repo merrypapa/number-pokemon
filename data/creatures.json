@@ -194,7 +194,8 @@
     "m08",
     "m28",
     "m64",
-    "m62"
+    "m62",
+    "m62e"
    ],
    "wildOverride": {
     "swim": false,
@@ -4994,8 +4995,8 @@
    "id": "m62e",
    "name": "레트라",
    "type": "노말",
-   "zone": "evolution",
-   "catchable": false,
+   "zone": "forest",
+   "catchable": true,
    "model": "레트라.glb",
    "scale": 1.1,
    "draftShape": {
@@ -5029,7 +5030,7 @@
    "evolution": null,
    "favoriteNumber": 4,
    "personality": "고집 셈",
-   "story": "꼬렛이 진화한 모습. 커다란 앞니는 돌도 갉아. 수염으로 바람의 방향을 안다.",
+   "story": "꼬렛이 진화한 모습. 커다란 앞니는 돌도 갉아. 수염으로 바람의 방향을 알아. 푸른숲 풀숲에서도 가끔 만날 수 있어.",
    "evolvedFrom": "m62"
   },
   {
