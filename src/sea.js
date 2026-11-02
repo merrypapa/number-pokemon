@@ -413,7 +413,7 @@ export function buildSea(scene) {
         ? '바다를 정복했으니 서쪽 먼바다의 소용돌이가 열렸네! 루피의 배를 타고 들어가면 심해로 내려간다네. 보스 갸라도스가 기다리고 있어!'
         : '서쪽 먼바다에는 아무도 못 들어가는 소용돌이가 있어. 거북왕을 이겨서 바다가 자네를 인정해야 열린다는군.',
     ] }],
-    train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'forest' },
+    train: { kind: 'train', mesh: train, base: trainBase, dir: 1, boardPoint: { x: SEA.spawn.x + 8, z: SEA.spawn.z - 3 }, to: 'town' }, // 기차는 마을 기차역으로
     wildSpots: [[I[1].x - 3, I[1].z + 3], [I[1].x + 5, I[1].z - 4], [I[2].x + 3, I[2].z + 2], [I[2].x - 5, I[2].z - 4], [I[3].x - 5, I[3].z + 4], [I[3].x + 5, I[3].z - 5], [I[4].x, I[4].z + 3], [I[4].x - 4, I[4].z - 3], [I[5].x + 3, I[5].z + 3], [I[5].x - 4, I[5].z - 4], [I[0].x - 10, I[0].z - 8], [I[0].x + 11, I[0].z + 6], [I[6].x - 8, I[6].z + 6], [I[6].x + 9, I[6].z + 4], [I[7].x - 5, I[7].z + 4], [I[7].x + 6, I[7].z - 3], [I[8].x + 5, I[8].z + 4], [I[8].x - 6, I[8].z - 3]],
     bossSpot: { x: I[6].x, z: I[6].z - 3 },
     // 배를 타야 만나는 헤엄치는 포켓몬 자리 (물 위). 뒤쪽 네 자리는 아주 먼바다 = 라프라스 같은 깊은바다 포켓몬

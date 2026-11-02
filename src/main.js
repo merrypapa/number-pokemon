@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
-import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
+import { buildWorld, buildTown, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
 import { buildMegaShrine, shrineName, shrineHeightAt, SHRINE_PILLARS } from './mega.js';
 import { buildArena, ARENA } from './arena.js';
 import { buildGym } from './gym.js';
@@ -204,7 +204,7 @@ function makeZone(name, builder) {
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 /** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, tower: buildTower, hive: buildHive, arena: buildArena, gym: buildGym };
+const BUILDERS = { town: buildTown, forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, tower: buildTower, hive: buildHive, arena: buildArena, gym: buildGym };
 const WILD_TOTAL = { forest: 42, cave: 16, thunder: 14, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
 const PICKUP_CAP = { forest: 3, cave: 2, thunder: 2, tower: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
@@ -1283,6 +1283,7 @@ const RIDE_MSG = {
   sea: '물의길에 도착! 다리로 섬을 건너고, 동쪽 선착장에서 배를 타면 먼바다의 포켓몬도 만날 수 있어. 돌아갈 땐 기차역에서 E!',
   space: '꿈의우주에 도착! 중력이 약해서 높이 뛸 수 있어. 화면을 위로 밀어 하늘의 태양과 행성들도 봐! 돌아갈 땐 로켓에서 E!',
   forest: '푸른숲으로 돌아왔어!',
+  town: '🏘 포켓몬 마을로 돌아왔어!',
 };
 let ride = null;
 function vehiclesHere() { return [zone.world.train, zone.world.rocket, zone.world.ufo].filter(Boolean); }
@@ -2100,7 +2101,7 @@ function tutorial() {
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록을 주웠어! 왼쪽 위에 블록 수가 보여. B(도감)의 상점에서 블록으로 넘버볼과 물약을 살 수 있어.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 이기면 경험치가 쌓여서 레벨이 오르고, 레벨이 오르면 체력과 공격이 세져.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 나타나면 퀴즈를 풀어 줘. 맞히면 블록을 줘!', { sec: 7 }); }
-  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('푸른숲엔 다른 지역으로 가는 길이 있어. 동북쪽 불의산 입구, 서쪽 기차역(물의길), 남동쪽 로켓 발사장(꿈의우주)! 꿈의우주의 UFO 정거장에서는 태양과 행성들까지 갈 수 있어. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
+  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('모든 길은 포켓몬 마을에서 시작해! 북쪽 문은 푸른숲(그 너머 불의산·꿀벌집), 북서쪽 굴은 지하동굴, 서쪽 기차역은 물의길, 동쪽 로켓은 꿈의우주. 광장의 길잡이 인하에게 물어봐. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
 function conquer(zoneName) {
   state.conquered[zoneName] = true;
@@ -2142,7 +2143,7 @@ function renderStarter() {
   }
 }
 // 게임 시작: 지역(푸른숲 또는 저장된 지역)을 준비하고 주인공을 세운다
-function startGame({ zoneName = 'forest', pos = null } = {}) {
+function startGame({ zoneName = 'town', pos = null } = {}) {
   document.body.classList.remove('intro');
   intro?.dispose();
   intro = null;
@@ -3120,6 +3121,7 @@ function renderGuide(el) {
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
+    ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b>북쪽 문</b> → 푸른숲(그 너머 불의산·꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
     ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
     ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
@@ -3215,7 +3217,9 @@ function applySave(d) {
   }
   const leader = party.healthy().includes(party.members[d.leader]) ? party.members[d.leader] : (party.healthy()[0] || party.members[0]);
   if (leader) party.setLeader(leader); // 대표를 미리 정해 두고(레벨 참고용), 모습은 지역이 준비된 뒤 붙인다
-  startGame({ zoneName: BUILDERS[d.zone] ? d.zone : 'forest', pos: d.pos });
+  // 마을을 떼어 내기 전 저장(푸른숲의 옛 마을 자리, z > 30)은 마을 광장에서 시작한다
+  const oldVillage = d.zone === 'forest' && d.pos && d.pos.z > 30;
+  startGame({ zoneName: oldVillage ? 'town' : BUILDERS[d.zone] ? d.zone : 'town', pos: oldVillage ? null : d.pos });
   if (leader) attachLeader(leader);
   for (const m of party.members) checkMaster(m, true); // 이미 Lv.50 인 포켓몬은 조용히 마스터
   setTimeout(() => checkDexComplete(), 4000); // 이미 다 채웠는데 축하를 못 받았으면 지금
@@ -3306,18 +3310,24 @@ function frame() {
 
     // ----- 지역 이동 -----
     let moved = false;
-    if (zone.name === 'forest') {
+    if (zone.name === 'forest' || zone.name === 'town') { // 마을(허브)과 푸른숲은 같은 코드로 만들어 문 좌표가 같은 이름으로 온다 (없는 문은 맵 밖에 있어 닿지 않는다)
       const w = zone.world;
-      if (near(w.caveMouth, 2.0)) { // 북쪽 바위 언덕의 굴 입구로 걸어 들어간다 (떨어지지 않는다)
+      if (w.forestGate && near(w.forestGate, 2.4)) { // 마을 북쪽 문 → 푸른숲
         moved = true;
-        switchZone('cave', getZone('cave').world.spawn, { text: '굴을 따라 지하동굴에 들어왔어! 어두우니 조심해. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 푸른숲에 돌아갈 수 있어!', sec: 8 });
-      } else if (state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
+        switchZone('forest', getZone('forest').world.arrivals.town, { text: '🌲 푸른숲! 야생 포켓몬이 사는 숲이야. 서북쪽 돌기둥 아레나에 보스 이상해꽃, 동북쪽은 불의산, 남서쪽 꿀의 길 끝은 꿀벌집. 남쪽 문으로 나가면 마을이야.', sec: 8 });
+      } else if (w.townGate && near(w.townGate, 2.4)) { // 숲 남쪽 문 → 마을
+        moved = true;
+        switchZone('town', getZone('town').world.arrivals.forest, { text: '🏘 포켓몬 마을! 집·학교·연구소·체육관·아레나가 있고, 기차역·로켓·지하동굴로 가는 길도 여기서 시작해.', sec: 7 });
+      } else if (near(w.caveMouth, 2.0)) { // 바위 언덕의 굴 입구로 걸어 들어간다 (떨어지지 않는다)
+        moved = true;
+        switchZone('cave', getZone('cave').world.spawn, { text: '굴을 따라 지하동굴에 들어왔어! 어두우니 조심해. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 마을에 돌아갈 수 있어!', sec: 8 });
+      } else if (zone.name === 'forest' && state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '지하동굴에 들어왔어! 땅·바위·독 포켓몬이 살아. 포탈로 돌아갈 수 있어.', sec: 6 });
-      } else if (near(w.hiveDoor, 4.0)) { // 매달린 벌집 아래 (어느 방향에서 와도. 벌집이 커진 만큼 넓게)
+      } else if (w.hiveDoor && near(w.hiveDoor, 4.0)) { // 매달린 벌집 아래 (어느 방향에서 와도. 벌집이 커진 만큼 넓게)
         moved = true;
         switchZone('hive', getZone('hive').world.spawn, { text: '윙윙! 꿀벌집 안으로 들어왔어! 육각형 벌집 칸과 꿀 웅덩이, 꿀벌 떼가 가득해. 북쪽 벌집 탑은 벌집 다리를 따라 걸어서 올라가! 벌레·풀 포켓몬이 살아. 남쪽 포탈로 나갈 수 있어.', sec: 8 });
-      } else if (near(w.volcanoGate, 2.4)) {
+      } else if (w.volcanoGate && near(w.volcanoGate, 2.4)) {
         moved = true;
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
       } else if (w.gymDoor && near(w.gymDoor, 2.0)) { // 야외 체육관 문

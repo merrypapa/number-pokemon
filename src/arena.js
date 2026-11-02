@@ -57,7 +57,7 @@ export function buildArena(scene) {
   wall(R.w / 2 - 2, 0.6, R.w / 4 + 1, R.d / 2 + 0.3);
   const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.7, 0.8), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
   doorFrame.position.set(0, 3.6, R.d / 2 + 0.3); decor.add(doorFrame);
-  const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (푸른숲)', '#e8453c', '#ffffff', 48), transparent: true, depthTest: false }));
+  const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (마을)', '#e8453c', '#ffffff', 48), transparent: true, depthTest: false }));
   exitSign.scale.set(3.4, 0.85, 1); exitSign.position.set(0, 3.0, R.d / 2 - 0.5); decor.add(exitSign);
 
   // 관중석: 북·동·서 삼면, 4단 계단 + 알록달록 좌석. 앞줄 앞은 못 올라간다(장애물)
@@ -123,7 +123,7 @@ export function buildArena(scene) {
   function animate(t) { lights.forEach((l, i) => { l.intensity = 2.0 + Math.sin(t * 1.3 + i) * 0.3; }); edge.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.2; }
 
   return {
-    sun, animate, terrain: ARENA_TERRAIN, decor, spawn: ARENA.spawn, portal: ARENA.door, dark: false, indoor: true, noShrine: true,
+    portalTo: 'town', sun, animate, terrain: ARENA_TERRAIN, decor, spawn: ARENA.spawn, portal: ARENA.door, dark: false, indoor: true, noShrine: true,
     wildSpots: [], pickupSpots: [],
     duelSpots: ARENA.spots,
     npcs: [

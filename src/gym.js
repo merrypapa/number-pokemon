@@ -69,7 +69,7 @@ export function buildGym(scene) {
   // 문 기둥 + 간판
   for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.6, 0.6), postMat); p.position.set(s * 2.6, 1.8, F.d / 2); p.castShadow = true; decor.add(p); block(s * 2.6, F.d / 2, 0.5); }
   const beam = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 0.6), postMat); beam.position.set(0, 3.7, F.d / 2); decor.add(beam);
-  const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (푸른숲)', '#2f6f2a', '#ffffff', 48), transparent: true, depthTest: false }));
+  const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (마을)', '#2f6f2a', '#ffffff', 48), transparent: true, depthTest: false }));
   exitSign.scale.set(6, 1.4, 1); exitSign.position.set(0, 5.0, F.d / 2); decor.add(exitSign);
   const title = makePillSprite('🏃 야외 체육관 · 내 포켓몬들이 뛰어노는 곳! 가까이 가서 💪 훈련하기', { bg: '#2f6f2a', fg: '#ffffff', border: '#ffd93d' }, 1.3);
   title.position.set(0, 4.5, GYM.spawn.z - 6); decor.add(title);
@@ -157,7 +157,7 @@ export function buildGym(scene) {
     return { ...home };
   }
   return {
-    sun, animate, terrain: GYM_TERRAIN, decor, spawn: GYM.spawn, portal: GYM.door, portalTo: 'forest', dark: false, gym: true, noShrine: true,
+    sun, animate, terrain: GYM_TERRAIN, decor, spawn: GYM.spawn, portal: GYM.door, portalTo: 'town', dark: false, gym: true, noShrine: true,
     wildSpots: [], pickupSpots: [], climbAt: GYM_TERRAIN.climbAt,
     field: { w: F.w - 6, d: F.d - 6 }, dummies: GYM.dummies, homes, spotNear, inPond, onDock, waterY: -0.35, swimY: -0.75,
     treeNear: (x, z) => GYM.trees.find((t) => Math.hypot(x - t.x, z - t.z) < 2.6) || null, // 나무 위 집에서 줄기 가까이 (내려가기 버튼)
