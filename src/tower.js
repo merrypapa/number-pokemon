@@ -21,6 +21,7 @@ export const LAND_LO = 0.30;
 const LAND_R = 8;                     // 층계참 안쪽 반지름
 export const TOP_Y = LAP_H * (TOWER_TOP - 1); // 꼭대기 단 높이 (63)
 export const GATE_LAYER = 0.7;        // 이 높이 아래의 가장 높은 바퀴를 고른다
+export const TOP_OPEN = 0.9;          // 꼭대기 단의 계단 입구(마지막 바퀴가 올라오는 각도 2π-TOP_OPEN ~ 2π, 비탈 반지름 바깥)는 뚫려 있어 내려갈 수 있다
 
 /** 층 → 층계참 높이 (1층은 바닥 0) */
 export const floorY = (n) => LAP_H * (n - 1);
@@ -72,8 +73,9 @@ function towerHeight(x, z, refY = 0) {
   if (r > R_OUT + 0.6) return 0;
   const lim = (refY ?? 0) + GATE_LAYER;
   let best = 0; // 바닥 (1층)
-  if (TOP_Y <= lim) best = TOP_Y;
   const a = angOf(x, z);
+  const topHole = r >= R_IN - 0.05 && a >= TAU - TOP_OPEN; // 꼭대기 단의 계단 입구: 여기선 단이 없고 마지막 바퀴 비탈이다 (전에는 단이 굴 전체를 덮어 꼭대기에서 내려올 길이 없었다)
+  if (TOP_Y <= lim && !topHole) best = TOP_Y;
   if (r >= R_IN - 0.05) { // 비탈 (바퀴 k = 0 ~ TOWER_TOP-2)
     const k = Math.floor(lim / LAP_H - ramp(a));
     if (k >= 0 && k <= TOWER_TOP - 2) best = Math.max(best, LAP_H * (k + ramp(a)));
@@ -81,6 +83,17 @@ function towerHeight(x, z, refY = 0) {
     const k = Math.floor(lim / LAP_H);
     if (k >= 1 && k <= TOWER_TOP - 2) best = Math.max(best, LAP_H * k);
   }
+  return best;
+}
+/** 그 자리(카메라 자리)에서 y 보다 위에 있는 가장 낮은 천장(위 바퀴 비탈·층계참·꼭대기 단) 높이. 없으면 Infinity. main 이 카메라를 천장 아래로 누르는 데 쓴다 */
+export function towerCeiling(x, z, y) {
+  const r = Math.hypot(x, z);
+  if (r > R_OUT + 0.6) return Infinity;
+  const a = angOf(x, z);
+  let best = Infinity;
+  if (r >= R_IN - 0.05) { for (let k = 0; k <= TOWER_TOP - 2; k++) { const h = LAP_H * (k + ramp(a)); if (h > y + 0.5 && h < best) best = h; } }
+  else if (r >= LAND_R - 0.05 && inLanding(a)) { for (let k = 1; k <= TOWER_TOP - 2; k++) { const h = LAP_H * k; if (h > y + 0.5 && h < best) best = h; } }
+  if (TOP_Y > y + 0.5 && !(r >= R_IN - 0.05 && a >= TAU - TOP_OPEN)) best = Math.min(best, TOP_Y);
   return best;
 }
 function towerBlocked(x, z, refY = 0) {
@@ -203,9 +216,14 @@ export function buildTower(scene) {
   const base = new THREE.Mesh(new THREE.CircleGeometry(R_OUT + 0.6, 48), new THREE.MeshStandardMaterial({ color: 0x5e6679, roughness: 0.9 }));
   base.rotation.x = -Math.PI / 2; base.userData.noHide = true; base.receiveShadow = true;
   decor.add(base);
-  const top = new THREE.Mesh(new THREE.CircleGeometry(R_OUT + 0.6, 48), new THREE.MeshStandardMaterial({ color: 0x8a7a40, roughness: 0.9 }));
-  top.rotation.x = -Math.PI / 2; top.position.y = TOP_Y; top.userData.noHide = true;
-  decor.add(top);
+  // 꼭대기 단: 가운데 원판 + 바깥 고리(계단 입구 쪽은 뚫림). CircleGeometry 의 각도 θ 는 rotation.x=-π/2 뒤 월드 각도 -θ 가 되므로, 월드 [2π-TOP_OPEN, 2π) = 로컬 (0, TOP_OPEN]
+  const topMat = new THREE.MeshStandardMaterial({ color: 0x8a7a40, roughness: 0.9, side: THREE.DoubleSide });
+  const topIn = new THREE.Mesh(new THREE.CircleGeometry(R_IN, 48), topMat);
+  topIn.rotation.x = -Math.PI / 2; topIn.position.y = TOP_Y; topIn.userData.noHide = true; decor.add(topIn);
+  const topRing = new THREE.Mesh(new THREE.RingGeometry(R_IN - 0.2, R_OUT + 0.6, 64, 1, TOP_OPEN, TAU - TOP_OPEN), topMat);
+  topRing.rotation.x = -Math.PI / 2; topRing.position.y = TOP_Y; topRing.userData.noHide = true; decor.add(topRing);
+  const downSign = makePillSprite('▼ 내려가는 계단', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.9);
+  downSign.position.set((R_IN + R_OUT) / 2 * Math.cos(-TOP_OPEN / 2), TOP_Y + 2.6, (R_IN + R_OUT) / 2 * Math.sin(-TOP_OPEN / 2)); decor.add(downSign);
   // 꼭대기 금빛 무대 + 하늘 (별) + 하늘의 문
   const stage = new THREE.Mesh(new THREE.CylinderGeometry(6, 6.5, 0.4, 32), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.4 }));
   stage.position.set(0, TOP_Y + 0.2, 0); stage.userData.noHide = true;

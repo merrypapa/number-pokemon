@@ -3,6 +3,8 @@ import { Input } from './input.js';
 import { buildWorld, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
 import { buildMegaShrine, shrineName, shrineHeightAt, SHRINE_PILLARS } from './mega.js';
 import { buildArena, ARENA } from './arena.js';
+import { buildGym } from './gym.js';
+import { makePillSprite } from './world.js';
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -12,7 +14,7 @@ import { buildLab } from './lab.js';
 import { buildSchool } from './school.js';
 import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
-import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerElite, towerLevelBand, LAND_W } from './tower.js';
+import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerElite, towerLevelBand, LAND_W, towerCeiling } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
@@ -34,7 +36,7 @@ import { Confetti, Particles, Sound } from './effects.js';
 import { Bgm, trackFor } from './bgm.js';
 import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
-import { Party, friendStats, expFor, STARTER_LEVEL, MAX_LEVEL } from './party.js';
+import { Party, friendStats, expFor, expNeed, STARTER_LEVEL, MAX_LEVEL } from './party.js';
 import { ITEMS, ITEM_BY_ID, emptyItems, canUseItem, applyItem } from './items.js';
 import { Quiz } from './quiz.js';
 import { listSaves, loadSave, saveGame, deleteSave, formatWhen } from './save.js';
@@ -81,6 +83,10 @@ function fpLookDir() {
 }
 // pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
 function camOffset() {
+  if (zone?.world?.gym && player.position.y > 3) { // 체육관 나무 위 집: 잎 아래에서 가깝게 본다
+    const h = Math.max(1.4, 2.6 + cam.pitch * 3), d = 6 - cam.pitch * 2;
+    return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
+  }
   if (zone?.world?.tower) { // 동굴탑: 보통 카메라(9m 위·11m 뒤)는 위 바퀴 계단 너머로 올라가 주인공이 가려졌다 → 낮고 가깝게 (한 층 7m 안에서)
     const h = Math.max(1.4, 3.4 + cam.pitch * 3), d = 6.5 - cam.pitch * 2;
     return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
@@ -88,7 +94,11 @@ function camOffset() {
   const h = Math.max(1.6, 9 + cam.pitch * 6), d = 11 - cam.pitch * 3;
   return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
 }
-function camLookY() { return 1 + Math.max(0, -0.35 - cam.pitch) * 12; }
+function camLookY() { // 화면을 아래로 끌어(pitch 음수) 고개를 들 때 보는 높이. 주인공이 화면 밖(아래)으로 나가지 않게 카메라에서 본 각도를 약 18° 안으로 막는다
+  // (전에는 12배까지 올라가 동굴탑처럼 위를 자주 올려다보는 곳에서 주인공이 화면에서 사라졌다 — "캐릭터가 안 보여요")
+  const off = camOffset(), maxUp = off.y + Math.hypot(off.x, off.z) * 0.2;
+  return Math.min(1 + Math.max(0, -0.35 - cam.pitch) * 12, maxUp);
+}
 function camForward() { return new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)); } // 카메라가 보는 지면 방향
 window.addEventListener('resize', fitRenderer);
 window.visualViewport?.addEventListener('resize', fitRenderer);
@@ -192,7 +202,7 @@ function makeZone(name, builder) {
 // 지역은 필요할 때 만든다 (시작할 때 다 만들면 타이틀이 늦게 뜬다): 푸른숲은 시작 직후 뒤에서, 나머지는 처음 갈 때(화면 전환 페이드 중).
 /** 그 지역의 보스 (보스 능력치를 덮어쓴 모습). boss 가 객체인 종(이상해꽃·리자몽·꼬마돌 …)은 평소엔 진화형·야생이고 그 지역에서만 보스다 */
 function bossFor(zoneName) { const sp = creatureData.creatures.find((c) => c.boss && bossZoneOf(c) === zoneName); return sp ? { ...sp, ...bossOverride(sp) } : null; }
-const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, tower: buildTower, hive: buildHive, arena: buildArena };
+const BUILDERS = { forest: buildWorld, cave: buildCave, volcano: buildVolcano, sea: buildSea, deepsea: buildDeepSea, space: buildSpace, lab: buildLab, school: buildSchool, home: buildHome, thunder: buildThunder, tower: buildTower, hive: buildHive, arena: buildArena, gym: buildGym };
 const WILD_TOTAL = { forest: 42, cave: 16, thunder: 14, volcano: 26, sea: 44, deepsea: 24, space: 26, hive: 14 }; // 지역별 야생 몬스터 자리 수 (물의길은 섬 20 + 바다 20 + 먼바다 4). 맵을 넓히며 함께 늘렸다
 const PICKUP_CAP = { forest: 3, cave: 2, thunder: 2, tower: 2, volcano: 2, sea: 2, deepsea: 2, space: 2, hive: 3 }; // 꿀벌집 3개는 보너스 벌집 위 // 줍는 블록 자리 수 (아주 적게: 블록은 대결·숫자블록 퀴즈로 얻는다)
 for (const p of PLANETS) { // 태양계 행성 지역 10곳 (p_sun … p_pluto): 꿈의우주 UFO 정거장의 손오공에게 말을 걸고 고른다. 사는 포켓몬은 zones.p_*.wild
@@ -365,6 +375,41 @@ function dismountCar({ park = true } = {}) {
 }
 function toggleCar() { driving ? dismountCar() : mountCar(); }
 carBtn.onclick = toggleCar;
+
+// ---------- 날개 있는 포켓몬 타고 날기 (아직 꺼져 있음: creatures.json 에 `flying: true` 인 종이 없어 버튼이 안 나온다. 켜려면 날개 종에 flying 을 적는다) ----------
+// 대표 포켓몬이 날개 있는 종(creatures.json `flying`)이면 HUD 에 🕊 버튼이 나온다. 누르면 그 포켓몬을 타고 날아오른다:
+// 점프 버튼을 누르고 있으면 올라가고(지면 위 16m 까지) 놓으면 천천히 내려온다(지면 위 2.5m 까지). 걷기의 2배 속도로 물·울타리·나무 위를 지난다.
+// 야생 포켓몬은 날고 있는 동안 못 덤빈다. 바깥 지역에서만(동굴·탑·실내·심해·꿀벌집에서는 못 탄다). 🛬 버튼이나 액션 버튼으로 내린다 (물 위면 가까운 땅으로).
+const FLY_ZONE_OK = (name) => !['deepsea', 'hive', 'lab', 'school', 'home', 'tower', 'cave', 'thunder', 'arena'].includes(name);
+const flyAllowed = () => !!party.leader && !!speciesById[party.leader.speciesId]?.flying;
+let flying = false;
+const flyBtn = document.getElementById('hud-fly-row');
+function refreshFlyBtn() { const show = flyAllowed() && !driving; if (flyBtn.hidden === show) flyBtn.hidden = !show; const label = flying ? '🛬 내리기' : '🕊 타고 날기'; if (flyBtn.textContent !== label) flyBtn.textContent = label; }
+function tickFly() { if (flying && !flyAllowed()) dismountFly(); refreshFlyBtn(); }
+function mountFly() {
+  if (flying || !zone || !flyAllowed() || sailing || driving || battle.active || ride || switching || duelStage.active) return;
+  if (!FLY_ZONE_OK(zone.name)) { say('여기서는 날 수 없어. 바깥(푸른숲·불의산·물의길·꿈의우주·체육관)에서 날아 보자!', { sec: 4 }); return; }
+  const L = party.leader, sp = party.species(L);
+  for (const f of chain.followers) f.mesh.visible = false; // 따라오던 친구들은 잠시 쉰다 (대표는 내가 타고 있다)
+  const mesh = buildDraftMesh(sp); const s = Math.max(1.3, partyScale(sp)); mesh.scale.setScalar(s);
+  player.mountFly(mesh, { seatY: 0.8 * s });
+  flying = true; sound.click();
+  particles.stars(zone.scene, player.position.clone().add(new THREE.Vector3(0, 1, 0)), 16, 0xffffff, 0.5);
+  if (!state.flyTold) { state.flyTold = true; say(`🕊 ${josa(sp.name, '을를')} 타고 날아! 점프 버튼을 누르고 있으면 올라가고, 놓으면 천천히 내려와. 🛬 버튼이나 액션 버튼으로 내려.`, { sec: 7 }); }
+  refreshFlyBtn();
+}
+function dismountFly() {
+  if (!flying) return;
+  player.dismountFly(); flying = false;
+  const p = player.position;
+  if (isBlocked(p.x, p.z, terrainHeight(p.x, p.z)) || insideObstacle(p.x, p.z, 0.5)) { // 물 위·막힌 곳이면 가까운 땅으로
+    outer: for (let r = 1; r < 40; r += 1) for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) { const x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r; if (!isBlocked(x, z, terrainHeight(x, z)) && !insideObstacle(x, z, 0.6)) { p.x = x; p.z = z; break outer; } }
+  }
+  for (const f of chain.followers) { f.mesh.visible = !zone?.world?.gym; f.mesh.position.set(p.x, terrainHeight(p.x, p.z), p.z); }
+  refreshFlyBtn();
+}
+function toggleFly() { flying ? dismountFly() : mountFly(); }
+flyBtn.onclick = toggleFly;
 
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
 const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -44, z: 34 }, volcano: { x: -93, z: 85 }, sea: { x: 110, z: 114 }, space: { x: 85, z: 79 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
@@ -547,7 +592,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id }; // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -695,7 +740,7 @@ const battle = new Battle({ input, camera, say, sound, particles, confetti, part
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
 battle.isMaster = (m) => !!state.masters[m.speciesId]; // 대결 내 이름표에 👑
-battle.onSuperHit = () => bump('super'); // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
+battle.onSuperHit = (atkType, defType) => { bump('super'); questHit('super', { atkType, defType }); }; // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
   const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
@@ -723,7 +768,7 @@ function attachLeader(member) {
   if (old) { chain.remove(old.mesh); zone.scene.remove(old.mesh); }
   party.setLeader(member);
   const mesh = member.mesh;
-  mesh.visible = true;
+  mesh.visible = !zone?.world?.gym && !flying; // 체육관에서는 모두 뛰어노는 중, 날 때는 내가 타고 있다
   mesh.rotation.set(0, 0, 0);
   mesh.scale.setScalar(partyScale(party.species(member)));
   const behind = myStack.mesh ? myStack.mesh.position : player.position;
@@ -973,8 +1018,142 @@ function applyZoneEnv() {
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 발밑에 금빛 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   player.gravityScale = zone.world.gravity || 1;
+  player.climbAt = zone.world.climbAt || null; // 야외 체육관의 올라갈 수 있는 나무
+  if (zone.world.gym) spawnGymPets(); else if (gymPets.length) clearGymPets(); // 체육관: 내 포켓몬들이 모두 나와 뛰어논다
+  if (!zone.world.gym && !flying) for (const f of chain.followers) f.mesh.visible = true;
+  const q = state.profQuest;
+  if (q && !q.done && q.zone === zone.name) queueSay(`🔬 오박사님이 말한 곳이야! ${questText(q)} (${q.n}/${q.need})`, { sec: 6 });
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
   chain.swim = !!zone.world.swim;         // 따라오는 친구들도 함께 떠오른다
+}
+// ---------- 야외 체육관 (src/gym.js): 내가 잡은 포켓몬들이 모두 나와 뛰어논다 + 훈련 ----------
+// 들어오면 파티의 모든 포켓몬이 운동장에 나와 제멋대로 돌아다니고(목표 자리로 걷기 → 잠깐 쉬기 → 가끔 폴짝), 따라다니던 친구들은 숨긴다.
+// 포켓몬에게 가까이 가면 액션 버튼이 "💪 훈련하기": 경험치(다음 레벨의 30%, 적어도 5)를 받고 폴짝폴짝. 한 마리에 하루 3번 (state.gym).
+let gymPets = []; // { m, mesh, label, target, wait, hop }
+const GYM_TRAIN_MAX = 3;
+const isWaterSp = (sp) => (sp.type || '노말') === '물' || !!sp.swim; // 물 포켓몬은 연못에서 논다
+function gymSpot(p) { // 집 근처의 새 목표 (땅은 연못 밖, 물은 연못 안)
+  for (let i = 0; i < 6; i++) { const s = zone.world.spotNear(p.home, p.water ? 10 : 9, p.water); if (p.water || !insideObstacle(s.x, s.z, 1.2)) return s; }
+  return { ...p.home };
+}
+function petLabel(m) { return makePillSprite(`${party.name(m)} Lv.${m.level}`, { bg: '#ffffff', fg: '#20232e', border: '#57b947' }, 0.5); }
+function spawnGymPets() {
+  clearGymPets();
+  for (const f of chain.followers) f.mesh.visible = false;
+  const landM = party.members.filter((m) => !isWaterSp(party.species(m))), waterM = party.members.filter((m) => isWaterSp(party.species(m)));
+  const H = zone.world.homes(landM.length, waterM.length);
+  const place = (m, home, water) => {
+    const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
+    mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
+    const label = petLabel(m); zone.scene.add(label);
+    const p = { m, mesh, label, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6) }; p.target = gymSpot(p); gymPets.push(p);
+  };
+  landM.forEach((m, i) => place(m, H.land[i], false));
+  waterM.forEach((m, i) => place(m, H.water[i], true));
+}
+function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); p.label.parent?.remove(p.label); } gymPets = []; }
+function gymTick(dt) {
+  if (!zone?.world?.gym || !gymPets.length) return;
+  const pp = player.position;
+  let nearest = null, nd = Infinity;
+  const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있거나 같이 헤엄치고 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
+  let closestWater = null, cwd = Infinity;
+  for (const p of gymPets) {
+    const mp = p.mesh.position; p.t += dt;
+    const far = Math.hypot(pp.x - mp.x, pp.z - mp.z) > 45; // 멀리 있는 포켓몬은 애니메이션·이름표를 쉬게 한다 (130마리여도 태블릿이 버티게)
+    p.label.visible = !far;
+    if (far) { if (p.wait > 0) p.wait -= dt; else p.wait = rand(2, 6); continue; }
+    const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
+    if (p.hop > 0) { p.hop -= dt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
+    else if (p.wait > 0) { p.wait -= dt; mp.y = base; tickModel(p.mesh, dt, p.water ? 'swimidle' : 'idle'); if (p.wait <= 0) p.target = gymSpot(p); }
+    else {
+      const dx = p.target.x - mp.x, dz = p.target.z - mp.z, d = Math.hypot(dx, dz);
+      if (d < 0.5) { p.wait = rand(1, 4); if (Math.random() < 0.35) p.hop = 0.8; }
+      else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
+      mp.y = base;
+    }
+    p.label.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
+    const d = Math.hypot(pp.x - mp.x, pp.z - mp.z);
+    if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1 && pp.y > -2) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
+    if (p.water && d < cwd) { cwd = d; closestWater = p; }
+  }
+  if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
+  if (nearest && !battle.active) offer(`💪 ${party.name(nearest.m)} 훈련하기`, () => trainPet(nearest), '💪\n훈련');
+}
+function trainPet(p) {
+  const m = p.m, key = dayKey();
+  if (state.gym.day !== key) state.gym = { day: key, trained: {} };
+  const n = state.gym.trained[m.speciesId] || 0;
+  if (m.level >= MAX_LEVEL) { say(`${josa(party.name(m), '은는')} 벌써 최고 레벨이야! 👑 다른 포켓몬을 훈련시켜 주자.`, { sec: 4 }); return; }
+  if (n >= GYM_TRAIN_MAX) { say(`${josa(party.name(m), '은는')} 오늘 훈련을 ${GYM_TRAIN_MAX}번 다 했어! 내일 또 하자. 다른 포켓몬도 훈련시켜 줘.`, { sec: 4 }); return; }
+  state.gym.trained[m.speciesId] = n + 1;
+  p.hop = 1.2; p.wait = 2;
+  sound.hit(); particles.stars(zone.scene, p.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 16, 0xffd93d, 0.5);
+  const r = party.gainExp(m, Math.max(5, Math.round(expNeed(m.level) * 0.3)));
+  let note = `💪 ${party.name(m)} 훈련! 경험치 +${r.amount} (오늘 ${n + 1}/${GYM_TRAIN_MAX})`;
+  if (r.to > r.from) {
+    sound.fanfare(); bump('levelup', null, r.to - r.from);
+    m.mesh.position.copy(p.mesh.position); showLevelUp(m, r); checkMaster(m);
+    zone.scene.remove(p.label); p.label = petLabel(m); zone.scene.add(p.label);
+    note += ` ⬆ Lv.${r.to}! (❤ ${m.maxHp} · ⚔ ${m.atk})`;
+  }
+  say(note, { sec: 4 }); refreshHud();
+}
+// ---------- 오박사의 의뢰: 대표 포켓몬의 상성 이야기 + "강하게 반응하는 곳"에서 하는 미션 ----------
+// 연구소의 오박사에게 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 어디에 약한지, 짧은 이야기)를 해 주고,
+// 그 속성 기술이 굉장한 상대가 가장 많이 사는 지역을 "강한 반응이 있는 곳"으로 알려 주며 의뢰를 준다: 거기서 효과가 굉장한 공격 3번 (노말은 푸른숲에서 2마리 잡기).
+// 끝내면 블록 보상 + 오박사의 다음 이야기. 미션 탭 맨 위에 보인다.
+const TYPE_STORY = {
+  '불': '옛날 불의산이 처음 불을 뿜던 날, 불 포켓몬들이 산을 지키기로 약속했대. 그래서 불 포켓몬은 풀과 벌레 앞에서 제일 용감해져.',
+  '물': '바다의 전설 루기아가 파도를 잠재우자 물 포켓몬들이 바다를 지키게 됐대. 불과 땅·바위를 식히는 힘이 있어.',
+  '풀': '푸른숲의 큰 숫자 나무가 처음 씨앗을 떨어뜨렸을 때 풀 포켓몬이 태어났대. 물과 땅·바위에 뿌리를 내리는 힘이 있지.',
+  '전기': '번개동굴 천장에서 떨어진 번개가 처음 전기 포켓몬을 깨웠대. 물에 찌릿 통하지만 땅에는 전기가 사라져 버려.',
+  '땅': '땅 포켓몬은 지하동굴 가장 깊은 곳에서 왔대. 불·전기·바위·독을 흙으로 덮어 버리는 든든한 친구야.',
+  '바위': '바위 포켓몬은 동굴탑의 돌로 태어났대. 불에 타지 않고 벌레도 꼼짝 못 하게 해.',
+  '벌레': '벌레 포켓몬은 꿀벌집에서 가장 부지런한 일꾼이야. 풀잎을 갉고, 생각이 복잡한 에스퍼에게 의외로 강해.',
+  '독': '독 포켓몬은 독기둥 늪에서 와서 풀과 요정을 시들게 해. 하지만 마음의 힘(에스퍼) 앞에서는 밀려.',
+  '에스퍼': '에스퍼 포켓몬은 꿈의우주에서 별빛을 보고 자랐대. 독과 주먹(격투)을 생각의 힘으로 이겨.',
+  '고스트': '고스트 포켓몬은 밤의 꿈의우주를 떠다니다 왔어. 에스퍼의 마음속으로 쑥 들어가고, 유령끼리도 통해.',
+  '페어리': '페어리 포켓몬은 달빛 속에서 태어났대. 유령을 쫓고 주먹(격투)을 마법으로 막아.',
+  '격투': '격투 포켓몬은 동굴탑에서 수련한 무술가야. 보통(노말)과 바위에 주먹이 제일 잘 통해.',
+  '노말': '노말 포켓몬은 어디서나 균형이 잡힌 친구야. 특별히 센 상대는 없지만 어떤 상대에게도 꾸준해. 다만 주먹(격투)은 아프니 조심.',
+};
+const QUEST_ZONES = ['forest', 'hive', 'cave', 'thunder', 'volcano', 'sea', 'deepsea', 'space'];
+function profAnalysis() {
+  const L = party.leader; if (!L) return null;
+  const sp = party.species(L), t = sp.type || '노말', strong = strongAgainst(t), weak = weakTo(t);
+  let best = null;
+  for (const z of QUEST_ZONES) { const n = creatureData.creatures.filter((c) => c.zone === z && c.catchable && !c.mega && !c.unlockedBy && !c.boss && strong.includes(c.type || '노말')).length; if (n > 0 && (!best || n > best.n)) best = { z, n }; }
+  return { sp, t, strong, weak, zone: best?.z || null };
+}
+function questText(q) { return q.kind === 'super' ? `${ZONE_INFO[q.zone]?.name || q.zone}에서 ${q.type} 기술로 "효과가 굉장했다!" ${q.need}번 내기` : `${ZONE_INFO[q.zone]?.name || q.zone}에서 포켓몬 ${q.need}마리 잡기`; }
+function newProfQuest(a) {
+  const q = a.zone ? { kind: 'super', zone: a.zone, type: a.t, speciesId: a.sp.id, need: 3, n: 0, reward: 40, done: false } : { kind: 'catch', zone: 'forest', type: a.t, speciesId: a.sp.id, need: 2, n: 0, reward: 30, done: false };
+  state.profQuest = q; return q;
+}
+/** 오박사(연구소)에게 말을 걸었을 때의 특별한 말. 의뢰가 없으면 새로 주고, 끝났으면 다음 이야기. 없으면 null → 보통 대사 */
+function profTalk() {
+  const q = state.profQuest, a = profAnalysis();
+  if (q && q.done) { state.profQuest = null; state.profQuests = (state.profQuests || 0) + 1; return `잘했다! ${questText(q)}를 해냈구나. 내 연구에 큰 도움이 됐어. 연구 수첩에 ${state.profQuests}번째 의뢰 완료라고 적어 두마. 다시 말을 걸면 다음 연구를 부탁할게!`; }
+  if (q) return `지금 의뢰는 "${questText(q)}" (${q.n}/${q.need})! 강한 반응이 있는 ${ZONE_INFO[q.zone]?.name || q.zone}로 가 보렴. 끝내면 블록 ${q.reward}개를 주마.`;
+  if (!a) return null;
+  if (state.gym.day !== dayKey() && false) return null;
+  const nq = newProfQuest(a);
+  const story = TYPE_STORY[a.t] || '';
+  const strongTxt = a.strong.length ? `${a.strong.join('·')} 포켓몬에게 효과가 굉장하고` : '특별히 굉장한 상대는 없고';
+  const weakTxt = a.weak.length ? `${a.weak.join('·')} 공격에는 약하단다` : '약한 공격도 딱히 없단다';
+  const where = nq.kind === 'super' ? `내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 ${a.sp.name}의 힘이 아주 강하게 반응했어! 거기 가서 ${a.t} 기술로 "효과가 굉장했다!"를 ${nq.need}번 내 보렴.` : `${a.sp.name}은 어디서나 고른 힘을 내지. 푸른숲에서 포켓몬 ${nq.need}마리를 잡아 오렴.`;
+  return `${a.sp.name}의 연구 결과를 알려 주마! ${a.sp.name}은 ${a.t} 포켓몬이라 ${strongTxt}, ${weakTxt}. ${story} ${where} 성공하면 블록 ${nq.reward}개를 주마. (미션 탭에서 볼 수 있어)`;
+}
+/** 의뢰 진행: kind 'super'(효과가 굉장한 공격, defType) · 'catch' */
+function questHit(kind, info = {}) {
+  const q = state.profQuest; if (!q || q.done || q.kind !== kind || zone?.name !== q.zone) return;
+  if (kind === 'super' && info.atkType && info.atkType !== q.type) return; // 내 대표 속성의 기술이어야
+  q.n++;
+  if (q.n < q.need) { setTimeout(() => say(`🔬 오박사의 의뢰 ${q.n}/${q.need}!`, { sec: 3 }), 1200); return; }
+  q.done = true;
+  const merged = setBlocks(state.blocks + q.reward, { quiet: true });
+  setTimeout(() => { sound.fanfare(); confetti.burst(140); say(`🔬 오박사의 의뢰 완료! 블록 ${q.reward}개를 받았어.${merged ? ' ' + merged : ''} 연구소의 오박사님께 가면 다음 이야기를 들려줘!`, { sec: 8 }); refreshHud(); }, 1500);
 }
 // ---------- 동굴탑 (src/tower.js): 한 지역에 10층이 세로로 쌓여 있다. 포켓몬은 지금 있는 층 근처(아래 1층 ~ 위 2층)만 세우고, 멀어지면 치운다 ----------
 function towerFloorNow() { return zone?.world?.tower ? floorOfY(player.position.y) : 0; }
@@ -1030,6 +1209,7 @@ function switchZone(name, spawn, message) {
   ufoBtn.classList.add('hidden'); ufoNpc = null;
   if (switching || !BUILDERS[name]) return;
   if (driving && !CAR_ZONE_OK(name)) dismountCar({ park: false }); // 심해·꿀벌집·연구소에는 차를 못 가져간다
+  if (flying && !FLY_ZONE_OK(name)) dismountFly(); // 동굴·실내로는 날아 들어갈 수 없다
   if (sailing || parked || goingHome) { // 다른 지역으로 가면 배와 루피는 선착장 제자리로
     const b = boatHere(), npc = sailorNpc(), home = zone.world.sailorHome;
     sailing = false; returning = null; parked = null; goingHome = null; player.boat = null; input.enabled = true;
@@ -1523,10 +1703,12 @@ function talkTo(npc) {
   // 꿈의우주에서 행성으로 가는 UFO 는 별의 문을 지키는 메가팬텀을 잡아야 띄울 수 있다 (관리자 모드는 예외)
   const spaceMega = creatureData.creatures.find((c) => c.zone === 'space' && c.shrine);
   const ufoLocked = !!(npc.ufo && zone.world.ufo && !zone.world.ufo.to && spaceMega && !(state.dex[spaceMega.id] > 0) && !state.admin);
-  const text = ufoLocked
+  const prof = npc.name === '오박사' && npc.heal && zone.name === 'lab' ? profTalk() : null; // 연구소 오박사: 상성 이야기 + 의뢰 (대표가 없으면 보통 대사)
+  const text = prof ? `${npc.name}: ${prof}${healed ? ' (포켓몬들도 치료해 줬단다!)' : ''}`
+    : ufoLocked
     ? `${npc.name}: UFO 는 별의 문의 힘으로 나는 거야. ${state.conquered.space ? `별의 문을 지키는 ${josa(spaceMega.name, '을를')} 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 별의 문을 열고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
     : `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}${homeworkNote}`;
-  say(text, { sec: ufoLocked || homeworkNote ? 8 : 6, faceImg: npcFace(npc) });
+  say(text, { sec: prof ? 12 : ufoLocked || homeworkNote ? 8 : 6, faceImg: npcFace(npc) });
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
   npc.talking = true;
   if (npc.warp) { warpNpc = npc; warpBtn.classList.remove('hidden'); }
@@ -2108,7 +2290,8 @@ function buildSaveData() {
     items: { ...state.items },
     tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
     returnTo: state.returnTo,
-    carTold: !!state.carTold,
+    carTold: !!state.carTold, flyTold: !!state.flyTold, swimTold: !!state.swimTold,
+    gym: { day: state.gym.day, trained: { ...state.gym.trained } }, profQuest: state.profQuest ? { ...state.profQuest } : null, profQuests: state.profQuests || 0,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
     goals: state.goals,
@@ -2879,6 +3062,8 @@ function renderGuide(el) {
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
+    ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
+    ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
     ${sec('🦊 이브이 진화는 장소로', `이브이를 Lv.16까지 키운 뒤 진화시키는 곳에 따라 모습이 달라요: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키. 다른 곳에서는 랜덤!`)}
     ${sec('🔮 넘버볼과 등급', `포켓몬마다 등급(★)이 있고 등급이 높을수록 좋은 볼이 필요해요: ★~★★ 브론즈 · ★★★ 실버 · ★★★★~★★★★★ 골드 · ★★★★★★ 이상 메가큐브. 볼에서 튀어나와도 도망가지 않고, 실패할 때마다 잡힐 확률이 15%씩 올라요. 볼은 상점에서 블록으로 사요.`)}
@@ -2909,7 +3094,9 @@ function renderGoals(el) {
   }).join('');
   const A = state.attend, idx = A.streak > 0 ? (A.streak - 1) % ATTEND_GIFTS.length : -1;
   const stamps = ATTEND_GIFTS.map((g, i) => `<div class="att${i <= idx ? ' on' : ''}${i === idx ? ' today' : ''}"><span class="att-day">${i + 1}일</span><span class="att-gift">${g.emoji}</span><span class="att-name">${escHtml(g.name)}</span></div>`).join('');
-  el.innerHTML = `<div class="rank-head">📅 출석 도장 <span class="rank-how">(연속 ${A.streak}일 · 모두 ${A.total}일 · 날마다 처음 들어오면 선물)</span></div>
+  const q = state.profQuest;
+  const quest = q ? `<div class="rank-head">🔬 오박사의 의뢰</div><div class="goal-rows"><div class="goal-row${q.done ? ' done' : ''}"><span class="goal-emoji">${q.done ? '✅' : '🔬'}</span><span class="goal-text">${escHtml(questText(q))}${q.done ? ' — 연구소의 오박사님께 가자!' : ''}</span><div class="goal-bar"><i style="width:${Math.min(100, Math.round((q.n / q.need) * 100))}%"></i></div><span class="goal-num">${Math.min(q.n, q.need)}/${q.need}</span></div></div><div class="rank-how">연구소의 오박사님께 말을 걸면 대표 포켓몬의 상성 이야기와 함께 의뢰를 줘요. 완료 ${state.profQuests || 0}번.</div>` : '<div class="rank-head">🔬 오박사의 의뢰</div><div class="rank-how">연구소의 오박사님께 말을 걸면 대표 포켓몬의 상성 이야기와 "강하게 반응하는 곳"의 의뢰를 줘요.</div>';
+  el.innerHTML = `${quest}<div class="rank-head">📅 출석 도장 <span class="rank-how">(연속 ${A.streak}일 · 모두 ${A.total}일 · 날마다 처음 들어오면 선물)</span></div>
     <div class="att-row">${stamps}</div>
     <div class="rank-how">7일 연속이면 🥈 실버볼! 8일째부터는 다시 1일 선물부터. 하루 건너뛰면 연속이 1일부터 시작해요.</div>
     <div class="rank-head">🎯 오늘의 미션 <span class="rank-how">(${escHtml(G.day)} · 날마다 새로 나와요)</span></div>
@@ -2949,6 +3136,8 @@ function applySave(d) {
   state.trainer = trainerOf(d.trainer).id; // 고른 주인공 (옛 저장은 지우)
   state.rockets = { ...(d.rockets || {}) };
   state.released = { ...(d.released || {}) };
+  state.gym = d.gym && d.gym.trained ? { day: d.gym.day || '', trained: { ...d.gym.trained } } : { day: '', trained: {} };
+  state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold; state.swimTold = !!d.swimTold;
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
@@ -2979,7 +3168,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { camera, get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
+  window.__game = { camera, talkTo, get flying() { return flying; }, mountFly, dismountFly, get gymPets() { return gymPets; }, trainPet, profTalk, get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
 }
 
 // ---------- 루프 ----------
@@ -3047,6 +3236,9 @@ function frame() {
     if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
     if (input.wasPressed('view') && !battle.active && !dex.open && !quiz.open && !study.open) { sound.click(); setView(!cam.fp); }
 
+    { const w = zone.world, q = player.position; const inWater = !!w.inPond && w.inPond(q.x, q.z, 0.98) && !w.onDock(q.x, q.z) && !flying; // 체육관 연못: 들어가면 헤엄친다
+      if (inWater && player.surface == null) { particles.stars(zone.scene, q.clone().add(new THREE.Vector3(0, 0.3, 0)), 14, 0x9fe8ff, 0.45); sound.throw_(); if (!state.swimTold) { state.swimTold = true; say('💦 첨벙! 연못에서 헤엄쳐. 물 포켓몬들이 같이 놀아 줄 거야. 물에서는 천천히 움직이고 점프는 못 해.', { sec: 6 }); } }
+      player.surface = inWater ? w.swimY : null; }
     player.update(dt, input, cam.yaw);
     const pp = player.position;
     const near = (pt, r) => Math.hypot(pp.x - pt.x, pp.z - pt.z) < r;
@@ -3068,6 +3260,9 @@ function frame() {
       } else if (near(w.volcanoGate, 2.4)) {
         moved = true;
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
+      } else if (w.gymDoor && near(w.gymDoor, 2.0)) { // 야외 체육관 문
+        moved = true;
+        switchZone('gym', getZone('gym').world.spawn, { text: '🏃 야외 체육관! 내 포켓몬들이 모두 나와 뛰어놀아. 가까이 가서 💪 훈련하기! 큰 나무는 줄기 옆에서 점프 버튼을 꾹 누르면 올라가. 남쪽 문으로 나가면 푸른숲이야.', sec: 8 });
       } else if (w.arenaDoor && Math.abs(pp.x - w.arenaDoor.x) < 1.8 && pp.z > w.arenaDoor.z - 1.4 && pp.z < w.arenaDoor.z + 0.9) { // 넘버볼 아레나 문 앞 칸
         moved = true;
         switchZone('arena', getZone('arena').world.spawn, { text: '🏟 넘버볼 아레나에 들어왔어! 친구와 대결하는 경기장이야. 치료 데스크의 봄이가 포켓몬을 치료해 줘. 남쪽 문으로 나가면 푸른숲이야.', sec: 7 });
@@ -3159,6 +3354,7 @@ function frame() {
         else if (state.prompt <= 0) { state.prompt = 12; say('🏟 대결 자리야! 친구가 아레나에 오면 여기서 바로 대결을 신청할 수 있어. (도감 → 친구 탭에서도 신청할 수 있어)', { sec: 6 }); }
       }
     }
+    gymTick(dt); // 야외 체육관: 포켓몬들이 뛰어놀고, 가까이 가면 훈련 버튼
     // ----- 연구소 워프 패드: 마지막에 있던 지역으로 -----
     if (!moved && zone.world.warpPad && near(zone.world.warpPad, 1.5)) {
       if (state.returnTo && BUILDERS[state.returnTo.zone]) {
@@ -3242,6 +3438,7 @@ function frame() {
       if (c.state === 'caught') continue;
       const ev = c.update(dt, pp);
       if (ev === 'meet') {
+        if (flying) { c.becomeShy(); continue; } // 날고 있을 때는 못 덤빈다
         let L = party.leader;
         if (!L) { c.becomeShy(); say('대표 포켓몬이 없어!'); break; }
         if (party.isFainted(L)) {
@@ -3281,7 +3478,7 @@ function frame() {
             setTimeout(() => checkDexComplete(), 1200); // 도감을 다 채웠나 (잡기 말풍선 뒤에 큰 축하)
             checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
             wkAdd('caught');
-            bump('catch');
+            bump('catch'); questHit('catch');
             if (c.isBoss) wkAdd('boss');
             if (c.data.mega) { // 메가 포켓몬을 잡으면 메가블럭을 준다 (메가 진화에 쓴다)
               state.caught++;
@@ -3382,7 +3579,8 @@ function frame() {
       offer(`🧩 ${nb.data.name} 퀴즈 풀기`, () => { input.endFrame(); askRescueQuiz(zone, nb); }, '🧩\n퀴즈');
     }
     if (msgQueue.length && msgTimer <= 0) { const m = msgQueue.shift(); say(m.text, m.opts); } // 줄 세워 둔 말풍선 (앞의 말이 끝난 뒤 하나씩)
-    tickCar();
+    tickCar(); tickFly();
+    if (flying && !ctxAction) offer('🛬 내리기', () => dismountFly(), '🛬\n내리기');
     if (driving && !ctxAction) offer('🚶 내리기', () => dismountCar(), '🚶\n내리기'); // 차 안에서 다른 할 일이 없으면 액션 버튼은 '내리기' (버튼 처리보다 먼저 등록해야 눌러진다)
     // 버튼을 눌렀거나 E키를 눌렀으면 지금 할 수 있는 일을 한다
     if (ctxAction && (ctxClicked || input.wasPressed('action'))) ctxAction.run();
@@ -3443,6 +3641,7 @@ function frame() {
       for (const o of hiddenByCam) o.visible = true; hiddenByCam.clear(); // 3인칭에서 숨겨 둔 장식이 있으면 되돌린다
     } else {
       const camTarget = resolveCamera(pp.clone().add(camOffset()));
+      if (zone.world.tower) { const c = towerCeiling(camTarget.x, camTarget.z, pp.y); if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
       if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
       else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
       camera.lookAt(pp.x, pp.y + camLookY(), pp.z);

@@ -353,6 +353,13 @@
    "targetAtk": 0,
    "atkRange": "-",
    "blockValue": 1
+  },
+  "gym": {
+   "name": "야외 체육관",
+   "desc": "푸른숲 연못 남쪽의 울타리 친 잔디 운동장. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고 훈련하는 곳. 올라갈 수 있는 큰 나무 둘",
+   "targetAtk": 0,
+   "atkRange": "-",
+   "blockValue": 1
   }
  },
  "creatures": [
