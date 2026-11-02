@@ -48,7 +48,7 @@ export class Dex {
     this.countEl = document.getElementById('dex-count');
     this.filterEl = document.getElementById('dex-filter');
     this.filter = { mode: 'all', type: null }; // 도감 액자 거르기: 전체 · 내 포켓몬(잡은 것) · 아직 못 잡은 것 · 속성
-    this.page = 0; this.PAGE = 20; // 액자는 한 번에 20개씩 (종이 130이 넘어 한꺼번에 그림을 그리면 GPU 메모리가 치솟아 태블릿에서 꺼졌다). 페이지를 넘길 때 그 페이지 그림만 만든다
+    this.page = 0; this.PAGE = 24; // 액자는 한 번에 24개씩 (작은 액자 6~8개 × 3~4줄) (종이 130이 넘어 한꺼번에 그림을 그리면 GPU 메모리가 치솟아 태블릿에서 꺼졌다). 페이지를 넘길 때 그 페이지 그림만 만든다
     this.adminEl = document.getElementById('dex-admin');   // 관리자 탭 (main 이 채운다)
     this.friendsEl = document.getElementById('dex-friends'); // 친구 탭 (main 이 채운다)
     this.feedbackEl = document.getElementById('dex-feedback'); // 요청 탭 (main 이 채운다)
@@ -84,7 +84,7 @@ export class Dex {
     if (this.renderer) return true;
     try {
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-      this.renderer.setSize(150, 150); // 액자 그림 크기 (150px 칸에 맞춤)
+      this.renderer.setSize(224, 224); // 액자 그림 크기: 110px 칸을 고해상도(2배) 화면에서도 또렷하게 (150 으로 줄였더니 흐려 보였다)
       this.scene = new THREE.Scene();
       this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -111,7 +111,7 @@ export class Dex {
     this.renderer.render(this.scene, this.camera);
     // 한 번만 그리고 2D 캔버스로 복사한다. 실루엣은 다시 그리지 않고 같은 그림을 'source-in' 으로 어둡게 칠해서 만든다
     // (전에는 재질을 검게 바꿔 두 번 그리고 두 번 읽어 와서 종마다 GPU 를 두 번 기다렸다 — 도감 여는 시간의 대부분)
-    const S = 150, c = this.tmpCanvas ||= document.createElement('canvas'); c.width = c.height = S;
+    const S = 224, c = this.tmpCanvas ||= document.createElement('canvas'); c.width = c.height = S;
     const ctx = c.getContext('2d');
     ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, S, S); ctx.drawImage(this.renderer.domElement, 0, 0, S, S);
     const color = c.toDataURL();
@@ -524,7 +524,7 @@ export class Dex {
     this.grid.innerHTML = '';
     let caughtSpecies = 0;
     const F = this.filter;
-    // 거른 목록을 먼저 뽑고, 지금 페이지의 20개만 그린다 (선택한 포켓몬이 다른 페이지에 있으면 그 페이지로)
+    // 거른 목록을 먼저 뽑고, 지금 페이지의 24개만 그린다 (선택한 포켓몬이 다른 페이지에 있으면 그 페이지로)
     const list = [];
     for (const sp of this.species) {
       const n = caughtById[sp.id] || 0, known = n > 0;
@@ -567,7 +567,7 @@ export class Dex {
 
   }
 
-  /** 액자 아래 페이지 넘기기: ◀ 이전 · 1 2 3 … · 다음 ▶ (한 페이지 20개) */
+  /** 액자 아래 페이지 넘기기: ◀ 이전 · 1 2 3 … · 다음 ▶ (한 페이지 24개) */
   renderPager(pages, total, caughtById) {
     let el = document.getElementById('dex-pager');
     if (!el) { el = document.createElement('div'); el.id = 'dex-pager'; this.grid.insertAdjacentElement('afterend', el); }
