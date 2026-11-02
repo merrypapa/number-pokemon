@@ -2694,17 +2694,36 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
   const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
   const updateBar = document.getElementById('update-bar');
   const applyUpdate = (worker) => { updateBar.textContent = '새 버전으로 바꾸는 중…'; worker.postMessage('SKIP_WAITING'); }; // 바뀌면 아래 controllerchange 가 새로고침한다
+  let pendingWorker = null, autoTimer = 0;
   const offerUpdate = (worker) => {
+    pendingWorker = worker;
     if (!zone || !player) { applyUpdate(worker); return; } // 아직 게임을 시작하지 않았으면(타이틀 화면) 묻지 않고 바로 새 버전으로 — 아이가 막대를 못 눌러 옛 버전에 머무르지 않게
-    updateBar.hidden = false; // 게임 중에는 묻는다 (갑자기 새로고침되면 곤란하니까)
+    updateBar.hidden = false; // 게임 중에는 막대를 보여 주고, 대결·대결 무대·탈것이 아닐 때 15초 뒤 저장하고 스스로 새 버전으로 (아이가 막대를 못 봐도 옛 버전에 머무르지 않게)
+    updateBar.innerHTML = '🎁 새 버전이 나왔어요! <button id="btn-update">지금 다시 열기</button> <small>(안 누르면 잠시 뒤 저장하고 스스로 열려요)</small>';
     document.getElementById('btn-update').onclick = () => { if (zone && player) doSave(false); applyUpdate(worker); };
+    clearInterval(autoTimer); let left = 15;
+    autoTimer = setInterval(() => { if (battle.active || duelStage.active || ride || switching || evo) return; if (--left <= 0) { clearInterval(autoTimer); if (zone && player) doSave(false); applyUpdate(worker); } }, 1000);
+  };
+  // 타이틀 화면의 "🔄 업데이트 확인" 버튼: 지금 서버에 새 버전이 있는지 바로 확인한다 (홈 화면 앱은 켜 둔 채로는 스스로 확인하는 틈이 길다)
+  const checkBtn = document.getElementById('btn-check-update');
+  let regRef = null;
+  if (checkBtn) checkBtn.onclick = async () => {
+    checkBtn.disabled = true; checkBtn.textContent = '확인 중…';
+    try {
+      if (pendingWorker) { applyUpdate(pendingWorker); return; }
+      const r = await fetch(`./version.js?t=${Date.now()}`, { cache: 'no-store' }); const txt = await r.text(); const m = txt.match(/'(v[\d-]+)'/); const latest = m ? m[1] : null;
+      if (regRef) await regRef.update().catch(() => {});
+      if (latest && latest !== self.NP_VERSION) { checkBtn.textContent = `새 버전 ${latest.slice(1)} 받는 중…`; setTimeout(() => { if (!pendingWorker) { checkBtn.textContent = '서버가 아직 준비 중이에요. 1~2분 뒤 다시 눌러 주세요'; checkBtn.disabled = false; } }, 8000); }
+      else { checkBtn.textContent = '✅ 최신 버전이에요'; setTimeout(() => { checkBtn.textContent = '🔄 업데이트 확인'; checkBtn.disabled = false; }, 2500); }
+    } catch (_) { checkBtn.textContent = '인터넷이 안 돼요'; setTimeout(() => { checkBtn.textContent = '🔄 업데이트 확인'; checkBtn.disabled = false; }, 2500); }
   };
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => { // sw.js 를 HTTP 캐시(깃허브 페이지 10분) 없이 늘 서버에서 확인
+    regRef = reg;
     if (reg.waiting && hadController) offerUpdate(reg.waiting);
     reg.addEventListener('updatefound', () => { const w = reg.installing; w?.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); }); });
     reg.update().catch(() => {}); // 열 때마다 새 버전 확인 (이게 없으면 새 버전을 올려도 한 시간 뒤에야 알아챘다)
     document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); }); // 홈 화면 앱을 다시 켤 때도 확인
-    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000); // 오래 켜 두어도 한 시간마다 새 버전을 확인
+    setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000); // 오래 켜 두어도 5분마다 새 버전을 확인 (전에는 한 시간)
   }).catch((e) => console.warn('[sw] 등록 실패', e));
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloading) return; reloading = true; if (zone && player) { try { doSave(false); } catch (_) { /* 저장 실패해도 새로고침은 한다 */ } } location.reload(); }); // 새 워커가 스스로 넘겨받으면(sw.js skipWaiting) 진행을 저장하고 새로고침
