@@ -184,7 +184,9 @@ const CHEST_CHANCE = 0.12; // 여덟 개에 하나쯤 — 가끔 만나야 반�
 const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
 const loadingEl = document.getElementById('title-loading');
+let updatingNow = false; // 새 버전으로 바꾸는 중(곧 새로고침): 불러오기 숫자 대신 그 안내를 보여 준다 — 숫자가 올라가다 1부터 다시 세는 게 왜인지 아이가 궁금해했다
 preloadModels(modelFiles, (done, total) => {
+  if (updatingNow) return;
   loadingEl.textContent = `친구들 불러오는 중 ${done}/${total}`;
   loadingEl.classList.toggle('hidden', done >= total);
 });
@@ -2724,7 +2726,11 @@ document.getElementById('btn-install-copy').onclick = (e) => {
 if ('serviceWorker' in navigator && !location.search.includes('nosw') && location.protocol !== 'file:') {
   const hadController = !!navigator.serviceWorker.controller; // 처음 설치될 때(controller 가 없다가 생길 때)는 새로 열 필요가 없다
   const updateBar = document.getElementById('update-bar');
-  const applyUpdate = (worker) => { updateBar.textContent = '새 버전으로 바꾸는 중…'; worker.postMessage('SKIP_WAITING'); }; // 바뀌면 아래 controllerchange 가 새로고침한다
+  const applyUpdate = (worker) => {
+    updateBar.textContent = '새 버전으로 바꾸는 중…';
+    if (!zone || !player) { updatingNow = true; loadingEl.classList.remove('hidden'); loadingEl.textContent = `🎁 새 버전이 나와서 다시 열어요 (저장은 그대로예요)`; } // 타이틀에서는 불러오기 숫자 대신 이유를 보여 준다
+    worker.postMessage('SKIP_WAITING');
+  }; // 바뀌면 아래 controllerchange 가 새로고침한다
   let pendingWorker = null, autoTimer = 0;
   const offerUpdate = (worker) => {
     pendingWorker = worker;
