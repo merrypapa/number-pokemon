@@ -553,15 +553,14 @@ function getZone(name) {
     for (let i = 0; i + 1 < n; i++) if (rnd() < 0.3) { const t = idx[i]; idx[i] = idx[i + 1]; idx[i + 1] = t; }
     spots.forEach((s, i) => { const c = order[idx[i]]; spawnCreature(z, c.id, s.x, s.z, extraFor(c)); });
   }
-  // 진화형 포켓몬도 드물게 (creatures.json `rareIn`: 진화 전용 종이 드물게 나오는 지역 = 기본형이 사는 곳): 지역 바깥쪽에 **한 마리만**, 그것도 **날짜·지역·종으로 고정된 난수로 둘 중 하루**만 나온다.
+  // 진화형 포켓몬도 드물게 (creatures.json `rareIn`: 진화 전용 종이 드물게 나오는 지역 = 기본형이 사는 곳): 지역 **바깥쪽 멀리에 한 마리만** 나온다 (보통 종은 2~3마리).
+  // 처음엔 둘 중 하루만 나오게 했는데 아이가 찾다가 "없다"고 해서 날마다 한 마리는 꼭 나오게 바꿨다.
   // 흔치 않으니 직접 진화시키고 싶은 마음도 들게 — 그래도 운이 좋으면 바로 잡을 수 있다
   if (z.world.wildSpots.length > 6) {
     const rares = creatureData.creatures.filter((c) => c.rareIn === z.name && !c.mega);
     const outer = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => b.d - a.d);
     const sp0 = z.world.spawn || { x: 0, z: 0 };
     rares.forEach((c, k) => {
-      let h = 0; for (const ch of `${dayKey()}|${z.name}|${c.id}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-      if (h % 100 >= 50) return; // 오늘은 안 나오는 날
       const s = outer[k % outer.length], dx = s.x - sp0.x, dz = s.z - sp0.z, L = Math.hypot(dx, dz) || 1;
       let x = s.x + (dx / L) * 4, zz = s.z + (dz / L) * 4;
       if (Math.abs(x) > z.terrain.size / 2 - 3 || Math.abs(zz) > z.terrain.size / 2 - 3 || isBlocked(x, zz, 0) || insideObstacle(x, zz, 1)) { x = s.x + (dz / L) * 3; zz = s.z - (dx / L) * 3; } // 비켜 선다
