@@ -1079,6 +1079,8 @@ function gymTick(dt) {
   }
   if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
   if (nearest && !battle.active) offer(`💪 ${party.name(nearest.m)} 훈련하기`, () => trainPet(nearest), '💪\n훈련');
+  // 나무 위 집에서 줄기 가까이 서면 "⬇ 내려가기": 줄기를 타고 미끄러져 내려온다 (올라갈 수 있으면 내려올 수도 있어야지)
+  if (pp.y > 3 && !player.descend) { const t = zone.world.treeNear?.(pp.x, pp.z); if (t) offer('⬇ 나무 내려가기', () => { player.descend = { x: t.x, z: t.z }; sound.click(); }, '⬇\n내려가기'); }
 }
 function trainPet(p) {
   const m = p.m, key = dayKey();

@@ -51,6 +51,7 @@ export class Player {
     this.car = null;       // 이상해꽃 자동차를 타고 있을 때: 차체 그룹 (주인공 모델 대신 보인다). 빠르고, 점프는 못 한다
     this.climbAt = null;   // 지역이 준 함수 (x, z, y) → { top, x, z } : 올라갈 수 있는 나무 줄기 옆이면 (야외 체육관). 점프 버튼을 누르고 있으면 줄기를 타고 오른다
     this.climbing = false;
+    this.descend = null;   // 나무에서 내려오는 중: { x, z } (줄기 자리). 줄기를 보고 미끄러져 내려와 땅에 닿으면 끝난다
     this.surface = null;   // 물 위를 헤엄칠 때(체육관 연못): main 이 매 프레임 물 높이를 넣어 준다. 가슴까지 잠긴 채 천천히 헤엄치고 점프는 못 한다
     this.fly = null;       // 날개 있는 포켓몬을 타고 날 때: { mesh, minH, maxH, up, down, speed } — 장애물·물 위를 지나고, 점프 버튼으로 올라가고 놓으면 천천히 내려온다
     this.flying = false;
@@ -195,6 +196,15 @@ export class Player {
       p.y = Math.min(hi, p.y + this.vy * dt);
       if (p.y < lo) p.y = lo; // 언덕·산 위로는 바로 떠오른다
       this.onGround = false; this.jumping = false; this.airT = 0; this.swimming = false; this.climbing = false;
+      flash(); return;
+    }
+    // 나무에서 내려오기 (야외 체육관 나무 위 집에서 "⬇ 내려가기"): 줄기를 보며 미끄러져 내려와 땅에 닿으면 끝
+    if (this.descend) {
+      const ground = terrainHeight(p.x, p.z, 0);
+      p.y = Math.max(ground, p.y - 3.2 * dt);
+      this.vx = this.vz = 0; this.vy = 0; this.onGround = false; this.jumping = false; this.airT = 0; this.climbing = true; // 점프 동작으로 보이게
+      this.facing = Math.atan2(this.descend.x - p.x, this.descend.z - p.z); this.group.rotation.y = this.facing;
+      if (p.y <= ground + 0.01) { p.y = ground; this.descend = null; this.climbing = false; this.onGround = true; }
       flash(); return;
     }
     // 나무 타기 (야외 체육관): 줄기 옆에서 점프 버튼을 누르고 있으면 줄기를 타고 오른다. 꼭대기(단)에 닿으면 지형이 단 높이를 돌려줘 그 위에 선다

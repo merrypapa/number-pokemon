@@ -115,7 +115,7 @@ export function buildGym(scene) {
     for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + 0.3, rr = 2.2 + (i % 2) * 0.5; const leaf = new THREE.Mesh(new THREE.SphereGeometry(rr, 14, 10), leafMat); leaf.position.set(Math.cos(a) * 5.0, GYM.platY + 6.2 + (i % 3) * 0.5, Math.sin(a) * 5.0); leaf.castShadow = true; g.add(leaf); } // 잎은 둥지처럼 둘레에만: 위에서 보는 카메라에 단이 가리지 않게
     const topLeaf = new THREE.Mesh(new THREE.SphereGeometry(2.0, 12, 9), leafMat); topLeaf.position.set(0, GYM.platY + 9.4, 0); g.add(topLeaf);
     g.userData.noHide = true; // 카메라가 나무를 통째로 숨기지 않게 (단 위에 서 있으니까)
-    const house = makePillSprite('🏠 나무 위 집', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.8); house.position.set(0, GYM.platY + 1.8, 0); g.add(house);
+    const house = makePillSprite('🏠 나무 위 집 · 줄기 옆에서 ⬇ 내려가기', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.8); house.position.set(0, GYM.platY + 1.8, 0); g.add(house);
     const how = makePillSprite('🌳 줄기 옆에서 점프 버튼을 꾹 누르면 올라가!', { bg: '#2f6f2a', fg: '#ffffff', border: '#ffd93d' }, 0.8); how.position.set(0, 2.6, 2.6); g.add(how);
     g.position.set(t.x, 0, t.z); decor.add(g); block(t.x, t.z, 1.0);
   }
@@ -159,11 +159,12 @@ export function buildGym(scene) {
     sun, animate, terrain: GYM_TERRAIN, decor, spawn: GYM.spawn, portal: GYM.door, portalTo: 'forest', dark: false, gym: true, noShrine: true,
     wildSpots: [], pickupSpots: [], climbAt: GYM_TERRAIN.climbAt,
     field: { w: F.w - 6, d: F.d - 6 }, dummies: GYM.dummies, homes, spotNear, inPond, onDock, waterY: -0.35, swimY: -0.75,
+    treeNear: (x, z) => GYM.trees.find((t) => Math.hypot(x - t.x, z - t.z) < 2.6) || null, // 나무 위 집에서 줄기 가까이 (내려가기 버튼)
     npcs: [{ x: coachAt.x, z: coachAt.z, mesh: coach, name: '코리', lines: (c) => [
       `안녕, ${c.name}! 여기는 야외 체육관이야. 네가 잡은 포켓몬들이 전부 나와서 뛰어놀고 있어. 가까이 가서 "💪 훈련하기"를 누르면 경험치를 받아!`,
       '동쪽 연못에는 물 포켓몬들이 헤엄치고 있어. 너도 연못에 들어가면 같이 헤엄칠 수 있어! 잔교 끝에서 뛰어들어 봐. 물속에서는 천천히 움직이고 점프는 못 해.',
       '훈련은 한 마리에 하루 세 번까지. 매일 와서 골고루 훈련시켜 주면 레벨이 쑥쑥 올라.',
-      '저 큰 나무 보이지? 줄기 옆에 서서 점프 버튼을 꾹 누르면 줄기를 타고 올라가. 나무 위 집에서 운동장이 다 보여!',
+      '저 큰 나무 보이지? 줄기 옆에 서서 점프 버튼을 꾹 누르면 줄기를 타고 올라가. 나무 위 집에서 운동장이 다 보여! 내려올 땐 줄기 옆에서 "⬇ 나무 내려가기" 버튼.',
       `${c.leader ? `${c.leader.speciesId ? '대표 포켓몬도 트랙을 한 바퀴 돌게 해 보렴.' : ''}` : '대표 포켓몬이 없네? 먼저 포켓몬을 잡아 오렴.'} 운동장 서쪽 샌드백은 훈련하는 자리야.`,
     ] }],
   };
