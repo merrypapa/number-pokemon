@@ -2808,7 +2808,8 @@
    "evolvedFrom": "m01",
    "personality": "든든함",
    "story": "등의 씨앗이 봉오리가 됐어. 봉오리가 무거워서 뒷다리가 튼튼해졌대. 햇빛을 많이 받으면 꽃이 피어 이상해꽃이 돼.",
-   "grade": 2
+   "grade": 2,
+   "rareIn": "forest"
   },
   {
    "id": "m01ee",
@@ -2927,7 +2928,8 @@
    "evolvedFrom": "m02",
    "personality": "용감함",
    "story": "파이리가 진화한 모습. 성질이 사나워지고 발톱이 날카로워. 뜨거운 불을 뿜어 상대를 놀라게 해.",
-   "grade": 3
+   "grade": 3,
+   "rareIn": "volcano"
   },
   {
    "id": "m02ee",
@@ -3105,7 +3107,8 @@
    "evolvedFrom": "m05",
    "personality": "믿음직함",
    "story": "꼬부기가 진화한 모습. 꼬리와 귀에 보송한 털이 있어. 물살을 가르며 헤엄치고 등딱지로 몸을 지켜.",
-   "grade": 3
+   "grade": 3,
+   "rareIn": "sea"
   },
   {
    "id": "m05ee",
@@ -3218,7 +3221,8 @@
    "personality": "위엄",
    "evolvedFrom": "m40",
    "story": "독파리가 진화한 모습. 붉은 구슬 같은 눈이 빛나고 촉수가 아주 길어. 파도를 일으켜 바다를 흔들어.",
-   "grade": 4
+   "grade": 4,
+   "rareIn": "sea"
   },
   {
    "id": "m11e",
@@ -4172,7 +4176,8 @@
     "atk": 22,
     "scale": 2.2,
     "grade": 6
-   }
+   },
+   "rareIn": "space"
   },
   {
    "id": "m19b",
@@ -5123,7 +5128,8 @@
    "favoriteNumber": 5,
    "personality": "냄새 폴폴",
    "story": "냄새꼬가 진화한 모습. 세상에서 제일 큰 꽃을 머리에 이고 있고 꽃가루는 조금 지독해.",
-   "evolvedFrom": "m63"
+   "evolvedFrom": "m63",
+   "rareIn": "forest"
   },
   {
    "id": "m67",
@@ -5340,7 +5346,8 @@
    "favoriteNumber": 7,
    "personality": "늠름함",
    "story": "리올루가 진화한 모습. 파동의 힘으로 멀리 있는 것도 느껴. 숫자 7의 행운을 지킨다.",
-   "evolvedFrom": "m60"
+   "evolvedFrom": "m60",
+   "rareIn": "cave"
   },
   {
    "id": "m70",
@@ -5478,7 +5485,8 @@
    "favoriteNumber": 2,
    "personality": "듬직함",
    "story": "메리프가 진화한 모습. 꼬리 끝 빨간 구슬이 등대처럼 빛나 먼바다의 배를 이끌어. 메가블럭으로 메가전룡이 돼.",
-   "evolvedFrom": "m61"
+   "evolvedFrom": "m61",
+   "rareIn": "thunder"
   },
   {
    "id": "x12",
@@ -6316,7 +6324,8 @@
    "favoriteNumber": 4,
    "personality": "요정 같음",
    "story": "삐삐가 진화한 모습. 소리 없이 걸어서 보름달 밤에만 살짝 보여. 달빛을 모아 큰 마법을 써.",
-   "evolvedFrom": "m77"
+   "evolvedFrom": "m77",
+   "rareIn": "space"
   },
   {
    "id": "m79",

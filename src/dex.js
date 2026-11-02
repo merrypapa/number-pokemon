@@ -408,6 +408,8 @@ export class Dex {
       howLine = `<li>🔑 <b>${this.zoneName[bossZoneOf(sp)] || zone}의 보스</b>: 지역 어딘가에 크게 서 있어. 넘버볼로 잡으면 정복!</li>`;
     } else if (sp.special === 'sleepSpot') {
       howLine = `<li>🔑 ${zone}의 정해진 자리에서 쿨쿨 자고 있어. 가까이 가서 깨워 봐</li>`;
+    } else if (sp.rareIn) {
+      howLine = `<li>🍀 <b>드물게 ${this.zoneName[sp.rareIn] || sp.rareIn} 바깥쪽</b>에 한 마리 나타나 (날마다 나오진 않아). ${from ? `${from.name}을(를) 진화시키는 게 더 빨라!` : ''}</li>`;
     }
     card.className = 'detail-card' + (known ? '' : ' unknown');
     card.style.borderColor = known ? (sp.draftShape?.color || '#ffd93d') : '#ccc';
