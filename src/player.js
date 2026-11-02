@@ -169,6 +169,7 @@ export class Player {
       tickModel(fm, dt, moving ? 'run' : 'walk');
     }
     tickModel(this.group, dt, this.boat || this.fly ? 'idle'
+      : this.surface != null ? (moving ? 'swim' : 'idle') // 연못: 움직일 때만 헤엄 동작, 가만히 있으면 똑바로 서서 둥둥 (엎어져 있지 않게)
       : this.swimming ? (moving ? 'swim' : 'swimidle')   // 심해에서 떠 있을 때는 헤엄 동작 (클립이 없으면 walk/idle 로 대신)
       : this.climbing ? 'jump' // 나무 타기: 점프 동작으로
       : !this.onGround && !this.car && (this.jumping || (this.airT || 0) > 0.15) ? 'jump' // 점프했거나 0.15초 넘게 떠 있으면 점프 동작 (한 프레임 뜬 건 무시)
@@ -257,7 +258,7 @@ export class Player {
     if (sw && p.y >= sw.ceiling) { p.y = sw.ceiling; this.vy = Math.min(this.vy, 0); } // 수면 바로 아래까지
     if (this.surface != null && !this.jumping) { p.y = this.surface; this.vy = 0; this.onGround = true; this.airT = 0; } // 연못: 수면 높이에 붙어 헤엄친다
     this.swimming = this.surface != null || (!!sw && !this.onGround && (this.airT || 0) > 0.12); // 잠깐 뜬 것으로는 헤엄 동작으로 바꾸지 않는다 (동작이 깜빡이지 않게)
-    if (this.body) this.body.rotation.x = this.swimming && !anim ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다 (헤엄 애니가 있으면 애니에 맡긴다)
+    if (this.body) this.body.rotation.x = this.swimming && !anim && (this.surface == null || this.moving) ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다 (헤엄 애니가 있으면 애니에 맡긴다; 연못에서 가만히 있을 땐 똑바로)
 
     // 구멍에 떨어지면 fellInHole 을 켠다 (지금은 구멍이 있는 지역이 없다: 지하동굴은 굴 입구로 걸어 들어간다)
     if (p.y < -4) {

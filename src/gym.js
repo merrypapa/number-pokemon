@@ -92,11 +92,12 @@ export function buildGym(scene) {
   for (const [x, z] of [[-14, 44], [14, 44]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), benchMat); b.position.set(x, 0.6, z); b.castShadow = true; decor.add(b); for (const s of [-1.6, 1.6]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 0.8), benchMat); leg.position.set(x + s, 0.3, z); decor.add(leg); } block(x, z, 2.0); }
 
   // 연못: 모래 테두리 + 물(살짝 투명한 파랑) + 연잎 + 잔교
-  const sand = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0xe8d9a8, roughness: 1 }));
-  sand.rotation.x = -PI2; sand.scale.set(P.rx + 2.2, P.rz + 2.2, 1); sand.position.set(P.x, 0.012, P.z); sand.userData.noHide = true; decor.add(sand);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, roughness: 0.3 })); // 불투명: 반투명이면 물에 잠긴 주인공의 몸(살색)이 물 너머로 비쳐 깜빡였다
-  water.rotation.x = -PI2; water.scale.set(P.rx, P.rz, 1); water.position.set(P.x, 0.02, P.z); water.userData.noHide = true; decor.add(water);
-  const pads = []; for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, r = 0.35 + Math.random() * 0.55; pads.push({ x: P.x + Math.cos(a) * P.rx * r, y: 0.04, z: P.z + Math.sin(a) * P.rz * r, sx: 0.9, sy: 1, sz: 0.9, ry: Math.random() * 3 }); }
+  // 모래 테두리는 물 밑에 깔지 않고 **고리**로만 (물 판과 8mm 차이로 겹쳐 있어 멀리서 깊이 싸움(z-fighting)이 나면 연못이 살구색 모래로 깜빡였다 — "연못이 살색으로 바뀐다")
+  const sand = new THREE.Mesh(new THREE.RingGeometry(0.985, 1, 64), new THREE.MeshStandardMaterial({ color: 0xe8d9a8, roughness: 1, side: THREE.DoubleSide }));
+  sand.rotation.x = -PI2; sand.scale.set(P.rx + 2.2, P.rz + 2.2, 1); sand.position.set(P.x, 0.05, P.z); sand.userData.noHide = true; decor.add(sand);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, roughness: 0.3 })); // 불투명: 반투명이면 물에 잠긴 주인공의 몸이 물 너머로 비쳐 깜빡였다
+  water.rotation.x = -PI2; water.scale.set(P.rx, P.rz, 1); water.position.set(P.x, 0.08, P.z); water.userData.noHide = true; decor.add(water); // 잔디(0)보다 8cm 위: 깊이 싸움이 안 나게
+  const pads = []; for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, r = 0.35 + Math.random() * 0.55; pads.push({ x: P.x + Math.cos(a) * P.rx * r, y: 0.14, z: P.z + Math.sin(a) * P.rz * r, sx: 0.9, sy: 1, sz: 0.9, ry: Math.random() * 3 }); }
   decor.add(makeInstanced(new THREE.CircleGeometry(0.6, 10).rotateX(-PI2), new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), pads));
   const dockMat = new THREE.MeshStandardMaterial({ color: 0xb8742a, roughness: 0.85 });
   const dock = new THREE.Mesh(new THREE.BoxGeometry(DK.x1 - DK.x0, 0.25, DK.z1 - DK.z0), dockMat); dock.position.set((DK.x0 + DK.x1) / 2, 0.15, (DK.z0 + DK.z1) / 2); dock.castShadow = true; dock.userData.noHide = true; decor.add(dock);
@@ -128,7 +129,7 @@ export function buildGym(scene) {
   const coach = makeNpc({ outfit: 'ranger', name: '코리', model: '코리.glb' });
   coach.position.set(coachAt.x, 0, coachAt.z); coach.rotation.y = Math.PI; decor.add(coach); block(coachAt.x, coachAt.z, 0.6);
 
-  function animate(t) { title.position.y = 4.5 + Math.sin(t * 1.5) * 0.12; ball.rotation.y = t * 0.3; water.position.y = 0.02 + Math.sin(t * 1.2) * 0.01; }
+  function animate(t) { title.position.y = 4.5 + Math.sin(t * 1.5) * 0.12; ball.rotation.y = t * 0.3; water.position.y = 0.08 + Math.sin(t * 1.2) * 0.01; }
   /** 포켓몬들의 집 자리: 땅은 연못·나무·기구를 피해 격자에 고르게(흔들어서), 물은 연못 안에 고르게. 서로 겹치지 않게 넓게 퍼진다 */
   function homes(nLand, nWater) {
     const land = [], waterSpots = [];
