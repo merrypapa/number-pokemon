@@ -51,6 +51,7 @@ export class Player {
     this.car = null;       // 이상해꽃 자동차를 타고 있을 때: 차체 그룹 (주인공 모델 대신 보인다). 빠르고, 점프는 못 한다
     this.climbAt = null;   // 지역이 준 함수 (x, z, y) → { top, x, z } : 올라갈 수 있는 나무 줄기 옆이면 (야외 체육관). 점프 버튼을 누르고 있으면 줄기를 타고 오른다
     this.climbing = false;
+    this.surface = null;   // 물 위를 헤엄칠 때(체육관 연못): main 이 매 프레임 물 높이를 넣어 준다. 가슴까지 잠긴 채 천천히 헤엄치고 점프는 못 한다
     this.fly = null;       // 날개 있는 포켓몬을 타고 날 때: { mesh, minH, maxH, up, down, speed } — 장애물·물 위를 지나고, 점프 버튼으로 올라가고 놓으면 천천히 내려온다
     this.flying = false;
     // 주인공이 드는 등불 (동굴에서 주변을 밝힌다)
@@ -122,7 +123,7 @@ export class Player {
     const top = this.boat ? this.boat.speed * (input.isHeld('run') ? this.boat.boost : 1)
       : this.fly ? SPEED * this.fly.speed * (input.isHeld('run') ? 1.4 : 1) // 날 때: 걷기의 2배, 가속 버튼이면 더
       : this.car ? SPEED * CAR_SPEED * (input.isHeld('run') ? CAR_BOOST : 1) // 차: 걷기의 2.2배, 가속 버튼이면 더
-      : SPEED * (input.isHeld('run') ? RUN : 1);
+      : SPEED * (input.isHeld('run') ? RUN : 1) * (this.surface != null ? 0.6 : 1); // 물에서는 천천히
     this.vx += (wx * top - this.vx) * k;
     this.vz += (wz * top - this.vz) * k;
     const speed = Math.hypot(this.vx, this.vz);
@@ -215,7 +216,7 @@ export class Player {
       this.vy += GRAVITY * this.gravityScale * dt;
       this.vy = Math.max(-sw.sink, Math.min(sw.rise, this.vy)); // 너무 빨리 뜨거나 가라앉지 않게
     } else {
-      if (input.wasPressed('jump') && this.onGround && !this.car && !cl) { // 차에서는 점프 없음. 줄기 옆에서는 점프 대신 나무 타기
+      if (input.wasPressed('jump') && this.onGround && !this.car && !cl && this.surface == null) { // 차에서는 점프 없음. 줄기 옆에서는 점프 대신 나무 타기. 물에서는 못 뛴다
         this.vy = JUMP;
         this.onGround = false;
         this.jumped = true;
@@ -244,7 +245,8 @@ export class Player {
       this.airT = (this.airT || 0) + dt;
     }
     if (sw && p.y >= sw.ceiling) { p.y = sw.ceiling; this.vy = Math.min(this.vy, 0); } // 수면 바로 아래까지
-    this.swimming = !!sw && !this.onGround && (this.airT || 0) > 0.12; // 잠깐 뜬 것으로는 헤엄 동작으로 바꾸지 않는다 (동작이 깜빡이지 않게)
+    if (this.surface != null && !this.jumping) { p.y = this.surface; this.vy = 0; this.onGround = true; this.airT = 0; } // 연못: 수면 높이에 붙어 헤엄친다
+    this.swimming = this.surface != null || (!!sw && !this.onGround && (this.airT || 0) > 0.12); // 잠깐 뜬 것으로는 헤엄 동작으로 바꾸지 않는다 (동작이 깜빡이지 않게)
     if (this.body) this.body.rotation.x = this.swimming && !anim ? -0.5 : 0; // 떠 있을 때는 헤엄치듯 앞으로 기운다 (헤엄 애니가 있으면 애니에 맡긴다)
 
     // 구멍에 떨어지면 fellInHole 을 켠다 (지금은 구멍이 있는 지역이 없다: 지하동굴은 굴 입구로 걸어 들어간다)

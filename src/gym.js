@@ -7,7 +7,7 @@ import { makeLabelTexture, makePillSprite, makeInstanced } from './world.js';
 // 그리고 **올라갈 수 있는 큰 나무** 둘: 줄기 옆에서 점프 버튼을 꾹 누르면 줄기를 타고 올라가 6m 위 나무 위 집(둥근 단)에 선다 (player.climbAt).
 // 코치는 코리. 몬스터·블록·퀴즈는 없다. 남쪽 문으로 나가면 푸른숲.
 // 운동장은 넓게(170×120): 도감 130종을 다 잡아 130마리가 나와도 한 마리에 100㎡ 넘게 돌아가게. 동쪽에 **연못**(타원 20×24)이 있어 물 포켓몬(물 속성·헤엄치는 종)은 거기서 헤엄치며 논다.
-// 연못 서쪽 가장자리에서 나무 잔교가 연못 안으로 뻗어 있어(걸어갈 수 있다) 잔교 끝에서 물 포켓몬을 훈련시킨다. 연못 물은 못 들어간다.
+// 연못 서쪽 가장자리에서 나무 잔교가 연못 안으로 뻗어 있고, 주인공도 연못에 들어가면 **헤엄친다**(가슴까지 잠겨 천천히, main 이 player.surface 를 준다). 물 포켓몬 옆에서 같이 헤엄치며 훈련.
 export const GYM = { size: 200, field: { w: 170, d: 120 }, spawn: { x: 0, z: 52 }, door: { x: 0, z: 60.4 }, trees: [{ x: -50, z: -36 }, { x: 0, z: -42 }], platY: 6, platR: 3.6,
   dummies: [{ x: -75, z: 2 }, { x: -75, z: 9 }, { x: -75, z: 16 }], track: { x: -18, z: 4, rx: 28, rz: 16 },
   pond: { x: 58, z: -4, rx: 24, rz: 28 }, dock: { x0: 33, x1: 47, z0: -5.6, z1: -2.4 } };
@@ -23,7 +23,6 @@ export const GYM_TERRAIN = {
   height: (x, z, refY) => (treeDist(x, z).some((d) => d < GYM.platR) && (refY ?? 0) >= GYM.platY - 1.0 ? GYM.platY : 0),
   blocked: (x, z, refY) => {
     if (!inDoorway(x, z) && (Math.abs(x) > F.w / 2 - 0.6 || Math.abs(z) > F.d / 2 - 0.6)) return true; // 울타리
-    if (inPond(x, z) && !onDock(x, z)) return true; // 연못 물 (잔교 위는 괜찮다)
     if ((refY ?? 0) >= GYM.platY - 1.0) { const d = Math.min(...treeDist(x, z)); if (d > GYM.platR - 0.45 && d < GYM.platR + 0.8) return true; } // 나무 위 집 난간 (떨어지지 않게)
     return false;
   },
@@ -102,7 +101,7 @@ export function buildGym(scene) {
   const dockMat = new THREE.MeshStandardMaterial({ color: 0xb8742a, roughness: 0.85 });
   const dock = new THREE.Mesh(new THREE.BoxGeometry(DK.x1 - DK.x0, 0.25, DK.z1 - DK.z0), dockMat); dock.position.set((DK.x0 + DK.x1) / 2, 0.15, (DK.z0 + DK.z1) / 2); dock.castShadow = true; dock.userData.noHide = true; decor.add(dock);
   for (let x = DK.x0 + 2; x < DK.x1; x += 3) for (const z of [DK.z0 + 0.2, DK.z1 - 0.2]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.9, 0.25), dockMat); post.position.set(x, 0.45, z); decor.add(post); }
-  const pondSign = makePillSprite('🌊 연못 · 물 포켓몬이 노는 곳. 잔교 끝에서 훈련!', { bg: '#1f5f8a', fg: '#ffffff', border: '#9fe8ff' }, 0.9); pondSign.position.set(DK.x0 - 1, 3.2, DK.z0 - 2); decor.add(pondSign);
+  const pondSign = makePillSprite('🌊 연못 · 물 포켓몬과 같이 헤엄치며 훈련!', { bg: '#1f5f8a', fg: '#ffffff', border: '#9fe8ff' }, 0.9); pondSign.position.set(DK.x0 - 1, 3.2, DK.z0 - 2); decor.add(pondSign);
   // 올라갈 수 있는 큰 나무 둘: 줄기 + 나무 위 집(둥근 단 + 난간 + 작은 지붕) + 잎 덩어리
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.95 }), leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9d3a });
   const plankMat = new THREE.MeshStandardMaterial({ color: 0xc9924a, roughness: 0.8 });
@@ -159,10 +158,10 @@ export function buildGym(scene) {
   return {
     sun, animate, terrain: GYM_TERRAIN, decor, spawn: GYM.spawn, portal: GYM.door, portalTo: 'forest', dark: false, gym: true, noShrine: true,
     wildSpots: [], pickupSpots: [], climbAt: GYM_TERRAIN.climbAt,
-    field: { w: F.w - 6, d: F.d - 6 }, dummies: GYM.dummies, homes, spotNear, inPond, waterY: -0.35,
+    field: { w: F.w - 6, d: F.d - 6 }, dummies: GYM.dummies, homes, spotNear, inPond, onDock, waterY: -0.35, swimY: -0.75,
     npcs: [{ x: coachAt.x, z: coachAt.z, mesh: coach, name: '코리', lines: (c) => [
       `안녕, ${c.name}! 여기는 야외 체육관이야. 네가 잡은 포켓몬들이 전부 나와서 뛰어놀고 있어. 가까이 가서 "💪 훈련하기"를 누르면 경험치를 받아!`,
-      '동쪽 연못에는 물 포켓몬들이 헤엄치고 있어. 물에는 못 들어가니까 나무 잔교 끝까지 걸어가서 가까이 온 아이를 훈련시켜 줘.',
+      '동쪽 연못에는 물 포켓몬들이 헤엄치고 있어. 너도 연못에 들어가면 같이 헤엄칠 수 있어! 잔교 끝에서 뛰어들어 봐. 물속에서는 천천히 움직이고 점프는 못 해.',
       '훈련은 한 마리에 하루 세 번까지. 매일 와서 골고루 훈련시켜 주면 레벨이 쑥쑥 올라.',
       '저 큰 나무 보이지? 줄기 옆에 서서 점프 버튼을 꾹 누르면 줄기를 타고 올라가. 나무 위 집에서 운동장이 다 보여!',
       `${c.leader ? `${c.leader.speciesId ? '대표 포켓몬도 트랙을 한 바퀴 돌게 해 보렴.' : ''}` : '대표 포켓몬이 없네? 먼저 포켓몬을 잡아 오렴.'} 운동장 서쪽 샌드백은 훈련하는 자리야.`,

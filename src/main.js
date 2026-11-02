@@ -1052,7 +1052,7 @@ function gymTick(dt) {
   if (!zone?.world?.gym || !gymPets.length) return;
   const pp = player.position;
   let nearest = null, nd = Infinity;
-  const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
+  const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있거나 같이 헤엄치고 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
   let closestWater = null, cwd = Infinity;
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
@@ -1070,7 +1070,7 @@ function gymTick(dt) {
     }
     p.label.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
     const d = Math.hypot(pp.x - mp.x, pp.z - mp.z);
-    if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
+    if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1 && pp.y > -2) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
     if (p.water && d < cwd) { cwd = d; closestWater = p; }
   }
   if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
@@ -2286,7 +2286,7 @@ function buildSaveData() {
     items: { ...state.items },
     tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
     returnTo: state.returnTo,
-    carTold: !!state.carTold, flyTold: !!state.flyTold,
+    carTold: !!state.carTold, flyTold: !!state.flyTold, swimTold: !!state.swimTold,
     gym: { day: state.gym.day, trained: { ...state.gym.trained } }, profQuest: state.profQuest ? { ...state.profQuest } : null, profQuests: state.profQuests || 0,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
@@ -3133,7 +3133,7 @@ function applySave(d) {
   state.rockets = { ...(d.rockets || {}) };
   state.released = { ...(d.released || {}) };
   state.gym = d.gym && d.gym.trained ? { day: d.gym.day || '', trained: { ...d.gym.trained } } : { day: '', trained: {} };
-  state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold;
+  state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold; state.swimTold = !!d.swimTold;
   for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
@@ -3232,6 +3232,9 @@ function frame() {
     if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
     if (input.wasPressed('view') && !battle.active && !dex.open && !quiz.open && !study.open) { sound.click(); setView(!cam.fp); }
 
+    { const w = zone.world, q = player.position; const inWater = !!w.inPond && w.inPond(q.x, q.z, 0.98) && !w.onDock(q.x, q.z) && !flying; // 체육관 연못: 들어가면 헤엄친다
+      if (inWater && player.surface == null) { particles.stars(zone.scene, q.clone().add(new THREE.Vector3(0, 0.3, 0)), 14, 0x9fe8ff, 0.45); sound.throw_(); if (!state.swimTold) { state.swimTold = true; say('💦 첨벙! 연못에서 헤엄쳐. 물 포켓몬들이 같이 놀아 줄 거야. 물에서는 천천히 움직이고 점프는 못 해.', { sec: 6 }); } }
+      player.surface = inWater ? w.swimY : null; }
     player.update(dt, input, cam.yaw);
     const pp = player.position;
     const near = (pt, r) => Math.hypot(pp.x - pt.x, pp.z - pt.z) < r;
