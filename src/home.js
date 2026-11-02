@@ -168,7 +168,7 @@ export function buildHome(scene) {
   }
 
   return {
-    sun, animate, terrain: HOME_TERRAIN, decor, spawn: HOME.spawn, portal: HOME.door, dark: false, indoor: true,
+    portalTo: 'town', sun, animate, terrain: HOME_TERRAIN, decor, spawn: HOME.spawn, portal: HOME.door, dark: false, indoor: true,
     wildSpots: [], pickupSpots: [],
     mySeat, seatLabel: '📚 숙제하기', // 책상에 앉으면 학교처럼 과목 공부 (숙제)
     bed: bedSpot,                    // 침대 옆에 서면 "자기" 버튼 (포켓몬 치료 + 저장)

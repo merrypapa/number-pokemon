@@ -223,7 +223,7 @@ export function buildLab(scene) {
   }
 
   return {
-    sun, animate, terrain: LAB_TERRAIN, decor, spawn: LAB.spawn, portal: LAB.door, dark: false, indoor: true,
+    portalTo: 'town', sun, animate, terrain: LAB_TERRAIN, decor, spawn: LAB.spawn, portal: LAB.door, dark: false, indoor: true,
     wildSpots: [], pickupSpots: [],
     warpPad: padPos,
     setScreenSubjects,

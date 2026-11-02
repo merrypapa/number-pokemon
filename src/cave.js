@@ -8,7 +8,7 @@ import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced, makePil
 export const CAVE = {
   size: 160,
   spawn: { x: 0, z: 15 },
-  portal: { x: 0, z: 33 },
+  portal: { x: 0, z: 33 }, // 포탈은 마을로 (portalTo: 'town', 아래 return)
   thunderGate: { x: 70, z: 12 }, // 동쪽 벽의 번개 굴: 들어가면 main 이 번개동굴로 보낸다
   towerGate: { x: -64, z: -24 }, // 서쪽 벽의 동굴탑 문: 들어가면 main 이 동굴탑 1층으로 보낸다
   lake: { x: 33, z: -21, r: 10 },
@@ -278,7 +278,7 @@ export function buildCave(scene) {
   }
 
   return {
-    sun, animate, terrain: CAVE_TERRAIN, portal: P, spawn: CAVE.spawn,
+    sun, animate, terrain: CAVE_TERRAIN, portal: P, portalTo: 'town', spawn: CAVE.spawn, // 포탈은 마을(지하동굴 입구가 마을에 있다)
     decor,
     dark: true,
     thunderGate: { x: TG.x + 1.5, z: TG.z }, // 번개 굴 안쪽 (들어서면 main 이 번개동굴로 보낸다)

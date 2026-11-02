@@ -218,7 +218,7 @@ export function buildSchool(scene) {
   }
 
   return {
-    sun, animate, terrain: SCHOOL_TERRAIN, decor, spawn: SCHOOL.spawn, portal: SCHOOL.door, dark: false, indoor: true,
+    portalTo: 'town', sun, animate, terrain: SCHOOL_TERRAIN, decor, spawn: SCHOOL.spawn, portal: SCHOOL.door, dark: false, indoor: true,
     wildSpots: [], pickupSpots: [],
     mySeat: { x: mySeat.x, z: mySeat.z },
     setBoard,
