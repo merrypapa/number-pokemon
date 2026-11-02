@@ -14,7 +14,7 @@ import { buildLab } from './lab.js';
 import { buildSchool } from './school.js';
 import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
-import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerElite, towerLevelBand, LAND_W } from './tower.js';
+import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerElite, towerLevelBand, LAND_W, towerCeiling } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
@@ -94,7 +94,11 @@ function camOffset() {
   const h = Math.max(1.6, 9 + cam.pitch * 6), d = 11 - cam.pitch * 3;
   return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
 }
-function camLookY() { return 1 + Math.max(0, -0.35 - cam.pitch) * 12; }
+function camLookY() { // 화면을 아래로 끌어(pitch 음수) 고개를 들 때 보는 높이. 주인공이 화면 밖(아래)으로 나가지 않게 카메라에서 본 각도를 약 18° 안으로 막는다
+  // (전에는 12배까지 올라가 동굴탑처럼 위를 자주 올려다보는 곳에서 주인공이 화면에서 사라졌다 — "캐릭터가 안 보여요")
+  const off = camOffset(), maxUp = off.y + Math.hypot(off.x, off.z) * 0.2;
+  return Math.min(1 + Math.max(0, -0.35 - cam.pitch) * 12, maxUp);
+}
 function camForward() { return new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)); } // 카메라가 보는 지면 방향
 window.addEventListener('resize', fitRenderer);
 window.visualViewport?.addEventListener('resize', fitRenderer);
@@ -3637,6 +3641,7 @@ function frame() {
       for (const o of hiddenByCam) o.visible = true; hiddenByCam.clear(); // 3인칭에서 숨겨 둔 장식이 있으면 되돌린다
     } else {
       const camTarget = resolveCamera(pp.clone().add(camOffset()));
+      if (zone.world.tower) { const c = towerCeiling(camTarget.x, camTarget.z, pp.y); if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
       if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
       else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
       camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
