@@ -1047,3 +1047,7 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #dex-pager .pg-info { color: #999; font-weight: 700; width: 100%; text-align: center; }
 
 .dex-item img.pending { background: radial-gradient(circle, #eee 40%, transparent 41%); opacity: 0.5; }
+
+#btn-check-update { margin-top: 6px; font: inherit; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.22); color: #fff; cursor: pointer; }
+#btn-check-update:disabled { opacity: .7; cursor: default; }
+#update-bar small { display: block; font-weight: 700; opacity: .8; margin-top: 4px; }
