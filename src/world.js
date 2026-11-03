@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
-import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
+import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
 import { NUMBER_COLORS, RAINBOW } from './palette.js';
 import { makeNpc } from './npc.js';
 
@@ -940,27 +940,11 @@ export function buildWorld(scene, layout = 'forest') {
     const tieMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
     for (const dz of [-0.7, 0.7]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(70, 0.12, 0.14), railMat); rail.position.set(st.x - 8, y0 + 0.1, st.z + dz); decor.add(rail); }
     for (let i = 0; i < 46; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(st.x - 42 + i * 1.5, y0 + 0.05, st.z); decor.add(tie); }
-    const plat = new THREE.Mesh(new THREE.BoxGeometry(16, 0.2, 4), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
-    plat.position.set(st.x, y0 + 0.1, st.z + 3.6);
-    plat.userData.noHide = true; // 바닥은 숨기지 않는다
-    decor.add(plat);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(16, 0.25, 4.4), new THREE.MeshStandardMaterial({ color: 0x3fb8e8 }));
-    roof.position.set(st.x, y0 + 3.4, st.z + 3.6);
-    roof.castShadow = true;
-    roof.userData.radius = 9;   // 넓은 지붕이라 끝에 서도 시야를 가리면 잠시 숨는다
-    decor.add(roof);
-    const sign = makePillSprite('🚂 기차역', { bg: '#1f3a93', fg: '#ffffff', border: '#9fe8ff' }, 2.4); // 불의산 입구처럼 멀리서 보이는 둥근 표지판
-    sign.position.set(st.x, y0 + 5.4, st.z + 3.6);
-    decor.add(sign);
-    for (const dx of [-7, 0, 7]) for (const dz of [1.9, 5.3]) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8), woodMat);
-      post.position.set(st.x + dx, y0 + 1.7, st.z + dz);
-      decor.add(post); block(st.x + dx, st.z + dz, 0.2);
-    }
+    if (isTown) buildStationTown(decor, { height: T.height, obstacles, st }); // 스위스 클라이네 샤이데크역을 닮은 샬레 역사·승강장 지붕·육교 (src/hallstatt.js)
     // 기차: 기관차 + 객차 2칸
     train = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe8453c });
-    const carMat = new THREE.MeshStandardMaterial({ color: 0x3fb8e8 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc8102e }); // 스위스 산악 열차처럼 빨강 + 크림색 창
+    const carMat = new THREE.MeshStandardMaterial({ color: 0xc8102e });
     const dark = new THREE.MeshStandardMaterial({ color: 0x20232e });
     const engine = new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, 2.2), bodyMat); engine.position.set(0, 1.5, 0); engine.castShadow = true;
     const cab = new THREE.Mesh(new THREE.BoxGeometry(2, 1.2, 2.2), bodyMat); cab.position.set(-1.2, 3.2, 0);
@@ -971,7 +955,7 @@ export function buildWorld(scene, layout = 'forest') {
     wheel(-1.6, 0.5); wheel(1.6, 0.5);
     for (let i = 0; i < 2; i++) {
       const car = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 2.2), carMat); car.position.set(-6 * (i + 1), 1.4, 0); car.castShadow = true; train.add(car);
-      for (let k = 0; k < 3; k++) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 2.3), new THREE.MeshStandardMaterial({ color: 0xdff6ff })); win.position.set(-6 * (i + 1) - 1.5 + k * 1.5, 1.7, 0); train.add(win); }
+      for (let k = 0; k < 3; k++) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 2.3), new THREE.MeshStandardMaterial({ color: 0xfff3dc })); win.position.set(-6 * (i + 1) - 1.5 + k * 1.5, 1.7, 0); train.add(win); }
       wheel(-6 * (i + 1) - 1.6, 0.45); wheel(-6 * (i + 1) + 1.6, 0.45);
     }
     train.position.set(st.x + 2, y0, st.z);

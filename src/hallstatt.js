@@ -18,6 +18,15 @@ export const PIER_DECK = { x1: 55.2, z1: -32, x2: 62.8, z2: -32, w: 3.9, rise: 0
 export const TERR = { x0: 28, x1: 104, edges: [-54, -64, -74], step: 2.2 };
 export const STAIRS = [{ x: 48, k: 0 }, { x: 84, k: 1 }, { x: 60, k: 2 }].map((s) => ({ ...s, half: 1.4, run: 2.6 }));
 export const CHURCH = { x: 37, z: -59.5, hw: 5, hd: 3 }; // 긴 쪽이 x (단 폭 10m 안에 들어가게), 탑은 동쪽 끝
+// 마을 기차역 = 스위스 클라이네 샤이데크역 (아이거 아래 알프스 산악역): 나무 샬레 역사 + 큰 시계 + 처마 깊은 승강장 지붕 + 선로를 건너는 육교
+export const STATION_FB = { x: -79, half: 1.1, H: 4.6, zS: 0.6, zN: -8.6, run: 6.4 }; // 육교: 남쪽 계단(z zS+run → zS) · 다리(zS → zN, 높이 H, 아래로 기차·선로) · 북쪽 계단(zN → zN-run)
+function fbH(x, z) { // 육교 높이 (계단은 단단한 땅, 다리판은 겹친 층)
+  const F = STATION_FB; if (Math.abs(x - F.x) > F.half) return null;
+  if (z >= F.zS && z <= F.zS + F.run) return { h: F.H * (F.zS + F.run - z) / F.run, solid: true };
+  if (z <= F.zN && z >= F.zN - F.run) return { h: F.H * (z - (F.zN - F.run)) / F.run, solid: true };
+  if (z < F.zS && z > F.zN) return { h: F.H, solid: false };
+  return null;
+}
 export const SKYWALK = { x0: 66, x1: 72, z0: -74, z1: -67.5, top: 6.75 };
 
 function terraceLevel(x, z) {
@@ -38,12 +47,15 @@ function inSky(x, z) { return x > SKYWALK.x0 && x < SKYWALK.x1 && z < SKYWALK.z1
 export function hallstattHeight(x, z, refY, ground) {
   const sh = stairH(x, z); // 돌계단 자리는 계단이 단 높이를 대신한다 (단 가장자리에서 툭 끊기지 않게)
   let y = Math.max(ground, sh ?? terraceLevel(x, z));
+  const fb = fbH(x, z); if (fb && (fb.solid || fb.h <= (refY ?? y) + 0.7)) y = Math.max(y, ground + fb.h); // 기차역 육교
   if (inSky(x, z) && SKYWALK.top <= (refY ?? y) + 0.7) y = Math.max(y, SKYWALK.top);
   return y;
 }
-export function hallstattCeiling(x, z, y) { return inSky(x, z) && y < SKYWALK.top - 0.5 ? SKYWALK.top - 0.15 : Infinity; }
+export function hallstattCeiling(x, z, y) { if (inSky(x, z) && y < SKYWALK.top - 0.5) return SKYWALK.top - 0.15; const fb = fbH(x, z); if (fb && !fb.solid && y < STATION_FB.H - 0.5) return STATION_FB.H - 0.15; return Infinity; }
 /** 스카이워크 난간 (윗단 쪽만 열려 있다) */
 export function hallstattBlocked(x, z, refY) {
+  const F = STATION_FB, dx = Math.abs(x - F.x); // 육교·계단 난간: 그 높이에 서 있을 때 옆 띠
+  if ((refY ?? 0) > 1.0 && dx > F.half && dx < F.half + 0.8 && z < F.zS + F.run && z > F.zN - F.run) { const inner = fbH(F.x, z); if (inner && Math.abs((refY ?? 0) - inner.h) < 1.5) return true; }
   if ((refY ?? 0) < SKYWALK.top - 0.5) return false;
   const inX = x > SKYWALK.x0 - 0.8 && x < SKYWALK.x1 + 0.8, inZ = z < SKYWALK.z1 + 0.8 && z > SKYWALK.z0;
   return inX && inZ && !inSky(x, z) && z > SKYWALK.z0 + 0.3;
@@ -209,6 +221,46 @@ export function buildDeck(b, height) {
   for (const s of [-1, 1]) { const edge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, len), dark); edge.position.set(b.x1 + ux * len / 2 - uz * s * (b.w + 0.15), y - 0.08, b.z1 + uz * len / 2 + ux * s * (b.w + 0.15)); edge.rotation.y = ry; g.add(edge); }
   for (let k = 0; k <= Math.round(len / 3); k++) for (const s of [-1, 1]) { const t = k / Math.round(len / 3), x = b.x1 + ux * len * t - uz * s * b.w, z = b.z1 + uz * len * t + ux * s * b.w, gy = height(x, z); if (gy > y - 0.25) continue; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, y - gy, 6), dark); post.position.set(x, (y + gy) / 2, z); g.add(post); }
   const out = mergeGroup(g); out.userData.noHide = true; return out;
+}
+
+/** 기차역 꾸밈: 샬레 역사(큰 시계·꽃상자) · 처마 깊은 나무 승강장 지붕 · 벤치 · 짐수레 · 시간표 · 육교. st: 선로 가운데(TOWN.station) */
+export function buildStationTown(decor, { height, obstacles, st }) {
+  const g = new THREE.Group(), y0 = height(st.x, st.z), wood = M(0x7a4a2a), woodL = M(0xb08050), roofM = M(0x4a2a1a), cream = M(0xfff3dc);
+  // 승강장 (선로 남쪽): 돌 가장자리 + 나무 바닥
+  const plat = new THREE.Mesh(new THREE.BoxGeometry(18, 0.06, 4.2), M(0xc9bfa8)); plat.position.set(st.x, y0 + 0.03, st.z + 3.5); // 걷는 높이(땅)와 맞게 얇게 (두꺼우면 발이 묻혀 보인다) plat.receiveShadow = true; g.add(plat);
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(18, 0.06, 0.3), M(0xffd93d)); edge.position.set(st.x, y0 + 0.065, st.z + 1.6); g.add(edge); // 노란 안전선
+  // 처마 깊은 나무 지붕 + 조각 받침
+  for (const dx of [-7.5, -2.5, 2.5, 7.5]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.4, 0.3), wood); post.position.set(st.x + dx, y0 + 1.7, st.z + 4.8); post.castShadow = true; g.add(post); obstacles.push({ x: st.x + dx, z: st.z + 4.8, r: 0.25 }); const br = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 1.6), wood); br.position.set(st.x + dx, y0 + 3.1, st.z + 4.0); br.rotation.x = 0.6; g.add(br); }
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(19, 0.2, 4.4), roofM); canopy.position.set(st.x, y0 + 3.55, st.z + 3.4); canopy.rotation.x = -0.12; canopy.castShadow = true; g.add(canopy);
+  const fringe = []; for (let x = -9.2; x <= 9.2; x += 0.4) fringe.push({ x: st.x + x, y: y0 + 3.25, z: st.z + 1.25, sx: 0.18, sy: 0.35, sz: 0.04 }); // 지붕 끝 톱니 장식
+  g.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), cream, fringe));
+  // 샬레 역사 (승강장 뒤): 크게 + 큰 시계
+  const house = alpineHouse({ w: 10, d: 5, h: 2.8, wall: 0xfff3dc, roof: 0x4a2a1a, accent: 0xe8203a }); house.position.set(st.x - 1, y0, st.z + 12.5); house.rotation.y = Math.PI; g.add(house); // 문이 선로 쪽(-z)
+  for (const [ax, az, bx, bz] of [[-6, 9.9, 4, 9.9], [-6, 15.1, 4, 15.1], [-6, 9.9, -6, 15.1], [4, 9.9, 4, 15.1]]) obstacles.push({ ax: st.x + ax, az: st.z + az, bx: st.x + bx, bz: st.z + bz, r: 0.4 });
+  const clock = new THREE.Group(), face = new THREE.Mesh(new THREE.CircleGeometry(0.9, 28), M(0xffffff)), rim = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.08, 6, 28), M(0x20232e));
+  const hand1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.03), M(0x20232e)), hand2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 0.03), M(0xe8203a)); hand1.position.set(0, 0.3, 0.02); hand2.position.set(0.2, 0, 0.03); hand2.rotation.z = -1.2; hand2.userData.secondHand = true;
+  clock.add(face, rim, hand1, hand2); clock.position.set(st.x - 1, y0 + 4.2, st.z + 9.85); clock.rotation.y = Math.PI; g.add(clock);
+  const nameBoard = makePillSprite('🚉 포켓몬 마을역 · 물의길행', { bg: '#ffffff', fg: '#20232e', border: '#c8102e' }, 1.0); nameBoard.position.set(st.x - 1, y0 + 6.6, st.z + 9.7); decor.add(nameBoard);
+  // 벤치 · 짐수레 · 시간표 · 꽃 화분
+  const benches = [];
+  for (const dx of [-5, 0, 5]) { benches.push({ x: st.x + dx, y: y0 + 0.5, z: st.z + 5.2, sx: 1.8, sy: 0.12, sz: 0.5 }, { x: st.x + dx, y: y0 + 0.8, z: st.z + 5.45, sx: 1.8, sy: 0.5, sz: 0.08 }); obstacles.push({ ax: st.x + dx - 0.9, az: st.z + 5.2, bx: st.x + dx + 0.9, bz: st.z + 5.2, r: 0.35 }); }
+  g.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), woodL, benches));
+  const cart = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.6, 0.9), M(0x6a7a8a, { metalness: 0.5 })); cart.position.set(st.x + 7.8, y0 + 0.6, st.z + 3.2); g.add(cart); obstacles.push({ x: st.x + 7.8, z: st.z + 3.2, r: 0.7 });
+  const bags = []; for (const [bx, by, bz, c] of [[-0.3, 1.05, 0, 0xc8102e], [0.3, 1.0, 0.1, 0x3fb8e8], [0, 1.4, -0.1, 0xffd93d]]) bags.push({ x: st.x + 7.8 + bx, y: y0 + by, z: st.z + 3.2 + bz, sx: 0.5, sy: 0.35, sz: 0.35, color: c });
+  g.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), M(0xffffff), bags));
+  const board = makePillSprite('🕐 시간표 · 물의길행 기차는 언제나 출발! 리리에게 말을 걸어', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.55); board.position.set(st.x + 3.5, y0 + 2.4, st.z + 6.4); decor.add(board);
+  const pots = [], flowers = []; for (const dx of [-8.6, -3.8, 1.2, 6.2]) { pots.push({ x: st.x + dx, y: y0 + 0.5, z: st.z + 5.6, sx: 0.35, sy: 0.5, sz: 0.35 }); flowers.push({ x: st.x + dx, y: y0 + 0.95, z: st.z + 5.6, s: 0.35, color: dx % 2 ? 0xe8203a : 0xff8fd0 }); }
+  g.add(makeInstanced(new THREE.CylinderGeometry(1, 0.8, 1, 8), M(0xc46b2c), pots), makeInstanced(new THREE.IcosahedronGeometry(1, 0), M(0xffffff), flowers));
+  // 육교: 남쪽 계단 → 선로 위 다리(4.6m) → 북쪽 계단
+  const F = STATION_FB, fy = height(F.x, F.zS + F.run + 1, 0), steps = [], rails = [];
+  for (const [z0, z1] of [[F.zS + F.run, F.zS], [F.zN - F.run, F.zN]]) for (let i = 0; i < 12; i++) { const t = (i + 0.5) / 12, z = z0 + (z1 - z0) * t, top = F.H * (i + 1) / 12; steps.push({ x: F.x, y: fy + top / 2, z, sx: F.half * 2, sy: top, sz: Math.abs(z1 - z0) / 12 + 0.02 }); }
+  for (const s of [-1, 1]) { rails.push({ x: F.x + s * (F.half + 0.05), y: fy + F.H + 0.55, z: (F.zS + F.zN) / 2, sx: 0.1, sy: 1.1, sz: F.zS - F.zN }); for (const [z0, z1] of [[F.zS + F.run, F.zS], [F.zN - F.run, F.zN]]) { const zm = (z0 + z1) / 2, len = Math.hypot(F.run, F.H); const r = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, len), wood); r.position.set(F.x + s * (F.half + 0.05), fy + F.H / 2 + 0.95, zm); r.rotation.x = (z1 > z0 ? -1 : 1) * Math.atan2(F.H, F.run); g.add(r); } }
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(F.half * 2 + 0.2, 0.22, F.zS - F.zN), woodL); deck.position.set(F.x, fy + F.H - 0.11, (F.zS + F.zN) / 2); g.add(deck);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(F.half * 2 + 0.8, 0.12, F.zS - F.zN + 0.6), roofM); roof.position.set(F.x, fy + F.H + 2.6, (F.zS + F.zN) / 2); g.add(roof);
+  for (const z of [F.zS, F.zN]) for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, F.H + 2.6, 0.2), wood); p.position.set(F.x + s * (F.half + 0.1), fy + (F.H + 2.6) / 2, z); g.add(p); obstacles.push({ x: F.x + s * (F.half + 0.1), z, r: 0.2 }); }
+  g.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), M(0xb08050), steps, { shadow: true }), makeInstanced(new THREE.BoxGeometry(1, 1, 1), wood, rails));
+  const fs = makePillSprite('🌉 육교 · 선로 위로 건너가!', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.6); fs.position.set(F.x + 2.2, fy + F.H + 3.4, (F.zS + F.zN) / 2); decor.add(fs);
+  const out = mergeGroup(g); out.userData.noHide = true; decor.add(out);
 }
 
 // ---------- 호수·언덕 마을·교회·스카이워크·설산 ----------
