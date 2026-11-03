@@ -4,19 +4,20 @@
 //  - 가끔 나는 소리(사건): 새 지저귐·물방울·보글·풍경 소리·지직 — 정해진 간격 사이에서 무작위로
 // 숲의 개울 소리는 개울에 가까울수록 커진다 (setWater, main 이 거리를 넣어 준다).
 
+// 물·바람(개울·연못·파도·바람·휘파람 바람) 소리는 아이 요청으로 예전의 45% 크기로 줄였다
 const SCAPES = {
-  forest: { wind: 0.016, water: 0.04, birds: { gap: [3, 7], pitch: 0.9, soft: true } }, // 딱따구리(딱딱 끊기는 소리)는 뺐다: 아이가 "이상한 소리"라고 했다
-  town: { wind: 0.01, birds: { gap: [3, 7], pitch: 1.05 }, chimes: { gap: [4, 9] } },
-  gym: { wind: 0.012, birds: { gap: [3, 6], pitch: 1.1 }, pond: 0.012 },
+  forest: { wind: 0.0072, water: 0.018, birds: { gap: [3, 7], pitch: 0.9, soft: true } }, // 딱따구리(딱딱 끊기는 소리)는 뺐다: 아이가 "이상한 소리"라고 했다
+  town: { wind: 0.0045, birds: { gap: [3, 7], pitch: 1.05 }, chimes: { gap: [4, 9] } },
+  gym: { wind: 0.0054, birds: { gap: [3, 6], pitch: 1.1 }, pond: 0.0054 },
   hive: { buzz: 0.03 },
-  cave: { drone: 0.028, drips: { gap: [0.8, 2.6] }, water: 0.045 }, // water: 지하 강 (가까울수록)
+  cave: { drone: 0.028, drips: { gap: [0.8, 2.6] }, water: 0.0203 }, // water: 지하 강 (가까울수록)
   thunder: { drone: 0.02, hum: 0.012, crackle: { gap: [0.4, 1.6] }, rumble: { gap: [9, 18] } },
-  tower: { howl: 0.03, drips: { gap: [1.5, 4] } },
+  tower: { howl: 0.0135, drips: { gap: [1.5, 4] } },
   volcano: { lava: 0.05, bubbles: { gap: [0.6, 1.8], low: true }, rumble: { gap: [8, 15] } },
-  sea: { waves: 0.06, gulls: { gap: [4, 9] } },
+  sea: { waves: 0.027, gulls: { gap: [4, 9] } },
   deepsea: { drone: 0.03, bubbles: { gap: [0.5, 1.6] } },
   space: { pad: 0.02, twinkle: { gap: [0.8, 2.4] } },
-  planet: { pad: 0.018, twinkle: { gap: [1.2, 3] }, howl: 0.012 },
+  planet: { pad: 0.018, twinkle: { gap: [1.2, 3] }, howl: 0.0054 },
   arena: { crowd: 0.035, cheer: { gap: [7, 14] } },
   lab: { hum: 0.006, beep: { gap: [3, 7] } },
   school: { clock: true, birds: { gap: [6, 12], pitch: 1.1, far: true } },
