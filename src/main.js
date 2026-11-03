@@ -1045,7 +1045,11 @@ function resolveCamera(target) {
   const tmp = new THREE.Vector3();
   for (const o of zone.world.decor?.children || []) {
     if (o.isInstancedMesh || !o.position) continue;
-    if (o.userData.cutaway) { if (o.userData.cutaway(head, target)) { o.visible = false; hiddenByCam.add(o); } continue; } // 용암 동굴 껍질: 주인공이 굴 안이면 숨긴다 (안벽만 남는다)
+    if (o.userData.cutaway) { if (o.userData.cutaway(head, target)) { o.visible = false; hiddenByCam.add(o); } continue; }
+    if (target.y >= head.y && !o.isSprite) { // 발밑보다 낮은 것(데크길·다리 판·바닥)은 위에서 내려다보는 시선을 가리지 않는다 — 걸어간 데크 판이 사라지던 버그
+      if (o.userData._top === undefined) o.userData._top = new THREE.Box3().setFromObject(o).max.y; // 움직이지 않는 장식이라 한 번만 잰다
+      if (o.userData._top < head.y - 0.3) continue;
+    } // 용암 동굴 껍질: 주인공이 굴 안이면 숨긴다 (안벽만 남는다)
     if (o.userData.noHide || (o.geometry && (o.geometry.type === 'PlaneGeometry' || o.geometry.type === 'CircleGeometry') && Math.abs(Math.abs(o.rotation.x) - Math.PI / 2) < 0.05)) continue; // 바닥·러그처럼 납작하게 깔린 것은 절대 숨기지 않는다 (연구실 바닥이 깜빡이던 원인)
     const r = o.userData.solid ? o.userData.radius : (o.userData.radius || 2.4);
     tmp.subVectors(o.position, head);
@@ -2143,7 +2147,7 @@ function tutorial() {
   else if (state.tutorial === 2 && state.blocks > 0) { state.tutorial = 3; say('블록을 주웠어! 왼쪽 위에 블록 수가 보여. B(도감)의 상점에서 블록으로 넘버볼과 물약을 살 수 있어.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.blocks >= 3 && !state.upgradeTold) { state.upgradeTold = true; say('몬스터와 만나면 내 포켓몬이 대신 싸워! 이기면 경험치가 쌓여서 레벨이 오르고, 레벨이 오르면 체력과 공격이 세져.', { sec: 7 }); }
   else if (state.tutorial === 3 && state.caught > 0) { state.tutorial = 4; say('첫 친구다! 도감에서 대표를 바꿀 수 있어. 숫자블록 친구가 나타나면 퀴즈를 풀어 줘. 맞히면 블록을 줘!', { sec: 7 }); }
-  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('모든 길은 포켓몬 마을에서 시작해! 북쪽 문은 푸른숲(그 너머 불의산·꿀벌집), 북서쪽 굴은 지하동굴, 서쪽 기차역은 물의길, 동쪽 로켓은 꿈의우주. 광장의 길잡이 인하에게 물어봐. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
+  else if (state.tutorial === 4 && state.caught >= 3 && !state.mapTold) { state.mapTold = true; say('모든 길은 포켓몬 마을에서 시작해! 북쪽 문은 푸른숲(그 너머 꿀벌집), 서북쪽 붉은 바위 아치는 불의산, 북서쪽 굴은 지하동굴, 서쪽 기차역은 물의길, 동쪽 로켓은 꿈의우주. 광장의 길잡이 인하에게 물어봐. 지역마다 보스를 잡으면 정복이야!', { sec: 10 }); }
 }
 function conquer(zoneName) {
   state.conquered[zoneName] = true;
@@ -3170,7 +3174,7 @@ function renderGuide(el) {
     ${sec('🌊 물의길 — 몰디브 산호섬', `몰디브를 닮았어요. 동쪽 섬에서 석호 위로 뻗은 <b>수상 빌라 마을</b> 산책로를 따라 초가 오두막을 구경하고, 끝의 <b>전망대</b>는 서쪽 계단으로 3.4m 위까지 올라가요. 도착 섬 서쪽의 <b>모래톱 길</b>은 바다 위로 드러난 하얀 모래 띠 — 걸어서 서북쪽 섬까지 건너요. 얕은 바다엔 <b>산호와 물고기 떼</b>, 동남쪽 먼바다의 <b>바다 아치</b>는 배를 타고 아래로 지나가 봐요.`)}
     ${sec('🕳️ 지하동굴 — 손둥 동굴 탐험', `세상에서 가장 큰 동굴을 닮았어요. 북서쪽 <b>하늘 구멍 밀림</b>은 천장 구멍으로 햇빛이 쏟아지는 동굴 속 숲. 한가운데 <b>지하 강</b>은 물에 못 들어가니 북쪽 보스 길의 <b>구름다리</b>나 징검다리로 건너요. 보스 롱스톤은 <b>만리장성 절벽</b> 위 — 남쪽 오르막길로만 올라가요. 동남쪽 <b>석회 웅덩이 계단</b> 꼭대기엔 블록이 있어요.`)}
     ${sec('🌲 푸른숲 — 이끼 숲 탐험', `야쿠시마 이끼 숲을 닮았어요. <b>개울</b>은 물에 못 들어가니 징검다리나 나무다리로 건너요. <b>데크길</b>은 경사로로 올라가 2.6m 위를 걷고, 아래로도 지나갈 수 있어요. <b>할아버지 삼나무</b>는 줄기를 감는 나선 길로 9m 전망대까지! <b>쓰러진 고목</b>은 속으로 지나가거나 옆 이끼 비탈로 위에 올라가요. <b>이끼 바위 언덕</b>은 점프 버튼으로 하나씩 올라 꼭대기 전망 바위의 블록을 가져와요.`)}
-    ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b>북쪽 문</b> → 푸른숲(그 너머 불의산·꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
+    ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b><b>서북쪽 붉은 바위 아치</b> → 불의산 · <b>북쪽 문</b> → 푸른숲(그 너머 꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
     ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 올리브 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
     ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
@@ -3364,7 +3368,7 @@ function frame() {
       const w = zone.world;
       if (w.forestGate && near(w.forestGate, 2.4)) { // 마을 북쪽 문 → 푸른숲
         moved = true;
-        switchZone('forest', getZone('forest').world.arrivals.town, { text: '🌲 푸른숲! 야생 포켓몬이 사는 숲이야. 서북쪽 돌기둥 아레나에 보스 이상해꽃, 동북쪽은 불의산, 남서쪽 꿀의 길 끝은 꿀벌집. 남쪽 문으로 나가면 마을이야.', sec: 8 });
+        switchZone('forest', getZone('forest').world.arrivals.town, { text: '🌲 푸른숲! 야생 포켓몬이 사는 숲이야. 서북쪽 돌기둥 아레나에 보스 이상해꽃, 남서쪽 꿀의 길 끝은 꿀벌집. 남쪽 문으로 나가면 마을이야.', sec: 8 });
       } else if (w.townGate && near(w.townGate, 2.4)) { // 숲 남쪽 문 → 마을
         moved = true;
         switchZone('town', getZone('town').world.arrivals.forest, { text: '🏘 포켓몬 마을! 집·학교·연구소·체육관·아레나가 있고, 기차역·로켓·지하동굴로 가는 길도 여기서 시작해.', sec: 7 });
