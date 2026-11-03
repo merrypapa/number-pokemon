@@ -461,7 +461,7 @@ function buildShrine(z) {
     z.shrine.megaSpot = { x: spot.x, z: spot.z };
     const orig = z.terrain.height;
     if (!z.terrain.shrineWrapped) { // 지형 높이에 성역의 단을 얹는다 (성역이 드러난 뒤에만)
-      z.terrain.height = (x, zz) => { const h = orig(x, zz); if (!z.shrine?.shown) return h; const s = shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
+      z.terrain.height = (x, zz, refY) => { const h = orig(x, zz, refY); if (!z.shrine?.shown) return h; /* refY 를 넘겨야 숲의 데크·전망대(겹친 층)가 성역이 드러난 뒤에도 된다 */ const s = shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
       z.terrain.shrineWrapped = true;
     }
     z.shrinePillars = SHRINE_PILLARS.map((p) => ({ x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥은 못 지나간다 (드러난 뒤에)
@@ -3715,7 +3715,7 @@ function frame() {
       for (const o of hiddenByCam) o.visible = true; hiddenByCam.clear(); // 3인칭에서 숨겨 둔 장식이 있으면 되돌린다
     } else {
       const camTarget = resolveCamera(pp.clone().add(camOffset()));
-      if (zone.world.tower) { const c = towerCeiling(camTarget.x, camTarget.z, pp.y); if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
+      { const c = zone.world.tower ? towerCeiling(camTarget.x, camTarget.z, pp.y) : zone.terrain.ceiling ? zone.terrain.ceiling(camTarget.x, camTarget.z, pp.y) : Infinity; if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
       if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
       else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
       camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
