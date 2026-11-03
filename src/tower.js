@@ -21,7 +21,13 @@ export const LAND_LO = 0.30;
 const LAND_R = 8;                     // 층계참 안쪽 반지름
 export const TOP_Y = LAP_H * (TOWER_TOP - 1); // 꼭대기 단 높이 (63)
 export const GATE_LAYER = 0.7;        // 이 높이 아래의 가장 높은 바퀴를 고른다
-export const TOP_OPEN = 0.9;          // 꼭대기 단의 계단 입구(마지막 바퀴가 올라오는 각도 2π-TOP_OPEN ~ 2π, 비탈 반지름 바깥)는 뚫려 있어 내려갈 수 있다
+export const TOP_OPEN = 0.9;
+// 11층: 10층 단에서 사다리로 오르는 넓은 원형 무대(굴 전체를 덮는다). 뮤츠가 여기 산다. 내려갈 땐 돌계단(10층 단 위 남쪽, 서→동으로 오른다)
+export const Y11 = TOP_Y + LAP_H;                          // 70
+export const LADDER = { x: 0, z: -9, r: 1.3 };             // 10층 단 위 사다리 (옆에서 점프를 꾹 누르면 오른다)
+export const STAIR11 = { x0: -8, x1: 8, z: 12, half: 1.3 }; // 10층 → 11층 돌계단 (x0 에서 10층 높이, x1 에서 11층 높이)
+const stair11H = (x, z) => (x >= STAIR11.x0 && x <= STAIR11.x1 && Math.abs(z - STAIR11.z) <= STAIR11.half ? TOP_Y + LAP_H * (x - STAIR11.x0) / (STAIR11.x1 - STAIR11.x0) : null);
+const inStairHole = (x, z) => x >= STAIR11.x0 - 0.5 && x <= STAIR11.x1 && Math.abs(z - STAIR11.z) <= STAIR11.half + 0.2; // 11층 바닥의 계단 구멍          // 꼭대기 단의 계단 입구(마지막 바퀴가 올라오는 각도 2π-TOP_OPEN ~ 2π, 비탈 반지름 바깥)는 뚫려 있어 내려갈 수 있다
 
 /** 층 → 층계참 높이 (1층은 바닥 0) */
 export const floorY = (n) => LAP_H * (n - 1);
@@ -76,6 +82,8 @@ function towerHeight(x, z, refY = 0) {
   const a = angOf(x, z);
   const topHole = r >= R_IN - 0.05 && a >= TAU - TOP_OPEN; // 꼭대기 단의 계단 입구: 여기선 단이 없고 마지막 바퀴 비탈이다 (전에는 단이 굴 전체를 덮어 꼭대기에서 내려올 길이 없었다)
   if (TOP_Y <= lim && !topHole) best = TOP_Y;
+  if (Y11 <= lim && !inStairHole(x, z)) best = Y11;                       // 11층 원형 무대 (겹친 층)
+  const s11 = stair11H(x, z); if (s11 != null && s11 <= lim) best = Math.max(best, s11); // 10층 → 11층 돌계단
   if (r >= R_IN - 0.05) { // 비탈 (바퀴 k = 0 ~ TOWER_TOP-2)
     const k = Math.floor(lim / LAP_H - ramp(a));
     if (k >= 0 && k <= TOWER_TOP - 2) best = Math.max(best, LAP_H * (k + ramp(a)));
@@ -94,13 +102,21 @@ export function towerCeiling(x, z, y) {
   if (r >= R_IN - 0.05) { for (let k = 0; k <= TOWER_TOP - 2; k++) { const h = LAP_H * (k + ramp(a)); if (h > y + 0.5 && h < best) best = h; } }
   else if (r >= LAND_R - 0.05 && inLanding(a)) { for (let k = 1; k <= TOWER_TOP - 2; k++) { const h = LAP_H * k; if (h > y + 0.5 && h < best) best = h; } }
   if (TOP_Y > y + 0.5 && !(r >= R_IN - 0.05 && a >= TAU - TOP_OPEN)) best = Math.min(best, TOP_Y);
+  if (Y11 > y + 0.5 && !inStairHole(x, z)) best = Math.min(best, Y11);
+  const s11 = stair11H(x, z); if (s11 != null && s11 > y + 0.5) best = Math.min(best, s11);
   return best;
 }
 function towerBlocked(x, z, refY = 0) {
   const r = Math.hypot(x, z);
   if (r > R_OUT) return true;                                   // 바깥 벽
   const y = refY ?? 0;
-  if (y < LAP_H * 0.5 || y > TOP_Y - LAP_H * 0.5) return false; // 바닥·꼭대기 단은 어디든 간다
+  if (y > TOP_Y - 0.6) { // 10층 단 · 돌계단 · 11층
+    const s11 = stair11H(x, z);
+    if (y > Y11 - 0.6 && inStairHole(x, z) && (s11 == null || s11 < y - 0.9)) return true;                       // 11층: 계단 구멍 둘레 난간 (계단 꼭대기 쪽만 열림)
+    if (y > TOP_Y + 0.9 && y < Y11 - 0.6 && s11 == null && x > STAIR11.x0 - 0.3 && x < STAIR11.x1 + 0.3 && Math.abs(z - STAIR11.z) < STAIR11.half + 0.9) return true; // 계단 옆 난간
+    return false;
+  }
+  if (y < LAP_H * 0.5) return false; // 바닥은 어디든 간다
   if (r >= R_IN) return false;                                  // 비탈 위
   const a = angOf(x, z);
   if (inLanding(a)) return false;                               // 층계참: 안쪽 끝에는 난간이 없어 가운데 굴로 뛰어내리면 1층 쿠션으로 떨어진다 (내려가는 지름길)
@@ -202,7 +218,7 @@ export function buildTower(scene) {
       const edge = new THREE.Mesh(new THREE.TorusGeometry(LAND_R, 0.08, 4, 12, LAND_W + LAND_LO), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x8a6a00, emissiveIntensity: 0.6 }));
       edge.rotation.x = -Math.PI / 2; edge.rotation.z = -LAND_W; // 눕히면 각이 거꾸로라 (-LAND_W~LAND_LO 로 돌려) 땅의 -LAND_LO~LAND_W 가 된다 edge.position.y = y + 0.05; edge.userData.noHide = true; decor.add(edge);
       const jump = makePillSprite('⬇ 뛰어내리면 1층!', { bg: '#20232e', fg: '#9fe8ff', border: '#9fe8ff' }, 0.6); jump.position.set((LAND_R + 0.6) * Math.cos(LAND_W / 2), y + 1.8, (LAND_R + 0.6) * Math.sin(LAND_W / 2)); decor.add(jump);
-      const label = makePillSprite(`${n}층${n === BOSS_FLOOR ? ' · 문지기' : ELITE_FLOORS.includes(n) ? ' · 정예' : ''}`, { bg: n === BOSS_FLOOR ? '#6a4a00' : '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.9);
+      const label = makePillSprite(`${n}층`, { bg: n === BOSS_FLOOR ? '#6a4a00' : '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.9);
       label.position.set((LAND_R + R_OUT) / 2 * Math.cos(LAND_W / 2), y + 3.2, (LAND_R + R_OUT) / 2 * Math.sin(LAND_W / 2));
       decor.add(label);
     }
@@ -231,20 +247,48 @@ export function buildTower(scene) {
   const downSign = makePillSprite('▼ 내려가는 계단', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.9);
   downSign.position.set((R_IN + R_OUT) / 2 * Math.cos(-TOP_OPEN / 2), TOP_Y + 2.6, (R_IN + R_OUT) / 2 * Math.sin(-TOP_OPEN / 2)); decor.add(downSign);
   // 꼭대기 금빛 무대 + 하늘 (별) + 하늘의 문
+  // ---------- 11층: 굴 전체를 덮는 넓은 원형 무대 (계단 구멍만 뚫림) + 금빛 무대 + 사다리 + 돌계단 ----------
+  {
+    const sh = new THREE.Shape(); sh.absarc(0, 0, R_OUT + 0.6, 0, TAU, false);
+    const hole = new THREE.Path(); hole.moveTo(STAIR11.x0 - 0.5, -(STAIR11.z - STAIR11.half - 0.2)); hole.lineTo(STAIR11.x1, -(STAIR11.z - STAIR11.half - 0.2)); hole.lineTo(STAIR11.x1, -(STAIR11.z + STAIR11.half + 0.2)); hole.lineTo(STAIR11.x0 - 0.5, -(STAIR11.z + STAIR11.half + 0.2)); hole.closePath(); sh.holes.push(hole);
+    const g11 = new THREE.ShapeGeometry(sh, 48); g11.rotateX(-Math.PI / 2); // 눕히면 모양의 y 가 땅의 -z 가 된다 (그래서 구멍 z 를 뒤집어 그렸다)
+    const floor11 = new THREE.Mesh(g11, new THREE.MeshStandardMaterial({ color: 0x9a8a5a, roughness: 0.9, side: THREE.DoubleSide })); floor11.position.y = Y11; floor11.receiveShadow = true; floor11.userData.noHide = true; decor.add(floor11);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(R_OUT - 0.2, 0.15, 6, 64), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x8a6a00, emissiveIntensity: 0.5 })); rim.rotation.x = -Math.PI / 2; rim.position.y = Y11 + 0.9; rim.userData.noHide = true; decor.add(rim);
+    const rails = []; // 계단 구멍 둘레 난간 (계단 꼭대기 쪽은 열림)
+    for (let x = STAIR11.x0 - 0.5; x <= STAIR11.x1 - 1.4; x += 1) for (const s of [-1, 1]) rails.push({ x, y: Y11 + 0.5, z: STAIR11.z + s * (STAIR11.half + 0.25), sx: 0.12, sy: 1.0, sz: 0.12 });
+    for (const s of [-1, 1]) rails.push({ x: (STAIR11.x0 + STAIR11.x1 - 1.9) / 2, y: Y11 + 0.95, z: STAIR11.z + s * (STAIR11.half + 0.25), sx: STAIR11.x1 - STAIR11.x0 - 1.4, sy: 0.08, sz: 0.08 });
+    rails.push({ x: STAIR11.x0 - 0.5, y: Y11 + 0.95, z: STAIR11.z, sx: 0.08, sy: 0.08, sz: STAIR11.half * 2 + 0.5 });
+    // 계단 판 (16칸) + 옆 난간
+    const steps = [], n = 16, sw = (STAIR11.x1 - STAIR11.x0) / n;
+    for (let i = 0; i < n; i++) { const top = TOP_Y + LAP_H * (i + 1) / n; steps.push({ x: STAIR11.x0 + (i + 0.5) * sw, y: (TOP_Y + top) / 2, z: STAIR11.z, sx: sw + 0.02, sy: top - TOP_Y, sz: STAIR11.half * 2 }); }
+    for (const s of [-1, 1]) for (let i = 1; i < n; i += 2) { const x = STAIR11.x0 + (i + 0.5) * sw, y = TOP_Y + LAP_H * (i + 0.5) / n; rails.push({ x, y: y + 0.5, z: STAIR11.z + s * (STAIR11.half + 0.1), sx: 0.1, sy: 1.0, sz: 0.1 }); }
+    decor.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x8b93a6, roughness: 1 }), steps, { shadow: true }));
+    decor.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x20232e }), rails));
+    const ss = makePillSprite('⬆ 11층 · ⬇ 10층 돌계단', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.8); ss.position.set(STAIR11.x0 - 1.5, TOP_Y + 2.6, STAIR11.z); decor.add(ss);
+    // 사다리 (10층 단 → 11층): 기둥 둘 + 가로대. 11층 바닥에는 뚜껑 문 그림
+    const wood = new THREE.MeshStandardMaterial({ color: 0x8a5a2b, roughness: 0.9 }), lad = [];
+    for (const s of [-1, 1]) lad.push({ x: LADDER.x + s * 0.45, y: TOP_Y + LAP_H / 2, z: LADDER.z, sx: 0.12, sy: LAP_H + 1, sz: 0.12 });
+    for (let k = 0; k < 18; k++) lad.push({ x: LADDER.x, y: TOP_Y + 0.4 + k * 0.4, z: LADDER.z, sx: 0.9, sy: 0.07, sz: 0.07 });
+    decor.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), wood, lad));
+    const hatch = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.4).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x5a3a1a })); hatch.position.set(LADDER.x, Y11 + 0.02, LADDER.z); hatch.userData.noHide = true; decor.add(hatch);
+    const ls = makePillSprite('🪜 사다리 · 옆에서 점프를 꾹 누르면 11층으로!', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.8); ls.position.set(LADDER.x, TOP_Y + 3.2, LADDER.z + 1.2); decor.add(ls);
+    const l11 = makePillSprite('11층 · 전설의 무대', { bg: '#6a4a00', fg: '#ffd93d', border: '#ffd93d' }, 1.0); l11.position.set(0, Y11 + 7, 0); decor.add(l11);
+  }
   const stage = new THREE.Mesh(new THREE.CylinderGeometry(6, 6.5, 0.4, 32), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.4 }));
-  stage.position.set(0, TOP_Y + 0.2, 0); stage.userData.noHide = true;
+  stage.position.set(0, Y11 - 0.17, 0); stage.userData.noHide = true;
   decor.add(stage);
-  const stars = []; for (let i = 0; i < 160; i++) { const a = rand(0, TAU), r = rand(0, 30); stars.push({ x: Math.cos(a) * r, y: TOP_Y + rand(10, 30), z: Math.sin(a) * r }); }
+  const stars = []; for (let i = 0; i < 160; i++) { const a = rand(0, TAU), r = rand(0, 30); stars.push({ x: Math.cos(a) * r, y: Y11 + rand(10, 30), z: Math.sin(a) * r }); }
   decor.add(makeInstanced(new THREE.SphereGeometry(0.07, 5, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }), stars));
-  const topLight = new THREE.PointLight(0xfff1b5, 3, 40); topLight.position.set(0, TOP_Y + 8, 0); decor.add(topLight);
-  const skyAt = { x: 0, z: -11, y: TOP_Y };
+  const topLight = new THREE.PointLight(0xfff1b5, 3, 40); topLight.position.set(0, Y11 + 8, 0); decor.add(topLight);
+  const midLight = new THREE.PointLight(0xffd9a0, 2.2, 26); midLight.position.set(0, TOP_Y + 4, 0); decor.add(midLight); // 11층 무대 아래(10층 단)도 어둡지 않게
+  const skyAt = { x: 0, z: -14, y: Y11 };
   const gate = new THREE.Group();
   const arch = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.3, 10, 40, Math.PI), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffb300, emissiveIntensity: 0.8 })); arch.position.y = 0.3;
   const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 32, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide })); disc.position.y = 0.3;
   const gateLight = new THREE.PointLight(0x9fe8ff, 4, 18); gateLight.position.y = 2;
   const gateSign = makePillSprite('🌌 하늘의 문 · 지하동굴로', { bg: '#1f2a3a', fg: '#9fe8ff', border: '#9fe8ff' }, 1.4); gateSign.position.y = 4.6;
   gate.add(arch, disc, gateLight, gateSign);
-  gate.position.set(skyAt.x, TOP_Y, skyAt.z);
+  gate.position.set(skyAt.x, Y11, skyAt.z);
   gate.visible = TOWER.conquered();
   decor.add(gate);
 
@@ -252,7 +296,7 @@ export function buildTower(scene) {
   const torchItems = [];
   for (let k = 0; k <= TOWER_TOP - 2; k++) for (let i = 0; i < 4; i++) { const a = LAND_W + (i + 0.5) * (TAU - LAND_W) / 4; torchItems.push({ x: (R_OUT - 0.4) * Math.cos(a), y: LAP_H * (k + ramp(a)) + 2.2, z: (R_OUT - 0.4) * Math.sin(a) }); }
   decor.add(makeInstanced(new THREE.ConeGeometry(0.25, 0.6, 7), new THREE.MeshStandardMaterial({ color: 0xffa322, emissive: 0xff8a00, emissiveIntensity: 1.2 }), torchItems));
-  const title = makePillSprite('🗼 동굴탑 1층 · 동쪽 금빛 돌계단을 따라 10층까지 →', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.6);
+  const title = makePillSprite('🗼 동굴탑 1층 · 금빛 돌계단으로 10층, 사다리로 11층 꼭대기까지 →', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.6);
   title.position.set(0, 6, 0); decor.add(title);
   const crystalItems = [];
   for (let i = 0; i < 14; i++) { const a = rand(0, TAU), r = rand(3, 12); for (let k = 0; k < 3; k++) { const h = rand(0.8, 2); crystalItems.push({ x: Math.cos(a) * r + rand(-0.5, 0.5), y: h / 2 - 0.1, z: Math.sin(a) * r + rand(-0.5, 0.5), sx: 0.3, sy: h, sz: 0.3, ry: rand(0, 3) }); } block(Math.cos(a) * r, Math.sin(a) * r, 0.7); }
@@ -313,17 +357,18 @@ export function buildTower(scene) {
     stage.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.15;
   }
   return {
+    climbAt: (x, z, y) => (Math.hypot(x - LADDER.x, z - LADDER.z) < LADDER.r && y > TOP_Y - 0.3 && y < Y11 - 0.02 ? { top: Y11, x: LADDER.x, z: LADDER.z } : null), // 10층 사다리 → 11층
     sun, animate, terrain: TOWER_TERRAIN, decor, spawn: { x: 5, z: 8 }, dark: true, noShrine: true, transient: true, tower: true,
     wildSpots: [], pickupSpots: [[6, -6], [-7, -4]],
     checkpoints: pads, refreshPads, chests, refreshChests, exitGate: exitAt,
     skyDoor: skyAt, portal: TOWER.conquered() ? skyAt : null, portalTo: 'cave',
     openSkyDoor: () => { gate.visible = true; },
     npcs: [{ x: keeperAt.x, z: keeperAt.z, mesh: keeper, name: '아이 손오공', warp: true, lines: (c) => [
-      `오스! ${c.name}, 여기가 동굴탑이야. 벽을 따라 도는 돌계단을 걸어서 올라가면 돼. 한 바퀴 돌면 한 층! 10층까지 있어.`,
-      '층마다 동쪽에 넓은 층계참이 있고 거기 포켓몬이 살아. 올라갈수록 세져. 1층은 Lv.6쯤, 5층은 Lv.25, 9층은 Lv.45가 넘어! 3·7·9층엔 정예도 있어.',
-      '5층 층계참에 문지기 보스가 있어. 문지기를 이기면 기록석이 켜져서, 다음부터는 여기 서쪽 워프 패드로 5층에 바로 올라갈 수 있어.',
+      `오스! ${c.name}, 여기가 동굴탑이야. 벽을 따라 도는 돌계단을 걸어서 올라가면 돼. 한 바퀴 돌면 한 층! 10층 단에선 사다리로 11층에 올라가.`,
+      '탑 안에는 포켓몬이 딱 한 마리, 맨 꼭대기 11층 넓은 무대에 사는 전설의 뮤츠뿐이야. 가는 길엔 아무도 없으니 계단을 쭉 올라가!',
+      '한 번 가 본 5층·10층은 여기 서쪽 워프 패드로 바로 올라갈 수 있어. 11층에서 내려올 땐 남쪽 돌계단으로 10층 단에 내려와.',
       '계단 안쪽은 까마득한 굴이야. 계단에는 난간이 있지만, 층계참 안쪽 끝(금빛 테두리)에는 난간이 없어. 거기서 뛰어내리면 1층 쿠션으로 슝~ 내려와! 지쳤을 때 쓰는 지름길이야.',
-      '10층 꼭대기에는 전설의 뮤츠가 살아. 체력 260에 공격 36! 친구로 만들면 하늘의 문이 열리고 특별한 보상이 있대.',
+      '11층 꼭대기에는 전설의 뮤츠가 살아. 체력 260에 공격 36! 친구로 만들면 하늘의 문이 열리고 특별한 보상이 있대.',
       `지금까지 ${c.towerBest || 1}층까지 가 봤구나. ${(c.towerBest || 1) >= TOWER_TOP ? '꼭대기까지 다녀온 챔피언이네!' : '오늘은 몇 층까지 가 볼래?'}`,
     ] }],
   };
