@@ -4,6 +4,7 @@ import { ITEMS } from './items.js';
 import { skillLevel, expNeed, MAX_LEVEL, skillType, skillPP } from './party.js';
 import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets, evoZoneFor } from './creatures.js';
 import { View3D } from './view3d.js';
+import { renderToCanvas } from './offscreen.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
 import { TYPE_EMOJI } from './typelesson.js';
@@ -82,11 +83,21 @@ export class Dex {
   /** 파티 패널 연결: party 와 블록 수, 버튼 콜백 */
   bindParty(ctx) { this.partyCtx = ctx; }
 
+  /** 액자 그림용 장면·카메라 (렌더러는 게임 본체 것을 빌린다: offscreen.js) */
+  ensureScene() {
+    if (this.scene) return;
+    this.scene = new THREE.Scene();
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.scene.add(sun);
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+  }
+  /** 예비: 본체 렌더러로 픽셀을 못 읽을 때만 따로 만든다 (아이폰에서 꺼지던 원인이라 되도록 안 쓴다) */
   ensureRenderer() {
     if (this.renderer) return true;
     try {
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       this.renderer.setSize(224, 224); // 액자 그림 크기: 110px 칸을 고해상도(2배) 화면에서도 또렷하게 (150 으로 줄였더니 흐려 보였다)
+      if (this.scene) return true;
       this.scene = new THREE.Scene();
       this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -99,7 +110,7 @@ export class Dex {
 
   thumbs(sp) {
     if (this.cache.has(sp.id)) return this.cache.get(sp.id);
-    if (!this.ensureRenderer()) return null;
+    this.ensureScene();
     const mesh = buildDraftMesh({ ...sp, scale: 1 }); // 도감에서는 크기를 통일
     this.scene.add(mesh);
     const box = new THREE.Box3().setFromObject(mesh);
@@ -110,12 +121,16 @@ export class Dex {
     this.camera.position.set(0, center.y * f + r * 0.25, dist);
     this.camera.lookAt(0, center.y * f, 0);
     mesh.rotation.y = -0.4;
-    this.renderer.render(this.scene, this.camera);
     // 한 번만 그리고 2D 캔버스로 복사한다. 실루엣은 다시 그리지 않고 같은 그림을 'source-in' 으로 어둡게 칠해서 만든다
     // (전에는 재질을 검게 바꿔 두 번 그리고 두 번 읽어 와서 종마다 GPU 를 두 번 기다렸다 — 도감 여는 시간의 대부분)
     const S = 224, c = this.tmpCanvas ||= document.createElement('canvas'); c.width = c.height = S;
     const ctx = c.getContext('2d');
-    ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, S, S); ctx.drawImage(this.renderer.domElement, 0, 0, S, S);
+    ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, S, S);
+    if (!renderToCanvas(this.scene, this.camera, S, S, ctx)) { // 본체 렌더러로 못 그렸을 때만 예비 렌더러
+      if (!this.ensureRenderer()) { this.scene.remove(mesh); return null; }
+      this.renderer.render(this.scene, this.camera);
+      ctx.drawImage(this.renderer.domElement, 0, 0, S, S);
+    }
     const color = c.toDataURL();
     ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = '#20232e'; ctx.fillRect(0, 0, S, S); ctx.globalCompositeOperation = 'source-over';
     const silhouette = c.toDataURL();
