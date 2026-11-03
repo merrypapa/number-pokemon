@@ -88,7 +88,7 @@ const cam = { yaw: 0, pitch: 0, fp: false };
 try { cam.fp = localStorage.getItem('np-view') === 'fp'; } catch (_) { /* 저장 못 해도 그만 */ }
 /** 1인칭에서 보는 방향 (pitch 를 위아래로: 화면을 위로 끌면 하늘을 본다) */
 function fpLookDir() {
-  const p = Math.max(-1.0, Math.min(1.0, -cam.pitch * 0.9));
+  const p = Math.max(-1.0, Math.min(1.45, -cam.pitch * 0.9)); // 위로는 거의 하늘 꼭대기까지 (윌슨 그루터기 안에서 하트 하늘을 올려다보게)
   return new THREE.Vector3(-Math.sin(cam.yaw) * Math.cos(p), Math.sin(p), -Math.cos(cam.yaw) * Math.cos(p));
 }
 // pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
@@ -462,7 +462,7 @@ function buildShrine(z) {
   const spot = findShrineSpot(z);
   if (!spot) return;
   const baseY = z.world.waterY != null ? z.world.waterY - 1.2 : terrainHeight(spot.x, spot.z);
-  z.shrine = buildMegaShrine(z.name, spot.x, baseY, spot.z);
+  z.shrine = buildMegaShrine(z.name, spot.x, baseY, spot.z, z.world.decor); // decor: 명소의 껍질을 카메라 가림 처리(cutaway)에 맡긴다
   z.scene.add(z.shrine.group);
   if (z.world.waterY != null) { // 바다 위 성역(물의길): 배로는 계단을 못 오르니 메가 포켓몬은 성역 앞 물 위에서 만난다. 성역 자체는 못 지나간다
     z.shrine.megaSpot = { x: spot.x, z: spot.z + 18 };
@@ -470,13 +470,13 @@ function buildShrine(z) {
     z.shrineObstacle = z.terrain.obstacles[z.terrain.obstacles.length - 1];
     z.shrineObstacle.r = 0;                                 // 숨어 있는 동안은 막지 않는다
   } else { // 땅 위 성역: 메가 포켓몬은 성역 가운데 제단 위에 있고, 지우가 계단(단)을 걸어 올라가 대결한다
-    z.shrine.megaSpot = { x: spot.x, z: spot.z };
+    z.shrine.megaSpot = { x: spot.x + (z.shrine.megaAt?.x || 0), z: spot.z + (z.shrine.megaAt?.z || 0) };
     const orig = z.terrain.height;
     if (!z.terrain.shrineWrapped) { // 지형 높이에 성역의 단을 얹는다 (성역이 드러난 뒤에만)
-      z.terrain.height = (x, zz, refY) => { const h = orig(x, zz, refY); if (!z.shrine?.shown) return h; /* refY 를 넘겨야 숲의 데크·전망대(겹친 층)가 성역이 드러난 뒤에도 된다 */ const s = shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
+      z.terrain.height = (x, zz, refY) => { const h = orig(x, zz, refY); if (!z.shrine?.shown) return h; /* refY 를 넘겨야 숲의 데크·전망대(겹친 층)가 성역이 드러난 뒤에도 된다 */ const s = z.shrine.heightAt ? z.shrine.heightAt(x - spot.x, zz - spot.z) : shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
       z.terrain.shrineWrapped = true;
     }
-    z.shrinePillars = SHRINE_PILLARS.map((p) => ({ x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥은 못 지나간다 (드러난 뒤에)
+    z.shrinePillars = (z.shrine.pillars || SHRINE_PILLARS).map((p) => (p.ax != null ? { ax: spot.x + p.ax, az: spot.z + p.az, bx: spot.x + p.bx, bz: spot.z + p.bz, r: 0, pillarR: p.r } : { x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥·벽은 못 지나간다 (드러난 뒤에). 명소(윌슨 그루터기)는 벽 선분
     z.terrain.obstacles.push(...z.shrinePillars);
   }
   if (state.conquered[z.name]) revealShrine(z, true);
@@ -3324,7 +3324,7 @@ function frame() {
     // 카메라 회전: 화면 드래그 또는 Q/R
     const look = input.takeLook();
     cam.yaw -= look.dx * 0.006;
-    cam.pitch = Math.max(-1.25, Math.min(0.6, cam.pitch + look.dy * 0.004));
+    cam.pitch = Math.max(cam.fp ? -1.62 : -1.25, Math.min(0.6, cam.pitch + look.dy * 0.004)); // 1인칭은 하늘을 더 올려다본다
     if (input.isHeld('camLeft')) cam.yaw += dt * 1.8;
     if (input.isHeld('camRight')) cam.yaw -= dt * 1.8;
     if (input.wasPressed('view') && !battle.active && !dex.open && !quiz.open && !study.open) { sound.click(); setView(!cam.fp); }
