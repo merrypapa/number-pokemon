@@ -353,8 +353,9 @@ export function buildColosseum(decor, { obstacles }) {
     }
     SPECT.set(i, list);
   });
-  const bodyI = makeInstanced(new THREE.CylinderGeometry(0.2, 0.3, 0.75, 7), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }), bodies);
-  const headI = makeInstanced(new THREE.SphereGeometry(0.21, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }), heads);
+  // 관중은 수백 명이라 모양을 아주 단순하게 (몸통: 뚜껑 없는 육각기둥, 머리: 낮은 다면체 공)
+  const bodyI = makeInstanced(new THREE.CylinderGeometry(0.2, 0.3, 0.75, 6, 1, true), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }), bodies);
+  const headI = makeInstanced(new THREE.IcosahedronGeometry(0.22, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }), heads);
   decor.add(bodyI, headI);
 
   // ----- 황제석 (풀비나르): 북쪽 포디움 위로 튀어나온 대리석 칸, 기둥 넷, 빨간 지붕 -----
