@@ -94,7 +94,12 @@ function cedarRampH(x, z) {
   let a = Math.atan2(dz, dx) - CEDAR.a0; a = ((a % TAU) + TAU) % TAU;
   return CEDAR.H * (a / TAU);
 }
-function cedarPlatH(x, z) { const r = Math.hypot(x - CEDAR.x, z - CEDAR.z); return r >= CEDAR.RT - 0.1 && r <= CEDAR.PLAT ? CEDAR.H : null; }
+const CEDAR_GAP = 1.1; // 전망대 바닥에 뚫린 계단 구멍 (나선길 마지막 1.1 라디안 위). 없으면 전망대 바닥이 나선길을 다 덮어 내려갈 수 없었다
+function inCedarGap(x, z) {
+  const dx = x - CEDAR.x, dz = z - CEDAR.z, r = Math.hypot(dx, dz); if (r < CEDAR.RIN - 0.05 || r > CEDAR.ROUT) return false;
+  let a = Math.atan2(dz, dx) - CEDAR.a0; a = ((a % TAU) + TAU) % TAU; return a > TAU - CEDAR_GAP;
+}
+function cedarPlatH(x, z) { const r = Math.hypot(x - CEDAR.x, z - CEDAR.z); return r >= CEDAR.RT - 0.1 && r <= CEDAR.PLAT && !inCedarGap(x, z) ? CEDAR.H : null; }
 function logLocal(x, z) { const dx = x - LOG.x1, dz = z - LOG.z1; return { s: dx * LOG.ux + dz * LOG.uz, d: -dx * LOG.uz + dz * LOG.ux }; }
 function logTopH(x, z) { const { s, d } = logLocal(x, z); if (s < 0 || s > LOG.L || Math.abs(d) > LOG.R) return null; return LOG.R + Math.sqrt(LOG.R * LOG.R - d * d); }
 function logRampH(x, z) { const { s, d } = logLocal(x, z), R = LOG.ramp; if (d < R.d0 || d > R.d1 || s < R.s0 || s > R.s1) return null; return LOG.top * (s - R.s0) / (R.s1 - R.s0); }
@@ -224,7 +229,12 @@ export function buildForestStructures(decor, { ground, bed, obstacles }) {
       add(g, 2.2);
       const prop = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, g.position.y - gy, 5), railMat); prop.position.set(cx + Math.cos(am) * (CEDAR.ROUT - 0.2), gy + (g.position.y - gy) / 2 - 0.1, cz + Math.sin(am) * (CEDAR.ROUT - 0.2)); if (g.position.y - gy > 1.3) add(prop, 1);
     }
-    const plat = new THREE.Mesh(new THREE.RingGeometry(CEDAR.RT - 0.1, CEDAR.PLAT, 40), woodMat); plat.rotation.x = -Math.PI / 2; plat.position.set(cx, gy + CEDAR.H + 0.01, cz); plat.material = woodMat.clone(); plat.material.side = THREE.DoubleSide; plat.receiveShadow = true; add(plat, 6);
+    // 전망대 바닥: 안쪽 고리(나선길 위)에는 계단 구멍을 비우고, 바깥 고리는 한 바퀴 다. (rotation.x=-π/2 로 눕히면 고리 각 θ 가 땅의 각 -θ 가 된다)
+    const platMat = woodMat.clone(); platMat.side = THREE.DoubleSide;
+    const platIn = new THREE.Mesh(new THREE.RingGeometry(CEDAR.RT - 0.1, CEDAR.ROUT, 36, 1, -(CEDAR.a0 + TAU - CEDAR_GAP), TAU - CEDAR_GAP), platMat);
+    const platOut = new THREE.Mesh(new THREE.RingGeometry(CEDAR.ROUT, CEDAR.PLAT, 40), platMat);
+    for (const plat of [platIn, platOut]) { plat.rotation.x = -Math.PI / 2; plat.position.set(cx, gy + CEDAR.H + 0.01, cz); plat.receiveShadow = true; plat.userData.noHide = true; decor.add(plat); }
+    { const ga = CEDAR.a0 - CEDAR_GAP / 2, gs = makePillSprite('⬇ 내려가는 나선길', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.6); gs.position.set(cx + Math.cos(ga) * (CEDAR.RIN + CEDAR.ROUT) / 2, gy + CEDAR.H + 1.8, cz + Math.sin(ga) * (CEDAR.RIN + CEDAR.ROUT) / 2); decor.add(gs); }
     const platRim = new THREE.Mesh(new THREE.CylinderGeometry(CEDAR.PLAT, CEDAR.PLAT, 0.3, 40, 1, true), railMat); platRim.position.set(cx, gy + CEDAR.H - 0.15, cz); add(platRim, 6);
     const rimRail = new THREE.Mesh(new THREE.TorusGeometry(CEDAR.PLAT + 0.05, 0.07, 6, 48), railMat); rimRail.rotation.x = Math.PI / 2; rimRail.position.set(cx, gy + CEDAR.H + 0.95, cz); add(rimRail, 6);
     for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.95, 0.14), railMat); p.position.set(cx + Math.cos(a) * (CEDAR.PLAT + 0.05), gy + CEDAR.H + 0.47, cz + Math.sin(a) * (CEDAR.PLAT + 0.05)); decor.add(p); }
