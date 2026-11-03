@@ -20,9 +20,9 @@ export const MISSIONS = [
   { id: 'blocks', emoji: '🟦', need: 30, text: (n) => `블록 ${n}개 모으기` },
   { id: 'zones', emoji: '🗺', need: 2, uniq: true, text: (n) => `다른 지역 ${n}곳 가 보기` },
   { id: 'evolve', emoji: '✨', need: 1, text: (n) => `포켓몬 ${n}마리 진화시키기` },
-  { id: 'super', emoji: '💥', need: 3, text: (n) => `상성으로 "효과가 굉장했다!" ${n}번 내기` },
+  { id: 'super', emoji: '💥', need: 3, retired: true, text: (n) => `상성으로 "효과가 굉장했다!" ${n}번 내기` }, // 어렵다고 해서 새 미션으로는 안 뽑는다 (예전 저장의 오늘 미션은 그대로 보이게 남겨 둔다)
   { id: 'study', emoji: '🏫', need: 1, text: (n) => `포켓몬 학교에서 공부 ${n}번 하기` },
-  { id: 'typequiz', emoji: '📘', need: 1, text: (n) => `오박사님 상성 퀴즈 ${n}번 풀기` },
+  { id: 'typequiz', emoji: '📘', need: 1, text: (n) => `학교 상성 수업 퀴즈 ${n}번 풀기` },
   { id: 'release', emoji: '🕊', need: 2, text: (n) => `포켓몬 ${n}마리 풀어주기` },
   { id: 'win', emoji: '🏆', need: 3, text: (n) => `대결 ${n}번 이기기` },
   { id: 'levelup', emoji: '⬆️', need: 2, text: (n) => `포켓몬 레벨업 ${n}번 하기` },
@@ -44,7 +44,7 @@ function seedOf(s) {
 export function pickMissions(day, name = '') {
   let seed = seedOf(`${day}/${name}`);
   const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  const pool = [...MISSIONS];
+  const pool = MISSIONS.filter((m) => !m.retired);
   const out = [];
   while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
   return out.map((m) => ({ id: m.id, need: m.need, n: 0, got: false, seen: m.uniq ? {} : null }));
