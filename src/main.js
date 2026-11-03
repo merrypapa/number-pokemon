@@ -999,6 +999,33 @@ dex.bindParty({
 // ---------- 카메라 시야: 건물·바위산이 주인공을 가리지 않게 ----------
 // solid 구조물(연구소·집·불의산 입구 바위)은 카메라를 그 앞으로 당기고, 나무·바위 같은 장식은 사이에 끼면 잠시 숨긴다.
 const hiddenByCam = new Set();
+// 숲·마을 나무는 수백 그루를 한 번에 그리는 묶음(InstancedMesh)이라 resolveCamera 가 숨기지 못했다 → 큰 삼나무가 주인공을 가렸다.
+// 그루마다 적어 둔 인스턴스 번호(world.camTrees)로, 시선(머리 → 카메라) 가까이 있고 시선보다 키가 큰 나무만 크기 0 으로 감춘다. 벗어나면 되돌린다.
+let camTreeHidden = { set: null, ids: new Set() };
+function setTreeShown(ct, i, show) {
+  const t = ct.trees[i];
+  t.parts.forEach(([a, b], k) => { const m = ct.meshes[k], arr = m.instanceMatrix.array; for (let j = a; j < b; j++) { if (show) arr.set(ct.orig[k].subarray(j * 16, j * 16 + 16), j * 16); else arr.fill(0, j * 16, j * 16 + 16); } if (b > a) m.instanceMatrix.needsUpdate = true; });
+}
+function hideTreesOnSight(pp, camPos) {
+  const ct = zone?.world?.camTrees || null;
+  if (camTreeHidden.set && camTreeHidden.set !== ct) { for (const i of camTreeHidden.ids) setTreeShown(camTreeHidden.set, i, true); camTreeHidden = { set: null, ids: new Set() }; }
+  if (!ct) return;
+  const want = new Set();
+  if (camPos && !cam.fp) {
+    const ax = pp.x, az = pp.z, ay = pp.y + 1.2, vx = camPos.x - ax, vz = camPos.z - az, L2 = vx * vx + vz * vz || 1;
+    for (let i = 0; i < ct.trees.length; i++) {
+      const t = ct.trees[i];
+      if (Math.abs(t.x - ax) > 30 || Math.abs(t.z - az) > 30) continue;
+      const u = ((t.x - ax) * vx + (t.z - az) * vz) / L2; if (u < 0.05 || u > 1.15) continue;
+      const uc = Math.min(1, u), d = Math.hypot(t.x - (ax + vx * uc), t.z - (az + vz * uc)); if (d > t.r + 0.6) continue;
+      if (ay + (camPos.y - ay) * uc > t.top + 0.4) continue; // 시선이 나무 꼭대기보다 높으면 가리지 않는다
+      want.add(i);
+    }
+  }
+  for (const i of camTreeHidden.ids) if (!want.has(i)) setTreeShown(ct, i, true);
+  for (const i of want) if (!camTreeHidden.ids.has(i)) setTreeShown(ct, i, false);
+  camTreeHidden = { set: ct, ids: want };
+}
 function resolveCamera(target) {
   const head = player.position.clone(); head.y += 1;
   const dir = target.clone().sub(head); const len = dir.length(); dir.divideScalar(len || 1);
@@ -3714,12 +3741,14 @@ function frame() {
       camera.position.copy(head);
       camera.lookAt(head.clone().add(fpLookDir()));
       for (const o of hiddenByCam) o.visible = true; hiddenByCam.clear(); // 3인칭에서 숨겨 둔 장식이 있으면 되돌린다
+      hideTreesOnSight(pp, null); // 1인칭: 감춘 나무도 되돌린다
     } else {
       const camTarget = resolveCamera(pp.clone().add(camOffset()));
       { const c = zone.world.tower ? towerCeiling(camTarget.x, camTarget.z, pp.y) : zone.terrain.ceiling ? zone.terrain.ceiling(camTarget.x, camTarget.z, pp.y) : Infinity; if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
       if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
       else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
       camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
+      hideTreesOnSight(pp, camera.position); // 카메라(지금 자리)와 주인공 사이에 낀 숲 나무는 잠깐 감춘다
     }
   }
   ctxClicked = false;

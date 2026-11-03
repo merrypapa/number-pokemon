@@ -1114,7 +1114,9 @@ export function buildWorld(scene, layout = 'forest') {
   // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (250그루를 따로 그리면 느리다)
   const leafColors = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c];
   const trunkItems = [], crownItems = [], coneItems = [], stemItems = [], capItems = [];
+  const camTrees = []; // 카메라가 가릴 때 감출 수 있게 그루마다 인스턴스 번호를 적어 둔다 (main 의 hideTreesOnSight)
   for (const [x, z] of treeSpots) {
+    const i0 = [trunkItems.length, coneItems.length, crownItems.length];
     const tall = Math.random() < (isTown ? 0.3 : 0.6); // 숲: 삼나무가 많다
     const y = T.height(x, z);
     const leaf = leafColors[Math.floor(Math.random() * leafColors.length)];
@@ -1128,15 +1130,20 @@ export function buildWorld(scene, layout = 'forest') {
     else { crownItems.push({ x, y: y + 2.2, z, s: 1.4, color: leaf }); crownItems.push({ x: x + 0.6, y: y + 2.8, z: z + 0.3, s: 1.0, color: leaf }); }
     }
     block(x, z, 0.55);
+    camTrees.push({ x, z, top: Math.max(...coneItems.slice(i0[1]).map((c) => c.y + 1.0 * (c.sy || 1)), ...crownItems.slice(i0[2]).map((c) => c.y + c.s), y + 2), r: tall && !isTown ? 3.0 : 2.4,
+      parts: [[i0[0], trunkItems.length], [i0[1], coneItems.length], [i0[2], crownItems.length]] });
     if (Math.random() < 0.5) { // 나무 밑 버섯
       const mx = x + rand(-1.5, 1.5), mz = z + rand(1, 2), my = T.height(mx, mz);
       stemItems.push({ x: mx, y: my + 0.17, z: mz });
       capItems.push({ x: mx, y: my + 0.33, z: mz, color: Math.random() < 0.5 ? 0xe8453c : 0xf2872f });
     }
   }
-  decor.add(makeInstanced(new THREE.CylinderGeometry(0.25, 0.35, 1, 8), trunkMat, trunkItems, { shadow: true }));
-  decor.add(makeInstanced(new THREE.SphereGeometry(1, 12, 10), WHITE_MAT, crownItems, { shadow: true }));
-  decor.add(makeInstanced(new THREE.ConeGeometry(1.6, 1.6, 8), WHITE_MAT, coneItems, { shadow: true }));
+  const trunkInst = makeInstanced(new THREE.CylinderGeometry(0.25, 0.35, 1, 8), trunkMat, trunkItems, { shadow: true });
+  const crownInst = makeInstanced(new THREE.SphereGeometry(1, 12, 10), WHITE_MAT, crownItems, { shadow: true });
+  const coneInst = makeInstanced(new THREE.ConeGeometry(1.6, 1.6, 8), WHITE_MAT, coneItems, { shadow: true });
+  decor.add(trunkInst, crownInst, coneInst);
+  const camTreeSet = { trees: camTrees, meshes: [trunkInst, coneInst, crownInst] };
+  camTreeSet.orig = camTreeSet.meshes.map((m) => m.instanceMatrix.array.slice()); // 감췄다 되돌릴 원래 자리
   decor.add(makeInstanced(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }), stemItems));
   decor.add(makeInstanced(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, capItems));
   const rockItems = [];
@@ -1455,7 +1462,7 @@ export function buildWorld(scene, layout = 'forest') {
     ground, bushes, sun, boulder, boulderObstacle, animate, terrain: MEADOW_TERRAIN, decor,
     spawn: isTown ? { x: 0, z: 14 } : { x: 0, z: 12 }, dark: false, // 마을: 광장 남쪽 / 숲: 마을 문 바로 북쪽
     // 몬스터 자리 (야생·보스), 블록 자리
-    wildSpots: isTown ? [] : WILD_SPOTS, town: isTown,
+    wildSpots: isTown ? [] : WILD_SPOTS, town: isTown, camTrees: camTreeSet,
     bossSpot: { x: L.arena.x, z: L.arena.z },
     specialSpots: { sleepSpot: { x: L.sleepSpot.x, z: L.sleepSpot.z } }, // creatures.json 의 special 이름 → 자리
     pickupSpots: isTown ? [] : PICKUP_SPOTS,
