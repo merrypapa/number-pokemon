@@ -7,7 +7,7 @@ import { makePillSprite } from './world.js';
 
 const THEMES = {
   forest:  { stone: 0x9fb08a, accent: 0x57b947, glow: 0x9dff6a, name: '윌슨 그루터기' }, // 신전 대신 야쿠시마의 속이 빈 거대한 그루터기 (buildWilsonStump)
-  cave:    { stone: 0x6b7280, accent: 0x39ffb0, glow: 0x5dffc8, name: '수정 광장' },
+  cave:    { stone: 0x6b7280, accent: 0x39ffb0, glow: 0x5dffc8, name: '동굴 진주 웅덩이' }, // 손둥 동굴의 동굴 진주가 가득한 석회 웅덩이 (buildPearlPools)
   volcano: { stone: 0x6b4038, accent: 0xff6b1a, glow: 0xffb347, name: '하늘 신전' },
   sea:     { stone: 0xbfae86, accent: 0x3fb8e8, glow: 0x9fe8ff, name: '산호 신전' },
   space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '별의 문' },
@@ -19,6 +19,7 @@ const THEMES = {
  */
 export function buildMegaShrine(zoneName, x, groundY, z, decor = null) {
   if (zoneName === 'forest') return buildWilsonStump(x, groundY, z, decor); // 실제 장소의 명소로 바꾸는 중 (하나씩)
+  if (zoneName === 'cave') return buildPearlPools(x, groundY, z);
   const T = THEMES[zoneName] || THEMES.forest;
   const g = new THREE.Group();
   g.position.set(x, groundY, z);
@@ -211,4 +212,46 @@ function instanced(geo, mat, items) {
   const mesh = new THREE.InstancedMesh(geo, mat, Math.max(1, items.length)), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3();
   items.forEach((it, i) => { e.set(it.rx || 0, it.ry || 0, it.rz || 0); q.setFromEuler(e); p.set(it.x, it.y, it.z); sc.set(it.sx ?? it.s ?? 1, it.sy ?? it.s ?? 1, it.sz ?? it.s ?? 1); mesh.setMatrixAt(i, m4.compose(p, q, sc)); });
   mesh.count = items.length; mesh.frustumCulled = false; return mesh;
+}
+
+// ---------- 지하동굴 = 손둥 동굴의 동굴 진주 웅덩이 ----------
+// 석회 물방울이 수천 년 굴려 만든 동글동글한 "동굴 진주"가 가득 찬 계단식 석회 웅덩이(림스톤 둑).
+// 둥근 크림색 석회 둑 → 진주가 빛나는 물 → 가운데 작은 석회 섬(메가 포켓몬). 물에는 못 들어가고 남쪽 징검돌로 섬에 건넌다.
+const PEARL = { island: 2.8, waterOut: 6.5, rimOut: 7.4, islandH: 0.45, rimH: 0.35, stoneH: 0.3, stones: [3.4, 4.3, 5.2, 6.1], stoneR: 0.6 }; // 징검돌은 섬 가장자리부터 둑 안쪽까지 빈틈없이 (0.9m 간격, 반지름 0.6)
+export function buildPearlPools(x, groundY, z) {
+  const P = PEARL, g = new THREE.Group(); g.position.set(x, groundY, z); g.visible = false;
+  const calcite = new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.8 }), calciteD = new THREE.MeshStandardMaterial({ color: 0xc9b896, roughness: 0.9 });
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(P.rimOut, P.rimOut + 0.4, P.rimH, 40, 1), calcite); rim.position.y = P.rimH / 2; rim.receiveShadow = true; g.add(rim);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(P.waterOut + 0.3, 0.22, 6, 48), calciteD); lip.rotation.x = Math.PI / 2; lip.position.y = P.rimH; g.add(lip);
+  const water = new THREE.Mesh(new THREE.RingGeometry(P.island - 0.05, P.waterOut, 48).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x5fd8d0, emissive: 0x1a7a78, emissiveIntensity: 0.6, transparent: true, opacity: 0.7, roughness: 0.05 })); water.position.y = P.rimH + 0.04; g.add(water);
+  const island = new THREE.Mesh(new THREE.CylinderGeometry(P.island, P.island + 0.3, P.islandH + 0.1, 28), calcite); island.position.y = (P.islandH + 0.1) / 2; island.castShadow = true; island.receiveShadow = true; g.add(island);
+  const stones = P.stones.map((d) => ({ x: 0, y: P.stoneH / 2 + 0.05, z: d, sx: P.stoneR, sy: P.stoneH + 0.1, sz: P.stoneR }));
+  g.add(instanced(new THREE.CylinderGeometry(1, 1.1, 1, 10), calciteD, stones));
+  // 동굴 진주: 물속 수백 개 (하얗게 은은히 빛난다) + 둑 위의 작은 진주
+  const pearls = [];
+  for (let i = 0; i < 260; i++) { const a = Math.random() * Math.PI * 2, d = P.island + 0.3 + Math.random() * (P.waterOut - P.island - 0.6); if (Math.abs(Math.sin(a) * d) < 0.9 && Math.cos(a) > 0) continue; pearls.push({ x: Math.sin(a) * d, y: P.rimH - 0.05, z: Math.cos(a) * d, s: 0.09 + Math.random() * 0.13 }); }
+  const pearlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbff8ff, emissiveIntensity: 0.55, roughness: 0.25 });
+  g.add(instanced(new THREE.SphereGeometry(1, 10, 8), pearlMat, pearls));
+  // 둘레 석순 고리 (메가 성역 기둥 자리): 위에서 떨어지는 물방울이 웅덩이를 만든 것처럼
+  const ring = [], drips = [], pillars = [];
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + 0.45, r = 9.4, h = 3 + (i % 3) * 1.6; if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.5) continue; ring.push({ x: Math.sin(a) * r, y: h / 2, z: Math.cos(a) * r, sx: 0.9, sy: h, sz: 0.9 }); pillars.push({ x: Math.sin(a) * r, z: Math.cos(a) * r, r: 0.9 }); }
+  g.add(instanced(new THREE.ConeGeometry(1, 1, 7), calciteD, ring));
+  for (let i = 0; i < 18; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 4), new THREE.MeshBasicMaterial({ color: 0xbff8ff })); m.userData = { x: (Math.random() - 0.5) * 10, z: (Math.random() - 0.5) * 10, ph: Math.random() * 3 }; g.add(m); drips.push(m); }
+  const light = new THREE.PointLight(0x9ff8f0, 2.6, 22); light.position.y = 2.5; g.add(light);
+  const label = makePillSprite('✨ 동굴 진주 웅덩이', { bg: '#1f2a3a', fg: '#ffffff', border: '#5dffc8' }, 1.4); label.position.set(0, 6, 0); g.add(label);
+  const hint = makePillSprite('🫧 징검돌로 가운데 섬에 건너가!', { bg: '#1f2a3a', fg: '#bff8ff', border: '#5dffc8' }, 0.6); hint.position.set(0, 1.8, P.rimOut + 1); g.add(hint);
+  let riseT = -1;
+  function reveal() { if (g.visible) return; g.visible = true; riseT = 0; }
+  function animate(t, dt = 0) {
+    if (!g.visible) return;
+    if (riseT >= 0 && riseT < 1) { riseT = Math.min(1, riseT + dt * 0.5); g.position.y = groundY - 2 * (1 - riseT); pearlMat.emissiveIntensity = 0.2 + riseT * 0.5; } // 솟아오르며 진주가 하나둘 빛난다
+    pearlMat.emissiveIntensity = 0.5 + Math.sin(t * 1.7) * 0.15;
+    for (const m of drips) { const u = m.userData, life = ((t * 0.7 + u.ph) % 3) / 3; m.position.set(u.x, 8 - life * 8, u.z); m.visible = life < 0.95; }
+    label.position.y = 6 + Math.sin(t * 1.3) * 0.25;
+  }
+  // 높이: 둑 위·섬·징검돌은 단단한 높이, 물은 못 들어간다 (blockedAt)
+  const onStone = (dx, dz) => P.stones.some((d) => Math.hypot(dx, dz - d) < P.stoneR);
+  const heightAt = (dx, dz) => { const d = Math.hypot(dx, dz); if (d < P.island) return P.islandH; if (onStone(dx, dz)) return P.stoneH; if (d >= P.waterOut && d < P.rimOut) return P.rimH; return 0; };
+  const blockedAt = (dx, dz) => { const d = Math.hypot(dx, dz); return d >= P.island && d < P.waterOut && !onStone(dx, dz); };
+  return { group: g, reveal, animate, spot: { x, z }, label: '동굴 진주 웅덩이', radius: P.rimOut + 2, heightAt, blockedAt, pillars, megaAt: { x: 0, z: -0.6 } };
 }
