@@ -3,6 +3,7 @@ import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildGround, makeSignAt, makeLabelTexture, makeInstanced } from './world.js';
 import { buildUfoStation } from './ufo.js';
+import { setSpaceRaw, uyuniGround, uyuniHeight, uyuniClear, inMirror, inSalar, ISLA, buildUyuniStructures } from './uyuni.js';
 
 // 꿈의우주 (220x220). 푸른숲 로켓 발사장에서 로켓을 타고 온다. 신비한 포켓몬(페어리·에스퍼·고스트)이 산다.
 // 보랏빛 달 표면(분화구·빛나는 수정·떠다니는 별빛·유성)과 하늘의 태양과 여덟 행성(+명왕성). 중력이 약해 높이 뛴다.
@@ -24,7 +25,8 @@ export const SPACE = {
   gravity: 0.45, // 지구의 절반도 안 되는 중력: 점프가 높고 오래 뜬다
 };
 
-function spaceHeight(x, z) {
+/** 원래 달 땅 (구조물 빼고) */
+function spaceRaw(x, z) {
   let y = 0;
   for (const b of SPACE.bumps) { const dx = x - b.x, dz = z - b.z; y += b.h * Math.exp(-(dx * dx + dz * dz) / (b.r * b.r)); }
   for (const c of SPACE.craters) {
@@ -36,7 +38,10 @@ function spaceHeight(x, z) {
   if (ad < a.r + 4) y += 1.6 * Math.min(1, (a.r + 4 - ad) / 4); // 제단은 한 층 높다
   return y;
 }
-export const SPACE_TERRAIN = { height: spaceHeight, inHole: () => false, blocked: () => false, size: SPACE.size, obstacles: [] };
+setSpaceRaw(spaceRaw);
+/** 우유니 구조물(선인장 섬 단·기차 지붕·상자)까지 넣은 높이. 거울 소금 평원은 평평 */
+function spaceHeight(x, z) { return uyuniHeight(x, z, uyuniGround(x, z)); }
+export const SPACE_TERRAIN = { height: spaceHeight, inHole: () => false, blocked: () => false, size: SPACE.size, obstacles: [], ledge: 0.9 };
 
 // 태양계: 이름, 색, 크기(상대), 하늘에서의 방향(각도)과 높이
 const SOLAR = [
@@ -72,7 +77,10 @@ export function buildSpace(scene) {
 
   // 바닥: 보랏빛 달 표면, 분화구 안은 더 어둡고 테두리는 밝게, 제단은 금빛
   const dustA = new THREE.Color(0x5a4a8a), dustB = new THREE.Color(0x4a3c78), deep = new THREE.Color(0x35295c), rim = new THREE.Color(0x8a7cc0), gold = new THREE.Color(0xa88fd8);
-  buildGround(scene, S, 240, spaceHeight, (x, z, y) => {
+  const salt = new THREE.Color(0xd8d0f0), saltB = new THREE.Color(0xc8bfe6), mirrorC = new THREE.Color(0x4a3f9a);
+  buildGround(scene, S, 240, uyuniGround, (x, z, y) => {
+    if (inMirror(x, z)) return mirrorC;
+    if (inSalar(x, z) && y > -0.5) return Math.random() < 0.5 ? salt : saltB; // 우유니 소금 땅
     if (Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 1) return gold;
     for (const c of SPACE.craters) {
       const d = Math.hypot(x - c.x, z - c.z);
@@ -144,7 +152,7 @@ export function buildSpace(scene) {
   const crystals = [];
   for (let i = 0; i < 140; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
-    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 10 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 3 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 10) continue;
+    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 10 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 3 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 10 || inSalar(x, z) || !uyuniClear(x, z, 2)) continue; // 소금사막·구조물 자리는 비운다
     const ci = i % crystalColors.length;
     const y = spaceHeight(x, z);
     for (let k = 0; k < 3; k++) {
@@ -158,7 +166,7 @@ export function buildSpace(scene) {
   const rockItems = [];
   for (let i = 0; i < 160; i++) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
-    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 8 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 2 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 9) continue;
+    if (Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 8 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 2 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 9 || inSalar(x, z) || !uyuniClear(x, z, 2)) continue; // 소금사막·구조물 자리는 비운다
     const r = rand(0.4, 1.6);
     rockItems.push({ x, y: spaceHeight(x, z) + 0.2, z, s: r, rx: rand(0, 3), ry: rand(0, 3) });
     block(x, z, r * 0.9);
@@ -190,6 +198,8 @@ export function buildSpace(scene) {
     satellite.add(body, dish);
     scene.add(satellite);
   }
+
+  const structs = buildUyuniStructures(scene, decor, { height: spaceHeight, obstacles, sky: SOLAR, avoid: (x, z) => Math.hypot(x - SPACE.spawn.x, z - SPACE.spawn.z) < 10 || Math.hypot(x - SPACE.altar.x, z - SPACE.altar.z) < SPACE.altar.r + 3 || Math.hypot(x - SPACE.ufoPad.x, z - SPACE.ufoPad.z) < 10 }); // 우유니 (uyuni.js)
 
   // ---------- 꿈의 제단: 우주 보스 팬텀이 지키는 곳. 빛기둥 고리 + 떠 있는 돌 ----------
   {
@@ -250,6 +260,7 @@ export function buildSpace(scene) {
 
   function animate(t) {
     station.animate(t);
+    structs.animate(t);
     for (const l of crystals) l.intensity = 1.8 + Math.sin(t * 2 + l.userData.phase) * 0.6;
     for (const o of orbs) {
       const u = o.userData;
@@ -269,10 +280,17 @@ export function buildSpace(scene) {
     satellite.rotation.y = t * 0.3;
   }
 
+  /** 야생·블록 자리가 기차·상자·섬 비탈·소금 더미와 겹치면 옆으로 옮긴다 (앞쪽 keep 개는 일부러 구조물 위) */
+  function clearSpots(list, keep = 0) {
+    return list.map(([x, z], i) => { if (i < keep || uyuniClear(x, z)) return [x, z]; for (let r = 3; r < 30; r += 3) for (let k = 0; k < 8; k++) { const nx = x + Math.cos(k * Math.PI / 4) * r, nz = z + Math.sin(k * Math.PI / 4) * r; if (uyuniClear(nx, nz)) return [nx, nz]; } return [x, z]; });
+  }
   return {
     sun, animate, terrain: SPACE_TERRAIN, decor, spawn: SPACE.spawn, dark: true, gravity: SPACE.gravity,
     npcs: [{ x: pilotAt.x, z: pilotAt.z, mesh: astronaut, name: '코리', boards: 'rocket', lines: (c) => [
       `꿈의우주에 온 걸 환영해, ${c.name}! 난 우주비행사 코리야. 중력이 약해서 점프가 높고 오래 떠. 화면을 위로 밀면 태양과 행성이 보여.`,
+      '여긴 볼리비아 우유니 소금사막을 닮은 별이야. 동쪽 하얀 소금 땅 가운데 얕은 물이 고인 "별빛 거울"이 있어. 들어가면 발밑에도 별이랑 행성이 비쳐!',
+      '서쪽엔 잉카와시 선인장 섬이 있어. 네 단짜리 바위섬인데 경사로로 올라가도 되고, 여기선 중력이 약하니까 껑충 뛰어서 한 단씩 올라가도 돼. 꼭대기에 블록이 있대!',
+      '북서쪽엔 녹슨 기차들이 잠든 기차 무덤이 있어. 나무 상자를 밟고 지붕 위로 올라가서 지붕에서 지붕으로 건너뛰어 봐!',
       `여기 포켓몬은 페어리·에스퍼·고스트·전기 속성이야. 공격 ${c.zone.atkRange}쯤 되어야 편하게 이겨. 피카츄와 라이츄도 여기 살아.`,
       '로켓단 본대는 벌써 지구를 떠났어. 별의 문을 넘어 행성 열 곳으로 흩어졌대. 지구는 연습이었던 거야!',
       c.conquered.space ? '보스 팬텀을 이겼구나! 이제 별의 문이 열렸어. 그곳의 메가팬텀까지 잡으면… 굉장한 일이 일어난대!' : `북쪽 제단에 보스 팬텀이 있어. 체력 240, 공격 26! 공격 ${c.zone.targetAtk + 3} 이상, 체력 70쯤 되면 도전해 봐. 고스트는 고스트에 세니 조심!`,
@@ -282,8 +300,8 @@ export function buildSpace(scene) {
     ufo: station.vehicle,
     ufoArrival: station.arrival,
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rx - 2.6, z: rz + 2.6 }, to: 'town' }, // 로켓은 마을 발사장으로
-    wildSpots: [[-54.5, 68.2], [54.5, 75.0], [-75.0, 6.8], [81.8, 13.6], [-27.3, -40.9], [40.9, -34.1], [-102.3, -40.9], [102.3, -75.0], [-54.5, -109.1], [54.5, -109.1], [-115.9, 75.0], [115.9, 81.8], [0.0, 34.1], [-129.5, -109.1], [129.5, -27.3], [-20.5, 136.4], [95.5, -129.5], [-95.5, 129.5], [99.5, 128.2], [111.7, 19.1], [59.0, -79.7], [-24.7, -96.4], [31.6, -125.6], [60.3, -46.7], [1.5, 137.6], [-83.5, -25.4]],
+    wildSpots: clearSpots([[-54.5, 68.2], [54.5, 75.0], [-75.0, 6.8], [81.8, 13.6], [-27.3, -40.9], [40.9, -34.1], [-102.3, -40.9], [102.3, -75.0], [-54.5, -109.1], [54.5, -109.1], [-115.9, 75.0], [115.9, 81.8], [0.0, 34.1], [-129.5, -109.1], [129.5, -27.3], [-20.5, 136.4], [95.5, -129.5], [-95.5, 129.5], [99.5, 128.2], [111.7, 19.1], [59.0, -79.7], [-24.7, -96.4], [31.6, -125.6], [60.3, -46.7], [1.5, 137.6], [-83.5, -25.4]]),
     bossSpot: { x: SPACE.altar.x, z: SPACE.altar.z },
-    pickupSpots: [[-19.1, 81.8], [19.1, 81.8], [-47.7, 27.3], [47.7, 27.3], [-75.0, -27.3], [79.1, -34.1], [-34.1, -81.8], [34.1, -81.8], [0.0, 6.8], [-95.5, 40.9], [95.5, 40.9], [-109.1, -81.8], [109.1, -102.3], [0.0, -129.5], [-16.4, 54.5], [16.4, 54.5], [-68.2, 109.1], [68.2, 111.8], [-136.4, 122.7], [136.4, 122.7], [-136.4, -13.6], [136.4, 0.0], [0.0, 136.4], [-129.5, -136.4], [30.5, -94.9], [-126.3, 101.5], [-51.4, 126.6], [109.5, -33.7], [16.4, 33.2], [121.6, 1.9], [-72.4, -54.9], [13.4, -134.8], [-23.4, 22.1], [-132.5, 32.0]],
+    pickupSpots: clearSpots([[ISLA.x, ISLA.z + 1.5], [-64.8, 80], [-19.1, 81.8], [19.1, 81.8], [-47.7, 27.3], [47.7, 27.3], [-75.0, -27.3], [79.1, -34.1], [-34.1, -81.8], [34.1, -81.8], [0.0, 6.8], [-95.5, 40.9], [95.5, 40.9], [-109.1, -81.8], [109.1, -102.3], [0.0, -129.5], [-16.4, 54.5], [16.4, 54.5], [-68.2, 109.1], [68.2, 111.8], [-136.4, 122.7], [136.4, 122.7], [-136.4, -13.6], [136.4, 0.0], [0.0, 136.4], [-129.5, -136.4], [30.5, -94.9], [-126.3, 101.5], [-51.4, 126.6], [109.5, -33.7], [16.4, 33.2], [121.6, 1.9], [-72.4, -54.9], [13.4, -134.8], [-23.4, 22.1], [-132.5, 32.0]], 2), // 앞 둘: 선인장 섬 꼭대기, 기차 지붕 위
   };
 }
