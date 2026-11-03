@@ -1045,6 +1045,7 @@ function resolveCamera(target) {
   const tmp = new THREE.Vector3();
   for (const o of zone.world.decor?.children || []) {
     if (o.isInstancedMesh || !o.position) continue;
+    if (o.userData.cutaway) { if (o.userData.cutaway(head)) { o.visible = false; hiddenByCam.add(o); } continue; } // 용암 동굴 껍질: 주인공이 굴 안이면 숨긴다 (안벽만 남는다)
     if (o.userData.noHide || (o.geometry && (o.geometry.type === 'PlaneGeometry' || o.geometry.type === 'CircleGeometry') && Math.abs(Math.abs(o.rotation.x) - Math.PI / 2) < 0.05)) continue; // 바닥·러그처럼 납작하게 깔린 것은 절대 숨기지 않는다 (연구실 바닥이 깜빡이던 원인)
     const r = o.userData.solid ? o.userData.radius : (o.userData.radius || 2.4);
     tmp.subVectors(o.position, head);
@@ -3164,6 +3165,7 @@ function renderGuide(el) {
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
+    ${sec('🌋 불의산 — 킬라우에아 화산', `하와이 킬라우에아를 닮았어요. 들어오는 곳은 빨간 꽃이 피는 <b>오히아 숲</b>. 서쪽 <b>용암 동굴</b>은 안으로 걸어서 지나가거나(굴 속에 블록!) 북쪽 돌무더기 비탈로 지붕 위에 올라가요. 큰 화산 동쪽 가장자리의 <b>분화구 전망대</b>에선 용암 호수와 용암 분수가 한눈에. 동쪽 작은 화산에서 흘러내리는 <b>용암 강</b>은 못 들어가니 돌다리나 징검돌로 건너요. 서남쪽 <b>유황 증기 데크길</b>은 김 나는 구멍을 피해 데크로만!`)}
     ${sec('🌊 물의길 — 몰디브 산호섬', `몰디브를 닮았어요. 동쪽 섬에서 석호 위로 뻗은 <b>수상 빌라 마을</b> 산책로를 따라 초가 오두막을 구경하고, 끝의 <b>전망대</b>는 서쪽 계단으로 3.4m 위까지 올라가요. 도착 섬 서쪽의 <b>모래톱 길</b>은 바다 위로 드러난 하얀 모래 띠 — 걸어서 서북쪽 섬까지 건너요. 얕은 바다엔 <b>산호와 물고기 떼</b>, 동남쪽 먼바다의 <b>바다 아치</b>는 배를 타고 아래로 지나가 봐요.`)}
     ${sec('🕳️ 지하동굴 — 손둥 동굴 탐험', `세상에서 가장 큰 동굴을 닮았어요. 북서쪽 <b>하늘 구멍 밀림</b>은 천장 구멍으로 햇빛이 쏟아지는 동굴 속 숲. 한가운데 <b>지하 강</b>은 물에 못 들어가니 북쪽 보스 길의 <b>구름다리</b>나 징검다리로 건너요. 보스 롱스톤은 <b>만리장성 절벽</b> 위 — 남쪽 오르막길로만 올라가요. 동남쪽 <b>석회 웅덩이 계단</b> 꼭대기엔 블록이 있어요.`)}
     ${sec('🌲 푸른숲 — 이끼 숲 탐험', `야쿠시마 이끼 숲을 닮았어요. <b>개울</b>은 물에 못 들어가니 징검다리나 나무다리로 건너요. <b>데크길</b>은 경사로로 올라가 2.6m 위를 걷고, 아래로도 지나갈 수 있어요. <b>할아버지 삼나무</b>는 줄기를 감는 나선 길로 9m 전망대까지! <b>쓰러진 고목</b>은 속으로 지나가거나 옆 이끼 비탈로 위에 올라가요. <b>이끼 바위 언덕</b>은 점프 버튼으로 하나씩 올라 꼭대기 전망 바위의 블록을 가져와요.`)}
