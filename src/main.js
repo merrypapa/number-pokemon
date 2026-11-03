@@ -35,6 +35,9 @@ import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle, BALL_MODEL, CUBE_MODEL } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
 import { Bgm, trackFor } from './bgm.js';
+import { Ambient } from './ambient.js';
+import { setupSky } from './skyenv.js';
+import { streamDist } from './yakushima.js';
 import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
 import { Party, friendStats, expFor, expNeed, STARTER_LEVEL, MAX_LEVEL } from './party.js';
@@ -71,6 +74,9 @@ renderer.shadowMap.enabled = true;
 setPortraitRenderer(renderer); // 말풍선 얼굴 그림도 이 렌더러로 그린다 (컨텍스트를 따로 만들지 않는다)
 setOffscreenRenderer(renderer); // 도감 액자 그림·360° 보기도 이 렌더러로 (따로 만들면 아이폰에서 도감을 열 때 꺼졌다)
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
+// 그래픽 1단계: 영화식 색 보정(ACES). 밝은 곳은 부드럽게 눌리고 색이 덜 탁해 보인다. 하늘 그라데이션·환경 조명은 지역마다 skyenv.js
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 fitRenderer();
@@ -110,17 +116,21 @@ const sound = new Sound();
 // 배경 음악 (src/bgm.js). 음악 파일 없이 WebAudio 로 직접 연주한다. 브라우저 규칙상 화면을 한 번 눌러야 소리가 나므로,
 // 첫 조작 때 지금 있어야 할 곡을 틀고 그 뒤로는 지역·대결에 따라 바뀐다.
 const bgm = new Bgm(sound);
+const ambient = new Ambient(sound); // 지역마다 다른 환경음 (새·개울·바람·물방울·파도 …), 🎵 버튼과 함께 켜고 끈다
 function bgmNow() { // 지금 나와야 할 곡
   if (battle?.active) return battle.creature?.isBoss ? 'boss' : 'battle';
   if (duelStage?.active) return 'battle'; // 아레나 무대 위 친구 대결
   return zone ? trackFor(zone.name) : 'title';
 }
-function bgmRefresh() { bgm.play(bgmNow(), zone?.name || null); }
+function bgmRefresh() {
+  bgm.play(bgmNow(), zone?.name || null);
+  if (bgm.on && !document.hidden) { ambient.play(zone?.name || null); ambient.duck(!!(battle?.active || duelStage?.active)); } else ambient.stop();
+}
 for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, () => { sound.ensure(); bgmRefresh(); }, { passive: true });
-document.addEventListener('visibilitychange', () => bgm.setHidden(document.hidden));
+document.addEventListener('visibilitychange', () => { bgm.setHidden(document.hidden); ambient.setHidden(document.hidden || !bgm.on, zone?.name || null); });
 const bgmBtns = [document.getElementById('btn-bgm'), document.getElementById('dex-bgm')];
 function refreshBgmBtn() { for (const b of bgmBtns) { if (!b) continue; const t = bgm.on ? '🎵' : '🔇'; b.textContent = b.id === 'btn-bgm' ? `${t} 음악` : t; b.title = bgm.on ? '배경 음악 끄기' : '배경 음악 켜기'; } }
-for (const b of bgmBtns) if (b) b.onclick = () => { sound.ensure(); bgm.toggle(); if (bgm.on) bgmRefresh(); refreshBgmBtn(); sound.click(); };
+for (const b of bgmBtns) if (b) b.onclick = () => { sound.ensure(); bgm.toggle(); bgmRefresh(); refreshBgmBtn(); sound.click(); };
 refreshBgmBtn();
 const particles = new Particles();
 const confetti = new Confetti(document.getElementById('fx'));
@@ -461,7 +471,7 @@ function buildShrine(z) {
     z.shrine.megaSpot = { x: spot.x, z: spot.z };
     const orig = z.terrain.height;
     if (!z.terrain.shrineWrapped) { // 지형 높이에 성역의 단을 얹는다 (성역이 드러난 뒤에만)
-      z.terrain.height = (x, zz) => { const h = orig(x, zz); if (!z.shrine?.shown) return h; const s = shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
+      z.terrain.height = (x, zz, refY) => { const h = orig(x, zz, refY); if (!z.shrine?.shown) return h; /* refY 를 넘겨야 숲의 데크·전망대(겹친 층)가 성역이 드러난 뒤에도 된다 */ const s = shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
       z.terrain.shrineWrapped = true;
     }
     z.shrinePillars = SHRINE_PILLARS.map((p) => ({ x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥은 못 지나간다 (드러난 뒤에)
@@ -999,6 +1009,33 @@ dex.bindParty({
 // ---------- 카메라 시야: 건물·바위산이 주인공을 가리지 않게 ----------
 // solid 구조물(연구소·집·불의산 입구 바위)은 카메라를 그 앞으로 당기고, 나무·바위 같은 장식은 사이에 끼면 잠시 숨긴다.
 const hiddenByCam = new Set();
+// 숲·마을 나무는 수백 그루를 한 번에 그리는 묶음(InstancedMesh)이라 resolveCamera 가 숨기지 못했다 → 큰 삼나무가 주인공을 가렸다.
+// 그루마다 적어 둔 인스턴스 번호(world.camTrees)로, 시선(머리 → 카메라) 가까이 있고 시선보다 키가 큰 나무만 크기 0 으로 감춘다. 벗어나면 되돌린다.
+let camTreeHidden = { set: null, ids: new Set() };
+function setTreeShown(ct, i, show) {
+  const t = ct.trees[i];
+  t.parts.forEach(([a, b], k) => { const m = ct.meshes[k], arr = m.instanceMatrix.array; for (let j = a; j < b; j++) { if (show) arr.set(ct.orig[k].subarray(j * 16, j * 16 + 16), j * 16); else arr.fill(0, j * 16, j * 16 + 16); } if (b > a) m.instanceMatrix.needsUpdate = true; });
+}
+function hideTreesOnSight(pp, camPos) {
+  const ct = zone?.world?.camTrees || null;
+  if (camTreeHidden.set && camTreeHidden.set !== ct) { for (const i of camTreeHidden.ids) setTreeShown(camTreeHidden.set, i, true); camTreeHidden = { set: null, ids: new Set() }; }
+  if (!ct) return;
+  const want = new Set();
+  if (camPos && !cam.fp) {
+    const ax = pp.x, az = pp.z, ay = pp.y + 1.2, vx = camPos.x - ax, vz = camPos.z - az, L2 = vx * vx + vz * vz || 1;
+    for (let i = 0; i < ct.trees.length; i++) {
+      const t = ct.trees[i];
+      if (Math.abs(t.x - ax) > 30 || Math.abs(t.z - az) > 30) continue;
+      const u = ((t.x - ax) * vx + (t.z - az) * vz) / L2; if (u < 0.05 || u > 1.15) continue;
+      const uc = Math.min(1, u), d = Math.hypot(t.x - (ax + vx * uc), t.z - (az + vz * uc)); if (d > t.r + 0.6) continue;
+      if (ay + (camPos.y - ay) * uc > t.top + 0.4) continue; // 시선이 나무 꼭대기보다 높으면 가리지 않는다
+      want.add(i);
+    }
+  }
+  for (const i of camTreeHidden.ids) if (!want.has(i)) setTreeShown(ct, i, true);
+  for (const i of want) if (!camTreeHidden.ids.has(i)) setTreeShown(ct, i, false);
+  camTreeHidden = { set: ct, ids: want };
+}
 function resolveCamera(target) {
   const head = player.position.clone(); head.y += 1;
   const dir = target.clone().sub(head); const len = dir.length(); dir.divideScalar(len || 1);
@@ -1051,6 +1088,7 @@ function applyZoneEnv() {
   const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 발밑에 금빛 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
+  setupSky(renderer, zone); // 하늘 그라데이션 + 환경 조명 (지역마다 한 번)
   player.gravityScale = zone.world.gravity || 1;
   player.climbAt = zone.world.climbAt || null; // 야외 체육관의 올라갈 수 있는 나무
   if (zone.world.gym) spawnGymPets(); else if (gymPets.length) clearGymPets(); // 체육관: 내 포켓몬들이 모두 나와 뛰어논다
@@ -3125,6 +3163,7 @@ function renderGuide(el) {
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
+    ${sec('🌲 푸른숲 — 이끼 숲 탐험', `야쿠시마 이끼 숲을 닮았어요. <b>개울</b>은 물에 못 들어가니 징검다리나 나무다리로 건너요. <b>데크길</b>은 경사로로 올라가 2.6m 위를 걷고, 아래로도 지나갈 수 있어요. <b>할아버지 삼나무</b>는 줄기를 감는 나선 길로 9m 전망대까지! <b>쓰러진 고목</b>은 속으로 지나가거나 옆 이끼 비탈로 위에 올라가요. <b>이끼 바위 언덕</b>은 점프 버튼으로 하나씩 올라 꼭대기 전망 바위의 블록을 가져와요.`)}
     ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b>북쪽 문</b> → 푸른숲(그 너머 불의산·꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
     ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
     ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
@@ -3246,6 +3285,7 @@ let whirlToldAt = 0; // 잠긴 소용돌이를 마지막으로 알려 준 때 (�
 let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대결 → 대결곡/보스곡, 끝나면 지역 곡)
 function frame() {
   state.frames++;
+  if (zone?.name === 'forest' && player && (state.frames % 12) === 0) ambient.setWater(1 - streamDist(player.position.x, player.position.z) / 24); // 개울에 가까울수록 물소리
   fitRenderer();
   const fighting = battle.active || duelStage.active;
   if (fighting !== bgmInBattle) { bgmInBattle = fighting; bgmRefresh(); }
@@ -3713,12 +3753,14 @@ function frame() {
       camera.position.copy(head);
       camera.lookAt(head.clone().add(fpLookDir()));
       for (const o of hiddenByCam) o.visible = true; hiddenByCam.clear(); // 3인칭에서 숨겨 둔 장식이 있으면 되돌린다
+      hideTreesOnSight(pp, null); // 1인칭: 감춘 나무도 되돌린다
     } else {
       const camTarget = resolveCamera(pp.clone().add(camOffset()));
-      if (zone.world.tower) { const c = towerCeiling(camTarget.x, camTarget.z, pp.y); if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
+      { const c = zone.world.tower ? towerCeiling(camTarget.x, camTarget.z, pp.y) : zone.terrain.ceiling ? zone.terrain.ceiling(camTarget.x, camTarget.z, pp.y) : Infinity; if (c < Infinity) camTarget.y = Math.min(camTarget.y, Math.max(pp.y + 1.0, c - 0.7)); } // 동굴탑: 위 바퀴·꼭대기 단 아래로 카메라를 누른다 (천장 너머로 올라가면 주인공이 안 보였다)
       if (prevBattle || snapCam) { camera.position.copy(camTarget); snapCam = false; }
       else camera.position.lerp(camTarget, look.dx || look.dy || input.isHeld('camLeft') || input.isHeld('camRight') ? 0.35 : 0.08);
       camera.lookAt(pp.x, pp.y + camLookY(), pp.z);
+      hideTreesOnSight(pp, camera.position); // 카메라(지금 자리)와 주인공 사이에 낀 숲 나무는 잠깐 감춘다
     }
   }
   ctxClicked = false;

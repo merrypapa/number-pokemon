@@ -10,11 +10,21 @@
 // ---------------------------------------------------------------------------
 
 const TRACKS = {
-  // 푸른숲: 밝은 장조, 통통 튀는 걸음걸이
-  forest: { bpm: 116, root: 523.25, wave: 'square', bassWave: 'triangle',
+  // 푸른숲(이끼 숲): 밝은 장조, 통통 튀는 걸음걸이 — 숲답게 부드러운 소리로
+  forest: { bpm: 112, root: 523.25, wave: 'triangle', bassWave: 'sine',
     lead: '0 - 4 - 7 - 9 -  7 - 4 - 5 - . .  5 - 9 - 12 - 9 -  7 - 4 - 2 - 0 -',
     bass: '0 . 7 .  5 . 7 .  5 . 9 .  7 . 0 .',
     drum: '. . x . . . x .  . . x . . . x .  . . x . . . x .  . . x . x . x .' },
+  // 포켓몬 마을: 포근하고 느긋한 장조, 집으로 돌아온 느낌
+  town: { bpm: 100, root: 523.25, wave: 'triangle', bassWave: 'sine', quiet: true,
+    lead: '4 - 7 - 12 - 11 -  9 - 7 - 5 - 4 -  2 - 5 - 9 - 7 -  5 - 4 - 2 - . .',
+    bass: '0 . 7 .  5 . 7 .  2 . 9 .  7 . 0 .',
+    drum: '. . . . x . . .  . . . . x . . .  . . . . x . . .  . . . . x . . .' },
+  // 야외 체육관: 힘차게 달리는 운동회 느낌
+  gym: { bpm: 128, root: 587.33, wave: 'square', bassWave: 'triangle', short: true,
+    lead: '0 . 4 . 7 . 12 .  11 . 7 . 4 . 7 .  9 . 5 . 2 . 9 .  7 - 5 - 4 - . .',
+    bass: '0 0 7 7  4 4 7 7  5 5 2 2  7 7 0 0',
+    drum: 'x . x . x . x .  x . x . x . x .  x . x . x . x .  x x x . x . x x' },
   // 꿀벌집: 바쁘게 윙윙, 짧게 끊어 치는 소리
   hive: { bpm: 132, root: 587.33, wave: 'square', bassWave: 'triangle', short: true,
     lead: '0 . 3 . 7 . 3 .  5 . 8 . 12 . 8 .  7 . 10 . 7 . 3 .  5 . 3 . 0 . . .',
