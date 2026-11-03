@@ -4,20 +4,20 @@
 //  - 가끔 나는 소리(사건): 새 지저귐·물방울·보글·풍경 소리·지직 — 정해진 간격 사이에서 무작위로
 // 숲의 개울 소리는 개울에 가까울수록 커진다 (setWater, main 이 거리를 넣어 준다).
 
-// 물·바람(개울·연못·파도·바람·휘파람 바람) 소리는 아이 요청으로 예전의 45% 크기로 줄였다
+// 물·바람(개울·연못·파도·바람·휘파람 바람) 소리는 아이 요청으로 두 번 줄였다 (처음의 27%, 푸른숲은 16%)
 const SCAPES = {
-  forest: { wind: 0.0072, water: 0.018, birds: { gap: [3, 7], pitch: 0.9, soft: true } }, // 딱따구리(딱딱 끊기는 소리)는 뺐다: 아이가 "이상한 소리"라고 했다
-  town: { wind: 0.0045, birds: { gap: [3, 7], pitch: 1.05 }, chimes: { gap: [4, 9] } },
-  gym: { wind: 0.0054, birds: { gap: [3, 6], pitch: 1.1 }, pond: 0.0054 },
+  forest: { wind: 0.0025, water: 0.0063, birds: { gap: [3, 7], pitch: 0.9, soft: true } }, // 딱따구리(딱딱 끊기는 소리)는 뺐다: 아이가 "이상한 소리"라고 했다
+  town: { wind: 0.0027, birds: { gap: [3, 7], pitch: 1.05 }, chimes: { gap: [4, 9] } },
+  gym: { wind: 0.0032, birds: { gap: [3, 6], pitch: 1.1 }, pond: 0.0032 },
   hive: { buzz: 0.03 },
-  cave: { drone: 0.028, drips: { gap: [0.8, 2.6] }, water: 0.0203 }, // water: 지하 강 (가까울수록)
+  cave: { drone: 0.028, drips: { gap: [0.8, 2.6] }, water: 0.0122 }, // water: 지하 강 (가까울수록)
   thunder: { drone: 0.02, hum: 0.012, crackle: { gap: [0.4, 1.6] }, rumble: { gap: [9, 18] } },
-  tower: { howl: 0.0135, drips: { gap: [1.5, 4] } },
+  tower: { howl: 0.0081, drips: { gap: [1.5, 4] } },
   volcano: { lava: 0.05, bubbles: { gap: [0.6, 1.8], low: true }, rumble: { gap: [8, 15] } },
-  sea: { waves: 0.027, gulls: { gap: [4, 9] } },
+  sea: { waves: 0.0162, gulls: { gap: [4, 9] } },
   deepsea: { drone: 0.03, bubbles: { gap: [0.5, 1.6] } },
   space: { pad: 0.02, twinkle: { gap: [0.8, 2.4] } },
-  planet: { pad: 0.018, twinkle: { gap: [1.2, 3] }, howl: 0.0054 },
+  planet: { pad: 0.018, twinkle: { gap: [1.2, 3] }, howl: 0.0032 },
   arena: { crowd: 0.035, cheer: { gap: [7, 14] } },
   lab: { hum: 0.006, beep: { gap: [3, 7] } },
   school: { clock: true, birds: { gap: [6, 12], pitch: 1.1, far: true } },
@@ -48,7 +48,7 @@ export class Ambient {
     if (S.waves) this.noiseLayer({ type: 'lowpass', freq: 650, q: 0.5, vol: S.waves, lfo: 0.13, sweep: 400, swell: true });
     if (S.crowd) this.noiseLayer({ type: 'bandpass', freq: 900, q: 0.8, vol: S.crowd, lfo: 0.3, sweep: 200 });
     if (S.pond) this.noiseLayer({ type: 'bandpass', freq: 1500, q: 1.2, vol: S.pond, lfo: 2.3, sweep: 600 });
-    if (S.water) { this.waterG = this.noiseLayer({ type: 'bandpass', freq: 1600, q: 0.5, vol: 1, lfo: 0.35, sweep: 220 }); this.waterG.gain.value = 0; this.waterMax = S.water; } // 졸졸 흐르는 물: 필터를 천천히만 흔든다 (예전엔 초당 3번 흔들려 "웅웅" 기계 소리 같았다)
+    if (S.water) { this.waterG = this.noiseLayer({ type: 'bandpass', freq: 1600, q: 0.5, vol: S.water, lfo: 0.35, sweep: 220 }); // vol 은 숨 쉬는 흔들림 크기도 정한다 (예전엔 1 이라 흔들림만으로도 정한 크기의 수십 배로 컸다) this.waterG.gain.value = 0; this.waterMax = S.water; } // 졸졸 흐르는 물: 필터를 천천히만 흔든다 (예전엔 초당 3번 흔들려 "웅웅" 기계 소리 같았다)
     if (S.buzz) this.buzzLayer(S.buzz);
     if (S.pad) this.padLayer(S.pad);
     if (S.hum) this.humLayer(S.hum);
