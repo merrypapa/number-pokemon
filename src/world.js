@@ -36,7 +36,7 @@ export const WORLD = {
     { x: -136.4, z: 122.7, r: 16.4, h: 1.6 },
   ],
   caveMouth: { x: FAR, z: FAR, r: 7 }, // 마을로 옮겼다 (아래 TOWN) — 숲에서는 맵 밖
-  townGate: { x: 0, z: 40 }, // 숲 남쪽: 포켓몬 마을로 나가는 문 (아치)
+  townGate: { x: 0, z: 40 }, // 숲 남쪽: 포켓몬 마을로 가는 케이블카 정거장
   village: { x: FAR, z: FAR }, // 마을로 옮겼다 (아래 TOWN) — 숲에서는 맵 밖
   pond: { x: 69.5, z: 61.4, r: 15.0 },
   arena: { x: -90.0, z: -77.7, r: 12 },
@@ -248,7 +248,7 @@ export const TOWN = {
   rocketPad: { x: 88, z: 26 },     // 로켓 발사장 (꿈의우주)
   caveMouth: { x: -52, z: -82, r: 7 }, // 지하동굴 입구 (북서쪽 바위 언덕)
   volcanoGate: { x: -95, z: -62 }, // 불의산 입구 (서북쪽 붉은 바위산 아치, 남쪽으로 협곡 길이 열린다)
-  forestGate: { x: 0, z: -100 },   // 북쪽 문 → 푸른숲
+  forestGate: { x: 0, z: -100 },   // 북쪽 케이블카 정거장 → 푸른숲
   // 숲 전용은 맵 밖
   arena: { x: FAR, z: FAR, r: 12 }, cave: { x: FAR, z: FAR }, sleepSpot: { x: FAR, z: FAR, r: 4.5 }, hiveTree: { x: FAR, z: FAR }, shrineSpot: { x: FAR, z: FAR },
   honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [PIER], // 호수 잔교 // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
@@ -1335,18 +1335,44 @@ export function buildWorld(scene, layout = 'forest') {
   goku.rotation.y = 0.9; // 마을에서 오는 길 쪽을 본다
   decor.add(goku); block(gk.x, gk.z, 0.6);
 
-  // ---------- 마을 ↔ 푸른숲 문: 마을 북쪽에 "🌲 푸른숲" 아치, 숲 남쪽에 "🏘 포켓몬 마을" 아치 (닿으면 main 이 보낸다) ----------
-  const gateAt = isTown ? L.forestGate : L.townGate;
+  // ---------- 마을 ↔ 푸른숲 케이블카: 마을 북쪽 끝과 숲 남쪽 끝에 정거장. 곤돌라에 타면(문 앞에 서면) 줄을 타고 날아가 반대편 정거장에 내린다 ----------
+  // (할슈타트에도 산 위 소금 광산으로 오르는 케이블카가 있다. 예전의 나무 문 아치를 바꿨다)
+  const gateAt = isTown ? L.forestGate : L.townGate, gd = isTown ? -1 : 1; // gd: 줄이 뻗는 방향 (마을: 북쪽 -z, 숲: 남쪽 +z)
+  let cablecar;
   {
-    const g = new THREE.Group();
-    const postMat = new THREE.MeshStandardMaterial({ color: isTown ? 0x6b8e4e : 0xd9b077 });
-    for (const sgn of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4.2, 0.8), postMat); p.position.set(sgn * 3.2, 2.1, 0); p.castShadow = true; g.add(p); block(gateAt.x + sgn * 3.2, gateAt.z, 0.6); }
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.6, 0.8), postMat); beam.position.set(0, 4.4, 0); g.add(beam);
-    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(isTown ? '🌲 푸른숲으로' : '🏘 포켓몬 마을로', isTown ? '#2f6f2a' : '#6a4a00', '#ffffff', 56), transparent: true, depthTest: false }));
-    sign.scale.set(7, 1.7, 1); sign.position.set(0, 6.2, 0); g.add(sign);
-    for (let i = 0; i < 6; i++) { const a = -0.3 + i * 0.12; const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.7, 3), new THREE.MeshBasicMaterial({ color: 0xffd93d })); arrow.rotation.z = -Math.PI / 2; arrow.rotation.y = isTown ? Math.PI : 0; arrow.position.set(Math.sin(a) * 0.3, 0.2, isTown ? 3 + i * 1.6 : -3 - i * 1.6); g.add(arrow); }
-    g.position.set(gateAt.x, T.height(gateAt.x, gateAt.z), gateAt.z);
-    decor.add(g);
+    const gx = gateAt.x, gz = gateAt.z, gy = T.height(gx, gz);
+    const wood = new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: 0.9 }), steel = new THREE.MeshStandardMaterial({ color: 0x8a94a4, metalness: 0.6, roughness: 0.4 });
+    const st = new THREE.Group(); // 정거장: 나무 기둥 넷 + 박공지붕 + 큰 바퀴
+    for (const sx of [-3, 3]) for (const dz of [0.5, 6.5]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.4, 0.5), wood); p.position.set(sx, 2.7, gd * dz); p.castShadow = true; st.add(p); block(gx + sx, gz + gd * dz, 0.4); }
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.2, 7.6), new THREE.MeshStandardMaterial({ color: 0xb08050, roughness: 0.9 })); deck.position.set(0, 0.1, gd * 3.5); deck.receiveShadow = true; st.add(deck);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(5.6, 2.2, 4), new THREE.MeshStandardMaterial({ color: 0x4a2a1a })); roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 1.25); roof.position.set(0, 6.5, gd * 3.5); roof.castShadow = true; st.add(roof);
+    const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.16, 6, 20), steel); wheel.rotation.x = Math.PI / 2; wheel.position.set(0, 5.1, gd * 5.5); st.add(wheel);
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(isTown ? '🚡 케이블카 · 푸른숲으로' : '🚡 케이블카 · 포켓몬 마을로', isTown ? '#2f6f2a' : '#6a4a00', '#ffffff', 56), transparent: true, depthTest: false }));
+    sign.scale.set(8, 1.8, 1); sign.position.set(0, 8.6, gd * 0.5); st.add(sign);
+    st.position.set(gx, gy, gz); st.userData.radius = 5; decor.add(st);
+    // 줄: 정거장 바퀴에서 먼 산(마을) / 숲 너머(숲)로 비스듬히 올라간다. 가는 줄 + 오는 줄
+    const P0 = new THREE.Vector3(gx, gy + 5.1, gz + gd * 5.5), P1 = new THREE.Vector3(gx, gy + 62, gz + gd * 150), u = P1.clone().sub(P0).normalize(), L0 = P0.distanceTo(P1);
+    for (const ox of [-1.4, 1.4]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, L0, 5), steel); c.position.copy(P0).add(P1).multiplyScalar(0.5); c.position.x += ox; c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u); c.userData.noHide = true; decor.add(c); }
+    for (const t of [0.25, 0.55]) { // 줄을 받치는 쇠 탑
+      const px = gx, pz = gz + gd * 150 * t, top = P0.y + (P1.y - P0.y) * t - 0.3, by = T.height(px, pz);
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, top - by, 6), steel); tower.position.set(px, (top + by) / 2, pz); tower.castShadow = true; tower.userData.noHide = true; decor.add(tower);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.25, 0.4), steel); arm.position.set(px, top, pz); arm.userData.noHide = true; decor.add(arm);
+      if (Math.abs(pz) < L.size / 2) block(px, pz, 0.8);
+    }
+    const makeCabin = (col) => { // 곤돌라: 빨간 상자 + 큰 유리창 + 매달린 팔과 바퀴
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.1, 2.2), new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 })); body.position.y = 1.05; body.castShadow = true; g.add(body);
+      const glass = new THREE.MeshStandardMaterial({ color: 0xcff6ff, emissive: 0x4fc3f7, emissiveIntensity: 0.25, transparent: true, opacity: 0.6 });
+      for (const [x, z, w, d] of [[0, 1.12, 1.7, 0.05], [0, -1.12, 1.7, 0.05], [1.12, 0, 0.05, 1.7], [-1.12, 0, 0.05, 1.7]]) { const win = new THREE.Mesh(new THREE.BoxGeometry(w, 0.9, d), glass); win.position.set(x, 1.45, z); g.add(win); }
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 2.4), new THREE.MeshStandardMaterial({ color: 0xffffff })); lid.position.y = 2.2; g.add(lid);
+      const hang = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.9, 6), steel); hang.position.y = 3.6; g.add(hang);
+      const grip = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), steel); grip.position.y = 5.05; g.add(grip);
+      return g;
+    };
+    const cab = makeCabin(0xe8453c); cab.position.set(gx - 1.4, gy, gz + gd * 3.5); cab.userData.noHide = true; scene.add(cab);
+    const cab2 = makeCabin(0x3f7fd6); cab2.position.copy(P0).addScaledVector(u, L0 * 0.4); cab2.position.x += 1.4; cab2.position.y -= 5.05; cab2.userData.noHide = true; decor.add(cab2); // 반대쪽 줄에 떠 있는 파란 곤돌라
+    block(gx - 1.4, gz + gd * 3.5, 1.2);
+    cablecar = { kind: 'cable', mesh: cab, base: cab.position.clone(), dir: u, boardPoint: { x: gx - 1.4, z: gz + gd * 1.6 }, to: isTown ? 'forest' : 'town', cab2, cab2Base: cab2.position.clone() };
   }
   // ---------- 마을 길잡이 인하 (마을 광장): 어디로 가면 뭐가 있는지 알려 준다 ----------
   const guideAt = isTown ? { x: 6, z: 8 } : { x: FAR, z: FAR };
@@ -1420,14 +1446,13 @@ export function buildWorld(scene, layout = 'forest') {
     caveMouth: { x: cm.x, z: cm.z + 2.6 }, // 지하동굴 입구 굴 안쪽 (걸어 들어가면 main 이 지하동굴로 보낸다)
     arenaDoor: { x: stad.x, z: stad.z - stad.r - 1.9 }, // 넘버볼 아레나 문 앞 (닿으면 main 이 아레나 안으로 보낸다)
     gymDoor: { x: gy.x, z: gy.z }, // 야외 체육관 문 (기둥 사이. 닿으면 main 이 체육관으로 보낸다)
-    forestGate: isTown ? { x: L.forestGate.x, z: L.forestGate.z } : null, // 마을 북쪽 문 → 푸른숲
-    townGate: isTown ? null : { x: L.townGate.x, z: L.townGate.z }, // 숲 남쪽 문 → 마을
+    cablecar, // 마을 ↔ 푸른숲 케이블카 (곤돌라 문 앞에 서면 main 이 태워 보낸다)
     hiveDoor: { x: ht.x + 11, z: ht.z - 6 }, // 매달린 벌집의 바로 아래 (꿀의 길 끝. 어느 쪽에서 와도 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: guideAt.x, z: guideAt.z, mesh: guide, name: '인하', lines: (c) => [
       `안녕, ${c.name}! 난 마을 길잡이 인하야. 여기가 포켓몬 마을이고, 모든 길은 이 광장에서 시작해!`,
       '우리 마을은 오스트리아 할슈타트를 닮았대. 동북쪽 호수엔 백조가 살고, 잔교 끝에 보트 창고가 있어. 호수 뒤 언덕 마을은 돌계단으로 한 단씩 올라가!',
       '언덕 첫째 단엔 뾰족 탑 교회, 맨 윗단엔 허공으로 쑥 나온 스카이워크 전망대가 있어. 거기서 보면 마을이랑 호수가 한눈에 보여!',
-      '북쪽 문으로 나가면 푸른숲 — 야생 포켓몬이 사는 숲이야. 숲에서 더 가면 꿀벌집·메가 성역도 있어.',
+      '북쪽 끝 케이블카를 타면 푸른숲 — 야생 포켓몬이 사는 숲이야. 숲에서 더 가면 꿀벌집·메가 성역도 있어.',
       '북서쪽 바위 언덕의 굴로 들어가면 지하동굴이야. 거기서 번개동굴과 동굴탑으로도 갈 수 있어.',
       '서북쪽 끝 붉은 바위산 아치로 들어가면 불의산이야! 기차역 가는 길에서 갈라지는 협곡 길을 따라가.',
       '서쪽 기차역에서 리리의 기차를 타면 물의길, 동쪽 발사장에서 코리의 로켓을 타면 꿈의우주!',
@@ -1479,8 +1504,8 @@ export function buildWorld(scene, layout = 'forest') {
     rocket: { kind: 'rocket', mesh: rocket, base: rocket.position.clone(), obstacle: rocketObstacle, flame: rocketFlame, boardPoint: { x: rp.x - 2.4, z: rp.z + 2.4 }, to: 'space' },
     // 다른 지역에서 돌아올 때 도착하는 자리
     arrivals: isTown
-      ? { forest: { x: L.forestGate.x, z: L.forestGate.z + 5, yaw: Math.PI }, cave: { x: cm.x, z: cm.z + 10 }, school: { x: sc.x, z: sc.z + 10 }, home: { x: hm.x, z: hm.z + 7, yaw: Math.PI }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI }, arena: { x: stad.x, z: stad.z - stad.r - 5.5, yaw: Math.PI }, gym: { x: gy.x, z: gy.z - 4, yaw: Math.PI }, volcano: { x: vg.x, z: vg.z + 10 } }
-      : { town: { x: L.townGate.x, z: L.townGate.z - 5 }, cave: { x: cv.x, z: cv.z + 12 }, hive: { x: ht.x + 1, z: ht.z + 9 } }, // 마을: 각 건물·탈것에서 돌아오는 자리 / 숲: 마을 문 앞, 뒷문 동굴, 불의산, 꿀벌집
+      ? { forest: { x: L.forestGate.x, z: L.forestGate.z + 6, yaw: Math.PI }, cave: { x: cm.x, z: cm.z + 10 }, school: { x: sc.x, z: sc.z + 10 }, home: { x: hm.x, z: hm.z + 7, yaw: Math.PI }, sea: { x: st.x, z: st.z + 8 }, space: { x: rp.x - 7, z: rp.z + 9 }, lab: { x: lab.x, z: lab.z - 10, yaw: Math.PI }, arena: { x: stad.x, z: stad.z - stad.r - 5.5, yaw: Math.PI }, gym: { x: gy.x, z: gy.z - 4, yaw: Math.PI }, volcano: { x: vg.x, z: vg.z + 10 } }
+      : { town: { x: L.townGate.x, z: L.townGate.z - 6, yaw: 0 }, cave: { x: cv.x, z: cv.z + 12 }, hive: { x: ht.x + 1, z: ht.z + 9 } }, // 마을: 각 건물·탈것에서 돌아오는 자리 / 숲: 마을 문 앞, 뒷문 동굴, 불의산, 꿀벌집
   };
 }
 
