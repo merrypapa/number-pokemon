@@ -8,7 +8,7 @@ import { makeInstanced, makePillSprite } from './world.js';
 //  - 호숫가 교회: 첫째 단 위, 뾰족한 첨탑의 하얀 교회.
 //  - 스카이워크 전망대: 맨 윗단에서 허공으로 쑥 내민 전망대 (아랫단에서는 그 밑으로 지나간다).
 //  - 다흐슈타인 설산: 마을 둘레의 눈 덮인 큰 산.
-//  - 건물 겉모습: 지우네 집은 알프스 목조 샬레, 연구소는 큐 가든 유리 온실, 학교는 옥스퍼드 고딕 건물, 아레나는 콜로세움.
+//  - 건물 겉모습: 지우네 집은 알프스 목조 샬레, 연구소는 다운 하우스, 학교는 옥스퍼드 고딕 건물, 아레나는 콜로세움.
 
 const TAU = Math.PI * 2;
 export const LAKE = { x: 60, z: -32, r: 18 };
@@ -121,30 +121,29 @@ export function chaletHome(W, H, D) {
   const gableWin = new THREE.Mesh(new THREE.CircleGeometry(0.4, 16), winM); gableWin.position.set(0, 0.7 + H * 1.15 + 1.1, D / 2 + 0.81); g.add(gableWin);
   return mergeGroup(g);
 }
-/** 연구소 = 큐 가든 팜 하우스: 흰 철골 유리 온실 (가운데 높은 반원 지붕 + 양옆 낮은 날개). 문은 -z */
-export function glassLab(W, H, D) {
-  const g = new THREE.Group();
-  const glass = new THREE.MeshStandardMaterial({ color: 0xcff6ff, transparent: true, opacity: 0.45, roughness: 0.05, metalness: 0.2, side: THREE.DoubleSide, depthWrite: false });
-  const iron = M(0xf8f8f4, { roughness: 0.5 });
-  const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.4, 0.8, D + 0.4), M(0xd8d0c0)); base.position.y = 0.4; g.add(base);
-  const wing = (w, h, x) => { // 원통을 x 축으로 눕혀 위쪽 반만 (반원 지붕)
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(D / 2, D / 2, w, 20, 1, true, 0, Math.PI).rotateZ(Math.PI / 2), glass); m.scale.set(1, h / (D / 2), 1); m.position.set(x, 0.8, 0); m.renderOrder = 2; g.add(m);
-    const ribs = []; for (let i = 0; i <= Math.round(w / 1.4); i++) ribs.push(x - w / 2 + (i / Math.round(w / 1.4)) * w);
-    for (const rx of ribs) { const rib = new THREE.Mesh(new THREE.TorusGeometry(D / 2, 0.07, 4, 16, Math.PI), iron); rib.rotation.y = Math.PI / 2; rib.scale.set(1, h / (D / 2), 1); rib.position.set(rx, 0.8, 0); g.add(rib); }
-    for (const s of [-1, 1]) { const end = new THREE.Mesh(new THREE.CircleGeometry(D / 2, 16, 0, Math.PI), glass); end.scale.set(1, h / (D / 2), 1); end.rotation.y = s * Math.PI / 2; end.position.set(x + s * w / 2, 0.8, 0); g.add(end); }
-  };
-  wing(W * 0.4, H + 1.5, 0); wing(W * 0.3, H * 0.7, -W * 0.35); wing(W * 0.3, H * 0.7, W * 0.35);
-  const lantern = new THREE.Mesh(new THREE.BoxGeometry(W * 0.4, 0.7, 1.6), glass); lantern.position.y = 0.8 + H + 1.5 + 0.3; g.add(lantern);
-  const lanRoof = new THREE.Mesh(new THREE.BoxGeometry(W * 0.42, 0.12, 1.8), iron); lanRoof.position.y = lantern.position.y + 0.4; g.add(lanRoof);
-  // 안에 비쳐 보이는 야자수
-  for (const [px, pz, h] of [[-1.5, 0.5, 5.5], [1.8, -0.8, 6.2], [-5.5, 0, 3.6], [5.6, 0.6, 3.4]]) {
-    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, h, 6), M(0x8a6a48)); tr.position.set(px, 0.8 + h / 2, pz); g.add(tr);
-    for (let k = 0; k < 6; k++) { const lf = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 2.4).translate(0, 1.1, 0), M(0x3f9d3a, { side: THREE.DoubleSide })); lf.position.set(px, 0.8 + h, pz); lf.rotation.set(-1, (k / 6) * TAU, 0, 'YXZ'); g.add(lf); }
-  }
-  // 문: 북쪽(-z) 유리 현관
-  const porch = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.2, 1.2), glass); porch.position.set(0, 2.4, -D / 2 - 0.3); g.add(porch);
-  const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.6, 0.1), M(0x2f6f3a)); door.position.set(0, 2.1, -D / 2 - 0.92); g.add(door);
-  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 0.05), M(0x9fe8ff, { emissive: 0x4fc3f7, emissiveIntensity: 0.4 })); doorGlass.position.set(0, 2.5, -D / 2 - 0.98); g.add(doorGlass);
+/** 연구소 = 다운 하우스: 하얀 회반죽 벽의 조지 왕조풍 시골집 + 3층 돌출 창(베이 윈도) + 회색 슬레이트 지붕·높은 굴뚝 + 담쟁이 + 옆의 작은 온실. 문은 -z */
+export function downHouseOut(W, H, D) {
+  const g = new THREE.Group(), white = M(0xf4f0e6), trim = M(0xffffff), slate = M(0x5a6070), winM = M(0xbfe4ff, { emissive: 0x3a6fb0, emissiveIntensity: 0.3 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), white); body.position.y = H / 2; body.castShadow = true; g.add(body);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(W, D) * 0.56, 2.6, 4), slate); roof.rotation.y = Math.PI / 4; roof.scale.set(W / Math.hypot(W, D) * 1.45, 1, D / Math.hypot(W, D) * 1.45); roof.position.y = H + 1.3; roof.castShadow = true; g.add(roof);
+  const cornice = new THREE.Mesh(new THREE.BoxGeometry(W + 0.4, 0.25, D + 0.4), trim); cornice.position.y = H; g.add(cornice);
+  for (const sx of [-0.33, 0.33]) { const ch = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.2, 0.9), M(0xb06a4a)); ch.position.set(sx * W, H + 2.0, 0); ch.castShadow = true; g.add(ch); }
+  // 앞(-z)면: 창 두 줄 + 가운데 문 위 부채꼴 창 / 뒤(+z)면: 3층 돌출 창
+  for (const wy of [1.8, 4.4]) for (const wx of [-W * 0.35, -W * 0.18, W * 0.18, W * 0.35]) { const w = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.08), winM); w.position.set(wx, wy, -D / 2 - 0.03); g.add(w); const sill = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 0.18), trim); sill.position.set(wx, wy - 0.8, -D / 2 - 0.08); g.add(sill); }
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.6, 0.12), M(0x2f4a3a)); door.position.set(0, 1.3, -D / 2 - 0.05); g.add(door);
+  const fan = new THREE.Mesh(new THREE.CircleGeometry(0.8, 16, 0, Math.PI), winM); fan.position.set(0, 2.62, -D / 2 - 0.06); fan.rotation.y = Math.PI; g.add(fan);
+  for (const s of [-1, 1]) { const col = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.8, 8), trim); col.position.set(s * 1.1, 1.4, -D / 2 - 0.6); g.add(col); }
+  const porch = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 1.2), trim); porch.position.set(0, 2.9, -D / 2 - 0.5); g.add(porch);
+  const bay = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, H, 6, 1, false, 0, Math.PI), white); bay.position.set(-W * 0.2, H / 2, D / 2); bay.rotation.y = -Math.PI / 2; g.add(bay);
+  for (const wy of [1.8, 4.4]) for (const a of [0.5, 1.57, 2.64]) { const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 0.08), winM); w.position.set(-W * 0.2 + Math.cos(a) * 2.38, wy, D / 2 + Math.sin(a) * 2.38); w.rotation.y = Math.PI / 2 - a; g.add(w); }
+  // 담쟁이 (벽에 붙은 초록 덩이)
+  const ivy = []; for (let i = 0; i < 26; i++) { const x = W / 2 - 0.05, z = -D / 2 + 1 + Math.random() * (D - 2), y = 0.5 + Math.random() * (H - 1); ivy.push({ x, y, z, sx: 0.18, sy: 0.6 + Math.random() * 0.6, sz: 0.6 + Math.random() * 0.6 }); }
+  g.add(makeInstanced(new THREE.SphereGeometry(1, 6, 5), M(0x3f7d2a), ivy));
+  // 옆(서쪽)의 작은 온실
+  const glass = new THREE.MeshStandardMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false });
+  const gh = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.4, 5), glass); gh.position.set(-W / 2 - 1.6, 1.2, 1); g.add(gh);
+  const ghRoof = new THREE.Mesh(new THREE.ConeGeometry(3.0, 1.2, 4), glass); ghRoof.rotation.y = Math.PI / 4; ghRoof.scale.set(0.8, 1, 1.25); ghRoof.position.set(-W / 2 - 1.6, 3.0, 1); g.add(ghRoof);
+  const plants = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 0), M(0x4f9a3a, { flatShading: true })); plants.position.set(-W / 2 - 1.6, 0.9, 1); g.add(plants);
   return mergeGroup(g);
 }
 /** 학교 = 옥스퍼드 고딕 건물: 꿀빛 석회암 벽, 뾰족 아치 창, 톱니 난간, 가운데 톰 타워(팔각 탑). 문은 +z */
