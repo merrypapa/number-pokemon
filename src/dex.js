@@ -1,11 +1,13 @@
 import * as THREE from 'three';
-import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
+import { BALLS, GRADES, gradeStars, catchChance } from './balls.js';
 import { ITEMS } from './items.js';
 import { skillLevel, expNeed, MAX_LEVEL, skillType, skillPP } from './party.js';
 import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets, evoZoneFor } from './creatures.js';
 import { View3D } from './view3d.js';
+import { renderToCanvas } from './offscreen.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
+import { TYPE_EMOJI } from './typelesson.js';
 import { PLANETS } from './planets.js';
 
 // 몬스터 도감 + 내 포켓몬.
@@ -81,11 +83,21 @@ export class Dex {
   /** 파티 패널 연결: party 와 블록 수, 버튼 콜백 */
   bindParty(ctx) { this.partyCtx = ctx; }
 
+  /** 액자 그림용 장면·카메라 (렌더러는 게임 본체 것을 빌린다: offscreen.js) */
+  ensureScene() {
+    if (this.scene) return;
+    this.scene = new THREE.Scene();
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.scene.add(sun);
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+  }
+  /** 예비: 본체 렌더러로 픽셀을 못 읽을 때만 따로 만든다 (아이폰에서 꺼지던 원인이라 되도록 안 쓴다) */
   ensureRenderer() {
     if (this.renderer) return true;
     try {
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       this.renderer.setSize(224, 224); // 액자 그림 크기: 110px 칸을 고해상도(2배) 화면에서도 또렷하게 (150 으로 줄였더니 흐려 보였다)
+      if (this.scene) return true;
       this.scene = new THREE.Scene();
       this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -98,7 +110,7 @@ export class Dex {
 
   thumbs(sp) {
     if (this.cache.has(sp.id)) return this.cache.get(sp.id);
-    if (!this.ensureRenderer()) return null;
+    this.ensureScene();
     const mesh = buildDraftMesh({ ...sp, scale: 1 }); // 도감에서는 크기를 통일
     this.scene.add(mesh);
     const box = new THREE.Box3().setFromObject(mesh);
@@ -109,12 +121,16 @@ export class Dex {
     this.camera.position.set(0, center.y * f + r * 0.25, dist);
     this.camera.lookAt(0, center.y * f, 0);
     mesh.rotation.y = -0.4;
-    this.renderer.render(this.scene, this.camera);
     // 한 번만 그리고 2D 캔버스로 복사한다. 실루엣은 다시 그리지 않고 같은 그림을 'source-in' 으로 어둡게 칠해서 만든다
     // (전에는 재질을 검게 바꿔 두 번 그리고 두 번 읽어 와서 종마다 GPU 를 두 번 기다렸다 — 도감 여는 시간의 대부분)
     const S = 224, c = this.tmpCanvas ||= document.createElement('canvas'); c.width = c.height = S;
     const ctx = c.getContext('2d');
-    ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, S, S); ctx.drawImage(this.renderer.domElement, 0, 0, S, S);
+    ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, S, S);
+    if (!renderToCanvas(this.scene, this.camera, S, S, ctx)) { // 본체 렌더러로 못 그렸을 때만 예비 렌더러
+      if (!this.ensureRenderer()) { this.scene.remove(mesh); return null; }
+      this.renderer.render(this.scene, this.camera);
+      ctx.drawImage(this.renderer.domElement, 0, 0, S, S);
+    }
     const color = c.toDataURL();
     ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = '#20232e'; ctx.fillRect(0, 0, S, S); ctx.globalCompositeOperation = 'source-over';
     const silhouette = c.toDataURL();
@@ -434,8 +450,9 @@ export class Dex {
     const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
     const skills = (sp.skills || []).map((s) => {
       const locked = rep0 ? rep0.level < skillLevel(s) : false;
-      const tyTag = skillType(sp, s) !== (sp.type || '노말') ? ` <em class="skill-type">${skillType(sp, s)}</em>` : '', ppTag = Number.isFinite(skillPP(s)) ? ` <i class="skill-pp">${skillPP(s)}번</i>` : '';
-      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name}${tyTag} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${tyTag}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}${ppTag}</span>`;
+      // 속성 꼬리표는 그림(이모지)만으로 속성이 안 보일 때만 (🧪 독가루에 "독"을 또 붙이지 않는다). 위력은 ⚔숫자, 횟수는 ×숫자로 짧게
+      const ty = skillType(sp, s), tyTag = ty !== (sp.type || '노말') && TYPE_EMOJI[ty] !== skillIcon(s) ? ` <em class="skill-type">${ty}</em>` : '', ppTag = Number.isFinite(skillPP(s)) ? ` <i class="skill-pp">×${skillPP(s)}</i>` : '';
+      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name}${tyTag} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${tyTag}${rep0 ? ` <small>⚔${party.damage(rep0, s)}</small>` : ''}${ppTag}</span>`;
     }).join('');
     const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;
     const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';
@@ -452,11 +469,9 @@ export class Dex {
           </div>
           <ul class="detail-facts">
             ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
-            <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
             ${howLine}
             <li class="skills">🎯 ${skills}</li>
-            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>${evo.mega ? ` + 메가블럭 ${evo.mega}개` : ''}가 되면 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? (evoWhere.length ? ` 중 하나로 진화! 진화하는 곳에 따라 모습이 달라져: ${evoWhere.join(' · ')}${evoWhere.length < evoTargets(evo).length ? ' · 다른 곳에서는 랜덤' : ''}` : ' 중 하나로 (랜덤!) 진화!') : '로 진화!'}</li>` : ''}
-            ${(sp.skills || []).some((s) => skillLevel(s) > 1) ? `<li>📈 레벨이 오르면 체력·공격이 세지고 기술도 열려 (대결에서 이기면 경험치!)</li>` : ''}
+            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>에${evo.mega ? ` 💠 메가블럭 ${evo.mega}개로` : ''} <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? (evoWhere.length ? ` 중 하나로 진화! 진화하는 곳에 따라 모습이 달라져: ${evoWhere.join(' · ')}${evoWhere.length < evoTargets(evo).length ? ' · 다른 곳에서는 랜덤' : ''}` : ' 중 하나로 (랜덤!) 진화!') : '로 진화!'}</li>` : ''}
           </ul>
         </div>
       </div>`;
@@ -474,14 +489,13 @@ export class Dex {
         const need = party.evolveNeed(m);
         const fainted = party.isFainted(m);
         const maxed = m.level >= MAX_LEVEL;
-        const nextSkill = party.nextSkill(m);
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
           <div class="member-head"><span class="lv">Lv.${m.level}</span>${ctx.isMaster?.(sp) ? '<span class="party-badge master" title="Lv.50 마스터">👑 마스터</span> ' : ''}${ctx.isAffinity?.(sp) ? '<span class="party-badge affinity" title="트레이너와 찰떡: 공격 1.2배 · 경험치 1.25배">💛 찰떡</span> ' : ''}내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
             <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span></div>
           <div class="exp-bar"><div style="width:${party.expRatio(m) * 100}%"></div></div>
-          <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)} · 대결에서 이기면 쌓여`}${nextSkill ? ` · Lv.${skillLevel(nextSkill)}에 ${skillIcon(nextSkill)} ${nextSkill.name}` : ''}${need && !canEvolve && !need.mega ? ` · Lv.${need.level}에 진화` : ''}</div>
+          <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)}`}</div>
           <div class="member-actions">
             ${ITEMS.map((it) => `<button data-act="item:${it.id}" ${(items[it.id] || 0) > 0 && (it.revive ? fainted : !fainted && m.hp < m.maxHp) ? '' : 'disabled'} title="${it.desc}">${it.emoji} ${it.name} <small>×${items[it.id] || 0}</small></button>`).join('')}
             ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
