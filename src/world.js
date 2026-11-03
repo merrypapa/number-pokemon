@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
-import { LAKE, PIER, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
+import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
 import { NUMBER_COLORS, RAINBOW } from './palette.js';
 import { makeNpc } from './npc.js';
 
@@ -251,7 +251,7 @@ export const TOWN = {
   forestGate: { x: 0, z: -100 },   // 북쪽 케이블카 정거장 → 푸른숲
   // 숲 전용은 맵 밖
   arena: { x: FAR, z: FAR, r: 12 }, cave: { x: FAR, z: FAR }, sleepSpot: { x: FAR, z: FAR, r: 4.5 }, hiveTree: { x: FAR, z: FAR }, shrineSpot: { x: FAR, z: FAR },
-  honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [PIER], // 호수 잔교 // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
+  honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [PIER, PIER_DECK], // 호수 잔교 + 보트 창고 둘레 판 // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
   paths: [
     [[0, 8], [0, 46]], [[0, -8], [0, -94]], [[-6, -2], [-22, -12]], [[-10, -6], [-46, -18]], [[-8, 0], [-60, -2], [-84, -4]], [[8, 0], [50, 10], [84, 24]],
     [[6, 6], [40, 30], [66, 34]], [[-6, 6], [-30, 28], [-48, 40]], [[-8, -8], [-34, -50], [-52, -74]], [[-60, -2], [-80, -20], [-95, -36]], // 마지막: 기차역 길 → 불의산 입구 협곡

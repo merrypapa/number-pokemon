@@ -14,6 +14,7 @@ const TAU = Math.PI * 2;
 export const LAKE = { x: 60, z: -32, r: 18 };
 export const PIER = { x1: 41.5, z1: -32, x2: 56, z2: -32, w: 1.3, rise: 0 };
 export const BOATHOUSE = { x: 58.6, z: -32, hw: 2, hd: 1.8 };
+export const PIER_DECK = { x1: 55.2, z1: -32, x2: 62.8, z2: -32, w: 3.9, rise: 0 }; // 보트 창고 둘레 넓은 판 (잔교 끝에서 창고 문 앞·둘레를 걸어 다닌다)
 export const TERR = { x0: 28, x1: 104, edges: [-54, -64, -74], step: 2.2 };
 export const STAIRS = [{ x: 48, k: 0 }, { x: 84, k: 1 }, { x: 60, k: 2 }].map((s) => ({ ...s, half: 1.4, run: 2.6 }));
 export const CHURCH = { x: 37, z: -59.5, hw: 5, hd: 3 }; // 긴 쪽이 x (단 폭 10m 안에 들어가게), 탑은 동쪽 끝
@@ -264,8 +265,14 @@ export function buildHallstatt(scene, decor, { height, obstacles }) {
     const body = new THREE.Mesh(new THREE.BoxGeometry(B.hw * 2, 2.2, B.hd * 2), M(0x7a4a2a)); body.position.y = 1.1; g.add(body);
     const roof = gable(B.hd * 2 + 0.6, B.hw * 2 + 0.8, 1.6, M(0x4a2a1a)); roof.position.y = 2.2; roof.rotation.y = Math.PI / 2; g.add(roof);
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.6, 1.2), M(0x3a2010)); door.position.set(-B.hw - 0.02, 0.8, 0); g.add(door);
-    const bg = mergeGroup(g); bg.position.set(B.x, 0.1, B.z); decor.add(bg); obstacles.push({ x: B.x, z: B.z, r: 1.9 });
-    const boat = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 1.1), M(0x8a5a32)); boat.position.set(B.x - 1, -0.2, B.z + 3); boat.rotation.y = 0.3; decor.add(boat);
+    const bg = mergeGroup(g); bg.position.set(B.x, 0.1, B.z); decor.add(bg);
+    box(B.x, B.z, B.hw + 0.05, B.hd + 0.05); // 창고 벽은 네모로 막는다 (예전엔 큰 원이라 잔교 끝에서 닿지도 못했다)
+    // 문 앞: 벤치 + 낚싯대 + 노 · 팻말
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 1.6), M(0x8a5a32)); bench.position.set(B.x - B.hw - 0.6, 0.31, B.z + 1.6); decor.add(bench); obstacles.push({ x: B.x - B.hw - 0.6, z: B.z + 1.6, r: 0.5 });
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 2.6, 5), M(0x5a3420)); rod.position.set(B.x + B.hw + 0.4, 1.3, B.z - 1.2); rod.rotation.z = -0.6; decor.add(rod);
+    const oar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 0.3), M(0xb08050)); oar.position.set(B.x - B.hw - 0.08, 1.0, B.z - 1.0); oar.rotation.z = 0.15; decor.add(oar);
+    const bs = makePillSprite('🚣 보트 창고', { bg: '#1f5f7a', fg: '#ffffff', border: '#9fe8ff' }, 0.6); bs.position.set(B.x - B.hw - 0.3, 3.2, B.z); decor.add(bs);
+    const boat = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 1.1), M(0x8a5a32)); boat.position.set(B.x - 1, -0.2, B.z + 4.8); boat.rotation.y = 0.3; decor.add(boat);
   }
   // 백조
   const swans = [];

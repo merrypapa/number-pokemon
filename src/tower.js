@@ -103,9 +103,10 @@ function towerBlocked(x, z, refY = 0) {
   if (y < LAP_H * 0.5 || y > TOP_Y - LAP_H * 0.5) return false; // 바닥·꼭대기 단은 어디든 간다
   if (r >= R_IN) return false;                                  // 비탈 위
   const a = angOf(x, z);
-  return !(r >= LAND_R && inLanding(a));                        // 층계참 쐐기 밖(가운데 굴)은 떨어지니 난간으로 막는다
+  if (inLanding(a)) return false;                               // 층계참: 안쪽 끝에는 난간이 없어 가운데 굴로 뛰어내리면 1층 쿠션으로 떨어진다 (내려가는 지름길)
+  return true;                                                  // 그 밖(비탈 안쪽의 가운데 굴)은 난간으로 막는다
 }
-export const TOWER_TERRAIN = { height: towerHeight, inHole: () => false, blocked: towerBlocked, size: 48, obstacles: [] };
+export const TOWER_TERRAIN = { height: towerHeight, inHole: () => false, blocked: towerBlocked, size: 48, obstacles: [], ledge: 0.9 }; // ledge: 포켓몬은 층계참 끝에서 뛰어내리지 않는다 (높이 차가 크면 멈춘다)
 
 export function buildTower(scene) {
   const decor = new THREE.Group();
@@ -145,6 +146,9 @@ export function buildTower(scene) {
         prev = { vi, vo, vl, vl2 };
       }
     }
+    // 1층 바닥의 푹신한 쿠션: 층계참에서 뛰어내리면 여기로 떨어진다
+    const cushion = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 0.5, 24), new THREE.MeshStandardMaterial({ color: 0xff8fb8, roughness: 1 })); cushion.position.set(5.6, 0.0, 0.4); cushion.scale.y = 0.6; cushion.userData.noHide = true; decor.add(cushion);
+    const cushionTop = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xffd1e0 })); cushionTop.position.set(5.6, 0.17, 0.4); cushionTop.userData.noHide = true; decor.add(cushionTop);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
@@ -194,8 +198,10 @@ export function buildTower(scene) {
         if (prev) idx.push(prev.vi, vi, prev.vo, vi, vo, prev.vo);
         prev = { vi, vo };
       }
-      // 안쪽 가장자리 난간 기둥 둘
-      for (const a of [-LAND_LO + 0.04, LAND_W - 0.04]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.3), new THREE.MeshStandardMaterial({ color: 0x20232e })); p.position.set(LAND_R * Math.cos(a), y + 0.5, LAND_R * Math.sin(a)); decor.add(p); }
+      // 안쪽 끝: 난간 없이 뛰어내리는 자리 (금빛 테두리 + 팻말)
+      const edge = new THREE.Mesh(new THREE.TorusGeometry(LAND_R, 0.08, 4, 12, LAND_W + LAND_LO), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x8a6a00, emissiveIntensity: 0.6 }));
+      edge.rotation.x = -Math.PI / 2; edge.rotation.z = -LAND_W; // 눕히면 각이 거꾸로라 (-LAND_W~LAND_LO 로 돌려) 땅의 -LAND_LO~LAND_W 가 된다 edge.position.y = y + 0.05; edge.userData.noHide = true; decor.add(edge);
+      const jump = makePillSprite('⬇ 뛰어내리면 1층!', { bg: '#20232e', fg: '#9fe8ff', border: '#9fe8ff' }, 0.6); jump.position.set((LAND_R + 0.6) * Math.cos(LAND_W / 2), y + 1.8, (LAND_R + 0.6) * Math.sin(LAND_W / 2)); decor.add(jump);
       const label = makePillSprite(`${n}층${n === BOSS_FLOOR ? ' · 문지기' : ELITE_FLOORS.includes(n) ? ' · 정예' : ''}`, { bg: n === BOSS_FLOOR ? '#6a4a00' : '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.9);
       label.position.set((LAND_R + R_OUT) / 2 * Math.cos(LAND_W / 2), y + 3.2, (LAND_R + R_OUT) / 2 * Math.sin(LAND_W / 2));
       decor.add(label);
@@ -290,14 +296,15 @@ export function buildTower(scene) {
   /** 이미 연 상자는 뚜껑이 열린 채 어둡게 (opened: { 층: true }) */
   function refreshChests(opened = {}) { for (const c of chests) { const o = !!opened[c.n]; c.lid.rotation.x = o ? -1.2 : 0; c.lid.position.z = o ? -0.3 : 0; c.lbl.visible = !o; c.group.children[2].material = o ? boxMatDark : goldMat; } }
   const boxMatDark = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.9 });
-  // 바닥 남쪽 출구 (지하동굴로 나가는 문)
-  const exitAt = { x: 0, z: 14.8 };
+  // 바닥 출구 (지하동굴로 나가는 문): 첫 바퀴 비탈이 문 위로 높이(4.8m) 지나가는 자리에 둔다. 예전엔 남쪽(비탈이 1.4m 높이로 문 앞을 가로지르던 곳)이라 문이 반쯤 막혀 보였다
+  const EXIT_A = 4.4, exitAt = { x: 17 * Math.cos(EXIT_A), z: 17 * Math.sin(EXIT_A) };
   {
+    const eg = new THREE.Group(); eg.rotation.y = Math.PI / 2 - EXIT_A; decor.add(eg); // 그룹의 +z 가 문 쪽 (바깥 벽)
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x3a4150, roughness: 1 });
-    for (const side of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), stoneMat); post.position.set(side * 2.2, 2, R_OUT - 0.4); decor.add(post); }
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.7, 0.8), stoneMat); lintel.position.set(0, 4.2, R_OUT - 0.4); decor.add(lintel);
-    const dark = new THREE.Mesh(new THREE.BoxGeometry(3.8, 3.8, 2), new THREE.MeshBasicMaterial({ color: 0x05070c })); dark.position.set(0, 1.9, R_OUT + 0.4); decor.add(dark);
-    const sign = makePillSprite('▼ 지하동굴로 나가기', { bg: '#1f2a3a', fg: '#9fe8ff', border: '#9fe8ff' }, 1.0); sign.position.set(0, 5.2, R_OUT - 0.6); decor.add(sign);
+    for (const side of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), stoneMat); post.position.set(side * 2.2, 2, R_OUT - 0.4); eg.add(post); }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.7, 0.8), stoneMat); lintel.position.set(0, 4.2, R_OUT - 0.4); eg.add(lintel);
+    const dark = new THREE.Mesh(new THREE.BoxGeometry(3.8, 3.8, 2), new THREE.MeshBasicMaterial({ color: 0x05070c })); dark.position.set(0, 1.9, R_OUT + 0.4); eg.add(dark);
+    const sign = makePillSprite('▼ 지하동굴로 나가기', { bg: '#1f2a3a', fg: '#9fe8ff', border: '#9fe8ff' }, 1.0); sign.position.set(0, 5.2, R_OUT - 0.6); eg.add(sign);
   }
 
   function animate(t) {
@@ -315,7 +322,7 @@ export function buildTower(scene) {
       `오스! ${c.name}, 여기가 동굴탑이야. 벽을 따라 도는 돌계단을 걸어서 올라가면 돼. 한 바퀴 돌면 한 층! 10층까지 있어.`,
       '층마다 동쪽에 넓은 층계참이 있고 거기 포켓몬이 살아. 올라갈수록 세져. 1층은 Lv.6쯤, 5층은 Lv.25, 9층은 Lv.45가 넘어! 3·7·9층엔 정예도 있어.',
       '5층 층계참에 문지기 보스가 있어. 문지기를 이기면 기록석이 켜져서, 다음부터는 여기 서쪽 워프 패드로 5층에 바로 올라갈 수 있어.',
-      '계단 안쪽은 까마득한 굴이야. 난간이 있으니 떨어지진 않지만 조심해! 지치면 돌아 내려와서 쉬고 와. 물약도 챙기고!',
+      '계단 안쪽은 까마득한 굴이야. 계단에는 난간이 있지만, 층계참 안쪽 끝(금빛 테두리)에는 난간이 없어. 거기서 뛰어내리면 1층 쿠션으로 슝~ 내려와! 지쳤을 때 쓰는 지름길이야.',
       '10층 꼭대기에는 전설의 뮤츠가 살아. 체력 260에 공격 36! 친구로 만들면 하늘의 문이 열리고 특별한 보상이 있대.',
       `지금까지 ${c.towerBest || 1}층까지 가 봤구나. ${(c.towerBest || 1) >= TOWER_TOP ? '꼭대기까지 다녀온 챔피언이네!' : '오늘은 몇 층까지 가 볼래?'}`,
     ] }],

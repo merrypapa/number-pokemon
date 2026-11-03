@@ -269,7 +269,7 @@ export function buildCave(scene) {
     const hollow = new THREE.Mesh(new THREE.BoxGeometry(5, 6, 4.8), darkMat); hollow.position.set(-3, 3, 0); g.add(hollow);
     for (let k = 0; k < 6; k++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2 + k * 0.1, 0.12, 6, 24), gold); ring.position.set(-3.2 - k * 1.2, 7.5 + k * 2.2, 0); ring.rotation.y = Math.PI / 2; g.add(ring); } // 위로 올라가는 탑의 고리들
     const glow = new THREE.PointLight(0xffd93d, 3, 18); glow.position.set(1, 3, 0); g.add(glow);
-    const sign = makePillSprite('🗼 동굴탑 입구 · 94층', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.4);
+    const sign = makePillSprite('🗼 동굴탑 입구 · 10층', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.4);
     sign.position.set(1.5, 8.6, 0); g.add(sign);
     g.position.set(TW.x, caveHeight(TW.x, TW.z), TW.z);
     scene.add(g);
