@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { BALLS, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
+import { BALLS, GRADES, gradeStars, catchChance } from './balls.js';
 import { ITEMS } from './items.js';
 import { skillLevel, expNeed, MAX_LEVEL, skillType, skillPP } from './party.js';
 import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets, evoZoneFor } from './creatures.js';
 import { View3D } from './view3d.js';
 import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
+import { TYPE_EMOJI } from './typelesson.js';
 import { PLANETS } from './planets.js';
 
 // 몬스터 도감 + 내 포켓몬.
@@ -434,8 +435,9 @@ export class Dex {
     const rep0 = mineAll.find((m) => party.isLeader(m)) || mineAll[0] || null; // 내 포켓몬이면 그 아이 기준으로 기술 잠금을 보여 준다
     const skills = (sp.skills || []).map((s) => {
       const locked = rep0 ? rep0.level < skillLevel(s) : false;
-      const tyTag = skillType(sp, s) !== (sp.type || '노말') ? ` <em class="skill-type">${skillType(sp, s)}</em>` : '', ppTag = Number.isFinite(skillPP(s)) ? ` <i class="skill-pp">${skillPP(s)}번</i>` : '';
-      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name}${tyTag} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${tyTag}${rep0 ? ` <small>${party.damage(rep0, s)}</small>` : ''}${ppTag}</span>`;
+      // 속성 꼬리표는 그림(이모지)만으로 속성이 안 보일 때만 (🧪 독가루에 "독"을 또 붙이지 않는다). 위력은 ⚔숫자, 횟수는 ×숫자로 짧게
+      const ty = skillType(sp, s), tyTag = ty !== (sp.type || '노말') && TYPE_EMOJI[ty] !== skillIcon(s) ? ` <em class="skill-type">${ty}</em>` : '', ppTag = Number.isFinite(skillPP(s)) ? ` <i class="skill-pp">×${skillPP(s)}</i>` : '';
+      return locked ? `<span class="skill-chip locked">${skillIcon(s)} ${s.name}${tyTag} <small>🔒 Lv.${skillLevel(s)}</small></span>` : `<span class="skill-chip">${skillIcon(s)} ${s.name}${tyTag}${rep0 ? ` <small>⚔${party.damage(rep0, s)}</small>` : ''}${ppTag}</span>`;
     }).join('');
     const starTarget = mineAll.find((m) => !party.isFainted(m)) || null;
     const star = rep0 ? `<button class="view-star${party.isLeader(rep0) ? ' on' : ''}" title="${party.isLeader(rep0) ? '지금 대표 포켓몬' : '대표로 하기'}">${party.isLeader(rep0) ? '★' : '☆'}</button>` : '';
@@ -452,11 +454,9 @@ export class Dex {
           </div>
           <ul class="detail-facts">
             ${ti ? `<li>💪 잘 이겨: <b>${ti.strong.length ? ti.strong.join(' · ') : '없음'}</b> &nbsp; 😖 조심: <b>${ti.weak.length ? ti.weak.join(' · ') : '없음'}</b></li>` : ''}
-            <li>🔮 <b>${recommendedBall(sp.grade || 1).name}</b>이면 잘 잡혀</li>
             ${howLine}
             <li class="skills">🎯 ${skills}</li>
-            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>${evo.mega ? ` + 메가블럭 ${evo.mega}개` : ''}가 되면 <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? (evoWhere.length ? ` 중 하나로 진화! 진화하는 곳에 따라 모습이 달라져: ${evoWhere.join(' · ')}${evoWhere.length < evoTargets(evo).length ? ' · 다른 곳에서는 랜덤' : ''}` : ' 중 하나로 (랜덤!) 진화!') : '로 진화!'}</li>` : ''}
-            ${(sp.skills || []).some((s) => skillLevel(s) > 1) ? `<li>📈 레벨이 오르면 체력·공격이 세지고 기술도 열려 (대결에서 이기면 경험치!)</li>` : ''}
+            ${evo ? `<li>✨ <b>Lv.${evo.level ?? 16}</b>에${evo.mega ? ` 💠 메가블럭 ${evo.mega}개로` : ''} <b>${evoNames || '?'}</b>${evoTargets(evo).length > 1 ? (evoWhere.length ? ` 중 하나로 진화! 진화하는 곳에 따라 모습이 달라져: ${evoWhere.join(' · ')}${evoWhere.length < evoTargets(evo).length ? ' · 다른 곳에서는 랜덤' : ''}` : ' 중 하나로 (랜덤!) 진화!') : '로 진화!'}</li>` : ''}
           </ul>
         </div>
       </div>`;
@@ -474,14 +474,13 @@ export class Dex {
         const need = party.evolveNeed(m);
         const fainted = party.isFainted(m);
         const maxed = m.level >= MAX_LEVEL;
-        const nextSkill = party.nextSkill(m);
         const row = document.createElement('div');
         row.className = 'member-row' + (leader ? ' leader' : '') + (fainted ? ' fainted' : '');
         row.innerHTML = `
           <div class="member-head"><span class="lv">Lv.${m.level}</span>${ctx.isMaster?.(sp) ? '<span class="party-badge master" title="Lv.50 마스터">👑 마스터</span> ' : ''}${ctx.isAffinity?.(sp) ? '<span class="party-badge affinity" title="트레이너와 찰떡: 공격 1.2배 · 경험치 1.25배">💛 찰떡</span> ' : ''}내 ${sp.name} ${leader ? '<span class="party-badge">대표</span>' : ''}${fainted ? '<span class="party-badge faint">😵 기절 · 오박사님 · 엄마 · 🍒 열매</span>' : ''}
             <span class="hp">❤ ${m.hp}/${m.maxHp}</span> <span class="atk">⚔ ${m.atk}</span></div>
           <div class="exp-bar"><div style="width:${party.expRatio(m) * 100}%"></div></div>
-          <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)} · 대결에서 이기면 쌓여`}${nextSkill ? ` · Lv.${skillLevel(nextSkill)}에 ${skillIcon(nextSkill)} ${nextSkill.name}` : ''}${need && !canEvolve && !need.mega ? ` · Lv.${need.level}에 진화` : ''}</div>
+          <div class="exp-text">${maxed ? '최고 레벨!' : `경험치 ${m.exp || 0} / ${expNeed(m.level)}`}</div>
           <div class="member-actions">
             ${ITEMS.map((it) => `<button data-act="item:${it.id}" ${(items[it.id] || 0) > 0 && (it.revive ? fainted : !fainted && m.hp < m.maxHp) ? '' : 'disabled'} title="${it.desc}">${it.emoji} ${it.name} <small>×${items[it.id] || 0}</small></button>`).join('')}
             ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
