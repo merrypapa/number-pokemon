@@ -9,9 +9,9 @@ import { COL, polar, ringPt, thetaAtX, makeColosseumTerrain, buildColosseum } fr
 // 경기장 서쪽에 치료 데스크의 봄이(치료), 무대 앞에 심판 웅이, 북쪽 황제석에 콜로세움 해설가 마르코.
 // 몬스터·블록·퀴즈는 없다. 친구 대결(src/duel.js)을 수락하면 여기로 오고, 무대 위 제 자리에 서면 "대결!" 버튼이 켜진다.
 // 남쪽 광장의 개선문(콘스탄티누스 개선문)으로 나가면 마을.
-export const ARENA = { size: 110, spawn: { x: 0, z: 37 }, door: { x: 0, z: 45.6 }, ring: { x: 0, z: -3, r: 10 }, spots: { a: { x: -7, z: -3 }, b: { x: 7, z: -3 } } };
+export const ARENA = { size: 110, spawn: { x: 0, z: 40 }, door: { x: 0, z: 47 }, ring: { x: 0, z: -3, r: 10 }, spots: { a: { x: -7, z: -3 }, b: { x: 7, z: -3 } } };
 export const ARENA_TERRAIN = makeColosseumTerrain({ size: ARENA.size, stage: ARENA.ring, obstacles: [] });
-const ARCH = { z: 45.6, hw: 8.5, d: 3.4 }; // 개선문
+const ARCH = { z: 47, hw: 8.5, d: 3.4 }; // 개선문
 
 export function buildArena(scene) {
   const decor = new THREE.Group();
@@ -57,7 +57,7 @@ export function buildArena(scene) {
     let s = 11; const rnd = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
     for (let i = 0; i < 60 && trunks.length < 18; i++) {
       const x = (rnd() * 2 - 1) * 52, z = (rnd() * 2 - 1) * 52;
-      if (polar(x, z).w < 9 || (Math.abs(x) < 12 && z > 28) || trunks.some((t) => Math.hypot(t.x - x, t.z - z) < 9)) continue;
+      if (polar(x, z).w < COL.OUT + 8 || (Math.abs(x) < 12 && z > 28) || trunks.some((t) => Math.hypot(t.x - x, t.z - z) < 9)) continue;
       const h = 6 + rnd() * 2.5;
       trunks.push({ x, y: h / 2, z, sx: 1, sy: h, sz: 1, rz: (rnd() - 0.5) * 0.12 });
       crowns.push({ x, y: h + 0.6, z, sx: 3.6, sy: 1.3, sz: 3.6 });
@@ -65,6 +65,17 @@ export function buildArena(scene) {
     }
     decor.add(makeInstanced(new THREE.CylinderGeometry(0.25, 0.4, 1, 7), new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 }), trunks, { shadow: true }));
     decor.add(makeInstanced(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshStandardMaterial({ color: 0x4f7a3a, roughness: 1 }), crowns, { shadow: true }));
+  }
+
+  // 광장의 옛 돌 조각: 쓰러진 기둥 토막과 돌덩이 (앉거나 부딪히는 장애물)
+  {
+    const stumps = [], drums = [], stones = [];
+    for (const [x, z, h] of [[-24, 30, 2.6], [-28, 27, 1.4], [-31, 31, 3.2], [26, 31, 1.8], [30, 27, 2.8]]) { stumps.push({ x, y: h / 2, z, sx: 0.7, sy: h, sz: 0.7 }); block(x, z, 0.85); }
+    for (const [x, z, r] of [[-27, 34, 0.4], [24, 35, -0.6], [33, 33, 1.1]]) { drums.push({ x, y: 0.55, z, rx: Math.PI / 2, rz: r, sx: 0.7, sy: 2.2, sz: 0.7 }); block(x, z, 1.2); }
+    for (const [x, z, s] of [[-35, 22, 1.2], [36, 20, 1.0], [-20, 36, 0.8], [19, 38, 0.9]]) { stones.push({ x, y: s * 0.45, z, sx: s * 1.6, sy: s * 0.9, sz: s * 1.1, ry: x * 0.3 }); block(x, z, s * 0.9); }
+    const marble = new THREE.MeshStandardMaterial({ color: 0xe8e0cc, roughness: 0.9 });
+    decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1, 1, 10), marble, [...stumps, ...drums], { shadow: true }));
+    decor.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xcdbd98, roughness: 1 }), stones, { shadow: true }));
   }
 
   // 콜로세움 본체 (관중석·바깥 아치 벽·굴·황제석·하이포지움)

@@ -341,7 +341,8 @@ export function buildColosseum(decor, { obstacles }) {
     for (let th = -Math.PI; th < Math.PI;) {
       const r = reAt(th) + wc;
       const nearAisle = AISLES.some((a) => Math.abs(angDiff(th, a)) < 0.5 && Math.abs(r * Math.sin(angDiff(th, a))) < 1.5);
-      if (!nearAisle && rand() < (s.kind === 'row' ? 0.3 : 0.38)) {
+      const [px, pz] = ringPt(th, wc), behindPulv = s.kind === 'row' && pz < cz && Math.abs(px - cx) < COL.PULV.hw + 2.5; // 황제석 바로 뒤는 비워 둔다 (경기장이 보이게)
+      if (!nearAisle && !behindPulv && rand() < (s.kind === 'row' ? 0.3 : 0.38)) {
         const [x, z] = ringPt(th, wc), face = Math.atan2(cx - x, cz - z);
         const k = bodies.length;
         bodies.push({ x, y: s.h + 0.38, z, ry: face, color: cloth[Math.floor(rand() * cloth.length)] });
