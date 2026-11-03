@@ -19,6 +19,8 @@ const inDoorway = (x, z) => Math.abs(x) < 1.8 && z > F.d / 2 - 0.6;
 const treeDist = (x, z) => GYM.trees.map((t) => Math.hypot(x - t.x, z - t.z));
 /** 연못 안인가 (k: 1 = 물가, 0.9 = 물 안쪽, 1.15 = 물가 밖 여유) */
 export const inPond = (x, z, k = 1) => ((x - P.x) / (P.rx * k)) ** 2 + ((z - P.z) / (P.rz * k)) ** 2 < 1;
+const DOCK_TOP = 0.275; // 잔교 판자 윗면 (판 두께 0.25, 가운데 높이 0.15)
+const onDockTop = (x, z) => x >= DK.x0 && x <= DK.x1 && z >= DK.z0 && z <= DK.z1;
 const onDock = (x, z) => x >= DK.x0 - 0.5 && x <= DK.x1 + 0.5 && z >= DK.z0 - 0.5 && z <= DK.z1 + 0.5;
 // 장식 올리브 나무: 연못·구조물·큰 나무·시작 자리와 겹치지 않는 후보만
 const OLIVES = OLIVE_SPOTS.filter(([x, z]) => !inPond(x, z, 1.3) && olyClear(x, z) > 3 && treeDist(x, z).every((d) => d > 8) && !(Math.abs(x) < 6 && z > 40)).map(([x, z]) => ({ x, z }));
@@ -27,7 +29,7 @@ const gymClear = (x, z) => Math.min(olyClear(x, z), ...OLIVES.map((o) => Math.hy
 export const GYM_TERRAIN = {
   size: GYM.size, inHole: () => false, obstacles: [], ledge: 0.9, // 0.9m 넘는 턱(기둥 밑동·쓰러진 큰 기둥)은 뛰어야 오른다
   /** 나무 위 집: 줄기 둘레 platR 안쪽은, 그 높이 가까이 있을 때만(refY) 6m 단이 된다 (동굴탑처럼 층이 겹치는 지형). 나머지는 올림피아 구조물 */
-  height: (x, z, refY) => (treeDist(x, z).some((d) => d < GYM.platR) && (refY ?? 0) >= GYM.platY - 1.0 ? GYM.platY : olyHeight(x, z, refY)),
+  height: (x, z, refY) => (treeDist(x, z).some((d) => d < GYM.platR) && (refY ?? 0) >= GYM.platY - 1.0 ? GYM.platY : onDockTop(x, z) ? DOCK_TOP : olyHeight(x, z, refY)), // 잔교 위는 판자 윗면 높이 (예전엔 0 이라 발이 판자 속에 묻혀 빠지는 것처럼 보였다)
   blocked: (x, z, refY) => {
     if (!inDoorway(x, z) && (Math.abs(x) > F.w / 2 - 0.6 || Math.abs(z) > F.d / 2 - 0.6)) return true; // 울타리
     if ((refY ?? 0) >= GYM.platY - 1.0) { const d = Math.min(...treeDist(x, z)); if (d > GYM.platR - 0.45 && d < GYM.platR + 0.8) return true; } // 나무 위 집 난간 (떨어지지 않게)
