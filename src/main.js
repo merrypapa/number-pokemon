@@ -92,7 +92,7 @@ function fpLookDir() {
 }
 // pitch 가 -0.35 보다 작아지면(화면을 위로 드래그) 카메라가 내려오고 시선이 하늘로 올라간다 (우주의 태양과 행성 보기)
 function camOffset() {
-  if (zone?.world?.gym && player.position.y > 3) { // 체육관 나무 위 집: 잎 아래에서 가깝게 본다
+  if (zone?.world?.gym && player.position.y > 5) { // 체육관 나무 위 집: 잎 아래에서 가깝게 본다
     const h = Math.max(1.4, 2.6 + cam.pitch * 3), d = 6 - cam.pitch * 2;
     return new THREE.Vector3(Math.sin(cam.yaw) * d, h, Math.cos(cam.yaw) * d);
   }
@@ -1045,7 +1045,7 @@ function resolveCamera(target) {
   const tmp = new THREE.Vector3();
   for (const o of zone.world.decor?.children || []) {
     if (o.isInstancedMesh || !o.position) continue;
-    if (o.userData.cutaway) { if (o.userData.cutaway(head)) { o.visible = false; hiddenByCam.add(o); } continue; } // 용암 동굴 껍질: 주인공이 굴 안이면 숨긴다 (안벽만 남는다)
+    if (o.userData.cutaway) { if (o.userData.cutaway(head, target)) { o.visible = false; hiddenByCam.add(o); } continue; } // 용암 동굴 껍질: 주인공이 굴 안이면 숨긴다 (안벽만 남는다)
     if (o.userData.noHide || (o.geometry && (o.geometry.type === 'PlaneGeometry' || o.geometry.type === 'CircleGeometry') && Math.abs(Math.abs(o.rotation.x) - Math.PI / 2) < 0.05)) continue; // 바닥·러그처럼 납작하게 깔린 것은 절대 숨기지 않는다 (연구실 바닥이 깜빡이던 원인)
     const r = o.userData.solid ? o.userData.radius : (o.userData.radius || 2.4);
     tmp.subVectors(o.position, head);
@@ -3171,7 +3171,7 @@ function renderGuide(el) {
     ${sec('🕳️ 지하동굴 — 손둥 동굴 탐험', `세상에서 가장 큰 동굴을 닮았어요. 북서쪽 <b>하늘 구멍 밀림</b>은 천장 구멍으로 햇빛이 쏟아지는 동굴 속 숲. 한가운데 <b>지하 강</b>은 물에 못 들어가니 북쪽 보스 길의 <b>구름다리</b>나 징검다리로 건너요. 보스 롱스톤은 <b>만리장성 절벽</b> 위 — 남쪽 오르막길로만 올라가요. 동남쪽 <b>석회 웅덩이 계단</b> 꼭대기엔 블록이 있어요.`)}
     ${sec('🌲 푸른숲 — 이끼 숲 탐험', `야쿠시마 이끼 숲을 닮았어요. <b>개울</b>은 물에 못 들어가니 징검다리나 나무다리로 건너요. <b>데크길</b>은 경사로로 올라가 2.6m 위를 걷고, 아래로도 지나갈 수 있어요. <b>할아버지 삼나무</b>는 줄기를 감는 나선 길로 9m 전망대까지! <b>쓰러진 고목</b>은 속으로 지나가거나 옆 이끼 비탈로 위에 올라가요. <b>이끼 바위 언덕</b>은 점프 버튼으로 하나씩 올라 꼭대기 전망 바위의 블록을 가져와요.`)}
     ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b>북쪽 문</b> → 푸른숲(그 너머 불의산·꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
-    ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
+    ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 올리브 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
     ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
     ${sec('🦊 이브이 진화는 장소로', `이브이를 Lv.16까지 키운 뒤 진화시키는 곳에 따라 모습이 달라요: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키. 다른 곳에서는 랜덤!`)}
@@ -3382,7 +3382,7 @@ function frame() {
         switchZone('volcano', getZone('volcano').world.spawn, { text: '불의산에 들어왔어! 불 포켓몬의 땅이야. 용암은 뜨거우니 조심! 포탈로 돌아갈 수 있어.', sec: 7 });
       } else if (w.gymDoor && near(w.gymDoor, 2.0)) { // 야외 체육관 문
         moved = true;
-        switchZone('gym', getZone('gym').world.spawn, { text: '🏃 야외 체육관! 내 포켓몬들이 모두 나와 뛰어놀아. 가까이 가서 💪 훈련하기! 큰 나무는 줄기 옆에서 점프 버튼을 꾹 누르면 올라가. 남쪽 문으로 나가면 푸른숲이야.', sec: 8 });
+        switchZone('gym', getZone('gym').world.spawn, { text: '🏃 야외 체육관! 내 포켓몬들이 모두 나와 뛰어놀아. 가까이 가서 💪 훈련하기! 큰 올리브 나무는 줄기 옆에서 점프 버튼을 꾹 누르면 올라가. 남쪽 문으로 나가면 푸른숲이야.', sec: 8 });
       } else if (w.arenaDoor && Math.abs(pp.x - w.arenaDoor.x) < 1.8 && pp.z > w.arenaDoor.z - 1.4 && pp.z < w.arenaDoor.z + 0.9) { // 넘버볼 아레나 문 앞 칸
         moved = true;
         switchZone('arena', getZone('arena').world.spawn, { text: '🏟 넘버볼 아레나에 들어왔어! 친구와 대결하는 경기장이야. 치료 데스크의 봄이가 포켓몬을 치료해 줘. 남쪽 문으로 나가면 푸른숲이야.', sec: 7 });
