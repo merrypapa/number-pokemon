@@ -227,7 +227,7 @@ export function buildDeck(b, height) {
 export function buildStationTown(decor, { height, obstacles, st }) {
   const g = new THREE.Group(), y0 = height(st.x, st.z), wood = M(0x7a4a2a), woodL = M(0xb08050), roofM = M(0x4a2a1a), cream = M(0xfff3dc);
   // 승강장 (선로 남쪽): 돌 가장자리 + 나무 바닥
-  const plat = new THREE.Mesh(new THREE.BoxGeometry(18, 0.06, 4.2), M(0xc9bfa8)); plat.position.set(st.x, y0 + 0.03, st.z + 3.5); // 걷는 높이(땅)와 맞게 얇게 (두꺼우면 발이 묻혀 보인다) plat.receiveShadow = true; g.add(plat);
+  const plat = new THREE.Mesh(new THREE.BoxGeometry(18, 0.06, 4.2), M(0xc9bfa8)); plat.position.set(st.x, y0 + 0.03, st.z + 3.5); /* 걷는 높이(땅)와 맞게 얇게 (두꺼우면 발이 묻혀 보인다) */ plat.receiveShadow = true; g.add(plat);
   const edge = new THREE.Mesh(new THREE.BoxGeometry(18, 0.06, 0.3), M(0xffd93d)); edge.position.set(st.x, y0 + 0.065, st.z + 1.6); g.add(edge); // 노란 안전선
   // 처마 깊은 나무 지붕 + 조각 받침
   for (const dx of [-7.5, -2.5, 2.5, 7.5]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.4, 0.3), wood); post.position.set(st.x + dx, y0 + 1.7, st.z + 4.8); post.castShadow = true; g.add(post); obstacles.push({ x: st.x + dx, z: st.z + 4.8, r: 0.25 }); const br = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 1.6), wood); br.position.set(st.x + dx, y0 + 3.1, st.z + 4.0); br.rotation.x = 0.6; g.add(br); }

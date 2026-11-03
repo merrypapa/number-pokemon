@@ -9,7 +9,7 @@ const THEMES = {
   forest:  { stone: 0x9fb08a, accent: 0x57b947, glow: 0x9dff6a, name: '윌슨 그루터기' }, // 신전 대신 야쿠시마의 속이 빈 거대한 그루터기 (buildWilsonStump)
   cave:    { stone: 0x6b7280, accent: 0x39ffb0, glow: 0x5dffc8, name: '동굴 진주 웅덩이' }, // 손둥 동굴의 동굴 진주가 가득한 석회 웅덩이 (buildPearlPools)
   volcano: { stone: 0x6b4038, accent: 0xff6b1a, glow: 0xffb347, name: '하늘 신전' },
-  sea:     { stone: 0xbfae86, accent: 0x3fb8e8, glow: 0x9fe8ff, name: '산호 신전' },
+  sea:     { stone: 0xbfae86, accent: 0x3fb8e8, glow: 0x9fe8ff, name: '별빛 해변' }, // 몰디브 바두섬의 빛나는 바다 (buildStarBeach)
   space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '별의 문' },
 };
 
@@ -20,6 +20,7 @@ const THEMES = {
 export function buildMegaShrine(zoneName, x, groundY, z, decor = null) {
   if (zoneName === 'forest') return buildWilsonStump(x, groundY, z, decor); // 실제 장소의 명소로 바꾸는 중 (하나씩)
   if (zoneName === 'cave') return buildPearlPools(x, groundY, z);
+  if (zoneName === 'sea') return buildStarBeach(x, groundY, z);
   const T = THEMES[zoneName] || THEMES.forest;
   const g = new THREE.Group();
   g.position.set(x, groundY, z);
@@ -254,4 +255,50 @@ export function buildPearlPools(x, groundY, z) {
   const heightAt = (dx, dz) => { const d = Math.hypot(dx, dz); if (d < P.island) return P.islandH; if (onStone(dx, dz)) return P.stoneH; if (d >= P.waterOut && d < P.rimOut) return P.rimH; return 0; };
   const blockedAt = (dx, dz) => { const d = Math.hypot(dx, dz); return d >= P.island && d < P.waterOut && !onStone(dx, dz); };
   return { group: g, reveal, animate, spot: { x, z }, label: '동굴 진주 웅덩이', radius: P.rimOut + 2, heightAt, blockedAt, pillars, megaAt: { x: 0, z: -0.6 } };
+}
+
+// ---------- 물의길 = 몰디브 바두섬의 별빛 해변 ----------
+// 밤이면 파도가 파랗게 빛나는(발광 플랑크톤) 바다로 유명한 섬. 먼바다의 작은 하얀 모래섬 둘레로 파란 빛 물결이 일렁인다.
+// 배로 가서 섬에 내려 걸어 다니고(walkAt), 배는 섬을 지나가지 못한다(noSailAt). 메가거북왕은 섬 둘레 빛나는 물에서 헤엄친다.
+// groundY 는 main 이 주는 바다 성역 바닥(수면 - 1.2). 높이는 그 기준.
+const BEACH = { r: 7.2, walk: 7.6, noSail: 9.4, top: 2.0, glowIn: 7.4, glowOut: 15 }; // top 2.0 = 수면 위 0.8 (배에서 내릴 땅은 수면 위 0.2 넘게, main LAND_Y)
+export function buildStarBeach(x, groundY, z) {
+  const B = BEACH, water = 1.2, g = new THREE.Group(); g.position.set(x, groundY, z); g.visible = false;
+  const sand = new THREE.MeshStandardMaterial({ color: 0xf4ead0, roughness: 0.95 });
+  const mound = new THREE.Mesh(new THREE.CylinderGeometry(B.r, B.r + 2.2, B.top + 0.4, 36), sand); mound.position.y = (B.top + 0.4) / 2 - 0.4; mound.receiveShadow = true; g.add(mound);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(B.r, 32, 8, 0, Math.PI * 2, 0, 0.35), sand); cap.scale.y = 0.25; cap.position.y = B.top - B.r * 0.25 * Math.cos(0.35) + 0.02; g.add(cap);
+  // 야자수 셋 + 그물 침대 + 조개
+  const trunkM = new THREE.MeshStandardMaterial({ color: 0xa57c52 }), leafM = new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), trunks = [], leaves = [];
+  for (const [px, pz, h, lean] of [[-3.5, -2.5, 4.2, 0.18], [3.8, -1.6, 3.6, -0.2], [-0.8, -4.6, 4.8, 0.08]]) { trunks.push({ x: px, y: B.top + h / 2, z: pz, sx: 0.22, sy: h, sz: 0.22, rz: lean }); for (let k = 0; k < 7; k++) leaves.push({ x: px - Math.sin(lean) * h, y: B.top + h + 0.2, z: pz, ry: (k / 7) * Math.PI * 2, rx: -0.9 }); }
+  g.add(instanced(new THREE.CylinderGeometry(0.7, 1, 1, 7), trunkM, trunks));
+  const leafGeo = new THREE.PlaneGeometry(0.8, 3); leafGeo.translate(0, 1.3, 0); g.add(instanced(leafGeo, leafM, leaves));
+  const shells = []; for (let i = 0; i < 30; i++) { const a = Math.random() * Math.PI * 2, d = 2 + Math.random() * (B.r - 2.6); shells.push({ x: Math.cos(a) * d, y: B.top + 0.04, z: Math.sin(a) * d, sx: 0.14, sy: 0.06, sz: 0.18, ry: a }); }
+  g.add(instanced(new THREE.SphereGeometry(1, 6, 4), new THREE.MeshStandardMaterial({ color: 0xffd9c9 }), shells));
+  // 빛나는 물결: 섬 둘레 물 위에 파란 빛점이 고리를 그리며 일렁인다 (가산 혼합으로 반짝)
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x9ff8ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }); // 낮에도 보이게 밝게
+  const n = 520, dots = new THREE.InstancedMesh(new THREE.CircleGeometry(0.3, 8).rotateX(-Math.PI / 2), glowMat, n), info = [];
+  for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, d = B.glowIn + Math.pow(Math.random(), 0.7) * (B.glowOut - B.glowIn); info.push({ a, d, s: 0.6 + Math.random() * 1.4, ph: Math.random() * 6.3 }); }
+  const deep = new THREE.Mesh(new THREE.RingGeometry(B.r + 0.3, B.glowOut + 1.5, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x06203a, transparent: true, opacity: 0.72, depthWrite: false })); deep.position.y = water + 0.1; g.add(deep); // 섬 둘레만 밤바다처럼 짙게 (그 위에서 빛점이 또렷하다)
+  dots.frustumCulled = false; dots.renderOrder = 2; g.add(dots);
+  const foam = new THREE.Mesh(new THREE.TorusGeometry(B.r + 0.5, 0.18, 6, 64), new THREE.MeshBasicMaterial({ color: 0xbff4ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })); foam.rotation.x = Math.PI / 2; foam.position.y = water + 0.13; g.add(foam);
+  const light = new THREE.PointLight(0x5fd8ff, 3, 26); light.position.y = water + 1.2; g.add(light);
+  const label = makePillSprite('✨ 별빛 해변', { bg: '#062a40', fg: '#ffffff', border: '#5fd8ff' }, 1.5); label.position.set(0, B.top + 6.5, 0); g.add(label);
+  const hint = makePillSprite('🌟 파도가 파랗게 빛나는 바다 · 배에서 내려 섬을 걸어 봐!', { bg: '#062a40', fg: '#bff4ff', border: '#5fd8ff' }, 0.6); hint.position.set(0, B.top + 2.2, B.r - 1); g.add(hint);
+  let riseT = -1; const m4 = new THREE.Matrix4(), v = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  function reveal() { if (g.visible) return; g.visible = true; riseT = 0; }
+  function animate(t, dt = 0) {
+    if (!g.visible) return;
+    if (riseT >= 0 && riseT < 1) { riseT = Math.min(1, riseT + dt * 0.5); g.position.y = groundY - 1.5 * (1 - riseT); }
+    for (let i = 0; i < n; i++) { // 바깥에서 섬 쪽으로 밀려오는 물결마다 빛이 번진다
+      const u = info[i], wave = 0.5 + 0.5 * Math.sin(u.d * 1.3 - t * 2.2 + u.ph * 0.3), k = (0.2 + wave * 0.8) * u.s * 0.55;
+      v.set(Math.cos(u.a + t * 0.02) * u.d, water + 0.13, Math.sin(u.a + t * 0.02) * u.d); /* 물결(±0.06) 위로 */ sc.setScalar(k); dots.setMatrixAt(i, m4.compose(v, q, sc));
+    }
+    dots.instanceMatrix.needsUpdate = true;
+    glowMat.opacity = 0.55 + Math.sin(t * 1.5) * 0.15; foam.material.opacity = 0.6 + Math.sin(t * 2.6) * 0.3;
+    label.position.y = B.top + 6.5 + Math.sin(t * 1.3) * 0.3;
+  }
+  const heightAt = (dx, dz) => { const d = Math.hypot(dx, dz); return d < B.walk ? B.top - 0.25 * Math.max(0, d - (B.r - 1.5)) : 0; };
+  const walkAt = (dx, dz) => Math.hypot(dx, dz) < B.walk;
+  const noSailAt = (dx, dz) => Math.hypot(dx, dz) < B.noSail;
+  return { group: g, reveal, animate, spot: { x, z }, label: '별빛 해변', radius: B.glowOut, heightAt, walkAt, noSailAt, megaAt: { x: 0, z: 11.5 } };
 }
