@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
-import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
+import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
 import { NUMBER_COLORS, RAINBOW } from './palette.js';
 import { makeNpc } from './npc.js';
 
@@ -529,7 +529,7 @@ export function buildWorld(scene, layout = 'forest') {
   }
   // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  for (const b of L.bridges) scene.add(isTown ? mergeGroup(buildBridge(b, obstacles)) : buildBridge(b, obstacles)); // 마을 잔교: 판자·기둥을 한 덩이로 (그리기 횟수 줄이기)
+  for (const b of L.bridges) scene.add(isTown ? buildDeck(b, townGround) : buildBridge(b, obstacles)); // 마을 잔교: 난간 없는 넓은 나무 길 (난간 끝에 걸려 잔교에 못 오르던 버그)
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = L.village;

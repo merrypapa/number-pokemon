@@ -12,7 +12,7 @@ import { makeInstanced, makePillSprite } from './world.js';
 
 const TAU = Math.PI * 2;
 export const LAKE = { x: 60, z: -32, r: 18 };
-export const PIER = { x1: 41.5, z1: -32, x2: 56, z2: -32, w: 1.3, rise: 0 };
+export const PIER = { x1: 38.5, z1: -32, x2: 56, z2: -32, w: 1.8, rise: 0 }; // 체육관 잔교처럼 난간 없는 넓은 나무 길. 마른 땅(x 38.5)에서 시작해 아무 방향에서나 올라선다
 export const BOATHOUSE = { x: 58.6, z: -32, hw: 2, hd: 1.8 };
 export const PIER_DECK = { x1: 55.2, z1: -32, x2: 62.8, z2: -32, w: 3.9, rise: 0 }; // 보트 창고 둘레 넓은 판 (잔교 끝에서 창고 문 앞·둘레를 걸어 다닌다)
 export const TERR = { x0: 28, x1: 104, edges: [-54, -64, -74], step: 2.2 };
@@ -199,6 +199,16 @@ export function colosseumOut(r) {
   const sand = new THREE.Mesh(new THREE.CircleGeometry(r * 0.55, 28), M(0xe8cf98)); sand.rotation.x = -Math.PI / 2; sand.position.y = 0.4; g.add(sand);
   const cavea = new THREE.Mesh(new THREE.CylinderGeometry(r - 0.2, r * 0.55, tierH * 3, 32, 1, true), M(0xbfa77e, { side: THREE.BackSide })); cavea.position.y = 0.4 + tierH * 1.5; g.add(cavea);
   return mergeGroup(g);
+}
+
+/** 난간 없는 나무 길 그림 (판자 + 물속 기둥). 높이·걷기는 world.js 의 다리 규칙(bridgeHeightAt/onBridge)을 그대로 쓴다. 물은 원래 못 들어가니 떨어지지 않는다 */
+export function buildDeck(b, height) {
+  const len = Math.hypot(b.x2 - b.x1, b.z2 - b.z1), ux = (b.x2 - b.x1) / len, uz = (b.z2 - b.z1) / len, ry = Math.atan2(ux, uz), y = (b.y0 || 0) + 0.08;
+  const g = new THREE.Group(), n = Math.max(3, Math.round(len / 0.6)), wood = M(0xc9955a), dark = M(0x7a4a2a);
+  for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, p = new THREE.Mesh(new THREE.BoxGeometry(b.w * 2 + 0.3, 0.14, len / n - 0.06), i % 3 ? wood : M(0xb9854a)); p.position.set(b.x1 + ux * len * t, y - 0.07, b.z1 + uz * len * t); p.rotation.y = ry; p.receiveShadow = true; g.add(p); }
+  for (const s of [-1, 1]) { const edge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, len), dark); edge.position.set(b.x1 + ux * len / 2 - uz * s * (b.w + 0.15), y - 0.08, b.z1 + uz * len / 2 + ux * s * (b.w + 0.15)); edge.rotation.y = ry; g.add(edge); }
+  for (let k = 0; k <= Math.round(len / 3); k++) for (const s of [-1, 1]) { const t = k / Math.round(len / 3), x = b.x1 + ux * len * t - uz * s * b.w, z = b.z1 + uz * len * t + ux * s * b.w, gy = height(x, z); if (gy > y - 0.25) continue; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, y - gy, 6), dark); post.position.set(x, (y + gy) / 2, z); g.add(post); }
+  const out = mergeGroup(g); out.userData.noHide = true; return out;
 }
 
 // ---------- 호수·언덕 마을·교회·스카이워크·설산 ----------
