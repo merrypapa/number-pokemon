@@ -15,7 +15,7 @@ import { buildLab } from './lab.js';
 import { buildSchool } from './school.js';
 import { buildHome } from './home.js';
 import { buildThunder } from './thunder.js';
-import { buildTower, TOWER, TOWER_TOP, floorY, floorOfY, landingAt, towerWild, towerFloorBoss, towerElite, towerLevelBand, LAND_W, towerCeiling } from './tower.js';
+import { buildTower, TOWER, TOWER_TOP, Y11, floorY, floorOfY, landingAt, towerLevelBand, LAND_W, towerCeiling } from './tower.js';
 import { Study, emptySchool, loadSchool, rollSchoolDay, homeworkOf, HW_BONUS } from './study.js';
 import { buildHive } from './hive.js';
 import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
@@ -1264,16 +1264,10 @@ function questHit(kind, info = {}) {
 // ---------- 동굴탑 (src/tower.js): 한 지역에 10층이 세로로 쌓여 있다. 포켓몬은 지금 있는 층 근처(아래 1층 ~ 위 2층)만 세우고, 멀어지면 치운다 ----------
 function towerFloorNow() { return zone?.world?.tower ? floorOfY(player.position.y) : 0; }
 /** n 층 층계참에 포켓몬을 세운다 (야생 하나, 3·7·9층 정예, 5층 문지기, 10층은 뮤츠) */
-function spawnTowerFloor(z, n) {
+function spawnTowerFloor(z, n) { // 탑 안에는 맨 꼭대기(11층 원형 무대)의 뮤츠 한 마리만 산다 (층마다 있던 야생·정예·5층 문지기는 뺐다)
   z.towerFloors.add(n);
-  const at = landingAt(n), band = towerLevelBand(n);
-  const spots = n >= TOWER_TOP ? [[6, 6], [-6, 6], [7, -5]] : [[at.x - 2, 2.2], [at.x + 3, 3.6], [at.x + 0.5, 0.6]]; // 층계참 쐐기 안 (각도 0~LAND_W)
-  const fb = towerFloorBoss(n), el = towerElite(n);
-  const wild = towerWild(n, n >= TOWER_TOP ? 2 : 1); // 층마다 야생은 한 마리 (대신 3·7·9층 정예, 5층 문지기)
-  if (el) { const [x, zz] = spots[1]; const c = spawnCreature(z, el.id, x, zz, { homeY: at.y, baseHp: el.hp, baseAtk: el.atk, scale: el.scale, level: el.level, swim: false, deepSea: false }); c.towerFloor = n; c.elite = true; }
-  wild.forEach((id, i) => { const [x, zz] = spots[i]; const c = spawnCreature(z, id, x, zz, { homeY: at.y, level: band[0] + Math.floor(Math.random() * (band[1] - band[0] + 1)), swim: false, deepSea: false }); c.towerFloor = n; });
-  if (fb) { const c = spawnCreature(z, fb.id, at.x, at.z, { homeY: at.y, boss: true, floorBoss: true, baseHp: fb.hp, baseAtk: fb.atk, scale: fb.scale, grade: 6, level: fb.level, swim: false, deepSea: false }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
-  if (n >= TOWER_TOP && !state.conquered.tower) { const boss = speciesById.t94; const c = spawnCreature(z, boss.id, 0, 0, { ...bossOverride(boss), homeY: at.y, level: band[1] + 3 }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
+  const band = towerLevelBand(n);
+  if (n >= TOWER_TOP && !state.conquered.tower) { const boss = speciesById.t94; const c = spawnCreature(z, boss.id, 0, 0, { ...bossOverride(boss), homeY: Y11, level: band[1] + 3 }); c.towerFloor = n; c.mesh.userData.bossZone = z.name; }
 }
 function towerTick() {
   const z = zone; if (!z?.world?.tower) return;
@@ -3391,7 +3385,7 @@ function frame() {
       }
     } else if (zone.name === 'cave' && zone.world.towerGate && near(zone.world.towerGate, 2.4)) { // 지하동굴 서쪽 벽의 동굴탑 문
       moved = true;
-      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 오른쪽(동쪽) 벽의 금빛 띠가 둘린 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 10층 꼭대기까지! 동쪽 층계참마다 포켓몬이 살아.', sec: 8 });
+      switchZone('tower', getZone('tower').world.spawn, { text: '🗼 동굴탑! 오른쪽(동쪽) 벽의 금빛 띠가 둘린 돌계단을 걸어서 올라가 봐. 한 바퀴가 한 층, 10층 단에서 사다리를 타면 11층 꼭대기 무대야! 전설의 뮤츠가 거기서 기다려.', sec: 8 });
     } else if (zone.name === 'tower' && zone.world.exitGate && player.position.y < 1 && near(zone.world.exitGate, 2.2)) { // 동굴탑 바닥의 출구 → 지하동굴
       moved = true;
       const dest = getZone('cave'); switchZone('cave', dest.world.arrivals?.tower || dest.world.spawn, { text: '지하동굴로 나왔어!', sec: 4 });
