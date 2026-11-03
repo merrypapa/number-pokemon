@@ -394,7 +394,10 @@ body.touch #btn-warp { bottom: var(--ctx-bottom); } /* 터치: 점프(대화) �
 .save-row img, .save-noimg { width: 56px; height: 56px; border-radius: 12px; background: #f7f3e3; object-fit: contain; flex-shrink: 0; }
 .save-info { flex: 1; min-width: 0; }
 .save-name { font-size: 20px; font-weight: 900; color: #333; }
-.save-sub { font-size: 12px; color: #666; font-weight: 700; margin-top: 2px; }
+.save-sub { font-size: 12px; color: #666; font-weight: 700; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 6px; } /* 칩처럼 줄바꿈 (휴대폰에서 한 줄에 다 안 들어가도 깔끔하게) */
+.save-sub span { background: #f3efdc; border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.save-when { font-size: 11px; font-weight: 700; color: #999; margin-left: 4px; white-space: nowrap; }
+.save-row { cursor: pointer; }
 .save-go { font-size: 15px; font-weight: 900; padding: 10px 14px; border-radius: 12px; border: 0; background: #57b947; color: #fff; box-shadow: 0 3px 0 #3d8a32; cursor: pointer; white-space: nowrap; }
 .save-del { font-size: 14px; font-weight: 900; width: 34px; height: 34px; border-radius: 50%; border: 0; background: #eee; color: #999; cursor: pointer; }
 .save-empty { color: #777; font-weight: 800; padding: 14px; }
@@ -1051,3 +1054,15 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #btn-check-update { margin-top: 6px; font: inherit; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; border: 0; background: rgba(255,255,255,.22); color: #fff; cursor: pointer; }
 #btn-check-update:disabled { opacity: .7; cursor: default; }
 #update-bar small { display: block; font-weight: 700; opacity: .8; margin-top: 4px; }
+
+/* 휴대폰(좁은 화면): 이어서하기 목록을 두 줄로 — 위에 그림·이름·정보, 아래에 버튼 */
+@media (max-width: 560px) {
+  #continue .menu-card { padding: 14px 10px; }
+  #continue .menu-sub { font-size: 12px; margin: 4px 0 10px; }
+  .save-row { flex-wrap: wrap; gap: 8px 10px; padding: 8px; }
+  .save-row img, .save-noimg { width: 44px; height: 44px; }
+  .save-info { flex: 1 1 calc(100% - 60px); }
+  .save-name { font-size: 17px; }
+  .save-go { flex: 1 1 auto; font-size: 15px; padding: 9px 12px; }
+  .save-del { flex: 0 0 auto; }
+}
