@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
+import { LAKE, PIER, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, alpineHouse, chaletHome, glassLab, oxfordSchool, colosseumOut } from './hallstatt.js';
 import { NUMBER_COLORS, RAINBOW } from './palette.js';
 import { makeNpc } from './npc.js';
 
@@ -239,7 +240,7 @@ export const TOWN = {
   size: 230,
   hills: [],
   village: { x: 0, z: 0 },
-  pond: { x: 52, z: -22, r: 9 },
+  pond: LAKE,                       // 할슈타트 호수 (src/hallstatt.js) — 예전 작은 연못을 키웠다
   home: { x: -22, z: -17 },        // 지우네 집 (문은 남쪽)
   school: { x: -46, z: -24 },      // 포켓몬 학교 (문은 남쪽)
   lab: { x: 0, z: 54 },            // 오박사 연구소 (문은 북쪽, 광장을 본다)
@@ -251,14 +252,18 @@ export const TOWN = {
   forestGate: { x: 0, z: -100 },   // 북쪽 문 → 푸른숲
   // 숲 전용은 맵 밖
   arena: { x: FAR, z: FAR, r: 12 }, cave: { x: FAR, z: FAR }, volcanoGate: { x: FAR, z: FAR }, sleepSpot: { x: FAR, z: FAR, r: 4.5 }, hiveTree: { x: FAR, z: FAR }, shrineSpot: { x: FAR, z: FAR },
-  honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [], // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
+  honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [PIER], // 호수 잔교 // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
   paths: [
     [[0, 8], [0, 46]], [[0, -8], [0, -94]], [[-6, -2], [-22, -12]], [[-10, -6], [-46, -18]], [[-8, 0], [-60, -2], [-84, -4]], [[8, 0], [50, 10], [84, 24]],
     [[6, 6], [40, 30], [66, 34]], [[-6, 6], [-30, 28], [-48, 40]], [[-8, -8], [-34, -50], [-52, -74]],
   ],
 };
-function townHeight(x, z) { const pd = Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z); return pd < TOWN.pond.r + 2 ? -0.9 * Math.min(1, (TOWN.pond.r + 2 - pd) / 3) : 0; }
-export const TOWN_TERRAIN = { height: townHeight, inHole: () => false, blocked: (x, z) => Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z) < TOWN.pond.r + 1, size: TOWN.size, obstacles: [] };
+/** 마을 맨땅 (호수만 파였다) */
+function townGround(x, z) { const pd = Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z); return pd < TOWN.pond.r + 2 ? -0.9 * Math.min(1, (TOWN.pond.r + 2 - pd) / 3) : 0; }
+/** 할슈타트 구조물(언덕 단·돌계단·스카이워크)과 잔교까지 넣은 높이 */
+function townHeight(x, z, refY) { const g = townGround(x, z), by = bridgeHeightAt(TOWN.bridges, x, z); return hallstattHeight(x, z, refY, by === null ? g : Math.max(g, by)); }
+function townBlocked(x, z, refY) { return hallstattBlocked(x, z, refY) || (Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z) < TOWN.pond.r + 1 && !TOWN.bridges.some((b) => onBridge(b, x, z))); }
+export const TOWN_TERRAIN = { height: townHeight, inHole: () => false, blocked: townBlocked, size: TOWN.size, obstacles: [], ledge: 0.9, ceiling: hallstattCeiling };
 
 
 function distToSegment(px, pz, ax, az, bx, bz) {
@@ -484,7 +489,7 @@ export function buildWorld(scene, layout = 'forest') {
   const tmp = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
-    let y = isTown ? T.height(x, z) : meadowGround(x, z); // 숲의 땅 판은 맨땅만 (바위·통나무 비탈은 따로 세운 모양)
+    let y = isTown ? townGround(x, z) : meadowGround(x, z); // 숲의 땅 판은 맨땅만 (바위·통나무 비탈은 따로 세운 모양)
     let c = Math.random() < 0.5 ? grassA : grassB;
     if (!isTown && Math.sin(x * 0.11) * Math.cos(z * 0.13) + Math.sin((x + z) * 0.05) > 1.1) c = mossBright; // 햇빛 받는 이끼 무늬
     const pd = Math.hypot(x - L.pond.x, z - L.pond.z);
@@ -525,7 +530,7 @@ export function buildWorld(scene, layout = 'forest') {
   }
   // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  for (const b of L.bridges) scene.add(buildBridge(b, obstacles));
+  for (const b of L.bridges) scene.add(isTown ? mergeGroup(buildBridge(b, obstacles)) : buildBridge(b, obstacles)); // 마을 잔교: 판자·기둥을 한 덩이로 (그리기 횟수 줄이기)
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = L.village;
@@ -568,26 +573,16 @@ export function buildWorld(scene, layout = 'forest') {
 
   // ---------- 마을 구조물: 숫자 색 집, 우물, 놀이터, 가랜드, 가로등, 꽃밭 ----------
   const woodMat = new THREE.MeshStandardMaterial({ color: 0xa5713a });
-  function house(number, x, z, rotY) {
-    const g = new THREE.Group();
+  function house(number, x, z, rotY) { // 할슈타트 알프스 집 (지붕이 숫자 색, 앞에 숫자 패)
     const col = NUMBER_COLORS[number].base;
-    const w = 3 + number * 0.25, h = 2.2 + number * 0.15;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, 3), new THREE.MeshStandardMaterial({ color: 0xfff4dc }));
-    body.position.y = h / 2;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.8, 1.6, 4), new THREE.MeshStandardMaterial({ color: col }));
-    roof.position.y = h + 0.8; roof.rotation.y = Math.PI / 4;
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.3, 0.1), new THREE.MeshStandardMaterial({ color: NUMBER_COLORS[number].dark }));
-    door.position.set(0, 0.65, 1.52);
-    const win = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.1), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.3 }));
-    win.position.set(w * 0.3, h * 0.6, 1.52);
+    const w = 3.4 + number * 0.25;
+    const g = alpineHouse({ w, d: 4.0, h: 2.2, wall: 0xfff6e6, roof: col, accent: NUMBER_COLORS[number].dark });
     const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: makeTextTexture(String(number)), transparent: true }));
-    badge.position.set(-w * 0.3, h * 0.6, 1.53);
-    body.castShadow = roof.castShadow = true;
-    g.add(body, roof, door, win, badge);
+    badge.position.set(w * 0.22, 1.9, 2.06); g.add(badge);
     g.position.set(x, T.height(x, z), z);
     g.rotation.y = rotY;
     block(x, z, w / 2 + 0.6);
-    g.userData = { solid: true, radius: w / 2 + 1.2, box: { hx: w / 2 + 0.6, hz: 2.2 } };
+    g.userData = { solid: true, radius: w / 2 + 1.2, box: { hx: w / 2 + 0.6, hz: 2.4 } };
     return g;
   }
   decor.add(house(1, v.x - 13, v.z - 4, 0.5), house(2, v.x + 13, v.z - 4, -0.5), house(3, v.x - 15, v.z + 8, 0.9), house(4, v.x + 15, v.z + 8, -0.9));
@@ -597,11 +592,9 @@ export function buildWorld(scene, layout = 'forest') {
   {
     const g = new THREE.Group();
     const red = new THREE.MeshStandardMaterial({ color: 0xe8453c }), white = new THREE.MeshStandardMaterial({ color: 0xf6f3ea });
-    for (let i = 0; i < 5; i++) { const ring = new THREE.Mesh(new THREE.CylinderGeometry(stad.r - i * 0.15, stad.r - (i - 1) * 0.15, 1.3, 32, 1, false), i % 2 ? white : red); ring.position.y = 0.65 + i * 1.3; ring.castShadow = true; ring.receiveShadow = true; g.add(ring); }
-    const roof = new THREE.Mesh(new THREE.SphereGeometry(stad.r + 0.3, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, roughness: 0.5 }));
-    roof.position.y = 6.5; roof.scale.y = 0.55; roof.castShadow = true; g.add(roof);
-    const flag = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4, 6), new THREE.MeshStandardMaterial({ color: 0x9aa4b8 })); flag.position.y = 11.5; g.add(flag);
-    const pennant = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.1), new THREE.MeshStandardMaterial({ color: 0xffd93d, side: THREE.DoubleSide })); pennant.position.set(1.1, 12.8, 0); g.add(pennant);
+    g.add(colosseumOut(stad.r)); // 콜로세움 겉모습: 세 층 아치 + 한쪽이 무너진 위층 (src/hallstatt.js)
+    const pennant = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.1), new THREE.MeshStandardMaterial({ color: 0xffd93d, side: THREE.DoubleSide })); pennant.position.set(1.1, 11.6, -stad.r); g.add(pennant);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3, 6), new THREE.MeshStandardMaterial({ color: 0x9aa4b8 })); pole.position.set(0, 10.7, -stad.r); g.add(pole);
     const arch = new THREE.Mesh(new THREE.BoxGeometry(5, 4.4, 2.2), new THREE.MeshStandardMaterial({ color: 0x20232e })); arch.position.set(0, 2.2, -stad.r + 0.4); g.add(arch);
     const doorway = new THREE.Mesh(new THREE.BoxGeometry(3, 3.4, 0.4), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffd93d, emissiveIntensity: 0.4 })); doorway.position.set(0, 1.7, -stad.r - 0.75); g.add(doorway);
     const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏟 넘버볼 아레나', '#20232e', '#ffd93d', 56), transparent: true, depthTest: false }));
@@ -632,33 +625,12 @@ export function buildWorld(scene, layout = 'forest') {
   {
     const g = new THREE.Group();
     const W = 16, H = 6.5, D = 11;
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xfaf6ea });
-    const bandMat = new THREE.MeshStandardMaterial({ color: 0x3fb8e8 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), wallMat);
-    body.position.y = H / 2;
-    const band = new THREE.Mesh(new THREE.BoxGeometry(W + 0.1, 0.7, D + 0.1), bandMat);
-    band.position.y = H - 0.9;
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(W + 1.2, 0.5, D + 1.2), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
-    roof.position.y = H + 0.25;
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(2.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.85 }));
-    dome.position.set(-3.5, H + 0.5, 0);
-    const dishPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0x777 }));
-    dishPost.position.set(4.5, H + 1.6, -1);
-    const dish = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 10, 0, Math.PI * 2, 0, Math.PI / 3), new THREE.MeshStandardMaterial({ color: 0xdddddd, side: THREE.DoubleSide }));
-    dish.position.set(4.5, H + 2.7, -1); dish.rotation.x = -Math.PI / 2.6;
-    const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 0.2), new THREE.MeshStandardMaterial({ color: 0x3a5f9b }));
-    door.position.set(0, 1.4, -D / 2 - 0.05); // 문은 북쪽(마을 광장 쪽)
-    const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 0.05), new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.4 }));
-    doorGlass.position.set(0, 1.9, -D / 2 - 0.2);
-    const winMat = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.35 });
-    for (const wx of [-5.5, -3, 3, 5.5]) { const win = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 0.1), winMat); win.position.set(wx, 3.6, -D / 2 - 0.05); g.add(win); }
-    for (const wz of [-2.5, 2.5]) for (const side of [-1, 1]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 1.6), winMat); win.position.set(side * (W / 2 + 0.05), 3.6, wz); g.add(win); }
+    g.add(glassLab(W, H, D)); // 큐 가든 팜 하우스 같은 흰 철골 유리 온실 (src/hallstatt.js)
     const sign = makePillSprite('🏥 오박사 연구소', { bg: '#fffbe6', fg: '#20232e', border: '#3fb8e8' }, 1.6);
-    sign.position.set(0, 5.4, -D / 2 - 0.4);
+    sign.position.set(0, 4.6, -D / 2 - 1.6);
     const steps = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1.6), stoneMat);
-    steps.position.set(0, 0.15, -D / 2 - 0.9);
-    for (const o of [body, roof, dome, dish]) o.castShadow = true;
-    g.add(body, band, roof, dome, dishPost, dish, door, doorGlass, sign, steps);
+    steps.position.set(0, 0.15, -D / 2 - 1.5);
+    g.add(sign, steps);
     g.position.set(lab.x, T.height(lab.x, lab.z), lab.z);
     g.userData = { solid: true, radius: 9.5, box: { hx: 8.6, hz: 6.2 } }; // 카메라가 건물 안으로 못 들어가게 (main 의 시야 처리, 건물 모양 상자)
     decor.add(g);
@@ -680,31 +652,12 @@ export function buildWorld(scene, layout = 'forest') {
   {
     const g = new THREE.Group();
     const W = 18, H = 6.4, D = 12;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H + 0.6, D), new THREE.MeshStandardMaterial({ color: 0xffe08a }));
-    body.position.y = H / 2 - 0.3; // 땅이 조금 기울어도 뜨지 않게 살짝 묻는다
-    const band = new THREE.Mesh(new THREE.BoxGeometry(W + 0.1, 0.4, D + 0.1), new THREE.MeshStandardMaterial({ color: 0x57b947 }));
-    band.position.y = H / 2;
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(W + 1.2, 0.5, D + 1.2), new THREE.MeshStandardMaterial({ color: 0x3f7fd6 }));
-    roof.position.y = H + 0.25;
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(3.6, 3.4, 3.6), new THREE.MeshStandardMaterial({ color: 0xffe08a }));
-    tower.position.set(0, H + 2.2, 1.5);
-    const towerRoof = new THREE.Mesh(new THREE.ConeGeometry(3.0, 2.2, 4), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
-    towerRoof.position.set(0, H + 5.0, 1.5); towerRoof.rotation.y = Math.PI / 4;
-    const clockFace = new THREE.Mesh(new THREE.CircleGeometry(1.1, 24), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-    clockFace.position.set(0, H + 2.3, 3.32);
-    const hand1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.04), new THREE.MeshStandardMaterial({ color: 0x20232e })); hand1.position.set(0, H + 2.6, 3.36);
-    const hand2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.04), new THREE.MeshStandardMaterial({ color: 0x20232e })); hand2.position.set(0.25, H + 2.3, 3.36);
-    const door = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.9, 0.2), new THREE.MeshStandardMaterial({ color: 0x8b5a2b }));
-    door.position.set(0, 1.45, D / 2 + 0.05); // 문은 남쪽 (기차역 길 쪽)
-    const winMat = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.35 });
-    for (const wy of [1.9, 4.6]) for (const wx of [-6.5, -3.6, 3.6, 6.5]) { const win = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 0.1), winMat); win.position.set(wx, wy, D / 2 + 0.05); g.add(win); }
-    for (const wz of [-3, 0, 3]) for (const side of [-1, 1]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 1.6), winMat); win.position.set(side * (W / 2 + 0.05), 3.2, wz); g.add(win); }
+    g.add(oxfordSchool(W, H, D)); // 옥스퍼드 고딕 건물: 꿀빛 석회암 + 뾰족 아치 창 + 톰 타워 (src/hallstatt.js)
     const sign = makePillSprite('🏫 포켓몬 학교', { bg: '#fffbe6', fg: '#20232e', border: '#57b947' }, 1.6);
-    sign.position.set(0, 4.0 + 0.4, D / 2 + 0.5);
+    sign.position.set(0, 4.4, D / 2 + 1.7);
     const steps = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1.6), stoneMat);
-    steps.position.set(0, 0.15, D / 2 + 0.9);
-    for (const o of [body, roof, tower, towerRoof]) o.castShadow = true;
-    g.add(body, band, roof, tower, towerRoof, clockFace, hand1, hand2, door, sign, steps);
+    steps.position.set(0, 0.15, D / 2 + 1.9);
+    g.add(sign, steps);
     // 운동장 쪽 국기 게양대와 작은 철봉
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 7, 6), new THREE.MeshStandardMaterial({ color: 0xdddddd })); pole.position.set(-W / 2 - 2, 3.5, D / 2 + 2);
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide })); flag.position.set(-W / 2 - 1.2, 6.3, D / 2 + 2);
@@ -725,23 +678,15 @@ export function buildWorld(scene, layout = 'forest') {
   {
     const g = new THREE.Group();
     const W = 8, H = 3.4, D = 6;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H + 0.6, D), new THREE.MeshStandardMaterial({ color: 0xfff1dc }));
-    body.position.y = H / 2 - 0.3;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(W * 0.78, 2.6, 4), new THREE.MeshStandardMaterial({ color: 0xff8fa8 }));
-    roof.position.y = H + 1.3; roof.rotation.y = Math.PI / 4;
-    const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.6, 0.7), new THREE.MeshStandardMaterial({ color: 0xb0453a })); chimney.position.set(2.2, H + 1.4, -1.2);
+    g.add(chaletHome(W, H, D)); // 알프스 목조 샬레: 돌 받침 + 회반죽 아래층 + 나무 위층·발코니·제라늄 꽃상자 (src/hallstatt.js)
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x8b5a2b })); door.position.set(0, 1.1, D / 2 + 0.05);
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffd93d })); knob.position.set(0.45, 1.1, D / 2 + 0.18);
-    const winMat = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x4fc3f7, emissiveIntensity: 0.35 });
-    for (const wx of [-2.4, 2.4]) { const win = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.2, 0.1), winMat); win.position.set(wx, 2.0, D / 2 + 0.05); g.add(win); const box = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 0.4), new THREE.MeshStandardMaterial({ color: 0x8b5a2b })); box.position.set(wx, 1.3, D / 2 + 0.2); g.add(box); for (const fx of [-0.4, 0, 0.4]) { const fl = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), new THREE.MeshStandardMaterial({ color: [0xff6b9d, 0xffd93d, 0xffffff][(fx + 0.4) / 0.4 | 0] })); fl.position.set(wx + fx, 1.55, D / 2 + 0.2); g.add(fl); } }
-    for (const side of [-1, 1]) { const win = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 1.3), winMat); win.position.set(side * (W / 2 + 0.05), 2.0, -0.5); g.add(win); }
     const sign = makePillSprite('🏠 지우네 집', { bg: '#fffbe6', fg: '#20232e', border: '#ff8fa8' }, 1.3);
-    sign.position.set(0, H + 0.4, D / 2 + 0.5);
+    sign.position.set(0, H + 1.2, D / 2 + 1.6);
     const steps = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.25, 1.2), stoneMat); steps.position.set(0, 0.12, D / 2 + 0.7);
     const mailbox = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.3), new THREE.MeshStandardMaterial({ color: 0x3f7fd6 })); mailbox.position.set(2.6, 1.0, D / 2 + 1.6);
     const mailPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.0, 6), new THREE.MeshStandardMaterial({ color: 0x8b5a2b })); mailPost.position.set(2.6, 0.5, D / 2 + 1.6);
-    for (const o of [body, roof, chimney]) o.castShadow = true;
-    g.add(body, roof, chimney, door, knob, sign, steps, mailbox, mailPost);
+    g.add(door, knob, sign, steps, mailbox, mailPost);
     g.position.set(hm.x, T.height(hm.x, hm.z), hm.z);
     g.userData = { solid: true, radius: 5.6, box: { hx: 4.6, hz: 3.6 } };
     decor.add(g);
@@ -1095,7 +1040,7 @@ export function buildWorld(scene, layout = 'forest') {
   // ---------- 나무, 바위, 버섯, 풀숲, 꽃 ----------
   const trunkMat = new THREE.MeshStandardMaterial({ color: isTown ? 0x8b5a2b : 0x7a4e32 }); // 숲: 붉은 삼나무 줄기
   const leafMats = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c].map((c) => new THREE.MeshStandardMaterial({ color: c }));
-  const avoid = (x, z, extra = 0) => (!isTown && !structClear(x, z, 2 + extra)) || avoid0(x, z, extra); // 숲: 개울·데크·삼나무·고목·바위 자리는 비운다
+  const avoid = (x, z, extra = 0) => (!isTown && !structClear(x, z, 2 + extra)) || (isTown && !hallstattClear(x, z, 2 + extra)) || avoid0(x, z, extra); // 마을: 호수·언덕 마을 자리는 비운다 // 숲: 개울·데크·삼나무·고목·바위 자리는 비운다
   const avoid0 = (x, z, extra = 0) =>
     Math.hypot(x, z - 12) < 7 || Math.hypot(x - v.x, z - v.z) < 22 || Math.hypot(x - L.caveMouth.x, z - L.caveMouth.z) < 14 || Math.hypot(x - L.school.x, z - L.school.z) < 16 || Math.hypot(x - L.home.x, z - L.home.z) < 10 ||
     Math.hypot(x - L.pond.x, z - L.pond.z) < L.pond.r + 3 || Math.hypot(x - ar.x, z - ar.z) < ar.r + 8 ||
@@ -1104,6 +1049,7 @@ export function buildWorld(scene, layout = 'forest') {
     Math.hypot(x - L.lab.x, z - L.lab.z) < 20 || Math.hypot(x - L.shrineSpot.x, z - L.shrineSpot.z) < 18 || Math.hypot(x - L.stadium.x, z - L.stadium.z) < L.stadium.r + 10 || distToPath(L, x, z) < 2.5 + extra ||
     WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
   // 숲: 야쿠시마 구조물 (개울·데크길·할아버지 삼나무·쓰러진 고목·이끼 바위·빛줄기)
+  const townFx = isTown ? buildHallstatt(scene, decor, { height: T.height, obstacles }) : null; // 마을: 할슈타트 (호수·언덕 마을·교회·스카이워크·설산)
   const forestFx = isTown ? null : buildForestStructures(decor, { ground: meadowHills, bed: meadowGround, obstacles });
   const treeSpots = [];
   while (treeSpots.length < (isTown ? 60 : 250)) { // 넓어진 만큼 늘리되 면적 비례(316)보다 적게 — 사이가 트이게
@@ -1436,6 +1382,7 @@ export function buildWorld(scene, layout = 'forest') {
 
   function animate(t) {
     forestFx?.animate(t);
+    townFx?.animate(t);
     for (const b of honeyBees) { // 꿀의 길 위를 벌집 쪽으로 줄지어 나는 꿀벌
       const u = b.userData;
       const pt = honeyBees.at((u.t + t * u.speed) % 1); // 시간으로 굴린다 (프레임 수와 무관하게 같은 속도)
@@ -1459,7 +1406,7 @@ export function buildWorld(scene, layout = 'forest') {
   }
 
   return {
-    ground, bushes, sun, boulder, boulderObstacle, animate, terrain: MEADOW_TERRAIN, decor,
+    ground, bushes, sun, boulder, boulderObstacle, animate, terrain: T, decor,
     spawn: isTown ? { x: 0, z: 14 } : { x: 0, z: 12 }, dark: false, // 마을: 광장 남쪽 / 숲: 마을 문 바로 북쪽
     // 몬스터 자리 (야생·보스), 블록 자리
     wildSpots: isTown ? [] : WILD_SPOTS, town: isTown, camTrees: camTreeSet,
@@ -1479,10 +1426,12 @@ export function buildWorld(scene, layout = 'forest') {
     hiveDoor: { x: ht.x + 11, z: ht.z - 6 }, // 매달린 벌집의 바로 아래 (꿀의 길 끝. 어느 쪽에서 와도 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: guideAt.x, z: guideAt.z, mesh: guide, name: '인하', lines: (c) => [
       `안녕, ${c.name}! 난 마을 길잡이 인하야. 여기가 포켓몬 마을이고, 모든 길은 이 광장에서 시작해!`,
+      '우리 마을은 오스트리아 할슈타트를 닮았대. 동북쪽 호수엔 백조가 살고, 잔교 끝에 보트 창고가 있어. 호수 뒤 언덕 마을은 돌계단으로 한 단씩 올라가!',
+      '언덕 첫째 단엔 뾰족 탑 교회, 맨 윗단엔 허공으로 쑥 나온 스카이워크 전망대가 있어. 거기서 보면 마을이랑 호수가 한눈에 보여!',
       '북쪽 문으로 나가면 푸른숲 — 야생 포켓몬이 사는 숲이야. 숲에서 더 가면 불의산·꿀벌집·메가 성역도 있어.',
       '북서쪽 바위 언덕의 굴로 들어가면 지하동굴이야. 거기서 번개동굴과 동굴탑으로도 갈 수 있어.',
       '서쪽 기차역에서 리리의 기차를 타면 물의길, 동쪽 발사장에서 코리의 로켓을 타면 꿈의우주!',
-      '남쪽 큰 흰 건물이 오박사 연구소야. 포켓몬 치료도 해 주시고, 대표 포켓몬 이야기와 의뢰도 주셔.',
+      '남쪽 유리 온실이 오박사 연구소야. 포켓몬 치료도 해 주시고, 대표 포켓몬 이야기와 의뢰도 주셔.',
       '서쪽 분홍 지붕이 네 집, 그 옆 노란 시계탑이 포켓몬 학교. 남서쪽 울타리 문은 야외 체육관, 동쪽 둥근 경기장은 넘버볼 아레나야.',
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구구나! 다음엔 지하동굴 보스에게 도전해 봐.' : '먼저 푸른숲에서 포켓몬을 잡고 이상해꽃 보스에게 도전해 봐. 보스는 경험치를 세 배나 줘!',
     ] }, { x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [

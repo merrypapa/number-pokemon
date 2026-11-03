@@ -1,17 +1,17 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
-import { makeLabelTexture, makePillSprite } from './world.js';
+import { makeLabelTexture, makePillSprite, makeInstanced } from './world.js';
+import { COL, polar, ringPt, thetaAtX, makeColosseumTerrain, buildColosseum } from './colosseum.js';
 
-// 넘버볼 아레나 내부: 푸른숲 마을 동남쪽의 둥근 경기장 건물로 들어오면 오는 큰 실내 지역.
-// 가운데 포켓몬 경기장(둥근 무대, 1P·2P 자리), 삼면의 관중석, 전광판, 조명탑, 치료 데스크의 봄이(치료), 심판 웅이 (올려 준 NPC 모델을 쓴다).
-// 몬스터·블록·퀴즈는 없다. 친구 대결(src/duel.js)을 수락하면 여기로 오고, 친구가 가까이 있으면 "대결!" 버튼이 켜진다. 남쪽 문으로 나가면 푸른숲.
-export const ARENA = { size: 90, room: { w: 72, d: 58 }, spawn: { x: 0, z: 22 }, door: { x: 0, z: 28.4 }, ring: { x: 0, z: -3, r: 12 }, spots: { a: { x: -7, z: -3 }, b: { x: 7, z: -3 } } };
-const R = ARENA.room;
-const inDoorway = (x, z) => Math.abs(x) < 1.6 && z > R.d / 2 - 0.6;
-export const ARENA_TERRAIN = {
-  height: () => 0, inHole: () => false, size: ARENA.size, obstacles: [],
-  blocked: (x, z) => !inDoorway(x, z) && (Math.abs(x) > R.w / 2 - 0.6 || Math.abs(z) > R.d / 2 - 0.6),
-};
+// 넘버볼 아레나 = 로마 콜로세움 (모양·지형은 src/colosseum.js). 푸른숲 마을 동남쪽의 둥근 경기장 문으로 들어오면 오는 지역.
+// 도착하면 콜로세움 남쪽 큰 문 앞 광장. 문 안의 굴(관중석 밑)을 지나면 타원 모래 경기장, 가운데에 포켓몬 무대(1P·2P 자리).
+// 굴 입구 양옆 돌계단 → 포디움 테라스 → 통로 계단 → 1층·2층 관중석 → 맨 위 회랑까지 올라가 대결을 내려다볼 수 있다.
+// 경기장 서쪽에 치료 데스크의 봄이(치료), 무대 앞에 심판 웅이, 북쪽 황제석에 콜로세움 해설가 마르코.
+// 몬스터·블록·퀴즈는 없다. 친구 대결(src/duel.js)을 수락하면 여기로 오고, 무대 위 제 자리에 서면 "대결!" 버튼이 켜진다.
+// 남쪽 광장의 개선문(콘스탄티누스 개선문)으로 나가면 마을.
+export const ARENA = { size: 110, spawn: { x: 0, z: 40 }, door: { x: 0, z: 47 }, ring: { x: 0, z: -3, r: 10 }, spots: { a: { x: -7, z: -3 }, b: { x: 7, z: -3 } } };
+export const ARENA_TERRAIN = makeColosseumTerrain({ size: ARENA.size, stage: ARENA.ring, obstacles: [] });
+const ARCH = { z: 47, hw: 8.5, d: 3.4 }; // 개선문
 
 export function buildArena(scene) {
   const decor = new THREE.Group();
@@ -20,107 +20,121 @@ export function buildArena(scene) {
   obstacles.length = 0;
   const seg = (ax, az, bx, bz, r = 0.3) => obstacles.push({ ax, az, bx, bz, r });
   const block = (x, z, r) => obstacles.push({ x, z, r });
+  const flat = (m) => { m.userData.noHide = true; decor.add(m); return m; };
 
-  scene.background = new THREE.Color(0x0e1424);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a8, 1.25));
-  const sun = new THREE.DirectionalLight(0xfff6e0, 1.0);
-  sun.position.set(10, 30, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
-  Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 80 });
+  // 하늘: 로마의 맑은 낮. 실내 지역 규칙(블록·숫자블록이 새로 생기지 않는다)은 그대로 두고, 하늘은 큰 공(돔)으로 그린다
+  scene.background = new THREE.Color(0x9cc8ee);
+  scene.fog = new THREE.Fog(0xd6e4f0, 110, 330);
+  {
+    const geo = new THREE.SphereGeometry(300, 24, 12), pos = geo.attributes.position, cols = [], top = new THREE.Color(0x4f8fd8), hor = new THREE.Color(0xe4eef6), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) { const k = Math.max(0, pos.getY(i) / 300); c.copy(hor).lerp(top, Math.pow(k, 0.6)); cols.push(c.r, c.g, c.b); }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    flat(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
+  }
+  scene.add(new THREE.HemisphereLight(0xfff8ec, 0x9a8a70, 1.15));
+  const sun = new THREE.DirectionalLight(0xfff0d6, 1.6);
+  sun.position.set(30, 60, 42); sun.target.position.set(0, 0, -3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0006;
+  Object.assign(sun.shadow.camera, { left: -52, right: 52, top: 52, bottom: -52, near: 1, far: 180 });
   scene.add(sun, sun.target);
 
-  // 바닥: 짙은 초록 잔디 + 흰 선. 가운데 무대는 밝은 원판 + 파란 1P · 빨간 2P 자리
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(R.w, R.d), new THREE.MeshStandardMaterial({ color: 0x3f8f46, roughness: 0.9 }));
-  floor.rotation.x = -PI2; floor.receiveShadow = true; floor.userData.noHide = true; decor.add(floor);
-  const line = (w, d, x, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color: 0xf4f4f8 })); m.rotation.x = -PI2; m.position.set(x, 0.01, z); m.userData.noHide = true; decor.add(m); };
-  line(R.w - 4, 0.25, 0, -R.d / 2 + 2); line(R.w - 4, 0.25, 0, R.d / 2 - 2); line(0.25, R.d - 4, -R.w / 2 + 2, 0); line(0.25, R.d - 4, R.w / 2 - 2, 0);
+  // 땅: 풀밭 + 돌을 깐 광장(타원) + 남쪽 길, 멀리 낮은 언덕
+  const ground = flat(new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshStandardMaterial({ color: 0x8f9a5e, roughness: 1 })));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+  const plaza = flat(new THREE.Mesh(new THREE.CircleGeometry(1, 72), new THREE.MeshStandardMaterial({ color: 0xc9bc9c, roughness: 1 })));
+  plaza.rotation.x = -Math.PI / 2; plaza.scale.set(COL.A + COL.OUT + 16, COL.B + COL.OUT + 18, 1); plaza.position.set(COL.cx, 0.02, COL.cz); plaza.receiveShadow = true;
+  const road = flat(new THREE.Mesh(new THREE.PlaneGeometry(8, 140), new THREE.MeshStandardMaterial({ color: 0xb3a586, roughness: 1 })));
+  road.rotation.x = -Math.PI / 2; road.position.set(0, 0.03, 110); road.receiveShadow = true;
+  {
+    const n = 72, pos = [], R = 230;
+    for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI * 2, h = 14 + Math.sin(i * 1.7) * 7 + Math.sin(i * 0.43) * 9; pos.push(Math.cos(a) * R, 0, Math.sin(a) * R, Math.cos(a) * R, Math.max(4, h), Math.sin(a) * R); }
+    const idx = []; for (let i = 0; i < n; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    flat(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x7d8f6a, roughness: 1, side: THREE.DoubleSide })));
+  }
+  // 우산소나무(로마 소나무): 광장 둘레
+  {
+    const trunks = [], crowns = [];
+    let s = 11; const rnd = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+    for (let i = 0; i < 60 && trunks.length < 18; i++) {
+      const x = (rnd() * 2 - 1) * 52, z = (rnd() * 2 - 1) * 52;
+      if (polar(x, z).w < COL.OUT + 8 || (Math.abs(x) < 12 && z > 28) || trunks.some((t) => Math.hypot(t.x - x, t.z - z) < 9)) continue;
+      const h = 6 + rnd() * 2.5;
+      trunks.push({ x, y: h / 2, z, sx: 1, sy: h, sz: 1, rz: (rnd() - 0.5) * 0.12 });
+      crowns.push({ x, y: h + 0.6, z, sx: 3.6, sy: 1.3, sz: 3.6 });
+      block(x, z, 0.6);
+    }
+    decor.add(makeInstanced(new THREE.CylinderGeometry(0.25, 0.4, 1, 7), new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 }), trunks, { shadow: true }));
+    decor.add(makeInstanced(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshStandardMaterial({ color: 0x4f7a3a, roughness: 1 }), crowns, { shadow: true }));
+  }
+
+  // 광장의 옛 돌 조각: 쓰러진 기둥 토막과 돌덩이 (앉거나 부딪히는 장애물)
+  {
+    const stumps = [], drums = [], stones = [];
+    for (const [x, z, h] of [[-24, 30, 2.6], [-28, 27, 1.4], [-31, 31, 3.2], [26, 31, 1.8], [30, 27, 2.8]]) { stumps.push({ x, y: h / 2, z, sx: 0.7, sy: h, sz: 0.7 }); block(x, z, 0.85); }
+    for (const [x, z, r] of [[-27, 34, 0.4], [24, 35, -0.6], [33, 33, 1.1]]) { drums.push({ x, y: 0.55, z, rx: Math.PI / 2, rz: r, sx: 0.7, sy: 2.2, sz: 0.7 }); block(x, z, 1.2); }
+    for (const [x, z, s] of [[-35, 22, 1.2], [36, 20, 1.0], [-20, 36, 0.8], [19, 38, 0.9]]) { stones.push({ x, y: s * 0.45, z, sx: s * 1.6, sy: s * 0.9, sz: s * 1.1, ry: x * 0.3 }); block(x, z, s * 0.9); }
+    const marble = new THREE.MeshStandardMaterial({ color: 0xe8e0cc, roughness: 0.9 });
+    decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1, 1, 10), marble, [...stumps, ...drums], { shadow: true }));
+    decor.add(makeInstanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xcdbd98, roughness: 1 }), stones, { shadow: true }));
+  }
+
+  // 콜로세움 본체 (관중석·바깥 아치 벽·굴·황제석·하이포지움)
+  const col = buildColosseum(decor, { obstacles });
+
+  // 경기장 모래 바닥 + 가운데 무대 (밝은 원판 + 파란 1P · 빨간 2P 자리)
+  const sand = flat(new THREE.Mesh(new THREE.CircleGeometry(1, 96), new THREE.MeshStandardMaterial({ color: 0xe0c28c, roughness: 1 })));
+  sand.rotation.x = -Math.PI / 2; sand.scale.set(COL.A, COL.B, 1); sand.position.set(COL.cx, 0.04, COL.cz); sand.receiveShadow = true;
   const ring = ARENA.ring;
-  const stage = new THREE.Mesh(new THREE.CylinderGeometry(ring.r, ring.r + 0.4, 0.3, 48), new THREE.MeshStandardMaterial({ color: 0xf1e9c8, roughness: 0.7 }));
-  stage.position.set(ring.x, 0.15, ring.z); stage.receiveShadow = true; stage.userData.noHide = true; decor.add(stage);
-  const edge = new THREE.Mesh(new THREE.TorusGeometry(ring.r, 0.18, 8, 64), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffd93d, emissiveIntensity: 0.3 }));
-  edge.rotation.x = PI2; edge.position.set(ring.x, 0.32, ring.z); decor.add(edge);
-  const mid = new THREE.Mesh(new THREE.PlaneGeometry(0.3, ring.r * 2 - 1), new THREE.MeshBasicMaterial({ color: 0x20232e })); mid.rotation.x = -PI2; mid.position.set(ring.x, 0.31, ring.z); mid.userData.noHide = true; decor.add(mid);
-  const ball = new THREE.Mesh(new THREE.CircleGeometry(2.2, 32), new THREE.MeshBasicMaterial({ color: 0xe8453c })); ball.rotation.x = -PI2; ball.position.set(ring.x, 0.315, ring.z); ball.userData.noHide = true; decor.add(ball);
-  const ballIn = new THREE.Mesh(new THREE.CircleGeometry(0.9, 24), new THREE.MeshBasicMaterial({ color: 0xf4f4f8 })); ballIn.rotation.x = -PI2; ballIn.position.set(ring.x, 0.32, ring.z); ballIn.userData.noHide = true; decor.add(ballIn);
-  for (const [k, s, color, label] of [['a', ARENA.spots.a, 0x3fb8e8, '1P'], ['b', ARENA.spots.b, 0xe8453c, '2P']]) {
-    const c = new THREE.Mesh(new THREE.RingGeometry(1.6, 2.0, 32), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })); c.rotation.x = -PI2; c.position.set(s.x, 0.33, s.z); c.userData.noHide = true; decor.add(c);
+  const stage = flat(new THREE.Mesh(new THREE.CylinderGeometry(ring.r, ring.r + 0.3, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0xf1e9c8, roughness: 0.7 })));
+  stage.position.set(ring.x, 0.15, ring.z); stage.receiveShadow = true;
+  const edge = new THREE.Mesh(new THREE.TorusGeometry(ring.r, 0.16, 8, 72), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0xffd93d, emissiveIntensity: 0.3 }));
+  edge.rotation.x = Math.PI / 2; edge.position.set(ring.x, 0.32, ring.z); flat(edge);
+  const disc = (geo, color, y) => { const m = flat(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }))); m.rotation.x = -Math.PI / 2; m.position.set(ring.x, y, ring.z); return m; };
+  disc(new THREE.PlaneGeometry(0.3, ring.r * 2 - 1), 0x20232e, 0.31);
+  disc(new THREE.CircleGeometry(2.2, 32), 0xe8453c, 0.315);
+  disc(new THREE.CircleGeometry(0.9, 24), 0xf4f4f8, 0.32);
+  for (const [s, color, label] of [[ARENA.spots.a, 0x3fb8e8, '1P'], [ARENA.spots.b, 0xe8453c, '2P']]) {
+    const c = flat(new THREE.Mesh(new THREE.RingGeometry(1.6, 2.0, 32), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }))); c.rotation.x = -Math.PI / 2; c.position.set(s.x, 0.33, s.z);
     const tag = makePillSprite(label, { bg: '#' + color.toString(16).padStart(6, '0'), fg: '#ffffff', border: '#ffffff' }, 0.6); tag.position.set(s.x, 0.9, s.z); decor.add(tag);
   }
 
-  // 벽: 짙은 남색 벽 + 노란 띠, 남쪽 벽 가운데는 문
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0x27304a }), bandMat = new THREE.MeshStandardMaterial({ color: 0xffd93d });
-  const H = 7;
-  const wall = (w, d, x, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat); m.position.set(x, H / 2, z); m.receiveShadow = true; decor.add(m); const band = new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, 0.6, d + 0.02), bandMat); band.position.set(x, 1.4, z); decor.add(band); };
-  wall(R.w + 1, 0.6, 0, -R.d / 2 - 0.3);
-  wall(0.6, R.d + 1, -R.w / 2 - 0.3, 0);
-  wall(0.6, R.d + 1, R.w / 2 + 0.3, 0);
-  wall(R.w / 2 - 2, 0.6, -(R.w / 4 + 1), R.d / 2 + 0.3);
-  wall(R.w / 2 - 2, 0.6, R.w / 4 + 1, R.d / 2 + 0.3);
-  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.7, 0.8), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
-  doorFrame.position.set(0, 3.6, R.d / 2 + 0.3); decor.add(doorFrame);
-  const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (마을)', '#e8453c', '#ffffff', 48), transparent: true, depthTest: false }));
-  exitSign.scale.set(3.4, 0.85, 1); exitSign.position.set(0, 3.0, R.d / 2 - 0.5); decor.add(exitSign);
+  // 표지판 (벽 너머로 비치지 않게 깊이 검사를 켠다)
+  const sign = (text, bg, fg, x, y, z, w = 3.6, h = 0.9) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(text, bg, fg, 48) })); s.scale.set(w, h, 1); s.position.set(x, y, z); decor.add(s); return s; };
+  const gateOut = ringPt(Math.PI / 2, COL.OUT + 0.6), gateIn = ringPt(Math.PI / 2, -0.7);
+  sign('🏟 넘버볼 콜로세움', '#5a2a7a', '#ffd93d', gateOut[0], 6.6, gateOut[1], 7, 1.6);
+  sign('▼ 나가기 (마을)', '#e8453c', '#ffffff', gateIn[0], 2.7, gateIn[1]);
+  for (const sx of [-1, 1]) sign('⬆ 관중석 계단', '#3a6fc8', '#ffffff', sx * 6.6, 4.6, ringPt(thetaAtX(sx * 6.6, -1.2), -1.2)[1], 3.4, 0.85);
 
-  // 관중석: 북·동·서 삼면, 4단 계단 + 알록달록 좌석. 앞줄 앞은 못 올라간다(장애물)
-  const seatColors = [0xe8453c, 0x3fb8e8, 0xffd93d, 0x57b947, 0xb026ff];
-  const standMat = new THREE.MeshStandardMaterial({ color: 0x4a5270, roughness: 0.9 });
-  const stand = (cx, cz, len, dir) => { // dir: 'n' | 'e' | 'w' — 무대를 바라본다
-    for (let t = 0; t < 4; t++) {
-      const depth = 1.6, h = 0.7 * (t + 1);
-      const along = dir === 'n';
-      const g = new THREE.Mesh(new THREE.BoxGeometry(along ? len : depth, h, along ? depth : len), standMat);
-      const off = (t + 0.5) * depth;
-      g.position.set(along ? cx : cx + (dir === 'e' ? off : -off), h / 2, along ? cz - off : cz);
-      g.castShadow = true; g.receiveShadow = true; decor.add(g);
-      const seats = Math.floor(len / 1.4);
-      for (let i = 0; i < seats; i++) {
-        const s = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.9), new THREE.MeshStandardMaterial({ color: seatColors[(i + t) % seatColors.length] }));
-        const p = -len / 2 + 0.7 + i * 1.4;
-        s.position.set(along ? cx + p : g.position.x, h + 0.25, along ? g.position.z : cz + p);
-        decor.add(s);
-      }
-    }
-    if (dir === 'n') seg(cx - len / 2, cz, cx + len / 2, cz, 0.4); else seg(cx, cz - len / 2, cx, cz + len / 2, 0.4);
-  };
-  stand(0, -R.d / 2 + 7.5, R.w - 8, 'n');
-  stand(R.w / 2 - 7.5, -3, R.d - 22, 'e');
-  stand(-R.w / 2 + 7.5, -3, R.d - 22, 'w');
-
-  // 전광판 (북쪽 벽 위) + 현수막
-  const board = new THREE.Mesh(new THREE.BoxGeometry(18, 4.2, 0.4), new THREE.MeshStandardMaterial({ color: 0x0f1a2e }));
-  board.position.set(0, 5.4, -R.d / 2 + 0.5); decor.add(board);
-  const boardText = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏟 넘버볼 아레나 · 친구와 대결!', '#0f1a2e', '#ffd93d', 56), transparent: true, depthTest: false }));
-  boardText.scale.set(14, 2.6, 1); boardText.position.set(0, 5.4, -R.d / 2 + 0.9); decor.add(boardText);
-  for (const [x, text, bg] of [[-R.w / 2 + 1, '⚡ 힘내라!', '#3fb8e8'], [R.w / 2 - 1, '🔥 이겨라!', '#e8453c']]) {
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture(text, bg, '#ffffff', 48), transparent: true, depthTest: false }));
-    s.scale.set(5, 1.3, 1); s.position.set(x, 5.5, -6); decor.add(s);
+  // 콘스탄티누스 개선문: 광장 남쪽. 가운데 큰 문이 마을로 나가는 문
+  {
+    const arch = new THREE.Group(); arch.position.set(0, 0, ARCH.z); arch.userData.radius = 7; decor.add(arch);
+    const marble = new THREE.MeshStandardMaterial({ color: 0xe9e0cc, roughness: 0.85 }), dark = new THREE.MeshStandardMaterial({ color: 0xc9bc9f, roughness: 1 });
+    const box = (w, h, d, x, y, z, m = marble) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; b.receiveShadow = true; arch.add(b); return b; };
+    for (const [x0, x1] of [[-8.5, -5.6], [-3.8, -1.9], [1.9, 3.8], [5.6, 8.5]]) { box(x1 - x0, 6.8, ARCH.d, (x0 + x1) / 2, 3.4, 0); for (const dz of [-0.85, 0.85]) seg(x0 + 0.85, ARCH.z + dz, x1 - 0.85, ARCH.z + dz, 0.85); } // 기둥(교각) 사각형을 굵은 선분 둘로
+    box(1.8, 3.0, ARCH.d, -4.7, 5.3, 0); box(1.8, 3.0, ARCH.d, 4.7, 5.3, 0); box(17, 2.6, ARCH.d, 0, 8.1, 0); // 옆문 위 + 몸통
+    box(17.4, 0.5, ARCH.d + 0.4, 0, 9.65, 0, dark); box(17, 2.6, ARCH.d, 0, 11.2, 0); box(17.4, 0.4, ARCH.d + 0.4, 0, 12.7, 0, dark);
+    for (const x of [-7.05, -2.85, 2.85, 7.05]) for (const z of [-1, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 6.2, 10), new THREE.MeshStandardMaterial({ color: 0xd8b478, roughness: 0.6 })); c.position.set(x, 3.6, z * (ARCH.d / 2 + 0.3)); arch.add(c); }
+    const ins = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.8), new THREE.MeshStandardMaterial({ map: makeLabelTexture('넘버볼 개선문', '#e9e0cc', '#6a4a2a', 60), roughness: 1 }));
+    ins.position.set(0, 11.2, -ARCH.d / 2 - 0.02); ins.rotation.y = Math.PI; arch.add(ins);
   }
+  sign('▼ 나가기 (마을)', '#e8453c', '#ffffff', 0, 3.4, ARCH.z - 2.2);
 
-  // 조명탑 넷 + 무대를 비추는 스포트라이트
-  const lights = [];
-  for (const [x, z] of [[-R.w / 2 + 4, -R.d / 2 + 4], [R.w / 2 - 4, -R.d / 2 + 4], [-R.w / 2 + 4, R.d / 2 - 4], [R.w / 2 - 4, R.d / 2 - 4]]) {
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 9, 10), new THREE.MeshStandardMaterial({ color: 0x9aa4b8 }));
-    pole.position.set(x, 4.5, z); decor.add(pole); block(x, z, 0.6);
-    const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.8, 1.0), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2c0, emissiveIntensity: 1.2 }));
-    lamp.position.set(x, 9.2, z); lamp.lookAt(ring.x, 0, ring.z); decor.add(lamp);
-    const spot = new THREE.SpotLight(0xfff4d6, 2.2, 60, Math.PI / 7, 0.5, 1);
-    spot.position.set(x, 9, z); spot.target.position.set(ring.x, 0, ring.z); decor.add(spot, spot.target);
-    lights.push(spot);
-  }
-
-  // 치료 데스크 + 간호사 조이 (서쪽 앞), 심판 (무대 앞)
-  const desk = new THREE.Mesh(new THREE.BoxGeometry(5, 1.1, 1.6), new THREE.MeshStandardMaterial({ color: 0xf6f3ea }));
-  desk.position.set(-16, 0.55, 19); desk.castShadow = true; decor.add(desk); seg(-18.5, 19, -13.5, 19, 0.9);
-  const cross = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 0.1), new THREE.MeshStandardMaterial({ color: 0xe8453c })); cross.position.set(-16, 2.6, 21.2); decor.add(cross);
-  const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.26, 0.12), new THREE.MeshStandardMaterial({ color: 0xffffff })); crossH.position.copy(cross.position); decor.add(crossH);
-  const crossV = crossH.clone(); crossV.rotation.z = PI2; decor.add(crossV);
-  const deskSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏥 치료 데스크', '#ffffff', '#e8453c', 44), transparent: true, depthTest: false }));
-  deskSign.scale.set(3.6, 0.9, 1); deskSign.position.set(-16, 3.5, 20); decor.add(deskSign);
+  // 치료 데스크 + 간호사 봄이 (경기장 서쪽 끝), 심판 웅이 (무대 앞)
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 5), new THREE.MeshStandardMaterial({ color: 0xf6f3ea }));
+  desk.position.set(-16.6, 0.55, -3); desk.castShadow = true; decor.add(desk); seg(-16.6, -5.3, -16.6, -0.7, 0.9);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 3, 8), new THREE.MeshStandardMaterial({ color: 0x8a7a62 })); post.position.set(-18.3, 1.5, -3); decor.add(post); block(-18.3, -3, 0.4);
+  const cross = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 1.2), new THREE.MeshStandardMaterial({ color: 0xe8453c })); cross.position.set(-18.2, 3.4, -3); decor.add(cross);
+  const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.8), new THREE.MeshStandardMaterial({ color: 0xffffff })); crossH.position.set(-18.12, 3.4, -3); decor.add(crossH);
+  const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.8, 0.26), crossH.material); crossV.position.copy(crossH.position); decor.add(crossV);
+  sign('🏥 치료 데스크', '#ffffff', '#e8453c', -17.4, 4.5, -3);
   const nurse = makeNpc({ outfit: 'professor', name: '봄이', model: '봄이.glb' }); // 불의산 안내원 봄이가 아레나 치료 데스크도 본다
-  nurse.position.set(-16, 0, 17.2); nurse.rotation.y = Math.PI; decor.add(nurse);
+  nurse.position.set(-15.0, 0, -3); nurse.rotation.y = Math.PI / 2; decor.add(nurse);
   const referee = makeNpc({ outfit: 'ranger', name: '웅이', model: '웅이.glb' }); // 지하동굴 안내원 웅이가 심판
-  referee.position.set(0, 0, 10.5); referee.rotation.y = Math.PI; decor.add(referee);
+  referee.position.set(0, 0, 8.6); referee.rotation.y = Math.PI; decor.add(referee);
+  const guide = makeNpc({ outfit: 'professor', name: '마르코' }); // 황제석의 콜로세움 해설가
+  guide.position.set(col.pulv.x - 1.4, COL.PULV.top, col.pulv.z - 1.0); decor.add(guide);
 
-  function animate(t) { lights.forEach((l, i) => { l.intensity = 2.0 + Math.sin(t * 1.3 + i) * 0.3; }); edge.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.2; }
+  function animate(t) { col.animate(t); edge.material.emissiveIntensity = 0.3 + Math.sin(t * 2) * 0.2; }
 
   return {
     portalTo: 'town', sun, animate, terrain: ARENA_TERRAIN, decor, spawn: ARENA.spawn, portal: ARENA.door, dark: false, indoor: true, noShrine: true,
@@ -128,18 +142,25 @@ export function buildArena(scene) {
     duelSpots: ARENA.spots,
     npcs: [
       { x: nurse.position.x, z: nurse.position.z, mesh: nurse, name: '봄이', heal: true, lines: (c) => [
-        `어서 와, ${c.name}! 나 봄이야, 오늘은 아레나 치료 데스크를 맡았어. 대결로 지친 포켓몬은 언제든 여기서 낫게 해 줄게.`,
+        `어서 와, ${c.name}! 나 봄이야, 오늘은 콜로세움 치료 데스크를 맡았어. 대결로 지친 포켓몬은 언제든 여기서 낫게 해 줄게.`,
         '친구와 대결하려면 도감 친구 탭에서 ⚔ 대결을 눌러 신청해. 친구가 수락하면 둘 다 여기 아레나로 오게 돼.',
-        '아레나에서 친구 가까이 가면 "대결!" 버튼이 켜져. 서로 번갈아 기술을 하나씩 고르는 거야.',
+        '무대 위 파란 1P·빨간 2P 자리에 서면 "대결!" 버튼이 켜져. 서로 번갈아 기술을 하나씩 고르는 거야.',
         '대결에서 이기면 블록 30개, 져도 10개! 주간 순위에도 대결 승리 점수가 들어간단다.',
       ] },
       { x: referee.position.x, z: referee.position.z, mesh: referee, name: '웅이', lines: (c) => [
         `${c.name} 선수, 심판 웅이다! 무대에 오르렴! 파란 1P 자리는 신청한 사람, 빨간 2P 자리는 받은 사람이야.`,
         '피해는 공격력 × 기술 배수 × 속성 상성이야. 불은 풀에, 물은 불에, 풀은 물에 세단다. 상대 대표를 보고 기술을 고르렴!',
         '상대가 자리에 없으면 기다려도 돼. 차례는 남아 있으니 나중에 도감 대결 탭에서 이어서 할 수 있어.',
-        '먼저 상대 포켓몬의 체력을 0으로 만드는 쪽이 이겨! 정정당당하게!',
+        '구경하고 싶으면 남쪽 문 양옆 돌계단으로 올라가 봐. 관중석 맨 위에서 무대가 한눈에 보여!',
+      ] },
+      { x: guide.position.x, z: guide.position.z, mesh: guide, name: '마르코', prompt: '황제석의 해설가 마르코 할아버지야! 대화 버튼을 눌러 봐.', lines: (c) => [
+        `여기까지 올라왔구나, ${c.name}! 나는 해설가 마르코. 여기는 황제가 앉던 자리, "풀비나르"란다. 경기장이 제일 잘 보이지!`,
+        '이 경기장은 이탈리아 로마의 콜로세움을 본떠 지었어. 진짜 콜로세움은 약 2천 년 전에 지어졌고, 5만 명이 한꺼번에 구경할 수 있었대.',
+        '바깥 벽을 봐. 아치가 3층으로 쌓여 있고 맨 위에 다락층이 있지? 진짜 콜로세움 1층에는 아치 문이 80개나 있어서, 입장권에 적힌 번호 문으로 들어갔단다.',
+        '관중석 한 줄은 꽤 높아서 그냥은 못 올라가. 통로 계단으로 한 칸씩 오르거나, 점프해야 해. 옛날 로마 사람들도 계단으로 다녔지!',
+        '맨 위 돛대에는 "벨라리움"이라는 큰 천막을 걸어 햇빛을 가렸어. 북쪽에 펼쳐 둔 천막이 보이니?',
+        '경기장 바닥 동쪽의 나무 뚜껑문 보이니? 그 아래는 "하이포지움"이라는 지하 무대야. 승강기로 무대 장치를 바닥 위로 올려 보냈단다. 지금도 오르락내리락하지!',
       ] },
     ],
   };
 }
-const PI2 = Math.PI / 2;
