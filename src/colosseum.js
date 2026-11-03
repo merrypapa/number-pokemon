@@ -304,8 +304,9 @@ export function buildColosseum(decor, { obstacles }) {
     const hp = polar(head.x, head.z), cp = polar(camPos.x, camPos.z), feet = head.y - 1;
     headInTunnel = inTunnel(head.x, head.z, hp.w) && hp.w > -0.3 && feet < P - 0.5;
     lowHide.clear(); attHide.clear();
-    if (!headInTunnel && hp.w < 0.4 && feet <= P + 0.1 && cp.w > -1.5) { lowHide.add(secOf(cp.th)); lowHide.add(secOf(hp.th)); lowHide.add(secOf(hp.th + angDiff(cp.th, hp.th) / 2)); }
-    if (cp.w > OUT - 1.5 && hp.w < OUT - 0.3 && feet > P - 0.5) { attHide.add(secOf(cp.th)); attHide.add(secOf(hp.th)); attHide.add(secOf(hp.th + angDiff(cp.th, hp.th) / 2)); }
+    const near = (set) => { const mid = hp.th + angDiff(cp.th, hp.th) / 2; for (const a of [cp.th, hp.th, mid]) for (const d of [-0.28, 0, 0.28]) set.add(secOf(a + d)); }; // 조각 경계 근처면 옆 조각도
+    if (!headInTunnel && hp.w < 0.4 && feet <= P + 0.1 && cp.w > -1.5) near(lowHide); // 경기장 바닥·계단에 있고 카메라가 관중석 위: 포디움 벽·난간을 숨긴다
+    if (cp.w > OUT - 1.5 && hp.w < OUT - 0.3 && feet > P - 0.5) near(attHide);          // 관중석 위에 있고 카메라가 바깥 벽 밖: 다락층을 숨긴다
   };
   for (let s = 0; s < K; s++) {
     for (const [G, hide] of [[low[s], lowHide], [att[s], attHide]]) {

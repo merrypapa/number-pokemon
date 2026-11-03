@@ -556,7 +556,7 @@ export function buildSchool(scene) {
     const up = makePillSprite('⬆ 2층 도서관', { bg: '#fff6e0', fg: '#3b2414', border: '#c9a14a' }, 0.75); up.position.set(STAIR.x0 + 0.4, 2.0, STAIR.z0 + 1); decor.add(up);
     const libSign = makePillSprite('📚 보들리 도서관', { bg: '#fff6e0', fg: '#3b2414', border: '#c9a14a' }, 0.65); libSign.position.set(GAL.x1 + 0.1, GAL.y + 1.7, 0); decor.add(libSign);
   }
-  // 사서 보들리 (2층 회랑, 칸막이 사이)
+  // 사서 보들리 (2층 회랑). npcs 의 y 는 서 있는 층 높이 (main 이 층을 가려 대화 버튼을 띄울 수 있게)
   const LIB = { x: -13.5, z: -7.0 };
   const librarian = makeNpc({ outfit: LIBRARIAN.outfit, name: LIBRARIAN.name });
   librarian.position.set(LIB.x, GAL.y, LIB.z); librarian.rotation.y = Math.PI / 2;
@@ -643,6 +643,6 @@ export function buildSchool(scene) {
         '숙제는 매일 칠판에 적어 둔단다. 내 자리에 앉아 그 과목을 공부해서 세 문제 이상 맞히면 숙제 끝! 다 하면 나한테 꼭 보여 주렴.',
       ],
     }, { x: monitor.position.x, z: monitor.position.z, mesh: monitor, name: MONITOR.name, lines: MONITOR.lines },
-    { x: LIB.x, z: LIB.z, mesh: librarian, name: LIBRARIAN.name, lines: LIBRARIAN.lines }, ...npcs],
+    { x: LIB.x, z: LIB.z, y: GAL.y, mesh: librarian, name: LIBRARIAN.name, lines: LIBRARIAN.lines }, ...npcs],
   };
 }

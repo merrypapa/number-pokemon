@@ -105,6 +105,10 @@ export function buildPalmHouse(decor) {
   const deckMat = new THREE.MeshStandardMaterial({ color: 0xe3ebe4, roughness: 0.8, side: THREE.DoubleSide });
   const beams = [], fine = []; // beams: 굵은 쇠살(그림자 있음), fine: 가는 난간·가로살(그림자 없이 삼각 막대)
   const noHide = (m) => { m.userData.noHide = true; decor.add(m); return m; };
+  // 회랑 바닥 + 층계참: 나선 계단을 오르는 동안(머리 위에 회랑이 겹칠 때)은 위에서 보는 카메라를 가리니 잠깐 숨긴다 (main 의 resolveCamera 가 cutaway 를 본다)
+  const upper = new THREE.Group();
+  upper.userData.cutaway = (head) => { const y = head.y - 1; return y > 0.3 && y < PH.G - 0.6 && STAIRS.some((s) => Math.hypot(head.x - s.x, head.z - s.z) < STAIR.ROUT + 0.4); };
+  decor.add(upper);
 
   // ----- 유리 껍질: 둘레 32칸 × 단면 12칸 (문 앞 유리벽은 비운다) -----
   {
@@ -162,7 +166,7 @@ export function buildPalmHouse(decor) {
     ring(PH.GI, PH.G - T, PH.GI, PH.G);       // 안쪽 옆면
     ring(PH.GO, PH.G - T, PH.GO, PH.G);       // 바깥 옆면
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-    const deck = noHide(new THREE.Mesh(geo, deckMat)); deck.receiveShadow = true; deck.castShadow = true;
+    const deck = new THREE.Mesh(geo, deckMat); deck.receiveShadow = true; deck.castShadow = true; upper.add(deck);
     // 난간: 기둥(1.125m 마다) + 위 손잡이 + 가운데 띠. 계단이 올라오는 자리의 안쪽 난간은 비운다
     const open = (p) => STAIRS.some((s) => Math.hypot(p[0] - s.x, p[2] - s.z) < STAIR.ROUT + 0.35);
     for (const d of [PH.GI + 0.06, PH.GO - 0.06]) {
@@ -204,7 +208,7 @@ export function buildPalmHouse(decor) {
       posts.push({ x: s.x, y: (PH.G + 1.6) / 2, z: s.z, sx: 0.16, sy: PH.G + 1.6, sz: 0.16 });
     }
     decor.add(makeInstanced(new THREE.CylinderGeometry(STAIR.ROUT, STAIR.ROUT, 0.1, 3, 1, false, 0, dA * 1.04), iron, treads, { shadow: true }));
-    decor.add(makeInstanced(new THREE.CylinderGeometry(STAIR.ROUT, STAIR.ROUT, 0.2, 10, 1, false, 0, Math.PI), deckMat, lands, { shadow: true }));
+    upper.add(makeInstanced(new THREE.CylinderGeometry(STAIR.ROUT, STAIR.ROUT, 0.2, 10, 1, false, 0, Math.PI), deckMat, lands, { shadow: true }));
     decor.add(makeInstanced(new THREE.CylinderGeometry(1, 1, 1, 8), iron, posts));
     decor.add(makeInstanced(new THREE.SphereGeometry(0.22, 8, 6), iron, posts.map((p) => ({ x: p.x, y: p.sy, z: p.z }))));
   }

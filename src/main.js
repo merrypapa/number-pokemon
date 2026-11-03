@@ -3442,7 +3442,7 @@ function frame() {
     if (!moved) for (const npc of zone.world.npcs || []) {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7 && !npc.seated) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
-      if (d < 2.8) {
+      if (d < 2.8 && (npc.y == null || Math.abs(pp.y - npc.y) < 2)) { // 다른 층(도서관 회랑의 사서)은 같은 층에서만
         const foe = npc.rocket && !state.rockets[zone.name] ? npc.rocket : null; // 아직 안 이긴 넘버로켓단 대원
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
         else offer('💬 대화', () => talkTo(npc), '💬\n대화');
