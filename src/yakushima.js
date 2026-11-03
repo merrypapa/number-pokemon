@@ -198,7 +198,6 @@ export function buildForestStructures(decor, { ground, bed, obstacles }) {
       if (hm > 1.2) for (const side of [-1, 1]) { // 데크를 받치는 기둥 (아래로 지나갈 수 있게 가장자리에만)
         const px = m.x - m.uz * (DECK.half - 0.1) * side, pz = m.z + m.ux * (DECK.half - 0.1) * side, gy = ground(px, pz);
         const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, hm - gy, 6), railMat); post.position.set(px, gy + (hm - gy) / 2 - 0.1, pz); add(post, 1.2);
-        obstacles.push({ x: px, z: pz, r: 0.18 });
       }
     }
     const st = polyAt(DECK, 2), sign = makePillSprite('🪵 이끼숲 데크길 ↗', { bg: '#6a4a00', fg: '#ffffff', border: '#ffd93d' }, 0.7);
@@ -259,8 +258,11 @@ export function buildForestStructures(decor, { ground, bed, obstacles }) {
   // ----- 이끼 바위 언덕: 점프해서 오르는 바위들 -----
   for (const k of ROCKS) {
     const gy = ground(k.x, k.z);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(k.r * 0.92, k.r, k.top, 10), rockMat); body.position.set(k.x, gy + k.top / 2, k.z); body.castShadow = body.receiveShadow = true; add(body, k.r + 0.5);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(k.r * 0.95, 14, 6, 0, TAU, 0, Math.PI / 2), mossMat); cap.scale.y = 0.14; cap.position.set(k.x, gy + k.top - 0.02, k.z); add(cap, k.r);
+    // 울퉁불퉁한 바위 몸통(다면체) + 위를 덮은 이끼. 밟는 높이는 평평한 꼭대기(k.top)
+    const body = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), rockMat); body.scale.set(k.r * 1.05, k.top * 0.62, k.r * 1.05); body.position.set(k.x, gy + k.top * 0.42, k.z); body.rotation.y = k.x * 0.7;
+    body.castShadow = body.receiveShadow = true; add(body, k.r + 0.5);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(k.r * 0.92, 16, 6, 0, TAU, 0, Math.PI / 2), mossMat); cap.scale.y = 0.18; cap.position.set(k.x, gy + k.top - 0.06, k.z); add(cap, k.r);
+    for (let i = 0; i < 4; i++) { const a = i * 1.6 + k.z, f = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.9, 3), mossDark); f.position.set(k.x + Math.cos(a) * k.r * 0.95, gy + 0.35, k.z + Math.sin(a) * k.r * 0.95); f.rotation.z = Math.cos(a) * 0.8; f.rotation.x = -Math.sin(a) * 0.8; decor.add(f); } // 바위 밑 고사리
   }
   {
     const v = VIEW_ROCK, s = makePillSprite('🪨 이끼 바위 언덕 · 점프로 꼭대기까지!', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.7);
