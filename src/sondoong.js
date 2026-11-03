@@ -129,7 +129,7 @@ export function buildCaveStructures(scene, decor, { ground, base, obstacles }) {
       const g = new THREE.Group();
       const plank = new THREE.Mesh(new THREE.BoxGeometry(ROPE.half * 2 + 0.2, 0.14, len - 0.08), woodMat); plank.position.y = -0.07; g.add(plank);
       if (hm > 0.8) for (const side of [-1, 1]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, len, 5), ropeMat); rope.rotation.x = Math.PI / 2; rope.position.set(side * (ROPE.half + 0.05), 0.9, 0); g.add(rope); const v = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 4), ropeMat); v.position.set(side * (ROPE.half + 0.05), 0.45, 0); g.add(v); }
-      g.position.set(m.x, hm, m.z); g.lookAt(b.x, yb, b.z); add(g, 2);
+      g.position.set(m.x, hm, m.z); g.lookAt(b.x, yb, b.z); g.userData.noHide = true; decor.add(g); // 걸어 건너는 구름다리 판은 숨기지 않는다
     }
     for (const s of [ROPE.ramp, ROPE.L - ROPE.ramp]) { const p = polyAt(ROPE, s); for (const side of [-1, 1]) { const x = p.x - p.uz * (ROPE.half + 0.5) * side, z = p.z + p.ux * (ROPE.half + 0.5) * side; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, ROPE.H + 1.6, 6), rockMat); post.position.set(x, base(x, z) + (ROPE.H + 1.6) / 2, z); add(post, 1); } }
     const p = polyAt(ROPE, 1.5), sign = makePillSprite('🌉 구름다리 · 지하 강 건너 보스 절벽으로', { bg: '#1f2a3a', fg: '#9fe8ff', border: '#9fe8ff' }, 0.7); sign.position.set(p.x + 2.4, base(p.x, p.z) + 2.4, p.z); decor.add(sign);

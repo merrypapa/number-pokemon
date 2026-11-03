@@ -3341,10 +3341,7 @@ function frame() {
     let moved = false;
     if (zone.name === 'forest' || zone.name === 'town') { // 마을(허브)과 푸른숲은 같은 코드로 만들어 문 좌표가 같은 이름으로 온다 (없는 문은 맵 밖에 있어 닿지 않는다)
       const w = zone.world;
-      if (w.cablecar && near(w.cablecar.boardPoint, 1.3)) { // 케이블카 곤돌라 문 앞 → 줄을 타고 반대편(마을 ↔ 푸른숲)으로
-        moved = true;
-        startRide(w.cablecar);
-      } else if (near(w.caveMouth, 2.0)) { // 바위 언덕의 굴 입구로 걸어 들어간다 (떨어지지 않는다)
+      if (near(w.caveMouth, 2.0)) { // 바위 언덕의 굴 입구로 걸어 들어간다 (떨어지지 않는다)
         moved = true;
         switchZone('cave', getZone('cave').world.spawn, { text: '굴을 따라 지하동굴에 들어왔어! 어두우니 조심해. 포니타를 찾으면 밝아질 거야. 빛나는 포탈로 마을에 돌아갈 수 있어!', sec: 8 });
       } else if (zone.name === 'forest' && state.conquered.forest && near({ x: WORLD.cave.x, z: WORLD.cave.z + 6.5 }, 2.2)) {
@@ -3413,6 +3410,7 @@ function frame() {
     // ----- 포켓몬 학교: 내 자리에 가면 "공부하기" -----
     if (!moved && zone.world.mySeat && near(zone.world.mySeat, 1.3)) offer(zone.world.seatLabel || '📚 공부하기', sitDown, zone.world.seatLabel ? '📚\n숙제' : '📚\n공부');
     // ----- 지우네 집: 침대 옆에서 "자기" (포켓몬 치료 + 저장) -----
+    if (!moved && zone.world.cablecar && !ride && near(zone.world.cablecar.boardPoint, 1.8)) offer(`🚡 ${zone.name === 'town' ? '푸른숲' : '마을'}행 케이블카 타기`, () => startRide(zone.world.cablecar), '🚡\n타기'); // 곤돌라 문 앞: 버튼을 눌러야 탄다
     if (!moved && zone.world.bed && !sleeping && near(zone.world.bed, 1.6) && (zone.world.bed.y == null || Math.abs(pp.y - zone.world.bed.y) < 1.2)) offer('🛏 자기', sleepInBed, '🛏\n자기');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
     if (!moved) for (const npc of zone.world.npcs || []) {
