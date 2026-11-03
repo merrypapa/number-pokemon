@@ -3,7 +3,7 @@ import { makeNpc } from './npc.js';
 import { buildShip } from './boat.js';
 import { rand } from './util.js';
 import { WALKS, SANDBAR, sandbarH, seaStructHeight, seaStructCeiling, seaStructBlocked, seaSailBlock, seaClear, buildSeaStructures } from './maldives.js';
-import { buildGround, makeSignAt, makePillSprite, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
+import { buildGround, makeSignAt, makePillSprite, makeLabelTexture, buildBridge, onBridge, bridgeHeightAt, bridgeDeckY, makeInstanced, WHITE_MAT } from './world.js';
 
 // 물의길 (330x330). 푸른숲 기차역에서 기차를 타고 온다. 물 포켓몬이 산다.
 // 모래섬들이 바다 위에 흩어져 있고 나무 다리로 이어진다. 걸어서는 바다에 못 들어가고 다리로만 건너지만,
@@ -176,15 +176,34 @@ export function buildSea(scene) {
       decor.add(pier);
     }
     for (let i = 0; i < 52; i++) { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 2.0), tieMat); tie.position.set(SEA.spawn.x - 4 + i * 1.5, y0 + 0.05, SEA.spawn.z - 6); decor.add(tie); }
-    const plat = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 3.5), new THREE.MeshStandardMaterial({ color: 0xd9c9a8 }));
-    plat.position.set(SEA.spawn.x + 6, y0 + 0.1, SEA.spawn.z - 2.6);
-    plat.userData.noHide = true; // 바닥은 숨기지 않는다
-    decor.add(plat);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(14, 0.25, 3.9), new THREE.MeshStandardMaterial({ color: 0xe8453c }));
-    roof.position.set(SEA.spawn.x + 6, y0 + 3.4, SEA.spawn.z - 2.6);
-    roof.userData.radius = 8;   // 넓은 지붕이라 끝에 서도 시야를 가리면 잠시 숨는다
-    decor.add(roof);
-    for (const dx of [-6, 0, 6]) for (const dz of [-4.2, -1.0]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.4, 8), tieMat); post.position.set(SEA.spawn.x + 6 + dx, y0 + 1.7, SEA.spawn.z + dz); decor.add(post); block(SEA.spawn.x + 6 + dx, SEA.spawn.z + dz, 0.2); }
+    // 기차역 = 일본 시모나다역(바다가 바로 앞에 펼쳐진 작은 무인역): 얇은 나무 승강장 + 작은 대합실 하나 + 바다(동쪽)를 보는 긴 의자 + 흰 역 이름판
+    const px = SEA.spawn.x + 6, pz = SEA.spawn.z - 2.6;
+    const plat = new THREE.Mesh(new THREE.BoxGeometry(14, 0.06, 3.5), new THREE.MeshStandardMaterial({ color: 0xb08a5a, roughness: 0.9 })); // 걷는 높이와 맞게 얇게
+    plat.position.set(px, y0 + 0.03, pz); plat.userData.noHide = true; decor.add(plat);
+    const edgeM = new THREE.MeshStandardMaterial({ color: 0xd9d2c0 }), edge = new THREE.Mesh(new THREE.BoxGeometry(14, 0.08, 0.3), edgeM); edge.position.set(px, y0 + 0.07, pz - 1.6); decor.add(edge);
+    { // 대합실 (승강장 서쪽 끝): 나무 벽 셋 + 함석 지붕 + 안의 긴 의자
+      const g = new THREE.Group(), wall = new THREE.MeshStandardMaterial({ color: 0x8a6a48, roughness: 0.95 }), roofM = new THREE.MeshStandardMaterial({ color: 0x5a7a8a, metalness: 0.4, roughness: 0.6 });
+      for (const [w, d, x, z] of [[3.2, 0.12, 0, 1.0], [0.12, 2.0, -1.6, 0], [0.12, 2.0, 1.6, 0]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 2.3, d), wall); m.position.set(x, 1.15, z); g.add(m); }
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.1, 2.6), roofM); roof.position.set(0, 2.4, 0); roof.rotation.x = 0.12; g.add(roof);
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.1, 0.5), wall); seat.position.set(0, 0.5, 0.65); g.add(seat);
+      g.position.set(px - 5.2, y0, pz + 0.3); g.userData.radius = 2.4; decor.add(g);
+      obstacles.push({ ax: px - 6.8, az: pz + 1.3, bx: px - 3.6, bz: pz + 1.3, r: 0.3 }, { ax: px - 6.8, az: pz - 0.7, bx: px - 6.8, bz: pz + 1.3, r: 0.3 }, { ax: px - 3.6, az: pz - 0.7, bx: px - 3.6, bz: pz + 1.3, r: 0.3 });
+    }
+    { // 바다를 보는 긴 의자 (승강장 동쪽 끝, 바다 쪽을 향해)
+      const bench = new THREE.Group(), w = new THREE.MeshStandardMaterial({ color: 0xa07a4a });
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 2.0), w); seat.position.y = 0.5; const back = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 2.0), w); back.position.set(-0.25, 0.8, 0);
+      for (const z of [-0.8, 0.8]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.08), w); leg.position.set(0, 0.25, z); bench.add(leg); }
+      bench.add(seat, back); bench.position.set(px + 6.2, y0, pz); decor.add(bench); obstacles.push({ x: px + 6.2, z: pz, r: 0.6 });
+    }
+    { // 흰 역 이름판 (두 다리) + 가로등
+      const g = new THREE.Group(), post = new THREE.MeshStandardMaterial({ color: 0x3a3a3a });
+      for (const x of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0, 6), post); p.position.set(x, 1.0, 0); g.add(p); }
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.8), new THREE.MeshBasicMaterial({ map: makeLabelTexture('물의길역', '#ffffff', '#20232e', 56), side: THREE.DoubleSide })); board.position.y = 1.9; g.add(board);
+      g.position.set(px + 3.2, y0, pz + 1.4); decor.add(g); block(px + 2.2, pz + 1.4, 0.15); block(px + 4.2, pz + 1.4, 0.15); // 리리(선장) 자리 옆을 비운다
+      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3.2, 6), post); lamp.position.set(px + 5.6, y0 + 1.6, pz + 1.4); decor.add(lamp); block(px + 5.6, pz + 1.4, 0.15);
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfff1b5, emissive: 0xffd36b, emissiveIntensity: 1 })); bulb.position.set(px + 5.6, y0 + 3.25, pz + 1.4); decor.add(bulb);
+    }
+    const seaSign = makePillSprite('🌅 물의길역 · 바다가 보이는 작은 역 (시모나다역을 닮았어)', { bg: '#1f5f7a', fg: '#ffffff', border: '#9fe8ff' }, 0.7); seaSign.position.set(px, y0 + 4.2, pz); decor.add(seaSign);
     train = new THREE.Group();
     const dark = new THREE.MeshStandardMaterial({ color: 0x20232e });
     const engine = new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, 2.2), new THREE.MeshStandardMaterial({ color: 0xe8453c })); engine.position.y = 1.5; engine.castShadow = true;
