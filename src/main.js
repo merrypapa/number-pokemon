@@ -5,6 +5,7 @@ import { buildMegaShrine, shrineName, shrineHeightAt, SHRINE_PILLARS } from './m
 import { buildArena, ARENA } from './arena.js';
 import { buildGym } from './gym.js';
 import { makePillSprite } from './world.js';
+import { reachMap, fixSpots } from './reach.js';
 import { buildCave } from './cave.js';
 import { buildVolcano } from './volcano.js';
 import { buildSea } from './sea.js';
@@ -536,11 +537,15 @@ function revealShrine(z, silent = false) {
   }
 }
 /** 지역을 만들고(없으면) 몬스터·보스·블록을 채운다. 저장에서 이미 잡은 몬스터는 빼 둔다. */
+const REACH_FIX = new Set(['cave', 'thunder', 'hive']); // 닿는 땅 검사(1m 칸 칠하기)를 하는 지역 — 넓은 바깥 지역은 오래 걸리고(1~2초) 문제가 없어 뺐다
 function getZone(name) {
   if (zones[name]) return zones[name];
   const z = makeZone(name, BUILDERS[name]);
   zones[name] = z;
   setActiveTerrain(z.terrain); // Creature 생성 시 지형 높이를 쓰므로 잠시 전환
+  if (REACH_FIX.has(name) && z.world.wildSpots?.length) { // 기둥·벽이 많은 지역: 주인공이 닿지 못하는 야생·블록 자리를 닿는 자리로 옮긴다 (src/reach.js)
+    try { const R = reachMap(z.world.spawn); if (R) { fixSpots(R, z.world.wildSpots); fixSpots(R, z.world.pickupSpots); } } catch (_) {}
+  }
   // 야생 포켓몬: 보통은 그 지역에 사는 종(zone). 다만 zones[].wild 에 종 목록이 있으면 그걸 쓴다
   // (심해는 물의길의 물 포켓몬이 내려와 사는 곳이라 같은 종을 데려다 쓴다. wildOverride 로 그 지역에 맞게 고친다:
   //  심해에는 수면이 없으므로 swim 을 꺼서 해저 바닥을 걸어 다니게 한다).
