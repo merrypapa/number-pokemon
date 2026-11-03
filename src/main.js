@@ -428,7 +428,7 @@ function toggleFly() { flying ? dismountFly() : mountFly(); }
 flyBtn.onclick = toggleFly;
 
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
-const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -44, z: 34 }, volcano: { x: -93, z: 85 }, sea: { x: 110, z: 114 }, space: { x: 85, z: 79 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
+const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -37, z: -27 }, /* 동굴: 예전 자리(-44,34)는 지하 강과 겹쳐 늘 다른 곳으로 밀렸다 */ volcano: { x: -93, z: 85 }, sea: { x: 110, z: 114 }, space: { x: 85, z: 79 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
 /** 성역을 놓을 만한 넓고 평평한 자리를 찾는다 (바다 지역은 탁 트인 물 위) */
 function findShrineSpot(z) {
   const onWater = !!z.world.waterY;
@@ -445,6 +445,8 @@ function findShrineSpot(z) {
         if (r === 5 && !onWater && insideObstacle(px, pz, 1.2)) return false; // 가운데는 나무·바위 없는 빈터라야 한다
       }
     }
+    if (!onWater && (insideObstacle(x, zz, 1.5) || [0, 1, 2, 3, 4, 5, 6, 7].some((k) => insideObstacle(x + Math.cos(k * Math.PI / 4) * 2.8, zz + Math.sin(k * Math.PI / 4) * 2.8, 1.0)))) return false; // 가운데(명소 안쪽)도 빈터
+    if (!onWater) for (let d = 6; d <= 12; d += 1.5) if (insideObstacle(x, zz + d, 0.9) || isBlocked(x, zz + d)) return false; // 명소 입구(남쪽) 앞길도 빈터라야 들어간다 (그루터기 입구·진주 웅덩이 징검돌)
     return onWater ? canSail(x, zz) : (!isBlocked(x, zz) && !inHole(x, zz) && Math.abs(terrainHeight(x, zz) - terrainHeight(x + 14, zz)) < 4);
   };
   const hint = SHRINE_HINT[z.name];
@@ -475,6 +477,7 @@ function buildShrine(z) {
     if (!z.terrain.shrineWrapped) { // 지형 높이에 성역의 단을 얹는다 (성역이 드러난 뒤에만)
       z.terrain.height = (x, zz, refY) => { const h = orig(x, zz, refY); if (!z.shrine?.shown) return h; /* refY 를 넘겨야 숲의 데크·전망대(겹친 층)가 성역이 드러난 뒤에도 된다 */ const s = z.shrine.heightAt ? z.shrine.heightAt(x - spot.x, zz - spot.z) : shrineHeightAt(Math.hypot(x - spot.x, zz - spot.z)); return s > 0 ? Math.max(h, baseY + s) : h; };
       z.terrain.shrineWrapped = true;
+      if (z.shrine.blockedAt) { const ob = z.terrain.blocked; z.terrain.blocked = (x, zz, refY) => (ob ? ob(x, zz, refY) : false) || (!!z.shrine?.shown && z.shrine.blockedAt(x - spot.x, zz - spot.z, refY)); } // 명소의 못 들어가는 곳 (진주 웅덩이 물)
     }
     z.shrinePillars = (z.shrine.pillars || SHRINE_PILLARS).map((p) => (p.ax != null ? { ax: spot.x + p.ax, az: spot.z + p.az, bx: spot.x + p.bx, bz: spot.z + p.bz, r: 0, pillarR: p.r } : { x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥·벽은 못 지나간다 (드러난 뒤에). 명소(윌슨 그루터기)는 벽 선분
     z.terrain.obstacles.push(...z.shrinePillars);
