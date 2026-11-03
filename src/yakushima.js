@@ -201,7 +201,7 @@ export function buildForestStructures(decor, { ground, bed, obstacles }) {
       const hm = (ya + yb) / 2;
       if (hm > 1.0) for (const side of [-1, 1]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, len), railMat); rail.position.set(side * (DECK.half + 0.05), 0.9, 0); g.add(rail); const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.95, 0.14), railMat); post.position.set(side * (DECK.half + 0.05), 0.45, -len / 2 + 0.1); g.add(post); }
       g.position.set(m.x, hm, m.z); g.lookAt(b.x, yb, b.z);
-      add(g, 2.4);
+      g.userData.noHide = true; decor.add(g); // 걸어 다니는 데크 판: 카메라가 가린다고 숨기면 걸어간 뒤쪽 판이 사라져 보였다 (난간이 머리 가까이 높아 '발밑' 판정도 안 됐다)
       if (hm > 1.2) for (const side of [-1, 1]) { // 데크를 받치는 기둥 (아래로 지나갈 수 있게 가장자리에만)
         const px = m.x - m.uz * (DECK.half - 0.1) * side, pz = m.z + m.ux * (DECK.half - 0.1) * side, gy = ground(px, pz);
         const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, hm - gy, 6), railMat); post.position.set(px, gy + (hm - gy) / 2 - 0.1, pz); add(post, 1.2);
@@ -226,7 +226,7 @@ export function buildForestStructures(decor, { ground, bed, obstacles }) {
       const plank = new THREE.Mesh(new THREE.BoxGeometry(rw, 0.2, len), woodMat); plank.position.y = -0.1; plank.castShadow = plank.receiveShadow = true; g.add(plank);
       if ((p0.y + p1.y) / 2 > 1.2) { const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, len), railMat); rail.position.set(rw / 2 + 0.05, 0.9, 0); g.add(rail); const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.95, 0.14), railMat); post.position.set(rw / 2 + 0.05, 0.45, 0); g.add(post); }
       g.position.copy(p0).add(p1).multiplyScalar(0.5); g.lookAt(p1);
-      add(g, 2.2);
+      g.userData.noHide = true; decor.add(g); // 나선길 판도 숨기지 않는다
       const prop = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, g.position.y - gy, 5), railMat); prop.position.set(cx + Math.cos(am) * (CEDAR.ROUT - 0.2), gy + (g.position.y - gy) / 2 - 0.1, cz + Math.sin(am) * (CEDAR.ROUT - 0.2)); if (g.position.y - gy > 1.3) add(prop, 1);
     }
     // 전망대 바닥: 안쪽 고리(나선길 위)에는 계단 구멍을 비우고, 바깥 고리는 한 바퀴 다. (rotation.x=-π/2 로 눕히면 고리 각 θ 가 땅의 각 -θ 가 된다)
