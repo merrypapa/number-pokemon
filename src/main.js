@@ -3437,7 +3437,7 @@ function frame() {
     // ----- 포켓몬 학교: 내 자리에 가면 "공부하기" -----
     if (!moved && zone.world.mySeat && near(zone.world.mySeat, 1.3)) offer(zone.world.seatLabel || '📚 공부하기', sitDown, zone.world.seatLabel ? '📚\n숙제' : '📚\n공부');
     // ----- 지우네 집: 침대 옆에서 "자기" (포켓몬 치료 + 저장) -----
-    if (!moved && zone.world.bed && !sleeping && near(zone.world.bed, 1.6)) offer('🛏 자기', sleepInBed, '🛏\n자기');
+    if (!moved && zone.world.bed && !sleeping && near(zone.world.bed, 1.6) && (zone.world.bed.y == null || Math.abs(pp.y - zone.world.bed.y) < 1.2)) offer('🛏 자기', sleepInBed, '🛏\n자기');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
     if (!moved) for (const npc of zone.world.npcs || []) {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
