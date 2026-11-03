@@ -140,6 +140,8 @@ export function structClear(x, z, m = 3.5) {
   return true;
 }
 export const VIEW_ROCK = ROCKS.find((k) => k.view);
+/** 개울까지 거리 (환경음: 가까울수록 물소리) */
+export function streamDist(x, z) { return inBox(STREAM, x, z, 30) ? polyNear(STREAM, x, z).d : Infinity; }
 
 // ---------- 모습 ----------
 /** decor 에 구조물을 세운다. ground(x,z): 깎기 전 언덕 높이(구조물 기준), bed(x,z): 개울을 깎은 실제 땅, obstacles: 장애물 배열 */

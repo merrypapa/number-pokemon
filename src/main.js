@@ -35,6 +35,9 @@ import { NUMBER_COLORS, colorForCount } from './palette.js';
 import { Battle, BALL_MODEL, CUBE_MODEL } from './battle.js';
 import { Confetti, Particles, Sound } from './effects.js';
 import { Bgm, trackFor } from './bgm.js';
+import { Ambient } from './ambient.js';
+import { setupSky } from './skyenv.js';
+import { streamDist } from './yakushima.js';
 import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
 import { Party, friendStats, expFor, expNeed, STARTER_LEVEL, MAX_LEVEL } from './party.js';
@@ -71,6 +74,9 @@ renderer.shadowMap.enabled = true;
 setPortraitRenderer(renderer); // 말풍선 얼굴 그림도 이 렌더러로 그린다 (컨텍스트를 따로 만들지 않는다)
 setOffscreenRenderer(renderer); // 도감 액자 그림·360° 보기도 이 렌더러로 (따로 만들면 아이폰에서 도감을 열 때 꺼졌다)
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
+// 그래픽 1단계: 영화식 색 보정(ACES). 밝은 곳은 부드럽게 눌리고 색이 덜 탁해 보인다. 하늘 그라데이션·환경 조명은 지역마다 skyenv.js
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
 fitRenderer();
@@ -110,17 +116,21 @@ const sound = new Sound();
 // 배경 음악 (src/bgm.js). 음악 파일 없이 WebAudio 로 직접 연주한다. 브라우저 규칙상 화면을 한 번 눌러야 소리가 나므로,
 // 첫 조작 때 지금 있어야 할 곡을 틀고 그 뒤로는 지역·대결에 따라 바뀐다.
 const bgm = new Bgm(sound);
+const ambient = new Ambient(sound); // 지역마다 다른 환경음 (새·개울·바람·물방울·파도 …), 🎵 버튼과 함께 켜고 끈다
 function bgmNow() { // 지금 나와야 할 곡
   if (battle?.active) return battle.creature?.isBoss ? 'boss' : 'battle';
   if (duelStage?.active) return 'battle'; // 아레나 무대 위 친구 대결
   return zone ? trackFor(zone.name) : 'title';
 }
-function bgmRefresh() { bgm.play(bgmNow(), zone?.name || null); }
+function bgmRefresh() {
+  bgm.play(bgmNow(), zone?.name || null);
+  if (bgm.on && !document.hidden) { ambient.play(zone?.name || null); ambient.duck(!!(battle?.active || duelStage?.active)); } else ambient.stop();
+}
 for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, () => { sound.ensure(); bgmRefresh(); }, { passive: true });
-document.addEventListener('visibilitychange', () => bgm.setHidden(document.hidden));
+document.addEventListener('visibilitychange', () => { bgm.setHidden(document.hidden); ambient.setHidden(document.hidden || !bgm.on, zone?.name || null); });
 const bgmBtns = [document.getElementById('btn-bgm'), document.getElementById('dex-bgm')];
 function refreshBgmBtn() { for (const b of bgmBtns) { if (!b) continue; const t = bgm.on ? '🎵' : '🔇'; b.textContent = b.id === 'btn-bgm' ? `${t} 음악` : t; b.title = bgm.on ? '배경 음악 끄기' : '배경 음악 켜기'; } }
-for (const b of bgmBtns) if (b) b.onclick = () => { sound.ensure(); bgm.toggle(); if (bgm.on) bgmRefresh(); refreshBgmBtn(); sound.click(); };
+for (const b of bgmBtns) if (b) b.onclick = () => { sound.ensure(); bgm.toggle(); bgmRefresh(); refreshBgmBtn(); sound.click(); };
 refreshBgmBtn();
 const particles = new Particles();
 const confetti = new Confetti(document.getElementById('fx'));
@@ -1078,6 +1088,7 @@ function applyZoneEnv() {
   const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 발밑에 금빛 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 });
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
+  setupSky(renderer, zone); // 하늘 그라데이션 + 환경 조명 (지역마다 한 번)
   player.gravityScale = zone.world.gravity || 1;
   player.climbAt = zone.world.climbAt || null; // 야외 체육관의 올라갈 수 있는 나무
   if (zone.world.gym) spawnGymPets(); else if (gymPets.length) clearGymPets(); // 체육관: 내 포켓몬들이 모두 나와 뛰어논다
@@ -3274,6 +3285,7 @@ let whirlToldAt = 0; // 잠긴 소용돌이를 마지막으로 알려 준 때 (�
 let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대결 → 대결곡/보스곡, 끝나면 지역 곡)
 function frame() {
   state.frames++;
+  if (zone?.name === 'forest' && player && (state.frames % 12) === 0) ambient.setWater(1 - streamDist(player.position.x, player.position.z) / 24); // 개울에 가까울수록 물소리
   fitRenderer();
   const fighting = battle.active || duelStage.active;
   if (fighting !== bgmInBattle) { bgmInBattle = fighting; bgmRefresh(); }
