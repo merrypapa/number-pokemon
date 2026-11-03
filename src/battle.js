@@ -592,14 +592,14 @@ export class Battle {
     this.particles.cubes(this.scene, hitPos, 8 + Math.min(12, dmg), new THREE.Color(this.party.color(this.member)).getHex());
     this.showFloat(`-${dmg}${mult > 1 ? ' !!' : mult < 1 ? ' …' : ''}`, mult > 1 ? '#ff5a1f' : mult < 1 ? '#8899aa' : this.party.color(this.member), hitPos);
     const eff = effectWord(mult);
-    if (eff) this.showBanner(eff);
+    if (eff) this.showBanner(eff, c.hp === 0 ? '가짜 숫자가 깨졌다!' : null); // 쓰러뜨렸으면 상성 알림 다음에 이어서
     if (mult > 1) this.onSuperHit?.(skillType(this.party.species(this.member), this.skill), c.data.type || '노말'); // 상성 스티커 (main)
     this.squash = 0.35;
     this.shakeCam = 0.15;
     if (c.hp === 0) {
       this.phase = 'dizzy';
-      this.msgEl.textContent = `${c.data.name}의 가짜 숫자가 깨졌어! 넘버볼을 던져 친구가 되자!`;
-      this.showBanner('가짜 숫자가 깨졌다!');
+      this.msgEl.textContent = `${eff ? eff + ' ' : ''}${c.data.name}의 가짜 숫자가 깨졌어! 넘버볼을 던져 친구가 되자!`;
+      if (!eff) this.showBanner('가짜 숫자가 깨졌다!'); // 상성 알림이 있으면 그 다음에 저절로 뜬다
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
       this.releaseBtn.classList.remove('hidden');
@@ -756,7 +756,9 @@ export class Battle {
     this.floatEl.classList.remove('pop'); void this.floatEl.offsetWidth; this.floatEl.classList.add('pop');
     this.floatTimer = 1.0;
   }
-  showBanner(text) {
+  /** 큰 글씨 알림. after: 이 알림이 끝나면 이어서 띄울 알림 (한 번에 쓰러뜨려도 "효과가 굉장했다!"가 먼저 보이게) */
+  showBanner(text, after = null) {
+    this.bannerNext = after;
     this.bannerEl.textContent = text;
     this.bannerEl.classList.remove('hidden');
     this.bannerEl.classList.remove('pop'); void this.bannerEl.offsetWidth; this.bannerEl.classList.add('pop');
@@ -1013,7 +1015,7 @@ export class Battle {
 
     // 플로팅 텍스트/배너 타이머
     if (this.floatTimer > 0) { this.floatTimer -= dt; if (this.floatTimer <= 0) this.floatEl.classList.add('hidden'); }
-    if (this.bannerTimer > 0) { this.bannerTimer -= dt; if (this.bannerTimer <= 0) this.bannerEl.classList.add('hidden'); }
+    if (this.bannerTimer > 0) { this.bannerTimer -= dt; if (this.bannerTimer <= 0) { if (this.bannerNext) this.showBanner(this.bannerNext); else this.bannerEl.classList.add('hidden'); } }
   }
 
   startCapture() { // 볼이 상대에게 맞았다: 상대 앞 공중에 멈춰 열리고, 상대가 빛이 되어 빨려 들어간 뒤 닫혀서 앞 땅에 떨어진다
