@@ -2302,12 +2302,14 @@ function renderContinue() {
     row.innerHTML = `
       ${t ? `<img src="${t.color}" alt="">` : '<div class="save-noimg"></div>'}
       <div class="save-info">
-        <div class="save-name">${sv.name}</div>
-        <div class="save-sub">${ZONE_INFO[sv.zone]?.name || sv.zone} · 친구 ${sv.caught}마리 · 정복 ${Object.keys(sv.conquered || {}).length}/${ZONE_COUNT} · 블록 ${sv.blocks}개 · ${formatWhen(sv.savedAt)}</div>
+        <div class="save-name">${sv.name} <small class="save-when">${formatWhen(sv.savedAt)}</small></div>
+        <div class="save-sub"><span>📍 ${ZONE_INFO[sv.zone]?.name || sv.zone}</span><span>🐾 ${sv.caught}마리</span><span>🏁 ${Object.keys(sv.conquered || {}).length}/${ZONE_COUNT}</span><span>🧱 ${sv.blocks}</span></div>
       </div>
-      <button class="save-go">이어서 하기 ▶</button>
+      <button class="save-go">이어서 ▶</button>
       <button class="save-del" title="삭제">✕</button>`;
-    row.querySelector('.save-go').onclick = () => { continueEl.classList.add('hidden'); applySave(sv); };
+    const go = () => { continueEl.classList.add('hidden'); applySave(sv); };
+    row.querySelector('.save-go').onclick = go;
+    row.onclick = (e) => { if (!e.target.closest('button')) go(); }; // 줄 아무 데나 눌러도 이어서 (휴대폰에서 버튼이 작아도 되게)
     row.querySelector('.save-del').onclick = () => { if (confirm(`"${sv.name}"의 저장을 지울까요?`)) { deleteSave(sv.name); renderContinue(); } };
     list.appendChild(row);
   }
