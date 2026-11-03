@@ -4,7 +4,7 @@ import { rand, josa } from './util.js';
 import { buildGround, makePortal, makeSignAt, makeInstanced } from './world.js';
 import { setRawGround, volcGround, volcStructHeight, volcStructCeiling, volcStructBlocked, volcUnblockLava, volcClear, inOhiaForest, riverDist, inTube, VENTS, LAVA_RIVER, buildVolcanoStructures } from './kilauea.js';
 
-// 불의산 (300x300). 푸른숲 동북쪽 붉은 바위 아치로 들어온다. 불 포켓몬이 산다.
+// 불의산 (300x300). 마을 서북쪽 붉은 바위 아치로 들어온다 (포탈은 마을로). 불 포켓몬이 산다.
 // 가운데에 큰 화산(분화구 용암 호수), 동남쪽에 작은 화산, 산기슭엔 용암 웅덩이·간헐천·검은 나무·흑요석 아치. 용암은 못 들어간다.
 // 보스 리자몽은 큰 화산 꼭대기(분화구 둘레)에 있다.
 export const VOLCANO = {
@@ -214,7 +214,7 @@ export function buildVolcano(scene) {
 
   // 포탈 (푸른숲으로) + 안내판
   const P = VOLCANO.portal;
-  const portal = makePortal(scene, P.x, volcanoHeight(P.x, P.z), P.z, { color: 0x66e0ff, label: '푸른숲으로 가는 포탈', labelBg: '#3a1a10', labelFg: '#ffd1a8' });
+  const portal = makePortal(scene, P.x, volcanoHeight(P.x, P.z), P.z, { color: 0x66e0ff, label: '마을로 가는 포탈', labelBg: '#3a1a10', labelFg: '#ffd1a8' });
   const geologist = makeNpc({ outfit: 'scientist', name: '봄이', model: '봄이.glb' });
   geologist.position.set(VOLCANO.spawn.x + 5, volcanoHeight(VOLCANO.spawn.x + 5, VOLCANO.spawn.z - 3), VOLCANO.spawn.z - 3);
   geologist.rotation.y = -0.7;
@@ -256,7 +256,7 @@ export function buildVolcano(scene) {
     return list.map(([x, z], i) => { if (i < keep || volcClear(x, z)) return [x, z]; for (let r = 3; r < 24; r += 3) for (let k = 0; k < 8; k++) { const nx = x + Math.cos(k * Math.PI / 4) * r, nz = z + Math.sin(k * Math.PI / 4) * r; if (volcClear(nx, nz) && !volcanoBlocked(nx, nz)) return [nx, nz]; } return [x, z]; });
   }
   return {
-    sun, animate, terrain: VOLCANO_TERRAIN, decor, portal: P, spawn: VOLCANO.spawn, dark: false,
+    sun, animate, terrain: VOLCANO_TERRAIN, decor, portal: P, portalTo: 'town', spawn: VOLCANO.spawn, dark: false,
     npcs: [{ x: VOLCANO.spawn.x + 5, z: VOLCANO.spawn.z - 3, mesh: geologist, name: '봄이', warp: true, lines: (c) => [
       `불의산에 온 걸 환영해, ${c.name}! 난 화산을 연구하는 봄이야. 용암은 뜨거우니 밟지 마.`,
       '여긴 하와이 킬라우에아 화산을 닮았어. 들어오는 곳 둘레의 빨간 꽃 나무는 오히아야. 용암이 식은 땅에 제일 먼저 자라는 나무지!',
@@ -266,7 +266,7 @@ export function buildVolcano(scene) {
       `여기 포켓몬은 전부 불 속성이야. 공격 ${c.zone.atkRange}쯤 되면 편하게 이겨. 물 포켓몬(꼬부기!)이 불에 세고, 풀 포켓몬은 불에 약하니 조심.`,
       '여기선 하루 종일 같은 소리만 들렸어. "하나, 둘, 하나, 둘." 로켓단이 불 포켓몬들에게 명령을 훈련시킨 거야.',
       c.conquered.volcano ? `보스 리자몽을 이겼구나! 정말 강해졌는걸. ${legendLine(c)}` : `${(c.legend || []).some((L) => L.needs.some((n) => n.hasAny && !n.ok)) ? '진화로 얻은 리자몽은 안 쳐 — 전설의 엔테이는 화산 꼭대기의 보스 리자몽을 넘버볼로 잡아야 내려와! ' : ''}큰 화산 꼭대기에 보스 리자몽이 있어. 체력 140! 공격 ${c.zone.targetAtk + 3} 이상, 체력 45쯤 되면 도전해 봐. 물 포켓몬이면 훨씬 쉬워.`,
-      '여기 블록은 하나가 2개 가치야. 대결에서 이기면 상대 공격력만큼 블록을 받으니 싸우는 게 이득이지. 포탈로 푸른숲에 돌아갈 수 있어.',
+      '여기 블록은 하나가 2개 가치야. 대결에서 이기면 상대 공격력만큼 블록을 받으니 싸우는 게 이득이지. 포탈로 마을에 돌아갈 수 있어.',
     ] }],
     wildSpots: clearSpots([[-40.9, 61.4], [40.9, 75.0], [-75.0, -27.3], [81.8, -40.9], [-34.1, -95.5], [40.9, -102.3], [-115.9, 54.5], [122.7, 68.2], [-95.5, 122.7], [81.8, 129.5], [0.0, 75.0], [-122.7, -54.5], [122.7, -109.1], [-61.4, -129.5], [136.4, 0.0], [-136.4, 122.7], [20.5, -143.2], [-20.5, 20.5], [-72.3, 12.2], [34.7, -119.9], [-134.4, 93.1], [-66.4, -73.3], [92.9, -6.5], [71.3, 25.1], [60.4, 104.6], [-92.5, 52.4]]),
     bossSpot: { x: c.x, z: c.z + c.r + 0.5 }, // 큰 화산 꼭대기 (분화구 둘레)

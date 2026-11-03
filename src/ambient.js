@@ -5,7 +5,7 @@
 // 숲의 개울 소리는 개울에 가까울수록 커진다 (setWater, main 이 거리를 넣어 준다).
 
 const SCAPES = {
-  forest: { wind: 0.018, water: 0.05, birds: { gap: [1.2, 3.5], pitch: 1 }, woodpecker: true },
+  forest: { wind: 0.016, water: 0.04, birds: { gap: [3, 7], pitch: 0.9, soft: true } }, // 딱따구리(딱딱 끊기는 소리)는 뺐다: 아이가 "이상한 소리"라고 했다
   town: { wind: 0.01, birds: { gap: [3, 7], pitch: 1.05 }, chimes: { gap: [4, 9] } },
   gym: { wind: 0.012, birds: { gap: [3, 6], pitch: 1.1 }, pond: 0.012 },
   hive: { buzz: 0.03 },
@@ -47,12 +47,12 @@ export class Ambient {
     if (S.waves) this.noiseLayer({ type: 'lowpass', freq: 650, q: 0.5, vol: S.waves, lfo: 0.13, sweep: 400, swell: true });
     if (S.crowd) this.noiseLayer({ type: 'bandpass', freq: 900, q: 0.8, vol: S.crowd, lfo: 0.3, sweep: 200 });
     if (S.pond) this.noiseLayer({ type: 'bandpass', freq: 1500, q: 1.2, vol: S.pond, lfo: 2.3, sweep: 600 });
-    if (S.water) { this.waterG = this.noiseLayer({ type: 'bandpass', freq: 1300, q: 0.9, vol: 1, lfo: 3.1, sweep: 700 }); this.waterG.gain.value = 0; this.waterMax = S.water; }
+    if (S.water) { this.waterG = this.noiseLayer({ type: 'bandpass', freq: 1600, q: 0.5, vol: 1, lfo: 0.35, sweep: 220 }); this.waterG.gain.value = 0; this.waterMax = S.water; } // 졸졸 흐르는 물: 필터를 천천히만 흔든다 (예전엔 초당 3번 흔들려 "웅웅" 기계 소리 같았다)
     if (S.buzz) this.buzzLayer(S.buzz);
     if (S.pad) this.padLayer(S.pad);
     if (S.hum) this.humLayer(S.hum);
     const ev = (gap, fn) => { const loop = () => { if (tok !== this.token) return; try { fn(); } catch (_) {} this.timers.push(setTimeout(loop, rand(gap[0], gap[1]) * 1000)); }; this.timers.push(setTimeout(loop, rand(0.3, gap[1]) * 1000)); };
-    if (S.birds) ev(S.birds.gap, () => this.bird(S.birds.pitch, S.birds.far));
+    if (S.birds) ev(S.birds.gap, () => this.bird(S.birds.pitch, S.birds.far, S.birds.soft));
     if (S.woodpecker) ev([12, 25], () => this.woodpecker());
     if (S.chimes) ev(S.chimes.gap, () => this.chime());
     if (S.drips) ev(S.drips.gap, () => this.drip());
@@ -117,9 +117,9 @@ export class Ambient {
     f.type = type; f.frequency.value = freq; g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + Math.min(0.3, dur / 3)); g.gain.exponentialRampToValueAtTime(0.0008, t0 + dur);
     s.connect(f).connect(g).connect(this.master); s.start(t0); s.stop(t0 + dur + 0.05);
   }
-  bird(pitch = 1, far = false) { // 두세 마디 지저귐 (한 마리마다 음높이가 다르다)
-    const base = rand(2200, 3800) * pitch, n = 2 + Math.floor(Math.random() * 3), v = far ? 0.012 : 0.03;
-    for (let i = 0; i < n; i++) { const up = Math.random() < 0.5; this.blip(base * (up ? 0.85 : 1.15), base * (up ? 1.2 : 0.8), rand(0.06, 0.12), v, 'sine', i * rand(0.1, 0.16)); }
+  bird(pitch = 1, far = false, soft = false) { // 두세 마디 지저귐 (한 마리마다 음높이가 다르다). soft: 덜 날카롭게 (작고 짧게 미끄러짐)
+    const base = rand(2200, soft ? 3000 : 3800) * pitch, n = 2 + Math.floor(Math.random() * 3), v = far ? 0.012 : soft ? 0.018 : 0.03, sl = soft ? 0.08 : 0.2;
+    for (let i = 0; i < n; i++) { const up = Math.random() < 0.5; this.blip(base * (up ? 1 - sl * 0.7 : 1 + sl * 0.7), base * (up ? 1 + sl : 1 - sl), rand(0.07, 0.13), v, 'sine', i * rand(0.12, 0.18)); }
   }
   woodpecker() { for (let i = 0; i < 7; i++) this.burst(0.03, 0.05, 'bandpass', 1800, i * 0.07); }
   chime() { const P = [0, 2, 4, 7, 9, 12], r = 880; for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) { const f = r * Math.pow(2, P[Math.floor(Math.random() * P.length)] / 12); this.blip(f, f * 0.999, 1.4, 0.014, 'sine', i * rand(0.15, 0.35)); } }
