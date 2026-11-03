@@ -181,7 +181,7 @@ export function buildCaveStructures(scene, decor, { ground, base, obstacles }) {
     const R = WALL.ramp, len = Math.hypot(R.z0 - R.z1, top);
     const ramp = new THREE.Mesh(new THREE.BoxGeometry(R.half * 2, 0.5, len), new THREE.MeshStandardMaterial({ color: 0x8c8572, roughness: 1 }));
     ramp.position.set(R.x, gy + top / 2 - 0.25, (R.z0 + R.z1) / 2); ramp.rotation.x = Math.atan2(top, R.z0 - R.z1); add(ramp, 3);
-    const backWall = new THREE.Mesh(new THREE.CylinderGeometry(r + 12, r + 14, 26, 32, 4, true, Math.PI * 0.5, Math.PI), calcite.clone()); // 고원 북쪽 반원 (원기둥 각도 θ: x=sinθ, z=cosθ → θ=π 가 북쪽) backWall.material.side = THREE.DoubleSide; backWall.position.set(x, gy + 13, z - 4); backWall.userData.noHide = true; decor.add(backWall);
+    const backWall = new THREE.Mesh(new THREE.CylinderGeometry(r + 12, r + 14, 26, 32, 4, true, Math.PI * 0.5, Math.PI), calcite.clone()); /* 고원 북쪽 반원 (원기둥 각도 θ: x=sinθ, z=cosθ → θ=π 가 북쪽) */ backWall.material.side = THREE.DoubleSide; backWall.position.set(x, gy + 13, z - 4); backWall.userData.noHide = true; decor.add(backWall);
     for (let i = 0; i < 12; i++) { const th = Math.PI * 0.5 + (i / 11) * Math.PI; obstacles.push({ x: x + Math.sin(th) * (r + 12.5), z: z - 4 + Math.cos(th) * (r + 12.5), r: 2.5 }); }
     const sign = makePillSprite('🧗 만리장성 절벽 · 오르막길로 보스에게', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.8); sign.position.set(R.x + 2.6, gy + 2.6, R.z0 + 1); decor.add(sign);
   }

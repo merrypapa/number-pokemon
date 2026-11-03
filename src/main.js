@@ -466,7 +466,16 @@ function buildShrine(z) {
   const baseY = z.world.waterY != null ? z.world.waterY - 1.2 : terrainHeight(spot.x, spot.z);
   z.shrine = buildMegaShrine(z.name, spot.x, baseY, spot.z, z.world.decor); // decor: 명소의 껍질을 카메라 가림 처리(cutaway)에 맡긴다
   z.scene.add(z.shrine.group);
-  if (z.world.waterY != null) { // 바다 위 성역(물의길): 배로는 계단을 못 오르니 메가 포켓몬은 성역 앞 물 위에서 만난다. 성역 자체는 못 지나간다
+  if (z.world.waterY != null && z.shrine.walkAt) { // 바다 위 명소(물의길 별빛 해변): 배로 가서 내리는 작은 모래섬. 섬은 걸어 다니고 배는 못 지나간다, 메가 포켓몬은 둘레 빛나는 물에서 헤엄친다
+    z.shrine.megaSpot = { x: spot.x + (z.shrine.megaAt?.x || 0), z: spot.z + (z.shrine.megaAt?.z || 0) };
+    if (!z.terrain.shrineWrapped) {
+      const oh = z.terrain.height, ob = z.terrain.blocked, os = z.terrain.sailable, on = () => !!z.shrine?.shown;
+      z.terrain.height = (x, zz, refY) => { const h = oh(x, zz, refY); if (!on()) return h; const s = z.shrine.heightAt(x - spot.x, zz - spot.z); return s > 0 ? Math.max(h, baseY + s) : h; };
+      z.terrain.blocked = (x, zz, refY) => (on() && z.shrine.walkAt(x - spot.x, zz - spot.z) ? false : (ob ? ob(x, zz, refY) : false));
+      if (os) z.terrain.sailable = (x, zz) => !(on() && z.shrine.noSailAt(x - spot.x, zz - spot.z)) && os(x, zz);
+      z.terrain.shrineWrapped = true;
+    }
+  } else if (z.world.waterY != null) { // 바다 위 성역(물의길): 배로는 계단을 못 오르니 메가 포켓몬은 성역 앞 물 위에서 만난다. 성역 자체는 못 지나간다
     z.shrine.megaSpot = { x: spot.x, z: spot.z + 18 };
     z.terrain.obstacles.push({ x: spot.x, z: spot.z, r: 15.5, shrine: true }); // 정복 전엔 꺼 둔다
     z.shrineObstacle = z.terrain.obstacles[z.terrain.obstacles.length - 1];
@@ -3762,6 +3771,7 @@ function frame() {
     if (list.length) zone.world.setScreenSubjects(list);
   }
   zone.world.animate?.(t);
+  zone.shrine?.animate(t, dt); // 메가 성역·명소 움직임 (예전엔 진화 연출 중에만 돌아 솟아오르기·빛점·포자가 멈춰 있었다)
   const sun = zone.world.sun;
   if (sun) { sun.position.set(player.position.x + 20, 30, player.position.z + 10); sun.target.position.copy(player.position); }
   particles.update(dt);

@@ -216,7 +216,7 @@ export function buildTower(scene) {
       }
       // 안쪽 끝: 난간 없이 뛰어내리는 자리 (금빛 테두리 + 팻말)
       const edge = new THREE.Mesh(new THREE.TorusGeometry(LAND_R, 0.08, 4, 12, LAND_W + LAND_LO), new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x8a6a00, emissiveIntensity: 0.6 }));
-      edge.rotation.x = -Math.PI / 2; edge.rotation.z = -LAND_W; // 눕히면 각이 거꾸로라 (-LAND_W~LAND_LO 로 돌려) 땅의 -LAND_LO~LAND_W 가 된다 edge.position.y = y + 0.05; edge.userData.noHide = true; decor.add(edge);
+      edge.rotation.x = -Math.PI / 2; edge.rotation.z = -LAND_W; /* 눕히면 각이 거꾸로라 (-LAND_W~LAND_LO 로 돌려) 땅의 -LAND_LO~LAND_W 가 된다 */ edge.position.y = y + 0.05; edge.userData.noHide = true; decor.add(edge);
       const jump = makePillSprite('⬇ 뛰어내리면 1층!', { bg: '#20232e', fg: '#9fe8ff', border: '#9fe8ff' }, 0.6); jump.position.set((LAND_R + 0.6) * Math.cos(LAND_W / 2), y + 1.8, (LAND_R + 0.6) * Math.sin(LAND_W / 2)); decor.add(jump);
       const label = makePillSprite(`${n}층`, { bg: n === BOSS_FLOOR ? '#6a4a00' : '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.9);
       label.position.set((LAND_R + R_OUT) / 2 * Math.cos(LAND_W / 2), y + 3.2, (LAND_R + R_OUT) / 2 * Math.sin(LAND_W / 2));
