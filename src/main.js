@@ -38,6 +38,7 @@ import { Bgm, trackFor } from './bgm.js';
 import { Ambient } from './ambient.js';
 import { setupSky } from './skyenv.js';
 import { streamDist } from './yakushima.js';
+import { riverDist } from './sondoong.js';
 import { DuelStage } from './duelstage.js';
 import { Dex } from './dex.js';
 import { Party, friendStats, expFor, expNeed, STARTER_LEVEL, MAX_LEVEL } from './party.js';
@@ -3163,6 +3164,7 @@ function renderGuide(el) {
         <li>전설은 5등급이라 <b>골드볼 이상</b>이 좋아요. 나타난 전설에는 발밑에 <b>금빛 고리</b>가 있어요.</li>
       </ul>`)}
     ${sec('✨ 메가 성역', `지역의 보스를 넘버볼로 잡아 <b>정복</b>하면 그 지역에 메가 성역이 나타나고 안에 메가 포켓몬이 있어요 (7등급, 메가큐브로). 정복: ${Object.keys(state.conquered).length} / ${ZONE_COUNT} 지역. 메가 진화는 Lv.30 + 메가블럭이 있어야 해요.`)}
+    ${sec('🕳️ 지하동굴 — 손둥 동굴 탐험', `세상에서 가장 큰 동굴을 닮았어요. 북서쪽 <b>하늘 구멍 밀림</b>은 천장 구멍으로 햇빛이 쏟아지는 동굴 속 숲. 한가운데 <b>지하 강</b>은 물에 못 들어가니 북쪽 보스 길의 <b>구름다리</b>나 징검다리로 건너요. 보스 롱스톤은 <b>만리장성 절벽</b> 위 — 남쪽 오르막길로만 올라가요. 동남쪽 <b>석회 웅덩이 계단</b> 꼭대기엔 블록이 있어요.`)}
     ${sec('🌲 푸른숲 — 이끼 숲 탐험', `야쿠시마 이끼 숲을 닮았어요. <b>개울</b>은 물에 못 들어가니 징검다리나 나무다리로 건너요. <b>데크길</b>은 경사로로 올라가 2.6m 위를 걷고, 아래로도 지나갈 수 있어요. <b>할아버지 삼나무</b>는 줄기를 감는 나선 길로 9m 전망대까지! <b>쓰러진 고목</b>은 속으로 지나가거나 옆 이끼 비탈로 위에 올라가요. <b>이끼 바위 언덕</b>은 점프 버튼으로 하나씩 올라 꼭대기 전망 바위의 블록을 가져와요.`)}
     ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b>북쪽 문</b> → 푸른숲(그 너머 불의산·꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
     ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
@@ -3285,7 +3287,7 @@ let whirlToldAt = 0; // 잠긴 소용돌이를 마지막으로 알려 준 때 (�
 let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대결 → 대결곡/보스곡, 끝나면 지역 곡)
 function frame() {
   state.frames++;
-  if (zone?.name === 'forest' && player && (state.frames % 12) === 0) ambient.setWater(1 - streamDist(player.position.x, player.position.z) / 24); // 개울에 가까울수록 물소리
+  if (player && (state.frames % 12) === 0 && (zone?.name === 'forest' || zone?.name === 'cave')) ambient.setWater(1 - (zone.name === 'forest' ? streamDist : riverDist)(player.position.x, player.position.z) / 24); // 개울·지하 강에 가까울수록 물소리
   fitRenderer();
   const fighting = battle.active || duelStage.active;
   if (fighting !== bgmInBattle) { bgmInBattle = fighting; bgmRefresh(); }

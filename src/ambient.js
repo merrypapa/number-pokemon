@@ -9,7 +9,7 @@ const SCAPES = {
   town: { wind: 0.01, birds: { gap: [3, 7], pitch: 1.05 }, chimes: { gap: [4, 9] } },
   gym: { wind: 0.012, birds: { gap: [3, 6], pitch: 1.1 }, pond: 0.012 },
   hive: { buzz: 0.03 },
-  cave: { drone: 0.028, drips: { gap: [0.8, 2.6] } },
+  cave: { drone: 0.028, drips: { gap: [0.8, 2.6] }, water: 0.045 }, // water: 지하 강 (가까울수록)
   thunder: { drone: 0.02, hum: 0.012, crackle: { gap: [0.4, 1.6] }, rumble: { gap: [9, 18] } },
   tower: { howl: 0.03, drips: { gap: [1.5, 4] } },
   volcano: { lava: 0.05, bubbles: { gap: [0.6, 1.8], low: true }, rumble: { gap: [8, 15] } },

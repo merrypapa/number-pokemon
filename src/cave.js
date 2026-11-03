@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced, makePillSprite } from './world.js';
+import { caveStructHeight, caveStructBlocked, caveStructCeiling, riverCarve, caveClear, buildCaveStructures, inJungle, SKY, RIMS } from './sondoong.js';
 
-// 괴물 동굴 (160x160). 푸른숲 북쪽 바위 언덕의 굴 입구로 걸어 들어오거나, 북쪽 산의 뒷문 입구로 들어오면 도착한다.
+// 괴물 동굴 (160x160) — 베트남 손둥 동굴을 본뜬 하늘 구멍 밀림·지하 강·구름다리·거대 석순·만리장성 절벽·석회 계단 (src/sondoong.js). 푸른숲 북쪽 바위 언덕의 굴 입구로 걸어 들어오거나, 북쪽 산의 뒷문 입구로 들어오면 도착한다.
 // 어둡고, 수정과 야광 버섯이 빛나며, 포탈을 지나면 숲마을(초원)로 돌아간다.
 export const CAVE = {
   size: 160,
@@ -28,22 +29,34 @@ const CAVE_BRIDGES = [
 ];
 const LAKES = () => [CAVE.lake, CAVE.lake2];
 
-function caveHeight(x, z) {
+/** 울퉁불퉁한 동굴 바닥만 (구조물의 바닥 높이) */
+function caveBase(x, z) {
   let y = 0;
   for (const b of CAVE.bumps) {
     const dx = x - b.x, dz = z - b.z;
     y += b.h * Math.exp(-(dx * dx + dz * dz) / (b.r * b.r));
   }
+  return y;
+}
+/** 맨바닥: 바닥 − 호수·웅덩이·지하 강 + 다리 */
+function caveGround(x, z) {
+  let y = caveBase(x, z) - riverCarve(x, z);
   for (const L of LAKES()) { const ld = Math.hypot(x - L.x, z - L.z); if (ld < L.r + 2) y -= 0.8 * Math.min(1, (L.r + 2 - ld) / 3); }
   for (const P of CAVE.pools) { const pd = Math.hypot(x - P.x, z - P.z); if (pd < P.r + 1) y -= 0.4 * Math.min(1, (P.r + 1 - pd) / 1.5); }
   for (const b of CAVE_BRIDGES) { const { t, d } = bridgeParam(b, x, z); if (t >= 0 && t <= 1 && d <= b.w + 0.3) y = Math.max(y, bridgeDeckY(b, t)); }
   return y;
 }
-function caveBlocked(x, z) {
+/** 지하동굴 높이: 맨바닥 + 손둥 구조물 (절벽 고원·오르막·석회 계단·구름다리). refY 로 겹친 층을 고른다 */
+function caveHeight(x, z, refY) { return caveStructHeight(x, z, refY, caveGround(x, z), caveBase(x, z)); }
+function caveBlocked(x, z, refY) {
   if (CAVE.pools.some((P) => Math.hypot(x - P.x, z - P.z) < P.r + 0.3)) return true;
-  return LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 1) && !CAVE_BRIDGES.some((b) => onBridge(b, x, z));
+  if (CAVE_BRIDGES.some((b) => onBridge(b, x, z))) return false;
+  if (LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 1)) return true;
+  return caveStructBlocked(x, z, refY, caveBase(x, z)); // 지하 강 · 구름다리 난간
 }
-export const CAVE_TERRAIN = { height: caveHeight, inHole: () => false, blocked: caveBlocked, size: CAVE.size, obstacles: [] };
+// ledge 0.9: 만리장성 절벽은 뛰어도 못 오른다 (오르막길로). 석회 계단(0.45)은 걸어서 오른다
+export const CAVE_TERRAIN = { height: caveHeight, inHole: () => false, blocked: caveBlocked, size: CAVE.size, obstacles: [], ledge: 0.9,
+  ceiling: (x, z, y) => caveStructCeiling(x, z, y, caveBase(x, z)) };
 
 function makeTextTexture(text, bg = '#1f2a3a', fg = '#9fe8ff') {
   const c = document.createElement('canvas');
@@ -58,6 +71,14 @@ function makeTextTexture(text, bg = '#1f2a3a', fg = '#9fe8ff') {
   return tex;
 }
 
+/** 야생·블록 자리가 강·구조물과 겹치면 가까운 빈 곳으로 비켜 놓는다 (늘 같은 결과) */
+function clearSpots(list) {
+  return list.map(([x0, z0]) => {
+    if (caveClear(x0, z0) && !inJungle(x0, z0, -6)) return [x0, z0];
+    for (let r = 3; r < 30; r += 1.5) for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2, x = x0 + Math.cos(a) * r, z = z0 + Math.sin(a) * r; if (caveClear(x, z) && Math.hypot(x, z) < CAVE.size / 2 - 10) return [x, z]; }
+    return [x0, z0];
+  });
+}
 export function buildCave(scene) {
   let thunderGlow = null, thunderBolts = [];
   const S = CAVE.size;
@@ -83,11 +104,12 @@ export function buildCave(scene) {
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = [];
-  const a = new THREE.Color(0x3a3f4a), b = new THREE.Color(0x2c3038), lakeBed = new THREE.Color(0x1d2a44);
+  const a = new THREE.Color(0x3a3f4a), b = new THREE.Color(0x2c3038), lakeBed = new THREE.Color(0x1d2a44), jungleA = new THREE.Color(0x4f8f36), jungleB = new THREE.Color(0x5fa43f);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
-    pos.setY(i, caveHeight(x, z));
-    const c = LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r) || CAVE.pools.some((P) => Math.hypot(x - P.x, z - P.z) < P.r) ? lakeBed : Math.random() < 0.5 ? a : b;
+    pos.setY(i, caveGround(x, z)); // 땅 판은 맨바닥만 (절벽·계단은 따로 세운 모양)
+    let c = LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r) || CAVE.pools.some((P) => Math.hypot(x - P.x, z - P.z) < P.r) || riverCarve(x, z) > 0.15 ? lakeBed : Math.random() < 0.5 ? a : b;
+    if (inJungle(x, z)) c = Math.random() < 0.5 ? jungleA : jungleB; // 하늘 구멍 아래는 풀밭
     colors.push(c.r, c.g, c.b);
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -115,6 +137,7 @@ export function buildCave(scene) {
     if (poolLights.length < 2) { const l = new THREE.PointLight(0x5fffc8, 2.5, 12); l.position.set(P.x, 1, P.z); scene.add(l); poolLights.push(l); }
   }
   for (const b of CAVE_BRIDGES) scene.add(buildBridge(b, obstacles, { plankColor: 0x6e5a45, railColor: 0x4a3b2c }));
+  buildCaveStructures(scene, decor, { ground: caveGround, base: caveBase, obstacles }); // 손둥 동굴 구조물
 
   // 바깥 벽(큰 바위 원뿔 링)과 안쪽 바위 기둥: 인스턴스로 한 번에 그린다
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5261, roughness: 1 });
@@ -129,7 +152,7 @@ export function buildCave(scene) {
   }
   for (let i = 0; i < 70; i++) {
     const x = rand(-S / 2 + 8, S / 2 - 8), z = rand(-S / 2 + 8, S / 2 - 8);
-    if (Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || Math.hypot(x - CAVE.thunderGate.x, z - CAVE.thunderGate.z) < 8 || Math.hypot(x - CAVE.towerGate.x, z - CAVE.towerGate.z) < 8 || LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z)) continue;
+    if (!caveClear(x, z, 2) || inJungle(x, z, 2) || Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 8 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 6 || Math.hypot(x - CAVE.thunderGate.x, z - CAVE.thunderGate.z) < 8 || Math.hypot(x - CAVE.towerGate.x, z - CAVE.towerGate.z) < 8 || LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z)) continue;
     const h = rand(1.5, 5), pr = rand(0.6, 1.6);
     pillarItems.push({ x, y: caveHeight(x, z) + h / 2 - 0.2, z, sx: pr, sy: h, sz: pr, ry: rand(0, 3) });
     block(x, z, pr * 0.8);
@@ -143,7 +166,7 @@ export function buildCave(scene) {
   const crystals = [];
   for (let i = 0; i < 50; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
-    if (LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z) || Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 5 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 4 || Math.hypot(x - CAVE.thunderGate.x, z - CAVE.thunderGate.z) < 8 || Math.hypot(x - CAVE.towerGate.x, z - CAVE.towerGate.z) < 8) continue;
+    if (!caveClear(x, z, 1.5) || inJungle(x, z) || LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 4) || caveBlocked(x, z) || Math.hypot(x - CAVE.spawn.x, z - CAVE.spawn.z) < 5 || Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z) < 4 || Math.hypot(x - CAVE.thunderGate.x, z - CAVE.thunderGate.z) < 8 || Math.hypot(x - CAVE.towerGate.x, z - CAVE.towerGate.z) < 8) continue;
     const ci = i % crystalColors.length, y = caveHeight(x, z);
     for (let k = 0; k < 3; k++) {
       const h = rand(0.8, 1.8);
@@ -157,7 +180,7 @@ export function buildCave(scene) {
   const mStem = [], mCap = [];
   for (let i = 0; i < 120; i++) {
     const x = rand(-S / 2 + 5, S / 2 - 5), z = rand(-S / 2 + 5, S / 2 - 5);
-    if (LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 1) || caveBlocked(x, z)) continue;
+    if (LAKES().some((L) => Math.hypot(x - L.x, z - L.z) < L.r + 1) || caveBlocked(x, z) || !caveClear(x, z, 0.5)) continue;
     const y = caveHeight(x, z);
     mStem.push({ x, y: y + 0.2, z });
     mCap.push({ x, y: y + 0.38, z });
@@ -170,6 +193,7 @@ export function buildCave(scene) {
   for (let i = 0; i < 7; i++) {
     const t = i / 6;
     const x = CAVE.spawn.x + (CAVE.lake.x - CAVE.lake.r - 4 - CAVE.spawn.x) * t + 2.5, z = CAVE.spawn.z + (CAVE.lake.z - CAVE.spawn.z) * t + 2.5;
+    if (!caveClear(x, z, 0.8)) continue; // 지하 강·구름다리 위에는 등불을 세우지 않는다
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0x3a3f4a }));
     post.position.set(x, caveHeight(x, z) + 1.1, z);
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), lanternMat);
@@ -180,7 +204,7 @@ export function buildCave(scene) {
   const stalItems = [];
   for (let i = 0; i < 40; i++) {
     const cx = rand(-S / 2 + 8, S / 2 - 8), cz = rand(-S / 2 + 8, S / 2 - 8);
-    if (Math.hypot(cx - CAVE.spawn.x, cz - CAVE.spawn.z) < 8 || Math.hypot(cx - CAVE.portal.x, cz - CAVE.portal.z) < 6 || Math.hypot(cx - CAVE.thunderGate.x, cz - CAVE.thunderGate.z) < 8 || Math.hypot(cx - CAVE.towerGate.x, cz - CAVE.towerGate.z) < 8 || LAKES().some((L) => Math.hypot(cx - L.x, cz - L.z) < L.r + 4) || caveBlocked(cx, cz)) continue;
+    if (!caveClear(cx, cz, 2.5) || inJungle(cx, cz, 2) || Math.hypot(cx - CAVE.spawn.x, cz - CAVE.spawn.z) < 8 || Math.hypot(cx - CAVE.portal.x, cz - CAVE.portal.z) < 6 || Math.hypot(cx - CAVE.thunderGate.x, cz - CAVE.thunderGate.z) < 8 || Math.hypot(cx - CAVE.towerGate.x, cz - CAVE.towerGate.z) < 8 || LAKES().some((L) => Math.hypot(cx - L.x, cz - L.z) < L.r + 4) || caveBlocked(cx, cz)) continue;
     for (let k = 0; k < 4; k++) {
       const x = cx + rand(-1.5, 1.5), z = cz + rand(-1.5, 1.5), h = rand(0.5, 1.6), r = rand(0.2, 0.45);
       stalItems.push({ x, y: caveHeight(x, z) + h / 2 - 0.1, z, sx: r, sy: h, sz: r });
@@ -286,16 +310,19 @@ export function buildCave(scene) {
     arrivals: { thunder: { x: TG.x - 5, z: TG.z }, tower: { x: TW.x + 5, z: TW.z } }, // 번개동굴·동굴탑에서 돌아오면 그 문 앞
     npcs: [{ x: CAVE.spawn.x + 4, z: CAVE.spawn.z - 2, mesh: miner, name: '웅이', warp: true, lines: (c) => [
       `여긴 지하동굴이야, ${c.name}. 난 광부 웅이! 어두우니까 조심해. 포니타를 잡으면 동굴이 환해진단다.`,
+      '이 동굴은 세상에서 제일 큰 동굴을 닮았어. 북서쪽엔 천장이 무너져 햇빛이 쏟아지는 "하늘 구멍 밀림"이 있고, 동굴 한가운데로 지하 강이 흘러.',
+      '지하 강은 물에 들어갈 수 없어. 북쪽 보스 길의 높은 구름다리나, 동쪽·서쪽 징검다리로 건너렴.',
+      '동남쪽의 하얀 계단 언덕은 석회 웅덩이야. 물이 고인 계단을 따라 꼭대기까지 올라가 봐!',
       `여기 포켓몬은 땅·바위·독 속성이야. 공격 ${c.zone.atkRange}쯤이면 편하게 이겨. 물이나 풀 포켓몬이 바위·땅에 세!`,
       '밤마다 검은 옷 입은 사람들이 여기서 블록을 캐 갔어. 하얀 블록이 아니라 붉게 빛나는 걸… 그걸로 가짜 숫자를 만든다더군.',
       '롱스톤은 나쁜 포켓몬이 아니야. 로켓단이 굴 파는 기계처럼 부린 거지. 붉은 숫자를 깨 주면 원래 순한 친구란다.',
-      c.conquered.cave ? '보스 롱스톤은 이미 네 친구구나! 대단해.' : `북쪽 끝에 보스 롱스톤이 있어. 체력이 56이나 되니 공격 ${c.zone.targetAtk + 2} 이상, 체력 25쯤 되면 도전해 봐. 물 포켓몬이 있으면 좋아.`,
+      c.conquered.cave ? '보스 롱스톤은 이미 네 친구구나! 대단해.' : `북쪽 끝 "만리장성 절벽" 위에 보스 롱스톤이 있어. 절벽은 못 오르니 남쪽 오르막길로 올라가. 체력이 56이나 되니 공격 ${c.zone.targetAtk + 2} 이상, 체력 25쯤 되면 도전해 봐. 물 포켓몬이 있으면 좋아.`,
       '서쪽 벽의 금빛 문은 동굴탑이야. 10층까지 걸어서 올라가는 수련의 탑이지! 5층에 문지기, 꼭대기엔 뮤츠가 있대. 레벨 올리기엔 거기가 최고야.',
       '동쪽 벽에 노란 번개가 지직거리는 굴이 있어. 그 안은 번개동굴, 전기 포켓몬의 고향이야. 여기 친구들보다 세니까 레벨을 충분히 올리고 가 봐. 땅 포켓몬은 전기를 안 맞아!',
       '남쪽의 빛나는 포탈로 푸른숲의 동굴 입구 앞에 돌아갈 수 있어.',
     ] }],
-    wildSpots: [[-24, -9], [21, 6], [-30, 50], [-36, -33], [12, -45], [48, -50], [39, 12], [-9, -24], [-45, -48], [60, 40], [-65, 50], [65, -25], [-70, -40], [0, -50], [30, 60], [-20, 70]],
+    wildSpots: clearSpots([[-24, -9], [21, 6], [-30, 50], [-36, -33], [12, -45], [48, -50], [39, 12], [-9, -24], [-45, -48], [60, 40], [-65, 50], [65, -25], [-70, -40], [0, -50], [30, 60], [-20, 70]]),
     bossSpot: { x: 0, z: -68 },
-    pickupSpots: [[6, 6], [-9, 3], [15, -12], [-21, 12], [-27, -21], [24, -33], [-6, -45], [42, -6], [-42, 6], [9, 30], [-30, 30], [30, 36], [-48, -12], [48, 24], [0, -60], [-20, 50], [40, -60], [-65, 20], [65, 60], [-60, -65], [60, -70], [0, 70], [-70, 70], [70, 0]],
+    pickupSpots: [...clearSpots([[6, 6], [-9, 3], [15, -12], [-21, 12], [-27, -21], [24, -33], [-6, -45], [42, -6], [-42, 6], [9, 30], [-30, 30], [30, 36], [-48, -12], [48, 24], [0, -60], [-20, 50], [40, -60], [-65, 20], [65, 60], [-60, -65], [60, -70], [0, 70], [-70, 70], [70, 0]]), [RIMS.x, RIMS.z]], // 석회 계단 꼭대기에도 블록
   };
 }
