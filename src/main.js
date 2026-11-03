@@ -785,7 +785,7 @@ const battle = new Battle({ input, camera, say, sound, particles, confetti, part
 battle.speciesName = (id) => speciesById[id]?.name;
 battle.getBalls = () => state.balls;
 battle.isMaster = (m) => !!state.masters[m.speciesId]; // 대결 내 이름표에 👑
-battle.onSuperHit = (atkType, defType) => { bump('super'); questHit('super', { atkType, defType }); }; // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
+battle.onSuperHit = () => { bump('super'); }; // 대결에서 "효과가 굉장했다!" → 오늘의 미션 "상성으로 효과가 굉장했다! 내기"
 battle.getItems = () => state.items;
 battle.onUseItem = (id, m) => { // 대결 중 가방에서 물약 쓰기 (쓴 턴은 상대가 공격한다 — battle 이 처리)
   const it = ITEM_BY_ID[id]; if (!it || (state.items[id] || 0) <= 0 || !canUseItem(it, m)) return 0;
@@ -1179,56 +1179,55 @@ function trainPet(p) {
   }
   say(note, { sec: 4 }); refreshHud();
 }
-// ---------- 오박사의 의뢰: 대표 포켓몬의 상성 이야기 + "강하게 반응하는 곳"에서 하는 미션 ----------
-// 연구소의 오박사에게 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 어디에 약한지, 짧은 이야기)를 해 주고,
-// 그 속성 기술이 굉장한 상대가 가장 많이 사는 지역을 "강한 반응이 있는 곳"으로 알려 주며 의뢰를 준다: 거기서 효과가 굉장한 공격 3번 (노말은 푸른숲에서 2마리 잡기).
-// 끝내면 블록 보상 + 오박사의 다음 이야기. 미션 탭 맨 위에 보인다.
-const TYPE_STORY = {
-  '불': '옛날 불의산이 처음 불을 뿜던 날, 불 포켓몬들이 산을 지키기로 약속했대. 그래서 불 포켓몬은 풀과 벌레 앞에서 제일 용감해져.',
-  '물': '바다의 전설 루기아가 파도를 잠재우자 물 포켓몬들이 바다를 지키게 됐대. 불과 땅·바위를 식히는 힘이 있어.',
-  '풀': '푸른숲의 큰 숫자 나무가 처음 씨앗을 떨어뜨렸을 때 풀 포켓몬이 태어났대. 물과 땅·바위에 뿌리를 내리는 힘이 있지.',
-  '전기': '번개동굴 천장에서 떨어진 번개가 처음 전기 포켓몬을 깨웠대. 물에 찌릿 통하지만 땅에는 전기가 사라져 버려.',
-  '땅': '땅 포켓몬은 지하동굴 가장 깊은 곳에서 왔대. 불·전기·바위·독을 흙으로 덮어 버리는 든든한 친구야.',
-  '바위': '바위 포켓몬은 동굴탑의 돌로 태어났대. 불에 타지 않고 벌레도 꼼짝 못 하게 해.',
-  '벌레': '벌레 포켓몬은 꿀벌집에서 가장 부지런한 일꾼이야. 풀잎을 갉고, 생각이 복잡한 에스퍼에게 의외로 강해.',
-  '독': '독 포켓몬은 독기둥 늪에서 와서 풀과 요정을 시들게 해. 하지만 마음의 힘(에스퍼) 앞에서는 밀려.',
-  '에스퍼': '에스퍼 포켓몬은 꿈의우주에서 별빛을 보고 자랐대. 독과 주먹(격투)을 생각의 힘으로 이겨.',
-  '고스트': '고스트 포켓몬은 밤의 꿈의우주를 떠다니다 왔어. 에스퍼의 마음속으로 쑥 들어가고, 유령끼리도 통해.',
-  '페어리': '페어리 포켓몬은 달빛 속에서 태어났대. 유령을 쫓고 주먹(격투)을 마법으로 막아.',
-  '격투': '격투 포켓몬은 동굴탑에서 수련한 무술가야. 보통(노말)과 바위에 주먹이 제일 잘 통해.',
-  '노말': '노말 포켓몬은 어디서나 균형이 잡힌 친구야. 특별히 센 상대는 없지만 어떤 상대에게도 꾸준해. 다만 주먹(격투)은 아프니 조심.',
-};
+// ---------- 오박사의 의뢰: "강력한 포켓몬의 기운"이 느껴지는 지역에서 아직 도감에 없는 포켓몬 잡아 오기 ----------
+// 연구소의 오박사에게 말을 걸면 대표 레벨로 갈 만한 지역 가운데 하나를 골라, 거기 사는 못 잡은 포켓몬 한 마리를 잡아 오라고 한다.
+// 끝내면 블록 보상 + 다음 의뢰. 미션 탭 맨 위에 보인다. (상성 이야기는 학교 상성 수업에서 한다)
 const QUEST_ZONES = ['forest', 'hive', 'cave', 'thunder', 'volcano', 'sea', 'deepsea', 'space'];
 function profAnalysis() {
   const L = party.leader; if (!L) return null;
-  const sp = party.species(L), t = sp.type || '노말', strong = strongAgainst(t), weak = weakTo(t);
-  let best = null;
-  for (const z of QUEST_ZONES) { const n = creatureData.creatures.filter((c) => c.zone === z && c.catchable && !c.mega && !c.unlockedBy && !c.boss && strong.includes(c.type || '노말')).length; if (n > 0 && (!best || n > best.n)) best = { z, n }; }
-  return { sp, t, strong, weak, zone: best?.z || null };
+  const sp = party.species(L), t = sp.type || '노말';
+  return { sp, t, level: L.level || 1 };
 }
-function questText(q) { return q.kind === 'super' ? `${ZONE_INFO[q.zone]?.name || q.zone}에서 ${q.type} 기술로 "효과가 굉장했다!" ${q.need}번 내기` : `${ZONE_INFO[q.zone]?.name || q.zone}에서 포켓몬 ${q.need}마리 잡기`; }
+/** 의뢰 대상: 아직 도감에 없는 야생 포켓몬 (대표 레벨로 갈 만한 지역, 가까운 지역부터). 없으면 null */
+function pickFindTarget(level) {
+  const ok = (z) => (ZONE_LEVEL[z]?.[0] ?? 99) <= level + 3 && (z !== 'deepsea' || state.conquered.sea); // 너무 센 곳·아직 못 가는 곳(심해)은 빼고
+  const cand = creatureData.creatures.filter((c) => QUEST_ZONES.includes(c.zone) && c.catchable && !c.mega && !c.unlockedBy && !c.boss && !(state.dex[c.id] > 0));
+  const near = cand.filter((c) => ok(c.zone));
+  const pool = near.length ? near : cand;
+  if (!pool.length) return null;
+  const lowest = Math.min(...pool.map((c) => ZONE_LEVEL[c.zone]?.[0] ?? 99)); // 가장 쉬운 지역의 포켓몬 가운데서 고른다
+  const pick = pool.filter((c) => (ZONE_LEVEL[c.zone]?.[0] ?? 99) <= lowest + 6);
+  return pick[Math.floor(Math.random() * pick.length)];
+}
+function questText(q) {
+  if (q.kind === 'find') return `${ZONE_INFO[q.zone]?.name || q.zone}에서 강력한 기운의 ${speciesById[q.targetId]?.name || '포켓몬'} 잡아 오기`;
+  return `${ZONE_INFO[q.zone]?.name || q.zone}에서 포켓몬 ${q.need}마리 잡기`;
+}
 function newProfQuest(a) {
-  const q = a.zone ? { kind: 'super', zone: a.zone, type: a.t, speciesId: a.sp.id, need: 3, n: 0, reward: 40, done: false } : { kind: 'catch', zone: 'forest', type: a.t, speciesId: a.sp.id, need: 2, n: 0, reward: 30, done: false };
+  const tg = pickFindTarget(a.level);
+  const q = tg ? { kind: 'find', zone: tg.zone, targetId: tg.id, need: 1, n: 0, reward: 40, done: false }
+    : { kind: 'catch', zone: QUEST_ZONES[Math.floor(Math.random() * 3)], need: 2, n: 0, reward: 30, done: false }; // 도감을 다 채웠으면 아무 포켓몬이나
   state.profQuest = q; return q;
 }
-/** 오박사(연구소)에게 말을 걸었을 때의 특별한 말. 의뢰가 없으면 새로 주고, 끝났으면 다음 이야기. 없으면 null → 보통 대사 */
+/** 오박사(연구소)에게 말을 걸었을 때의 특별한 말. 의뢰가 없으면 새로 주고, 끝났으면 다음 이야기. 없으면 null → 보통 대사.
+ *  예전 의뢰("효과가 굉장했다!" 3번)는 어렵다고 해서, 강력한 기운이 느껴지는 지역의 아직 못 잡은 포켓몬 잡아 오기로 바꿨다 (상성은 학교 상성 수업에서) */
 function profTalk() {
+  if (state.profQuest?.kind === 'super') state.profQuest = null; // 예전 의뢰는 새 의뢰로 바꿔 준다
   const q = state.profQuest, a = profAnalysis();
   if (q && q.done) { state.profQuest = null; state.profQuests = (state.profQuests || 0) + 1; return `잘했다! ${questText(q)}를 해냈구나. 내 연구에 큰 도움이 됐어. 연구 수첩에 ${state.profQuests}번째 의뢰 완료라고 적어 두마. 다시 말을 걸면 다음 연구를 부탁할게!`; }
-  if (q) return `지금 의뢰는 "${questText(q)}" (${q.n}/${q.need})! 강한 반응이 있는 ${ZONE_INFO[q.zone]?.name || q.zone}로 가 보렴. 끝내면 블록 ${q.reward}개를 주마.`;
+  if (q) return `지금 의뢰는 "${questText(q)}" (${q.n}/${q.need})! ${josa(ZONE_INFO[q.zone]?.name || q.zone, '으로')} 가 보렴. 끝내면 블록 ${q.reward}개를 주마.`;
   if (!a) return null;
-  if (state.gym.day !== dayKey() && false) return null;
   const nq = newProfQuest(a);
-  const story = TYPE_STORY[a.t] || '';
-  const strongTxt = a.strong.length ? `${a.strong.join('·')} 포켓몬에게 효과가 굉장하고` : '특별히 굉장한 상대는 없고';
-  const weakTxt = a.weak.length ? `${a.weak.join('·')} 공격에는 약하단다` : '약한 공격도 딱히 없단다';
-  const where = nq.kind === 'super' ? `내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 ${a.sp.name}의 힘이 아주 강하게 반응했어! 거기 가서 ${a.t} 기술로 "효과가 굉장했다!"를 ${nq.need}번 내 보렴.` : `${a.sp.name}은 어디서나 고른 힘을 내지. 푸른숲에서 포켓몬 ${nq.need}마리를 잡아 오렴.`;
-  return `${a.sp.name}의 연구 결과를 알려 주마! ${a.sp.name}은 ${a.t} 포켓몬이라 ${strongTxt}, ${weakTxt}. ${story} ${where} 성공하면 블록 ${nq.reward}개를 주마. (미션 탭에서 볼 수 있어)`;
+  if (nq.kind === 'find') {
+    const tg = speciesById[nq.targetId];
+    return `${josa(a.sp.name, '과와')} 잘 지내고 있구나! 그런데 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 강력한 포켓몬의 기운이 느껴져! 아직 도감에 없는 ${tg.type || '노말'} 포켓몬 ${josa(tg.name, '이야')}. 잡아 오면 블록 ${nq.reward}개를 주마. (미션 탭에서 볼 수 있어. 어떤 속성이 센지는 학교 상성 수업에서 배우렴!)`;
+  }
+  return `와, 도감이 거의 다 찼구나! 그럼 ${ZONE_INFO[nq.zone]?.name}에서 포켓몬 ${nq.need}마리를 더 잡아 오렴. 블록 ${nq.reward}개를 주마.`;
 }
-/** 의뢰 진행: kind 'super'(효과가 굉장한 공격, defType) · 'catch' */
+/** 의뢰 진행: 'catch' (info.id: 잡은 종). 'find' 의뢰는 그 종을 잡으면 (어디서든) 끝난다 */
 function questHit(kind, info = {}) {
-  const q = state.profQuest; if (!q || q.done || q.kind !== kind || zone?.name !== q.zone) return;
-  if (kind === 'super' && info.atkType && info.atkType !== q.type) return; // 내 대표 속성의 기술이어야
+  const q = state.profQuest; if (!q || q.done || kind !== 'catch') return;
+  if (q.kind === 'find' ? info.id !== q.targetId : (q.kind !== 'catch' || zone?.name !== q.zone)) return;
   q.n++;
   if (q.n < q.need) { setTimeout(() => say(`🔬 오박사의 의뢰 ${q.n}/${q.need}!`, { sec: 3 }), 1200); return; }
   q.done = true;
@@ -3183,7 +3182,7 @@ function renderGuide(el) {
     ${sec('🌲 푸른숲 — 이끼 숲 탐험', `야쿠시마 이끼 숲을 닮았어요. <b>개울</b>은 물에 못 들어가니 징검다리나 나무다리로 건너요. <b>데크길</b>은 경사로로 올라가 2.6m 위를 걷고, 아래로도 지나갈 수 있어요. <b>할아버지 삼나무</b>는 줄기를 감는 나선 길로 9m 전망대까지! <b>쓰러진 고목</b>은 속으로 지나가거나 옆 이끼 비탈로 위에 올라가요. <b>이끼 바위 언덕</b>은 점프 버튼으로 하나씩 올라 꼭대기 전망 바위의 블록을 가져와요.`)}
     ${sec('🏘 포켓몬 마을 — 모든 길의 시작', `게임은 마을 광장에서 시작해요. 광장의 <b>길잡이 인하</b>에게 물어보면 길을 알려 줘요. <b><b>서북쪽 붉은 바위 아치</b> → 불의산 · <b>북쪽 케이블카</b> → 푸른숲(그 너머 꿀벌집·메가 성역) · <b>북서쪽 굴</b> → 지하동굴(번개동굴·동굴탑) · <b>서쪽 기차역</b> → 물의길(심해) · <b>동쪽 로켓</b> → 꿈의우주(행성들) · 남쪽 연구소 · 서쪽 집과 학교 · 남서쪽 체육관 · 동쪽 아레나. 어디서든 포탈·문·탈것으로 돌아오면 마을이에요.`)}
     ${sec('🏃 야외 체육관과 나무 타기', `푸른숲 마을 동남쪽(연못 남쪽) 울타리 문으로 들어가요. 내가 잡은 포켓몬들이 모두 나와 뛰어놀고, 가까이 가서 <b>💪 훈련하기</b>를 누르면 경험치를 받아요(한 마리 하루 3번). 큰 올리브 나무는 <b>줄기 옆에서 점프 버튼을 꾹</b> 누르면 타고 올라가 나무 위 집에 서요.`)}
-    ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 대표 포켓몬의 속성 이야기(어디에 강하고 약한지)와 함께, 그 힘이 <b>강하게 반응하는 곳</b>을 알려 주고 의뢰를 줘요: 거기서 그 속성 기술로 "효과가 굉장했다!" 3번. 끝내면 블록 보상, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요.`)}
+    ${sec('🔬 오박사의 의뢰', `연구소의 오박사님께 말을 걸면 <b>강력한 포켓몬의 기운이 느껴지는 지역</b>을 알려 주며 의뢰를 줘요: 거기 사는, 아직 도감에 없는 포켓몬 한 마리 잡아 오기 (내 대표 포켓몬 레벨로 갈 만한 곳에서 골라 줘요). 끝내면 블록 40개, 다시 말을 걸면 다음 의뢰. 미션 탭 맨 위에서 볼 수 있어요. 어떤 속성이 센지는 학교 <b>상성 수업</b>에서 배워요.`)}
     ${sec('🗼 동굴탑', `지하동굴 서쪽 벽의 굴로 들어가요. 벽을 따라 도는 금빛 돌계단을 걸어서 10층까지! 5층에 문지기 보스와 🎁 보상 상자, 3·7·9층에 정예 포켓몬이 있어요. 1층의 워프 패드로 5층(문지기를 이긴 뒤)·10층에 바로 올라가요. 가 본 층: <b>${state.tower.best}</b>층. 10층의 뮤츠를 친구로 만들면 하늘의 문이 열려요.`)}
     ${sec('🦊 이브이 진화는 장소로', `이브이를 Lv.16까지 키운 뒤 진화시키는 곳에 따라 모습이 달라요: 불의산 → 부스터 · 물의길 → 샤미드 · 번개동굴 → 쥬피썬더 · 꿈의우주 → 블래키. 다른 곳에서는 랜덤!`)}
     ${sec('🔮 넘버볼과 등급', `포켓몬마다 등급(★)이 있고 등급이 높을수록 좋은 볼이 필요해요: ★~★★ 브론즈 · ★★★ 실버 · ★★★★~★★★★★ 골드 · ★★★★★★ 이상 메가큐브. 볼에서 튀어나와도 도망가지 않고, 실패할 때마다 잡힐 확률이 15%씩 올라요. 볼은 상점에서 블록으로 사요.`)}
@@ -3606,7 +3605,7 @@ function frame() {
             setTimeout(() => checkDexComplete(), 1200); // 도감을 다 채웠나 (잡기 말풍선 뒤에 큰 축하)
             checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
             wkAdd('caught');
-            bump('catch'); questHit('catch');
+            bump('catch'); questHit('catch', { id: c.data.id });
             if (c.isBoss) wkAdd('boss');
             if (c.data.mega) { // 메가 포켓몬을 잡으면 메가블럭을 준다 (메가 진화에 쓴다)
               state.caught++;
