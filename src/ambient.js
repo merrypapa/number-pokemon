@@ -48,7 +48,8 @@ export class Ambient {
     if (S.waves) this.noiseLayer({ type: 'lowpass', freq: 650, q: 0.5, vol: S.waves, lfo: 0.13, sweep: 400, swell: true });
     if (S.crowd) this.noiseLayer({ type: 'bandpass', freq: 900, q: 0.8, vol: S.crowd, lfo: 0.3, sweep: 200 });
     if (S.pond) this.noiseLayer({ type: 'bandpass', freq: 1500, q: 1.2, vol: S.pond, lfo: 2.3, sweep: 600 });
-    if (S.water) { this.waterG = this.noiseLayer({ type: 'bandpass', freq: 1600, q: 0.5, vol: S.water, lfo: 0.35, sweep: 220 }); // vol 은 숨 쉬는 흔들림 크기도 정한다 (예전엔 1 이라 흔들림만으로도 정한 크기의 수십 배로 컸다) this.waterG.gain.value = 0; this.waterMax = S.water; } // 졸졸 흐르는 물: 필터를 천천히만 흔든다 (예전엔 초당 3번 흔들려 "웅웅" 기계 소리 같았다)
+    // 물소리 층: vol 은 숨 쉬는 흔들림 크기도 정한다 (예전엔 1 이라 흔들림만으로도 정한 크기의 수십 배로 컸다). 필터는 천천히만 흔든다 (예전엔 초당 3번 흔들려 "웅웅" 기계 소리 같았다)
+    if (S.water) { this.waterG = this.noiseLayer({ type: 'bandpass', freq: 1600, q: 0.5, vol: S.water, lfo: 0.35, sweep: 220 }); this.waterG.gain.value = 0; this.waterMax = S.water; }
     if (S.buzz) this.buzzLayer(S.buzz);
     if (S.pad) this.padLayer(S.pad);
     if (S.hum) this.humLayer(S.hum);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
-import { LAKE, PIER, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, alpineHouse, chaletHome, glassLab, oxfordSchool, colosseumOut } from './hallstatt.js';
+import { LAKE, PIER, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
 import { NUMBER_COLORS, RAINBOW } from './palette.js';
 import { makeNpc } from './npc.js';
 
@@ -624,7 +624,7 @@ export function buildWorld(scene, layout = 'forest') {
   {
     const g = new THREE.Group();
     const W = 16, H = 6.5, D = 11;
-    g.add(glassLab(W, H, D)); // 큐 가든 팜 하우스 같은 흰 철골 유리 온실 (src/hallstatt.js)
+    g.add(downHouseOut(W, H, D)); // 다운 하우스: 하얀 조지 왕조풍 집 + 돌출 창 + 슬레이트 지붕 + 담쟁이 + 옆 온실 (src/hallstatt.js)
     const sign = makePillSprite('🏥 오박사 연구소', { bg: '#fffbe6', fg: '#20232e', border: '#3fb8e8' }, 1.6);
     sign.position.set(0, 4.6, -D / 2 - 1.6);
     const steps = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1.6), stoneMat);
@@ -1456,7 +1456,7 @@ export function buildWorld(scene, layout = 'forest') {
       '북서쪽 바위 언덕의 굴로 들어가면 지하동굴이야. 거기서 번개동굴과 동굴탑으로도 갈 수 있어.',
       '서북쪽 끝 붉은 바위산 아치로 들어가면 불의산이야! 기차역 가는 길에서 갈라지는 협곡 길을 따라가.',
       '서쪽 기차역에서 리리의 기차를 타면 물의길, 동쪽 발사장에서 코리의 로켓을 타면 꿈의우주!',
-      '남쪽 유리 온실이 오박사 연구소야. 포켓몬 치료도 해 주시고, 대표 포켓몬 이야기와 의뢰도 주셔.',
+      '남쪽 하얀 큰 집(다윈의 다운 하우스를 닮았어)이 오박사 연구소야. 포켓몬 치료도 해 주시고, 대표 포켓몬 이야기와 의뢰도 주셔.',
       '서쪽 분홍 지붕이 네 집, 그 옆 노란 시계탑이 포켓몬 학교. 남서쪽 울타리 문은 야외 체육관, 동쪽 둥근 경기장은 넘버볼 아레나야.',
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구구나! 다음엔 지하동굴 보스에게 도전해 봐.' : '먼저 푸른숲에서 포켓몬을 잡고 이상해꽃 보스에게 도전해 봐. 보스는 경험치를 세 배나 줘!',
     ] }, { x: totoroAt.x, z: totoroAt.z, mesh: totoro, name: '도토로', lines: (c) => [
@@ -1485,7 +1485,7 @@ export function buildWorld(scene, layout = 'forest') {
       '불 포켓몬은 풀에 세고, 물은 불에 세고, 풀은 물에 세. 전기는 물에 세지. 상대 속성을 보고 대표를 고르면 훨씬 쉬워.',
       c.conquered.forest ? '푸른숲 보스 이상해꽃은 이미 네 친구! 북서쪽 산의 뒷문 동굴 입구도 열렸어. 지하동굴에 가 보자고.' : `서북쪽 돌기둥 아레나에 보스 이상해꽃이 있어. 체력 60에 공격 6이나 되니까 공격 ${c.zone.targetAtk + 4} 이상, 체력 25쯤 되면 도전해 봐. 불 포켓몬이면 더 좋고.`,
       '북서쪽 구석 버섯 고리에는 잠만보가 자고 있어. 체력이 60이나 되니까 충분히 세진 다음에 가 보라고.',
-      '북쪽 길 끝 바위 언덕의 굴로 걸어 들어가면 지하동굴, 서쪽 기차역은 물의길, 남동쪽 로켓은 꿈의우주로 가는 길이야. 불의산은 마을 서북쪽 붉은 바위 아치로 가! 마을 남쪽 유리 온실은 오박사 연구소!',
+      '북쪽 길 끝 바위 언덕의 굴로 걸어 들어가면 지하동굴, 서쪽 기차역은 물의길, 남동쪽 로켓은 꿈의우주로 가는 길이야. 불의산은 마을 서북쪽 붉은 바위 아치로 가! 마을 남쪽 하얀 큰 집은 오박사 연구소!',
       '마을 서쪽 분홍 지붕 집이 네 집이야. 엄마가 기다리셔! 그 옆 노란 시계탑 건물은 포켓몬 학교야. 오박사님이 선생님이고 친구들도 다 거기 있어. 내 자리에 앉으면 수학·영어·국어·한자를 공부할 수 있다고. 숙제는 꼭 하라고!',
       '남서쪽으로 쭉 가면 황금빛 "꿀의 길"이 나와. 아치를 지나 길만 따라가면 숲에서 제일 큰 나무가 나오는데, 거기 꿀벌집이 매달려 있어. 벌집 바로 아래로 걸어가면 안으로 들어가!',
       '바다 일은 나한테 묻지 마. 항해사 나미가 심해에 내려가 있으니 거기서 물어보라고!',
