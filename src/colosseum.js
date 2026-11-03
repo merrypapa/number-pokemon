@@ -99,6 +99,10 @@ export function makeColosseumTerrain({ size, stage, obstacles }) {
   };
   const blocked = (x, z, refY) => {
     const ref = refY ?? 0, p = polar(x, z), w = p.w;
+    if (z > cz && ref > 1.2 && w > -2.0 && w < 0) { // 포디움 돌계단: 높은 칸에서는 안쪽 난간과 맨 끝 벽 (떨어지지 않게)
+      const ax = Math.abs(x - cx) - COL.ST0;
+      if (ax > 1.6 && ax < 8.2 && (w < -1.45 || ax > 7.5)) return true;
+    }
     if (w < -0.4 || w > OUT + 0.45) return false;
     const tun = inTunnel(x, z, w);
     if (tun && ref < P - 0.5) return Math.abs(x - cx) > TW - 0.05 && w > 0 && w < OUT; // 굴 안: 양옆 벽
@@ -267,6 +271,14 @@ export function buildColosseum(decor, { obstacles }) {
     const top = k === 7, X = cx + sx * (COL.ST0 + k - (top ? 0.2 : 0.5)), th = thetaAtX(X, -0.8), p = ringPt(th, -0.8), [nx, nz] = outNormal(th, -0.8), h = 0.5 * k;
     addGeo(body, box, { x: p[0], y: h / 2, z: p[1], ry: Math.atan2(nx, nz), sx: top ? 1.62 : 1.02, sy: h, sz: 1.75 }, k % 2 ? 0xe9e1cf : 0xdcd2bd);
   }
+  for (const sx of [-1, 1]) { // 계단 안쪽 돌난간 (3번째 칸부터) + 맨 윗단 끝 벽
+    for (let k = 3; k <= 7; k++) {
+      const top = k === 7, a = COL.ST0 + k - 1, b = top ? COL.ST0 + 7.6 : COL.ST0 + k, th = thetaAtX(cx + sx * (a + b) / 2, -1.5), p = ringPt(th, -1.5), [nx, nz] = outNormal(th, -1.5), h = 0.5 * k + 0.8;
+      addGeo(body, box, { x: p[0], y: h / 2, z: p[1], ry: Math.atan2(nx, nz), sx: b - a + 0.02, sy: h, sz: 0.22 }, 0xe2d8c2);
+    }
+    const th = thetaAtX(cx + sx * (COL.ST0 + 7.5), -0.85), p = ringPt(th, -0.85), [nx, nz] = outNormal(th, -0.85);
+    addGeo(body, box, { x: p[0], y: (P + 0.8) / 2, z: p[1], ry: Math.atan2(nx, nz), sx: 0.22, sy: P + 0.8, sz: 1.5 }, 0xe2d8c2);
+  }
   SEG.forEach((s, i) => {
     const st = aisleStep(i); if (!st || s.kind === 'wall') return;
     for (const a of AISLES) { const p = ringPt(a, s.w1 - 0.35); addGeo(body, box, { x: p[0], y: s.h + st / 2, z: p[1], ry: Math.atan2(Math.cos(a), Math.sin(a)), sx: AISLE_HW * 2, sy: st, sz: 0.7 }, 0xf0e6cc); }
@@ -396,6 +408,7 @@ export function buildColosseum(decor, { obstacles }) {
   obstacles.push({ x: lift.x, z: lift.z, r: 1.25 });
 
   // 애니메이션: 횃불 일렁임, 깃발 펄럭임, 승강기 오르내림, 응원하는 관중
+  const hiddenSp = [], ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3();
   function animate(t) {
     flameItems.forEach((f, i) => { sc.set(1, 0.8 + Math.sin(t * 9 + i * 1.7) * 0.2 + Math.sin(t * 13 + i) * 0.1, 1); m4.compose(v.set(f.x, f.y, f.z), q.identity(), sc); flames.setMatrixAt(i, m4); });
@@ -404,7 +417,16 @@ export function buildColosseum(decor, { obstacles }) {
     flags.instanceMatrix.needsUpdate = true;
     const lt = (t * 0.25) % 1, up = lt < 0.15 ? lt / 0.15 : lt < 0.55 ? 1 : lt < 0.7 ? 1 - (lt - 0.55) / 0.15 : 0; // 올라와서 잠시 머물렀다 내려간다
     liftG.position.y = -1.6 + up * 1.6;
+    // 카메라 바로 앞에 앉은 관중은 잠깐 숨긴다 (가까이서 화면을 다 가렸다)
+    for (let k = 0; k < bodies.length; k++) {
+      const b = bodies[k], near = (b.x - camPos.x) ** 2 + (b.y - camPos.y) ** 2 + (b.z - camPos.z) ** 2 < 16;
+      if (near === !!hiddenSp[k]) continue;
+      hiddenSp[k] = near;
+      if (near) { bodyI.setMatrixAt(k, ZERO); headI.setMatrixAt(k, ZERO); }
+      else { m4.compose(v.set(b.x, b.y, b.z), q.setFromEuler(e.set(0, b.ry, 0)), one); bodyI.setMatrixAt(k, m4); const h = heads[k]; m4.compose(v.set(h.x, h.y, h.z), q.identity(), one); headI.setMatrixAt(k, m4); }
+    }
     for (const c of cheer) { // 응원하는 관중은 들썩들썩
+      if (hiddenSp[c.k]) continue;
       const j = Math.max(0, Math.sin(t * 6 + c.ph)) * 0.25;
       m4.compose(v.set(c.x, c.y0 + 0.38 + j, c.z), q.setFromEuler(e.set(0, c.ry, 0)), one); bodyI.setMatrixAt(c.k, m4);
       m4.compose(v.set(c.x, c.y0 + 0.95 + j, c.z), q.identity(), one); headI.setMatrixAt(c.k, m4);
