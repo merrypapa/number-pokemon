@@ -21,6 +21,7 @@ import { PLANETS, PLANET_BY_ZONE, buildPlanet, planetSvg } from './planets.js';
 import { WarpFx } from './ufo.js';
 import { strongAgainst, weakTo, skillIcon } from './types.js';
 import { portrait, setPortraitRenderer } from './portrait.js';
+import { setOffscreenRenderer } from './offscreen.js';
 import { BALLS, BALL_BY_ID, GRADES, gradeStars, recommendedBall, catchChance } from './balls.js';
 import { Player, PLAYER_MODEL, PLAYER_NAME } from './player.js';
 import { TRAINERS, trainerOf, DEFAULT_TRAINER, AFFINITY_EXP } from './trainers.js';
@@ -68,6 +69,7 @@ function fitRenderer() {
 }
 renderer.shadowMap.enabled = true;
 setPortraitRenderer(renderer); // 말풍선 얼굴 그림도 이 렌더러로 그린다 (컨텍스트를 따로 만들지 않는다)
+setOffscreenRenderer(renderer); // 도감 액자 그림·360° 보기도 이 렌더러로 (따로 만들면 아이폰에서 도감을 열 때 꺼졌다)
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 400);
@@ -3743,7 +3745,7 @@ function frame() {
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
   if (zoneBannerTimer > 0) { zoneBannerTimer -= dt; if (zoneBannerTimer <= 0) zoneBannerEl.classList.add('hidden'); }
 
-  renderer.render(zone.scene, camera);
+  if (!dex.open || (state.frames & 3) === 0) renderer.render(zone.scene, camera); // 도감이 열려 있으면 뒤 게임 화면은 4프레임에 한 번만 (아이폰 GPU·메모리 여유)
   photo.afterRender(renderer); // 그린 직후에만 캔버스를 읽을 수 있다 (preserveDrawingBuffer 가 꺼져 있다)
   input.endFrame();
   requestAnimationFrame(frame);

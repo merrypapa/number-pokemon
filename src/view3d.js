@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildDraftMesh , dexSizeFactor } from './creatures.js';
+import { hasOffscreen, renderToCanvas } from './offscreen.js';
 
 // 작은 360° 3D 화면: 포켓몬 한 마리를 캔버스에 그려 저절로 돌리고, 끌면 직접 돌릴 수 있다 (도감 카드·대결 교체 팝업에서 쓴다)
 export class View3D {
@@ -11,14 +12,20 @@ export class View3D {
     if (this.canvas.parentNode !== slot) slot.prepend(this.canvas);
     return this.canvas;
   }
+  /** 그리기 준비. 게임 본체 렌더러를 빌릴 수 있으면 이 캔버스는 2D 로 쓰고 매 프레임 픽셀을 옮겨 그린다 (offscreen.js) —
+   *  따로 WebGL 컨텍스트를 만들면 텍스처를 다시 올려야 해서 아이폰에서 도감을 열면 꺼졌다. 못 빌리면(본체 전) 예전처럼 자기 렌더러 */
   ensure(canvas) {
+    if (!this.scene) {
+      this.scene = new THREE.Scene();
+      this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
+      const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.scene.add(sun);
+      this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+    }
+    this.ctx2d = null;
+    if (hasOffscreen() && !this.renderer) { const c = canvas.getContext('2d'); if (c) { this.ctx2d = c; return true; } } // 이미 WebGL 로 쓴 캔버스면 null → 아래 예비
     try {
       if (!this.renderer) {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-        this.scene = new THREE.Scene();
-        this.scene.add(new THREE.HemisphereLight(0xffffff, 0x99aa88, 1.6));
-        const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 4, 3); this.scene.add(sun);
-        this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
       } else if (this.renderer.domElement !== canvas) { // 캔버스가 새로 만들어졌다 (mount 를 쓰면 일어나지 않는다): 옛 컨텍스트를 확실히 놓아준다
         try { this.renderer.forceContextLoss(); } catch (_) {}
         this.renderer.dispose(); this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -60,7 +67,9 @@ export class View3D {
       if (!this.drag) this.angle += this.spin * dt;
       mesh.rotation.y = this.angle;
       if (++frames % 30 === 0 && (mesh.userData.model || null) !== fitted) fit(); // 모델이 나중에 도착했을 때만 다시 맞춘다
-      this.renderer.render(this.scene, this.camera);
+      if (this.ctx2d) { // 본체 렌더러로 그려 옮긴다 (초당 30번이면 충분: 픽셀 옮기기를 줄인다)
+        if (now - (this.lastDraw || 0) > 32) { this.lastDraw = now; const W = canvas.width, H = canvas.height; if (!renderToCanvas(this.scene, this.camera, W, H, this.ctx2d)) this.ctx2d.clearRect(0, 0, W, H); }
+      } else this.renderer.render(this.scene, this.camera);
       this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
