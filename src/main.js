@@ -1033,6 +1033,7 @@ const hiddenByCam = new Set();
 // 그루마다 적어 둔 인스턴스 번호(world.camTrees)로, 시선(머리 → 카메라) 가까이 있고 시선보다 키가 큰 나무만 크기 0 으로 감춘다. 벗어나면 되돌린다.
 let camTreeHidden = { set: null, ids: new Set() };
 function setTreeShown(ct, i, show) {
+  if (ct.lod) { ct.lod.setHidden(i, !show); return; } // 모델 나무(가까운 것만 모델, envmodels.lodModels)
   const t = ct.trees[i];
   t.parts.forEach(([a, b], k) => { const m = ct.meshes[k], arr = m.instanceMatrix.array; for (let j = a; j < b; j++) { if (show) arr.set(ct.orig[k].subarray(j * 16, j * 16 + 16), j * 16); else arr.fill(0, j * 16, j * 16 + 16); } if (b > a) m.instanceMatrix.needsUpdate = true; });
 }
@@ -1040,6 +1041,7 @@ function hideTreesOnSight(pp, camPos) {
   const ct = zone?.world?.camTrees || null;
   if (camTreeHidden.set && camTreeHidden.set !== ct) { for (const i of camTreeHidden.ids) setTreeShown(camTreeHidden.set, i, true); camTreeHidden = { set: null, ids: new Set() }; }
   if (!ct) return;
+  ct.lod?.update(pp.x, pp.z); // 주인공 둘레 나무만 모델로
   const want = new Set();
   if (camPos && !cam.fp) {
     const ax = pp.x, az = pp.z, ay = pp.y + 1.2, vx = camPos.x - ax, vz = camPos.z - az, L2 = vx * vx + vz * vz || 1;

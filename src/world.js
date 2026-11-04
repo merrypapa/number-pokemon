@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { waterMaterial, windMaterial } from './fx.js';
-import { plantModels } from './envmodels.js';
+import { plantModels, lodModels, LOW_END } from './envmodels.js';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
 import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
@@ -1080,20 +1080,20 @@ export function buildWorld(scene, layout = 'forest') {
   const stemInst = makeInstanced(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }), stemItems);
   const capInst = makeInstanced(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, capItems);
   decor.add(stemInst, capInst);
-  (async () => { // 모델 나무로 바꿔 심기: 침엽수·삼나무 → 소나무 모델, 둥근 잎 나무 → 활엽수 모델
+  (async () => { // 모델 나무로 바꿔 심기 (가까운 것만, LOD): 침엽수·삼나무 → 소나무 모델, 둥근 잎 나무 → 활엽수 모델. 먼 나무는 도형 그대로
     const pineIdx = [], broadIdx = [];
     modelTrees.forEach((t, i) => (t.pine ? pineIdx : broadIdx).push(i));
-    const [pine, broad] = await Promise.all([
-      plantModels(decor, pineIdx.map((i) => modelTrees[i]), ['Pine_1', 'Pine_2', 'Pine_3', 'Pine_4', 'Pine_5'], { wind: 0.12 }),
-      plantModels(decor, broadIdx.map((i) => modelTrees[i]), ['CommonTree_1', 'CommonTree_2', 'CommonTree_3', 'CommonTree_4', 'CommonTree_5'], { wind: 0.1 }),
+    const proc = (idx) => ({ meshes: camTreeSet.meshes, orig: camTreeSet.orig, parts: (k) => camTrees[idx[k]].parts });
+    const opts = { radius: LOW_END ? 32 : 48 };
+    const [pine, broad] = await Promise.all([ /* 가벼운 것만: 소나무 1·2·4·5 (1.6~4천 삼각형), 활엽수 3·4·5 (3~4천) */
+      lodModels(decor, pineIdx.map((i) => modelTrees[i]), ['Pine_1', 'Pine_2', 'Pine_4', 'Pine_5'], proc(pineIdx), { ...opts, wind: 0.12 }),
+      lodModels(decor, broadIdx.map((i) => modelTrees[i]), ['CommonTree_3', 'CommonTree_4', 'CommonTree_5'], proc(broadIdx), { ...opts, wind: 0.1 }),
     ]);
     if (!pine || !broad) { for (const r of [pine, broad]) if (r) r.meshes.forEach((m) => decor.remove(m)); return; }
-    const meshes = [...pine.meshes, ...broad.meshes], off = pine.meshes.length, slotOf = new Map();
-    pineIdx.forEach((ti, k) => slotOf.set(ti, pine.slots[k]));
-    broadIdx.forEach((ti, k) => { const [ms, j] = broad.slots[k]; slotOf.set(ti, [ms.map((m) => m + off), j]); });
-    camTrees.forEach((t, i) => { const [ms, j] = slotOf.get(i); t.parts = meshes.map((_, mi) => (ms.includes(mi) ? [j, j + 1] : [0, 0])); t.top = modelTrees[i].y + modelTrees[i].h; });
-    for (const m of camTreeSet.meshes) m.visible = false;
-    camTreeSet.meshes = meshes; camTreeSet.orig = meshes.map((m) => m.instanceMatrix.array.slice());
+    const local = new Map(); pineIdx.forEach((ti, k) => local.set(ti, [pine, k])); broadIdx.forEach((ti, k) => local.set(ti, [broad, k]));
+    camTreeSet.lod = { update: (x, z) => { pine.update(x, z); broad.update(x, z); }, setHidden: (i, h) => { const [l, k] = local.get(i); l.setHidden(k, h); } }; // main 의 hideTreesOnSight 가 부른다
+    camTrees.forEach((t, i) => { t.top = Math.max(t.top, modelTrees[i].y + modelTrees[i].h); });
+    if (LOW_END) return; /* 모바일: 버섯 모델(하나 880 삼각형 × 백여 개)은 도형 그대로 */
     const shrooms = await plantModels(decor, stemItems.map((it) => ({ x: it.x, y: it.y - 0.17, z: it.z, h: 0.5 })), ['Mushroom_Common'], { shadow: false });
     if (shrooms) { stemInst.visible = false; capInst.visible = false; }
   })();
@@ -1145,7 +1145,7 @@ export function buildWorld(scene, layout = 'forest') {
     }
     const frondInst = makeInstanced(new THREE.ConeGeometry(0.2, 1.2, 3), windMaterial(WHITE_MAT, { amp: 0.08, y0: -0.6, y1: 0.6, speed: 1.5 }), fronds);
     decor.add(frondInst);
-    plantModels(decor, fernSpots, ['Fern_1'], { wind: 0.08, shadow: false }).then((r) => { if (r) frondInst.visible = false; });
+    if (!LOW_END) plantModels(decor, fernSpots, ['Fern_1'], { wind: 0.08, shadow: false }).then((r) => { if (r) frondInst.visible = false; }); /* 모바일: 잎을 오려내는 고사리 수백 개는 애플 GPU 에 비싸다 → 도형 그대로 */
   }
   {
     const inst = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 1, 4), grassMat, bladeTransforms.length);

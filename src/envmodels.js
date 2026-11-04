@@ -32,7 +32,7 @@ function loadKit(name) {
 const LEAFY = /leaf|leaves|bush|fern|grass|flower/i;
 function partMaterial(mat, wind) {
   const leafy = LEAFY.test(mat.name || '') || LEAFY.test(mat.map?.name || '') || mat.alphaTest > 0 || mat.transparent;
-  if (leafy) { mat.side = THREE.DoubleSide; mat.alphaTest = mat.alphaTest || 0.45; mat.transparent = false; } // 잎 그림의 빈 곳은 잘라낸다 (반투명 정렬 문제 없이)
+  if (leafy && !mat.userData.np) { mat.userData.np = true; mat.side = THREE.DoubleSide; mat.alphaTest = mat.alphaTest || 0.45; mat.transparent = false; mat.color.multiplyScalar(1.35); } /* 잎을 조금 밝게: 원래 텍스처가 어두워 도형 나무(밝은 초록) 사이에서 검게 보였다 */ // 잎 그림의 빈 곳은 잘라낸다 (반투명 정렬 문제 없이)
   return wind && leafy ? windMaterial(mat, { amp: wind, y0: 0.25, y1: 1, speed: 1.2 }) : mat;
 }
 
@@ -63,4 +63,53 @@ export async function plantModels(parent, items, variants, { wind = 0, shadow = 
     }
   });
   return { meshes, slots: slots.map(([v, j]) => [meshOfVariant[v], j]) };
+}
+
+/** 아이폰·아이패드·안드로이드 (아이패드는 데스크톱 사파리처럼 보이므로 터치로 가린다) */
+export const LOW_END = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+/**
+ * 가까운 것만 모델로 (LOD). 멀리 있는 것은 원래 도형(proc)으로 그린다 — 안개에 묻혀 차이가 거의 안 보이고, 그리는 양은 몇 분의 일로 준다.
+ * proc = { meshes, orig, parts(i) → [[a, b] (meshes 순서대로)] } : 도형 인스턴스 자리 (main 의 camTrees 와 같은 꼴)
+ * 돌려주는 lod 의 update(x, z) 를 프레임마다 부르면 주인공이 몇 m 움직일 때마다 가까운 목록을 다시 짠다.
+ * setHidden(i, h): 카메라를 가리는 나무 감추기 (도형·모델 둘 다)
+ */
+export async function lodModels(parent, items, variants, proc, { radius = 45, wind = 0, shadow = true } = {}) {
+  const kits = await Promise.all(variants.map(loadKit));
+  if (kits.some((k) => !k)) return null;
+  const n = items.length, near = new Uint8Array(n), hidden = new Uint8Array(n), mats = [], vOf = new Int32Array(n), cap = kits.map(() => 0);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+  items.forEach((it, i) => {
+    const v = it.v ?? Math.floor(Math.random() * kits.length); vOf[i] = v; cap[v]++;
+    e.set(0, it.ry ?? Math.random() * Math.PI * 2, 0); q.setFromEuler(e); p.set(it.x, it.y, it.z); sc.set(it.h, it.h, it.h);
+    mats.push(new THREE.Matrix4().compose(p, q, sc));
+  });
+  const meshesOf = kits.map((kit, v) => (cap[v] ? kit.parts.map((part) => {
+    const mesh = new THREE.InstancedMesh(part.geo, Array.isArray(part.mat) ? part.mat.map((m) => partMaterial(m, wind)) : partMaterial(part.mat, wind), cap[v]);
+    mesh.count = 0; mesh.castShadow = shadow; mesh.receiveShadow = true; mesh.frustumCulled = false; parent.add(mesh); return mesh;
+  }) : []));
+  const procShow = (i) => {
+    const show = !near[i] && !hidden[i];
+    proc.parts(i).forEach(([a, b], k) => { if (b <= a) return; const arr = proc.meshes[k].instanceMatrix.array; for (let j = a; j < b; j++) { if (show) arr.set(proc.orig[k].subarray(j * 16, j * 16 + 16), j * 16); else arr.fill(0, j * 16, j * 16 + 16); } proc.meshes[k].instanceMatrix.needsUpdate = true; });
+  };
+  const rebuild = () => {
+    const used = kits.map(() => 0);
+    for (let i = 0; i < n; i++) { if (!near[i] || hidden[i]) continue; const v = vOf[i], j = used[v]++; for (const mesh of meshesOf[v]) mesh.setMatrixAt(j, mats[i]); }
+    meshesOf.forEach((ms, v) => ms.forEach((mesh) => { mesh.count = used[v]; mesh.instanceMatrix.needsUpdate = true; }));
+  };
+  let lx = Infinity, lz = Infinity;
+  const lod = {
+    update(x, z) {
+      if (Math.hypot(x - lx, z - lz) < 2.5) return; lx = x; lz = z;
+      let changed = false;
+      for (let i = 0; i < n; i++) {
+        const d = Math.hypot(items[i].x - x, items[i].z - z), nn = near[i] ? d < radius + 5 : d < radius; // 경계에서 깜빡이지 않게 5m 여유
+        if (+nn !== near[i]) { near[i] = +nn; procShow(i); changed = true; }
+      }
+      if (changed) rebuild();
+    },
+    setHidden(i, h) { if (hidden[i] === +h) return; hidden[i] = +h; procShow(i); if (near[i]) rebuild(); },
+    meshes: meshesOf.flat(),
+  };
+  return lod;
 }
