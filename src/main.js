@@ -2203,7 +2203,29 @@ function conquer(zoneName) {
 
 // ---------- 시작: 타이틀 → 포켓몬 고르기 → 모험 ----------
 // 타이틀이 떠 있는 동안은 인트로 무대(주인공·몬스터 친구들)를 그린다
-let intro = buildIntro(creatureData.creatures);
+/** 이어하는 아이: 이 기기의 가장 최근 저장 (로그인해 있으면 그 이름의 저장) */
+function introSave() { const saves = listSaves(); return (cloud.user && saves.find((s) => s.name === cloud.user.name)) || saves[0] || null; }
+/** 시작 화면 무대에 세울 캐릭터: 내 트레이너 + 내 파티 포켓몬 (대표가 바로 옆). 저장이 없으면 null (시작 포켓몬 넷) */
+function introCast(s) {
+  if (!s) return null;
+  const tr = TRAINERS.find((t) => t.id === s.trainer);
+  const members = [...(s.party || [])]; const lead = members.splice(s.leader || 0, 1); members.unshift(...lead);
+  const mons = members.map((m) => speciesById[m.speciesId]).filter((sp) => sp?.model).slice(0, 4).map((sp) => ({ model: sp.model, height: 1.2 }));
+  return mons.length ? [{ model: tr?.model || PLAYER_MODEL, height: tr?.height || 1.9 }, ...mons] : null;
+}
+/** 내 모험 카드: 이름 · 대표 포켓몬 · 도감 수 · 다섯 지역 정복 배지 */
+const INTRO_BADGES = [['forest', '🌲'], ['cave', '⛏️'], ['volcano', '🌋'], ['sea', '🌊'], ['space', '🌌']];
+function renderTitleCard() {
+  const el = document.getElementById('title-card'), s = introSave();
+  if (!s) { el.hidden = true; return; }
+  const lead = (s.party || [])[s.leader || 0], sp = lead && speciesById[lead.speciesId];
+  const dexN = Object.values(s.dex || {}).filter((n) => n > 0).length;
+  el.innerHTML = `<div class="tc-name">🎒 ${String(s.name).replace(/[<>&"]/g, '')}의 모험${sp ? ` · <b>${josa(sp.name, '과와')}</b> 함께` : ''}</div>
+    <div class="tc-row"><span class="tc-dex">📖 도감 ${dexN}</span><span class="tc-badges">${INTRO_BADGES.map(([z, e]) => `<span class="tc-b${s.conquered?.[z] ? ' on' : ''}" title="${ZONE_INFO[z]?.name || z}">${e}</span>`).join('')}</span></div>`;
+  el.hidden = false;
+}
+let intro = buildIntro(creatureData.creatures, introCast(introSave()));
+renderTitleCard();
 onFit = (aspect) => intro?.resize(aspect);
 intro.resize(fitW / fitH);
 document.body.classList.add('intro');
@@ -2520,6 +2542,7 @@ function refreshAccountUi() {
   // 로그인해 있으면 "시작하기" 하나가 이어서 해 준다. 로그인 전(클라우드가 꺼진 오프라인 포함)에는
   // 이 기기 저장으로 이어 갈 길이 있어야 한다 — 없으면 새로 시작하는 수밖에 없어 진행이 통째로 사라진다.
   document.getElementById('btn-continue').hidden = !!u || !listSaves().length;
+  renderTitleCard();
   if (dex.open && dex.tab === 'friends') renderFriends();
 }
 cloud.onUser = () => { refreshAccountUi(); if (cloud.user) { presence.refreshT = 0; startDuelWatch(); } else { stopPresence(); stopDuelWatch(); } };

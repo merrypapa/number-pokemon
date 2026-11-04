@@ -1066,3 +1066,13 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
   .save-go { flex: 1 1 auto; font-size: 15px; padding: 9px 12px; }
   .save-del { flex: 0 0 auto; }
 }
+
+/* 시작 화면: 이어하는 아이의 내 모험 카드 (이름 · 대표 포켓몬 · 도감 · 다섯 지역 배지) */
+#title-card { margin-bottom: 14px; padding: 8px 16px; border-radius: 18px; background: rgba(255,255,255,.9); color: #20232e; font-weight: 800; box-shadow: 0 3px 0 rgba(0,0,0,.12); max-width: 92vw; animation: title-drop .9s cubic-bezier(.2,1.4,.4,1) both; }
+#title-card[hidden] { display: none; }
+#title-card .tc-name { font-size: clamp(14px, 2.4vw, 17px); }
+#title-card .tc-row { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 4px; font-size: clamp(13px, 2.2vw, 15px); }
+#title-card .tc-badges { display: flex; gap: 4px; }
+#title-card .tc-b { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; background: #e4e6ec; filter: grayscale(1); opacity: .45; }
+#title-card .tc-b.on { background: #ffe066; filter: none; opacity: 1; box-shadow: 0 0 0 2px #ffc300; }
+@media (min-aspect-ratio: 1/1) and (min-width: 700px) { #title-card { position: fixed; top: 16px; left: 16px; margin: 0; text-align: left; } #title-card .tc-row { justify-content: flex-start; } } /* 가로 화면: 카드는 왼쪽 위 구석에 (무대 가운데를 가리지 않게) */
