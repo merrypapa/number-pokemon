@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { waterMaterial, windMaterial } from './fx.js';
-import { plantModels, lodModels, LOW_END } from './envmodels.js';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
 import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
@@ -1045,7 +1044,6 @@ export function buildWorld(scene, layout = 'forest') {
   // 나무·버섯·바위는 인스턴스로 한 번에 그린다 (250그루를 따로 그리면 느리다)
   const leafColors = [0x3f9d3a, 0x4caf50, 0x2e8b57, 0x6ab04c];
   const trunkItems = [], crownItems = [], coneItems = [], stemItems = [], capItems = [];
-  const modelTrees = []; // 모델로 바꿔 심을 자리 (envmodels: 모델이 다 오면 도형 나무를 감추고 같은 자리에)
   const camTrees = []; // 카메라가 가릴 때 감출 수 있게 그루마다 인스턴스 번호를 적어 둔다 (main 의 hideTreesOnSight)
   for (const [x, z] of treeSpots) {
     const i0 = [trunkItems.length, coneItems.length, crownItems.length];
@@ -1061,7 +1059,6 @@ export function buildWorld(scene, layout = 'forest') {
     if (tall) for (let k = 0; k < 3; k++) coneItems.push({ x, y: y + 2.4 + k, z, sx: (1.6 - k * 0.4) / 1.6, sz: (1.6 - k * 0.4) / 1.6, color: leaf }); // 침엽수
     else { crownItems.push({ x, y: y + 2.2, z, s: 1.4, color: leaf }); crownItems.push({ x: x + 0.6, y: y + 2.8, z: z + 0.3, s: 1.0, color: leaf }); }
     }
-    modelTrees.push({ x, y, z, pine: tall, h: tall && !isTown ? 8.2 * (trunkItems[i0[0]].sy / 4.8) : tall ? 5 : rand(4.4, 5.8) });
     block(x, z, 0.55);
     camTrees.push({ x, z, top: Math.max(...coneItems.slice(i0[1]).map((c) => c.y + 1.0 * (c.sy || 1)), ...crownItems.slice(i0[2]).map((c) => c.y + c.s), y + 2), r: tall && !isTown ? 3.0 : 2.4,
       parts: [[i0[0], trunkItems.length], [i0[1], coneItems.length], [i0[2], crownItems.length]] });
@@ -1077,26 +1074,8 @@ export function buildWorld(scene, layout = 'forest') {
   decor.add(trunkInst, crownInst, coneInst);
   const camTreeSet = { trees: camTrees, meshes: [trunkInst, coneInst, crownInst] };
   camTreeSet.orig = camTreeSet.meshes.map((m) => m.instanceMatrix.array.slice()); // 감췄다 되돌릴 원래 자리
-  const stemInst = makeInstanced(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }), stemItems);
-  const capInst = makeInstanced(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, capItems);
-  decor.add(stemInst, capInst);
-  (async () => { // 모델 나무로 바꿔 심기 (가까운 것만, LOD): 침엽수·삼나무 → 소나무 모델, 둥근 잎 나무 → 활엽수 모델. 먼 나무는 도형 그대로
-    const pineIdx = [], broadIdx = [];
-    modelTrees.forEach((t, i) => (t.pine ? pineIdx : broadIdx).push(i));
-    const proc = (idx) => ({ meshes: camTreeSet.meshes, orig: camTreeSet.orig, parts: (k) => camTrees[idx[k]].parts });
-    const opts = { radius: LOW_END ? 32 : 48 };
-    const [pine, broad] = await Promise.all([ /* 가벼운 것만: 소나무 1·2·4·5 (1.6~4천 삼각형), 활엽수 3·4·5 (3~4천) */
-      lodModels(decor, pineIdx.map((i) => modelTrees[i]), ['Pine_1', 'Pine_2', 'Pine_4', 'Pine_5'], proc(pineIdx), { ...opts, wind: 0.12 }),
-      lodModels(decor, broadIdx.map((i) => modelTrees[i]), ['CommonTree_3', 'CommonTree_4', 'CommonTree_5'], proc(broadIdx), { ...opts, wind: 0.1 }),
-    ]);
-    if (!pine || !broad) { for (const r of [pine, broad]) if (r) r.meshes.forEach((m) => decor.remove(m)); return; }
-    const local = new Map(); pineIdx.forEach((ti, k) => local.set(ti, [pine, k])); broadIdx.forEach((ti, k) => local.set(ti, [broad, k]));
-    camTreeSet.lod = { update: (x, z) => { pine.update(x, z); broad.update(x, z); }, setHidden: (i, h) => { const [l, k] = local.get(i); l.setHidden(k, h); } }; // main 의 hideTreesOnSight 가 부른다
-    camTrees.forEach((t, i) => { t.top = Math.max(t.top, modelTrees[i].y + modelTrees[i].h); });
-    if (LOW_END) return; /* 모바일: 버섯 모델(하나 880 삼각형 × 백여 개)은 도형 그대로 */
-    const shrooms = await plantModels(decor, stemItems.map((it) => ({ x: it.x, y: it.y - 0.17, z: it.z, h: 0.5 })), ['Mushroom_Common'], { shadow: false });
-    if (shrooms) { stemInst.visible = false; capInst.visible = false; }
-  })();
+  decor.add(makeInstanced(new THREE.CylinderGeometry(0.12, 0.15, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xf3e9d2 }), stemItems));
+  decor.add(makeInstanced(new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), WHITE_MAT, capItems));
   const rockItems = [];
   for (let i = 0; i < 120; i++) { // 바위
     const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
@@ -1105,9 +1084,7 @@ export function buildWorld(scene, layout = 'forest') {
     rockItems.push({ x, y: T.height(x, z) + 0.2, z, s: rr, rx: rand(0, 3), ry: rand(0, 3) });
     block(x, z, rr * 0.9);
   }
-  const rockInst = makeInstanced(new THREE.DodecahedronGeometry(1, 0), rockMat, rockItems, { shadow: true });
-  decor.add(rockInst);
-  plantModels(decor, rockItems.map((it) => ({ x: it.x, y: it.y - 0.2 - it.s * 0.15, z: it.z, h: it.s * 1.3, w: it.s * 2 })), ['Rock_Medium_1', 'Rock_Medium_2', 'Rock_Medium_3']).then((r) => { if (r) rockInst.visible = false; }); /* 모델 바위 (너비를 도형 바위에 맞춘다) */
+  decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), rockMat, rockItems, { shadow: true }));
   const bushMat = windMaterial(new THREE.MeshStandardMaterial({ color: 0x4caf50 }), { amp: 0.04 });
   const grassMat = windMaterial(new THREE.MeshStandardMaterial({ color: 0x3e9e3e, side: THREE.DoubleSide }), { amp: 0.22, y0: -0.5, y1: 0.5, speed: 1.8 }); /* 풀잎 끝이 바람에 눕는다 */
   const bladeTransforms = []; // 풀 블레이드는 한 번에 그린다 (InstancedMesh)
@@ -1130,22 +1107,17 @@ export function buildWorld(scene, layout = 'forest') {
       }
     }
   }
-  const bushInst = makeInstanced(new THREE.SphereGeometry(1, 10, 8), bushMat, bushItems, { shadow: true });
-  decor.add(bushInst);
-  plantModels(decor, bushes.map((b) => ({ x: b.x, y: T.height(b.x, b.z) - 0.05, z: b.z, h: rand(1.0, 1.4), w: rand(1.9, 2.4) })), ['Bush_Common', 'Bush_Common_Flowers'], { wind: 0.05 }).then((r) => { if (r) bushInst.visible = false; });
+  decor.add(makeInstanced(new THREE.SphereGeometry(1, 10, 8), bushMat, bushItems, { shadow: true }));
   if (!isTown) { // 숲 바닥의 고사리 (잎 다섯 장이 사방으로 눕는다)
-    const fronds = [], fernSpots = [];
+    const fronds = [];
     for (let i = 0; i < 520; i++) {
       const x = rand(-S / 2 + 3, S / 2 - 3), z = rand(-S / 2 + 3, S / 2 - 3);
       if (avoid(x, z) && Math.random() < 0.8) continue;
       if (!structClear(x, z, 0.6)) continue;
       const y = meadowGround(x, z), sc = rand(0.7, 1.3), a0 = rand(0, 6.28);
-      fernSpots.push({ x, y, z, h: 0.75 * sc, w: 1.6 * sc });
       for (let k = 0; k < 5; k++) fronds.push({ x, y: y + 0.35 * sc, z, rz: 1.05, ry: a0 + k * 1.256, sx: sc, sy: sc, sz: sc * 0.35, color: k % 2 ? 0x4f8f36 : 0x5fa43f });
     }
-    const frondInst = makeInstanced(new THREE.ConeGeometry(0.2, 1.2, 3), windMaterial(WHITE_MAT, { amp: 0.08, y0: -0.6, y1: 0.6, speed: 1.5 }), fronds);
-    decor.add(frondInst);
-    if (!LOW_END) plantModels(decor, fernSpots, ['Fern_1'], { wind: 0.08, shadow: false }).then((r) => { if (r) frondInst.visible = false; }); /* 모바일: 잎을 오려내는 고사리 수백 개는 애플 GPU 에 비싸다 → 도형 그대로 */
+    decor.add(makeInstanced(new THREE.ConeGeometry(0.2, 1.2, 3), windMaterial(WHITE_MAT, { amp: 0.08, y0: -0.6, y1: 0.6, speed: 1.5 }), fronds));
   }
   {
     const inst = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 1, 4), grassMat, bladeTransforms.length);
