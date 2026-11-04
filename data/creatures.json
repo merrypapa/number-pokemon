@@ -5502,10 +5502,11 @@
    "id": "x12",
    "name": "메가전룡",
    "type": "전기",
-   "zone": "evolution",
-   "catchable": false,
+   "zone": "thunder",
+   "catchable": true,
+   "shrine": true,
    "model": "메가전룡.glb",
-   "scale": 1.6,
+   "scale": 3.4,
    "draftShape": {
     "body": "sphere",
     "color": "#FFE680"

@@ -429,7 +429,7 @@ function toggleFly() { flying ? dismountFly() : mountFly(); }
 flyBtn.onclick = toggleFly;
 
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
-const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -37, z: -27 }, /* 동굴: 예전 자리(-44,34)는 지하 강과 겹쳐 늘 다른 곳으로 밀렸다 */ volcano: { x: -110, z: -40 } /* volcano.js VOLCANO.shrineSpot: 빈 용암 벌판 (예전 자리는 오히아 숲 속이라 나무가 분석구 경사로를 막았다) */, sea: { x: 110, z: 114 }, space: { x: 92, z: 32 } /* uyuni.js OJOS: 소금사막 가장자리 */ }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
+const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -37, z: -27 }, /* 동굴: 예전 자리(-44,34)는 지하 강과 겹쳐 늘 다른 곳으로 밀렸다 */ volcano: { x: -110, z: -40 } /* volcano.js VOLCANO.shrineSpot: 빈 용암 벌판 (예전 자리는 오히아 숲 속이라 나무가 분석구 경사로를 막았다) */, sea: { x: 110, z: 114 }, space: { x: 92, z: 32 } /* uyuni.js OJOS: 소금사막 가장자리 */, thunder: { x: -40, z: -6 } /* thunder.js THUNDER.shrineSpot: 서쪽 빈터 */ }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
 /** 성역을 놓을 만한 넓고 평평한 자리를 찾는다 (바다 지역은 탁 트인 물 위) */
 function findShrineSpot(z) {
   const onWater = !!z.world.waterY;

@@ -88,10 +88,10 @@ export function buildCave(scene) {
   const obstacles = CAVE_TERRAIN.obstacles;
   obstacles.length = 0;
   const block = (x, z, r) => obstacles.push({ x, z, r });
-  scene.background = new THREE.Color(0x05070c);
+  scene.background = new THREE.Color(0x141a28);
   // 어둡지만 캐릭터가 보일 만큼은 밝게: 달빛 같은 반구광 + 약한 방향광. (전투 중엔 battle.js 가 무대 조명을 더 켠다)
-  scene.fog = new THREE.Fog(0x05070c, 24, 80);
-  scene.add(new THREE.HemisphereLight(0x8fa3e0, 0x222a3a, 1.7));
+  scene.fog = new THREE.Fog(0x141a28, 30, 100); // 너무 어둡지 않게 (예전 0x05070c·80)
+  scene.add(new THREE.HemisphereLight(0xa8b8ec, 0x3a4458, 2.3));
   const sun = new THREE.DirectionalLight(0x9aa8d8, 0.5);
   sun.position.set(10, 30, 10);
   sun.castShadow = true;
@@ -105,7 +105,7 @@ export function buildCave(scene) {
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = [];
-  const a = new THREE.Color(0x3a3f4a), b = new THREE.Color(0x2c3038), lakeBed = new THREE.Color(0x1d2a44), jungleA = new THREE.Color(0x4f8f36), jungleB = new THREE.Color(0x5fa43f);
+  const a = new THREE.Color(0x5c616c), b = new THREE.Color(0x4c515a), /* 바닥을 밝게 (예전 0x3a3f4a·0x2c3038: 너무 어두웠다) */ lakeBed = new THREE.Color(0x1d2a44), jungleA = new THREE.Color(0x4f8f36), jungleB = new THREE.Color(0x5fa43f);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
     pos.setY(i, caveGround(x, z)); // 땅 판은 맨바닥만 (절벽·계단은 따로 세운 모양)
@@ -141,7 +141,7 @@ export function buildCave(scene) {
   buildCaveStructures(scene, decor, { ground: caveGround, base: caveBase, obstacles }); // 손둥 동굴 구조물
 
   // 바깥 벽(큰 바위 원뿔 링)과 안쪽 바위 기둥: 인스턴스로 한 번에 그린다
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5261, roughness: 1 });
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x6b7282, roughness: 1 });
   const wallItems = [], pillarItems = [];
   for (let i = 0; i < 88; i++) {
     const ang = (i / 88) * Math.PI * 2;
