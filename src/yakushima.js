@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial } from './fx.js';
 import { makeInstanced, makePillSprite } from './world.js';
 
 // 푸른숲 = 야쿠시마(시라타니운스이쿄) 이끼 숲을 본뜬 구조물들. 평지에서 위아래로 오가는 길을 만든다.
@@ -171,7 +172,7 @@ export function buildForestStructures(decor, { ground, bed, obstacles }) {
       if (k > 0) { const a = (k - 1) * 2, b = k * 2; idx.push(a, a + 1, b, a + 1, b + 1, b); }
     }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-    const water = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x4fb3d9, roughness: 0.15, metalness: 0.1, side: THREE.DoubleSide }));
+    const water = new THREE.Mesh(geo, waterMaterial({ color: 0x4fb3d9, roughness: 0.15, metalness: 0.1, side: THREE.DoubleSide }, { scale: 0.6, speed: 1.6 }));
     water.userData.noHide = true; water.receiveShadow = true; decor.add(water);
     const bank = [];
     for (let s = 2; s < STREAM.L; s += 2.2) {

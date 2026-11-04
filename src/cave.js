@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial } from './fx.js';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildBridge, onBridge, bridgeParam, bridgeDeckY, makeInstanced, makePillSprite } from './world.js';
@@ -119,7 +120,7 @@ export function buildCave(scene) {
   scene.add(ground);
 
   // 지하 호수
-  const water = new THREE.Mesh(new THREE.CircleGeometry(CAVE.lake.r + 1, 36), new THREE.MeshStandardMaterial({ color: 0x1e6fb8, emissive: 0x0b2f5a, emissiveIntensity: 0.6, transparent: true, opacity: 0.8, roughness: 0.1 }));
+  const water = new THREE.Mesh(new THREE.CircleGeometry(CAVE.lake.r + 1, 36), waterMaterial({ color: 0x1e6fb8, emissive: 0x0b2f5a, emissiveIntensity: 0.6, transparent: true, opacity: 0.8, roughness: 0.1 }, { scale: 0.4, speed: 0.6 }));
   water.rotation.x = -Math.PI / 2;
   water.position.set(CAVE.lake.x, -0.3, CAVE.lake.z);
   scene.add(water);

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial, windMaterial } from './fx.js';
 import { makePillSprite } from './world.js';
 
 // 메가 성역: 지역 보스를 잡아 정복하면 그 지역에 나타나는 숨은 장소.
@@ -226,7 +227,7 @@ export function buildPearlPools(x, groundY, z) {
   const calcite = new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.8 }), calciteD = new THREE.MeshStandardMaterial({ color: 0xc9b896, roughness: 0.9 });
   const rim = new THREE.Mesh(new THREE.CylinderGeometry(P.rimOut, P.rimOut + 0.4, P.rimH, 40, 1), calcite); rim.position.y = P.rimH / 2; rim.receiveShadow = true; g.add(rim);
   const lip = new THREE.Mesh(new THREE.TorusGeometry(P.waterOut + 0.3, 0.22, 6, 48), calciteD); lip.rotation.x = Math.PI / 2; lip.position.y = P.rimH; g.add(lip);
-  const water = new THREE.Mesh(new THREE.RingGeometry(P.island - 0.05, P.waterOut, 48).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x5fd8d0, emissive: 0x1a7a78, emissiveIntensity: 0.6, transparent: true, opacity: 0.7, roughness: 0.05 })); water.position.y = P.rimH + 0.04; g.add(water);
+  const water = new THREE.Mesh(new THREE.RingGeometry(P.island - 0.05, P.waterOut, 48).rotateX(-Math.PI / 2), waterMaterial({ color: 0x5fd8d0, emissive: 0x1a7a78, emissiveIntensity: 0.6, transparent: true, opacity: 0.7, roughness: 0.05 }, { scale: 0.7, speed: 0.6 })); water.position.y = P.rimH + 0.04; g.add(water);
   const island = new THREE.Mesh(new THREE.CylinderGeometry(P.island, P.island + 0.3, P.islandH + 0.1, 28), calcite); island.position.y = (P.islandH + 0.1) / 2; island.castShadow = true; island.receiveShadow = true; g.add(island);
   const stones = P.stones.map((d) => ({ x: 0, y: P.stoneH / 2 + 0.05, z: d, sx: P.stoneR, sy: P.stoneH + 0.1, sz: P.stoneR }));
   g.add(instanced(new THREE.CylinderGeometry(1, 1.1, 1, 10), calciteD, stones));
@@ -270,7 +271,7 @@ export function buildStarBeach(x, groundY, z) {
   const mound = new THREE.Mesh(new THREE.CylinderGeometry(B.r, B.r + 2.2, B.top + 0.4, 36), sand); mound.position.y = (B.top + 0.4) / 2 - 0.4; mound.receiveShadow = true; g.add(mound);
   const cap = new THREE.Mesh(new THREE.SphereGeometry(B.r, 32, 8, 0, Math.PI * 2, 0, 0.35), sand); cap.scale.y = 0.25; cap.position.y = B.top - B.r * 0.25 * Math.cos(0.35) + 0.02; g.add(cap);
   // 야자수 셋 + 그물 침대 + 조개
-  const trunkM = new THREE.MeshStandardMaterial({ color: 0xa57c52 }), leafM = new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), trunks = [], leaves = [];
+  const trunkM = new THREE.MeshStandardMaterial({ color: 0xa57c52 }), leafM = windMaterial(new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), { amp: 0.15, y0: 0, y1: 2.8 }), trunks = [], leaves = [];
   for (const [px, pz, h, lean] of [[-3.5, -2.5, 4.2, 0.18], [3.8, -1.6, 3.6, -0.2], [-0.8, -4.6, 4.8, 0.08]]) { trunks.push({ x: px, y: B.top + h / 2, z: pz, sx: 0.22, sy: h, sz: 0.22, rz: lean }); for (let k = 0; k < 7; k++) leaves.push({ x: px - Math.sin(lean) * h, y: B.top + h + 0.2, z: pz, ry: (k / 7) * Math.PI * 2, rx: -0.9 }); }
   g.add(instanced(new THREE.CylinderGeometry(0.7, 1, 1, 7), trunkM, trunks));
   const leafGeo = new THREE.PlaneGeometry(0.8, 3); leafGeo.translate(0, 1.3, 0); g.add(instanced(leafGeo, leafM, leaves));
@@ -375,7 +376,7 @@ export function buildSalarEyes(x, groundY, z) {
   const pools = [], bubbles = [], ripples = [];
   const bubMat = new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.85 });
   for (const P of E.pools) {
-    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r, 40).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a8fb0, emissive: 0x0b3f55, emissiveIntensity: 0.5, roughness: 0.05, metalness: 0.2 })); water.position.set(P.x, E.top + 0.02, P.z); g.add(water); /* 소금 판 위에 얹는다 (판이 통짜라 아래에 두면 가려진다) */
+    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r, 40).rotateX(-Math.PI / 2), waterMaterial({ color: 0x2a8fb0, emissive: 0x0b3f55, emissiveIntensity: 0.5, roughness: 0.05, metalness: 0.2 }, { scale: 0.9, speed: 1.5 })); water.position.set(P.x, E.top + 0.02, P.z); g.add(water); /* 소금 판 위에 얹는다 (판이 통짜라 아래에 두면 가려진다) */
     const deep = new THREE.Mesh(new THREE.CircleGeometry(P.r * 0.62, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x0a3550, transparent: true, opacity: 0.85, depthWrite: false })); deep.position.set(P.x, E.top + 0.03, P.z); g.add(deep); /* 가운데가 깊어 보이게 짙게 */
     const lip = new THREE.Mesh(new THREE.TorusGeometry(P.r + 0.1, 0.2, 6, 40), saltD); lip.rotation.x = Math.PI / 2; lip.position.set(P.x, E.top + 0.04, P.z); g.add(lip);
     pools.push({ P, water });

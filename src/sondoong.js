@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial } from './fx.js';
 import { makeInstanced, makePillSprite } from './world.js';
 
 // 지하동굴 = 베트남 손둥 동굴(세계에서 가장 큰 동굴)을 본뜬 구조물. 평지 동굴에 위아래로 오가는 길을 만든다.
@@ -110,7 +111,7 @@ export function buildCaveStructures(scene, decor, { ground, base, obstacles }) {
       if (k > 0) { const a = (k - 1) * 2, b = k * 2; idx.push(a, a + 1, b, a + 1, b + 1, b); }
     }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-    const water = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x1e6fb8, emissive: 0x0b3a6a, emissiveIntensity: 0.7, roughness: 0.1, side: THREE.DoubleSide }));
+    const water = new THREE.Mesh(geo, waterMaterial({ color: 0x1e6fb8, emissive: 0x0b3a6a, emissiveIntensity: 0.7, roughness: 0.1, side: THREE.DoubleSide }, { scale: 0.45, speed: 1.4 }));
     water.userData.noHide = true; decor.add(water);
     const stones = [];
     for (const c of RIVER.crossings) for (let i = -2; i <= 2; i++) { const d = i * 1.2, x = c.x - c.uz * d, z = c.z + c.ux * d; stones.push({ x, y: base(x, z) - 0.1, z, sx: 0.75, sy: 0.25, sz: 0.65, ry: i }); }
