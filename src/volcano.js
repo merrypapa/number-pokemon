@@ -18,6 +18,7 @@ export const VOLCANO = {
     { x: 35.5, z: 95.5, r: 6.8 }, { x: -109.1, z: 102.3, r: 8.2 }, { x: 115.9, z: -13.6, r: 6.8 }, { x: -16.4, z: -115.9, r: 8.2 },
     { x: -129.5, z: 13.6, r: 8.2 }, { x: 54.5, z: -129.5, r: 9.5 }, { x: -54.5, z: 129.5, r: 6.8 }, { x: 129.5, z: 129.5, r: 8.2 }, { x: -129.5, z: -129.5, r: 9.5 }, { x: 6.8, z: 54.5, r: 5.5 },
   ],
+  shrineSpot: { x: -110, z: -40 }, // 메가 성역(푸우오오 분석구) 자리: 바위·나무·불씨를 놓지 않는 빈 용암 벌판 (main SHRINE_HINT.volcano)
   geysers: [{ x: -40.9, z: 81.8 }, { x: 81.8, z: -40.9 }, { x: -95.5, z: -13.6 }, { x: 40.9, z: 40.9 }],
   bumps: [
     { x: -95.5, z: 0.0, r: 21.8, h: 3.4 }, { x: 95.5, z: 115.9, r: 16.4, h: 2.2 }, { x: -54.5, z: 109.1, r: 19.1, h: 2.2 }, { x: 109.1, z: -47.7, r: 19.1, h: 3 }, { x: -109.1, z: -109.1, r: 21.8, h: 3.6 }, { x: 68.2, z: -122.7, r: 19.1, h: 2.8 },
@@ -129,7 +130,7 @@ export function buildVolcano(scene) {
   const spireItems = [];
   for (let i = 0; i < 210; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
-    if (craters.some((cc) => Math.hypot(x - cc.x, z - cc.z) < cc.r + 6) || Math.hypot(x - VOLCANO.spawn.x, z - VOLCANO.spawn.z) < 10 || volcanoBlocked(x, z) || !volcClear(x, z, 2) || inOhiaForest(x, z)) continue;
+    if (craters.some((cc) => Math.hypot(x - cc.x, z - cc.z) < cc.r + 6) || Math.hypot(x - VOLCANO.spawn.x, z - VOLCANO.spawn.z) < 10 || volcanoBlocked(x, z) || !volcClear(x, z, 2) || inOhiaForest(x, z) || Math.hypot(x - VOLCANO.shrineSpot.x, z - VOLCANO.shrineSpot.z) < 20) continue;
     const h = rand(1.5, 6), r = rand(0.6, 1.6);
     spireItems.push({ x, y: volcanoHeight(x, z) + h / 2 - 0.2, z, sx: r, sy: h, sz: r, ry: rand(0, 3) });
     block(x, z, r * 0.8);
@@ -138,7 +139,7 @@ export function buildVolcano(scene) {
   const trunkItems = [], branchItems = [];
   for (let i = 0; i < 140; i++) {
     const x = rand(-S / 2 + 6, S / 2 - 6), z = rand(-S / 2 + 6, S / 2 - 6);
-    if (craters.some((cc) => Math.hypot(x - cc.x, z - cc.z) < cc.r * 1.6) || volcanoBlocked(x, z) || Math.hypot(x - VOLCANO.spawn.x, z - VOLCANO.spawn.z) < 8 || !volcClear(x, z, 2) || inOhiaForest(x, z)) continue; // 들어오는 곳 둘레는 오히아 숲 (kilauea.js)
+    if (craters.some((cc) => Math.hypot(x - cc.x, z - cc.z) < cc.r * 1.6) || volcanoBlocked(x, z) || Math.hypot(x - VOLCANO.spawn.x, z - VOLCANO.spawn.z) < 8 || !volcClear(x, z, 2) || inOhiaForest(x, z) || Math.hypot(x - VOLCANO.shrineSpot.x, z - VOLCANO.shrineSpot.z) < 20) continue; // 들어오는 곳 둘레는 오히아 숲 (kilauea.js)
     const h = rand(1.8, 3.2), y = volcanoHeight(x, z);
     trunkItems.push({ x, y: y + h / 2, z, sy: h });
     for (let k = 0; k < 3; k++) branchItems.push({ x, y: y + h * (0.6 + k * 0.15), z, rz: (k - 1) * 0.9 + rand(-0.2, 0.2), ry: rand(0, 3) });
@@ -150,7 +151,7 @@ export function buildVolcano(scene) {
   const emberItems = [];
   for (let i = 0; i < 80; i++) {
     const x = rand(-S / 2 + 4, S / 2 - 4), z = rand(-S / 2 + 4, S / 2 - 4);
-    if (volcanoBlocked(x, z) || !volcClear(x, z, 1.5) || craters.some((cc) => Math.hypot(x - cc.x, z - cc.z) < cc.r + 2)) continue;
+    if (volcanoBlocked(x, z) || !volcClear(x, z, 1.5) || craters.some((cc) => Math.hypot(x - cc.x, z - cc.z) < cc.r + 2) || Math.hypot(x - VOLCANO.shrineSpot.x, z - VOLCANO.shrineSpot.z) < 20) continue;
     const r = rand(0.3, 0.9);
     emberItems.push({ x, y: volcanoHeight(x, z) + 0.15, z, s: r, rx: rand(0, 3), ry: rand(0, 3) });
     block(x, z, r * 0.9);

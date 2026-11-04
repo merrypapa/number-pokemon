@@ -8,7 +8,7 @@ import { makePillSprite } from './world.js';
 const THEMES = {
   forest:  { stone: 0x9fb08a, accent: 0x57b947, glow: 0x9dff6a, name: '윌슨 그루터기' }, // 신전 대신 야쿠시마의 속이 빈 거대한 그루터기 (buildWilsonStump)
   cave:    { stone: 0x6b7280, accent: 0x39ffb0, glow: 0x5dffc8, name: '동굴 진주 웅덩이' }, // 손둥 동굴의 동굴 진주가 가득한 석회 웅덩이 (buildPearlPools)
-  volcano: { stone: 0x6b4038, accent: 0xff6b1a, glow: 0xffb347, name: '하늘 신전' },
+  volcano: { stone: 0x6b4038, accent: 0xff6b1a, glow: 0xffb347, name: '푸우오오 분석구' }, // 킬라우에아의 분석구 (buildPuuOo)
   sea:     { stone: 0xbfae86, accent: 0x3fb8e8, glow: 0x9fe8ff, name: '별빛 해변' }, // 몰디브 바두섬의 빛나는 바다 (buildStarBeach)
   space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '별의 문' },
 };
@@ -21,6 +21,7 @@ export function buildMegaShrine(zoneName, x, groundY, z, decor = null) {
   if (zoneName === 'forest') return buildWilsonStump(x, groundY, z, decor); // 실제 장소의 명소로 바꾸는 중 (하나씩)
   if (zoneName === 'cave') return buildPearlPools(x, groundY, z);
   if (zoneName === 'sea') return buildStarBeach(x, groundY, z);
+  if (zoneName === 'volcano') return buildPuuOo(x, groundY, z);
   const T = THEMES[zoneName] || THEMES.forest;
   const g = new THREE.Group();
   g.position.set(x, groundY, z);
@@ -301,4 +302,52 @@ export function buildStarBeach(x, groundY, z) {
   const walkAt = (dx, dz) => Math.hypot(dx, dz) < B.walk;
   const noSailAt = (dx, dz) => Math.hypot(dx, dz) < B.noSail;
   return { group: g, reveal, animate, spot: { x, z }, label: '별빛 해변', radius: B.glowOut, heightAt, walkAt, noSailAt, megaAt: { x: 0, z: 11.5 } };
+}
+
+// ---------- 불의산 = 킬라우에아의 푸우오오 분석구 ----------
+// 화산재(분석)가 쌓여 생긴 원뿔 언덕. 꼭대기 분화구에 용암 호수가 있고 용암 분수가 솟는다.
+// 다섯 단(한 단 1.4m — 뛰어서는 못 오른다)이고 단마다 돌 경사로가 각도를 바꿔 나 있어 둘레를 돌며 오른다. 꼭대기 테두리(반지름 3.4~6)를 걸어 다니고 가운데 용암은 못 들어간다.
+const PUU = { rings: [15, 12.5, 10, 7.5, 5.6], step: 1.4, ramps: [0, 2.3, 4.4, 0.9, 3.1], rampHalf: 1.5, rampRun: 1.15, lava: 3.2 }; // 단 너비 2.5m · 테두리 2.4m. 각 0 = 남쪽(+z): 첫 경사로는 남쪽
+function angDiffM(a, b) { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
+export function buildPuuOo(x, groundY, z) {
+  const P = PUU, g = new THREE.Group(); g.position.set(x, groundY, z); g.visible = false;
+  const cinder = new THREE.MeshStandardMaterial({ color: 0x2e2422, roughness: 1, flatShading: true }), cinderR = new THREE.MeshStandardMaterial({ color: 0x5a3020, roughness: 1, flatShading: true });
+  P.rings.forEach((r, k) => { const top = (k + 1) * P.step, m = new THREE.Mesh(new THREE.CylinderGeometry(r - 0.3, r + 0.3, top + 0.5, 22 - k * 2), k % 2 ? cinderR : cinder); m.position.y = top / 2 - 0.25; m.castShadow = m.receiveShadow = true; g.add(m); });
+  const ramps = [];
+  P.rings.forEach((r, k) => { const a = P.ramps[k], len = Math.hypot(P.rampRun * 2, P.step); const m = new THREE.Mesh(new THREE.BoxGeometry(P.rampHalf * 2, 0.35, len), new THREE.MeshStandardMaterial({ color: 0x8a6a58, roughness: 1 })); m.position.set(Math.sin(a) * r, k * P.step + P.step / 2 - 0.15, Math.cos(a) * r); m.rotation.order = 'YXZ'; m.rotation.y = a + Math.PI; m.rotation.x = -Math.atan2(P.step, P.rampRun * 2); g.add(m); ramps.push(m); }); // 각 a: x=sin a, z=cos a (안쪽이 높다)
+  // 분화구: 용암 호수 + 테두리 돌 + 용암 분수 + 김
+  const topY = P.rings.length * P.step;
+  const lava = new THREE.Mesh(new THREE.CircleGeometry(P.lava, 28).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xff6a1a, emissive: 0xff3300, emissiveIntensity: 1.4, roughness: 0.5 })); lava.position.y = topY - 0.5; g.add(lava);
+  const pit = new THREE.Mesh(new THREE.CylinderGeometry(P.lava, P.lava - 0.4, 0.7, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x1a1210, side: THREE.BackSide })); pit.position.y = topY - 0.2; g.add(pit);
+  const rimRocks = []; for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; rimRocks.push({ x: Math.sin(a) * (P.lava + 0.25), y: topY + 0.1, z: Math.cos(a) * (P.lava + 0.25), s: 0.35 + (i % 3) * 0.1, ry: a }); }
+  g.add(instanced(new THREE.DodecahedronGeometry(1, 0), cinderR, rimRocks));
+  const fountain = new THREE.InstancedMesh(new THREE.SphereGeometry(0.22, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffa040 }), 60), fInfo = [];
+  for (let i = 0; i < 60; i++) fInfo.push({ a: Math.random() * Math.PI * 2, sp: 0.4 + Math.random() * 1.6, ph: Math.random() * 3, v: 0.6 + Math.random() * 0.7 });
+  fountain.frustumCulled = false; g.add(fountain);
+  const steam = []; const smokeMat = new THREE.MeshBasicMaterial({ color: 0xd8c8c0, transparent: true, opacity: 0.3, depthWrite: false });
+  for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), smokeMat.clone()); m.userData = { ph: i * 0.6, ox: (Math.random() - 0.5) * 2, oz: (Math.random() - 0.5) * 2 }; g.add(m); steam.push(m); }
+  const light = new THREE.PointLight(0xff6a1a, 5, 26); light.position.y = topY + 1.5; g.add(light);
+  const label = makePillSprite('✨ 푸우오오 분석구', { bg: '#3a1a10', fg: '#ffd1a8', border: '#ff6b1a' }, 1.5); label.position.set(0, topY + 7, 0); g.add(label);
+  const hint = makePillSprite('🌋 돌 경사로를 따라 빙 돌며 분화구 꼭대기까지!', { bg: '#3a1a10', fg: '#ffd1a8', border: '#ff6b1a' }, 0.6); hint.position.set(0, 2.2, P.rings[0] + 1.6); g.add(hint);
+  let riseT = -1; const m4 = new THREE.Matrix4(), v = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  function reveal() { if (g.visible) return; g.visible = true; riseT = 0; }
+  function animate(t, dt = 0) {
+    if (!g.visible) return;
+    if (riseT >= 0 && riseT < 1) { riseT = Math.min(1, riseT + dt * 0.45); g.position.y = groundY - topY * (1 - riseT); }
+    fInfo.forEach((f, i) => { const life = ((t * 0.7 + f.ph) % 2) / 2, r = life * f.sp; v.set(Math.cos(f.a) * r, topY - 0.4 + life * 9 * f.v - life * life * 9 * f.v, Math.sin(f.a) * r); sc.setScalar(life < 0.95 ? 1 - life * 0.5 : 0); fountain.setMatrixAt(i, m4.compose(v, q, sc)); });
+    fountain.instanceMatrix.needsUpdate = true;
+    for (const m of steam) { const u = m.userData, life = ((t * 0.25 + u.ph) % 4) / 4; m.position.set(u.ox * (1 + life), topY + 1 + life * 9, u.oz * (1 + life)); m.scale.setScalar(1 + life * 2.5); m.material.opacity = 0.32 * (1 - life); }
+    lava.material.emissiveIntensity = 1.2 + Math.sin(t * 3) * 0.3; light.intensity = 4.5 + Math.sin(t * 4) * 1;
+    label.position.y = topY + 7 + Math.sin(t * 1.3) * 0.3;
+  }
+  // 높이: 단(뛰어서 못 오르는 1.4m)과 단마다 경사로. 꼭대기 가운데는 용암(못 들어감)
+  const heightAt = (dx, dz) => {
+    const d = Math.hypot(dx, dz); if (d > P.rings[0] + P.rampRun) return 0;
+    let n = 0; for (const r of P.rings) if (d < r) n++;
+    let h = n * P.step; const a = Math.atan2(dx, dz); // 각: x=sin a, z=cos a
+    P.rings.forEach((r, k) => { if (Math.abs(d - r) <= P.rampRun && Math.abs(angDiffM(a, P.ramps[k])) * r <= P.rampHalf) h = k * P.step + P.step * Math.min(1, Math.max(0, (r + P.rampRun - d) / (2 * P.rampRun))); });
+    return h > 0.01 ? h : 0;
+  };
+  const blockedAt = (dx, dz) => Math.hypot(dx, dz) < P.lava;
+  return { group: g, reveal, animate, spot: { x, z }, label: '푸우오오 분석구', radius: P.rings[0] + 2, heightAt, blockedAt, pillars: [], megaAt: { x: 0, z: -4.4 } };
 }
