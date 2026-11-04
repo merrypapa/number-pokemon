@@ -15,7 +15,8 @@ export const THUNDER = {
   size: 140,
   spawn: { x: 0, z: 48 },
   portal: { x: 0, z: 56 },
-  altar: { x: 0, z: -52, r: 9 }, // 보스 라이츄가 선 번개 제단
+  altar: { x: 0, z: -50, r: 7, h: 3.5 }, // 보스 라이츄가 선 번개 제단: 거대한 육각 수정 기둥이 모인 수정 고원 (높이 3.5, 둘레는 절벽)
+  ramp: { half: 1.3, z0: -43.6, z1: -32 }, // 고원으로 오르는 쓰러진 거대 수정 (x = altar.x ± half, z0 = 고원 끝 → z1 = 땅)
   pools: [{ x: -30, z: 20, r: 6 }, { x: 34, z: 2, r: 5.5 }, { x: -38, z: -30, r: 6 }, { x: 36, z: -36, r: 5 }, { x: 8, z: -8, r: 4 }, { x: -12, z: 36, r: 4 }, { x: 50, z: 34, r: 5 }],
   bumps: [{ x: -24, z: -8, r: 12, h: 1.3 }, { x: 26, z: 24, r: 13, h: 1.1 }, { x: -50, z: 10, r: 11, h: 1.5 }, { x: 48, z: -16, r: 12, h: 1.2 }, { x: 14, z: -32, r: 10, h: 1.0 }, { x: -20, z: 50, r: 10, h: 0.9 }],
   towers: [{ x: -22, z: -40 }, { x: 22, z: -40 }, { x: -44, z: 44 }, { x: 44, z: 46 }, { x: -52, z: -50 }, { x: 54, z: -54 }], // 테슬라 탑 (아크가 튄다)
@@ -30,17 +31,20 @@ function thunderHeight(x, z) {
   let y = 0;
   for (const b of THUNDER.bumps) { const dx = x - b.x, dz = z - b.z; y += b.h * Math.exp(-(dx * dx + dz * dz) / (b.r * b.r)); }
   for (const p of THUNDER.pools) { const d = Math.hypot(x - p.x, z - p.z); if (d < p.r + 1.5) y -= 0.45 * Math.min(1, (p.r + 1.5 - d) / 2); }
-  const A = THUNDER.altar, ad = Math.hypot(x - A.x, z - A.z);
-  if (ad < A.r) y = Math.max(y, 1.2); else if (ad < A.r + 2.5) y = Math.max(y, 1.2 * (1 - (ad - A.r) / 2.5)); // 제단은 한 단 높다 (경사로 올라간다)
+  const A = THUNDER.altar, ad = Math.hypot(x - A.x, z - A.z), R = THUNDER.ramp;
+  if (ad < A.r) return A.h; // 수정 고원 윗면
+  if (Math.abs(x - A.x) < R.half && z > R.z0 && z < R.z1) return Math.max(y, A.h * (R.z1 - z) / (R.z1 - R.z0)); // 쓰러진 수정 위 비탈
   return y;
 }
 function thunderBlocked(x, z) {
   if (Math.hypot(x, z) > THUNDER.wallR - 1) return true; // 동굴 벽
+  const A = THUNDER.altar, ad = Math.hypot(x - A.x, z - A.z), R = THUNDER.ramp;
+  if (ad >= A.r && ad < A.r + 1.8 && !(Math.abs(x - A.x) < R.half && z > A.z)) return true; // 고원 둘레의 수정 기둥 치마 (쓰러진 수정 비탈만 열려 있다)
   return THUNDER.pools.some((p) => Math.hypot(x - p.x, z - p.z) < p.r + 0.3); // 전기 웅덩이: 감전되니 못 들어간다
 }
 const THUNDER_WILD = [[-22, 30], [24, 34], [-44, 20], [44, 14], [-18, -18], [22, -16], [-52, -14], [52, -8], [-30, -46], [30, -48], [0, -22], [-56, 36], [56, 44], [10, 16]];
 const THUNDER_PICKUPS = [[-12, 28], [14, 22], [-36, 2], [38, -22], [0, -36], [-24, 56], [26, 56], [-58, 8], [58, 24], [6, 2], [-8, -44], [46, 0]];
-export const THUNDER_TERRAIN = { height: thunderHeight, inHole: () => false, blocked: thunderBlocked, size: THUNDER.size, obstacles: [] };
+export const THUNDER_TERRAIN = { height: thunderHeight, inHole: () => false, blocked: thunderBlocked, size: THUNDER.size, obstacles: [], ledge: 0.9 }; // ledge: 수정 고원(3.5m)은 쓰러진 수정 비탈로만 오른다
 
 export function buildThunder(scene) {
   const S = THUNDER.size;
@@ -52,7 +56,7 @@ export function buildThunder(scene) {
 
   scene.background = new THREE.Color(0x070a16);
   scene.fog = new THREE.Fog(0x070a16, 18, 90); // 제단 너머 호수의 폭풍까지 보이게 조금 멀리
-  scene.add(new THREE.HemisphereLight(0x5a6fb0, 0x0b0d1a, 0.55));
+  scene.add(new THREE.HemisphereLight(0x6a7fc0, 0x1a1830, 0.8)); // 나이카: 수정이 보이게 예전보다 조금 밝게
   const sun = new THREE.DirectionalLight(0x9fb4ff, 0.25);
   sun.position.set(10, 30, 10);
   scene.add(sun, sun.target);
@@ -94,7 +98,7 @@ export function buildThunder(scene) {
   // 나이카 거대 수정: 하얀 셀레나이트 기둥(육각) 속으로 노란 전기 불꽃이 밑동에서 끝으로 흐른다. 낮은 쪽은 못 지나간다(선분 장애물)
   const beamMat = new THREE.MeshStandardMaterial({ color: 0xfffbea, emissive: 0xfff0c0, emissiveIntensity: 0.35, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.92 });
   const sparkMat = new THREE.MeshBasicMaterial({ color: 0xfff1a0 });
-  const beams = [], keepOut = [...THUNDER_WILD, ...THUNDER_PICKUPS].map(([x, z]) => ({ x, z, r: 2.5 })).concat(THUNDER.pools.map((p) => ({ x: p.x, z: p.z, r: p.r + 2 })), THUNDER.towers.map((t) => ({ x: t.x, z: t.z, r: 3 })), [{ x: THUNDER.altar.x, z: THUNDER.altar.z, r: THUNDER.altar.r + 4 }, { x: 5, z: 44, r: 4 }]);
+  const beams = [], keepOut = [...THUNDER_WILD, ...THUNDER_PICKUPS].map(([x, z]) => ({ x, z, r: 2.5 })).concat(THUNDER.pools.map((p) => ({ x: p.x, z: p.z, r: p.r + 2 })), THUNDER.towers.map((t) => ({ x: t.x, z: t.z, r: 3 })), [{ x: THUNDER.altar.x, z: THUNDER.altar.z, r: THUNDER.altar.r + 4 }, { x: 5, z: 44, r: 4 }, { x: THUNDER.altar.x, z: (THUNDER.ramp.z0 + THUNDER.ramp.z1) / 2, r: 8 }]);
   for (const [bx, bz, yaw, len, tilt, br] of THUNDER.beams) {
     const dx = Math.cos(yaw), dz = Math.sin(yaw), low = Math.min(len * Math.cos(tilt), 2.4 / Math.tan(tilt)); // 땅에서 2.4m 아래인 구간 = 못 지나가는 곳
     const ex = bx + dx * low, ez = bz + dz * low;
@@ -107,6 +111,7 @@ export function buildThunder(scene) {
     const tip = new THREE.Mesh(new THREE.ConeGeometry(br, br * 1.6, 6), beamMat); tip.rotation.z = -Math.PI / 2; tip.position.x = len + br * 0.8; tiltG.add(tip);
     const spark = new THREE.Mesh(new THREE.SphereGeometry(br * 0.45, 8, 6), sparkMat); tiltG.add(spark);
     beams.push({ spark, len, ph: rand(0, 3), sp: rand(0.25, 0.45) });
+    if (beams.length <= 3) { const l = new THREE.PointLight(0xffd27a, 2.4, 22); l.position.set(bx + dx * len * 0.5, y0 + Math.sin(tilt) * len * 0.5 + 1.5, bz + dz * len * 0.5); decor.add(l); } // 나이카 동굴의 금빛: 거대 수정 셋만 점광원
     obstacles.push({ ax: bx, az: bz, bx: ex, bz: ez, r: br + 0.3 });
   }
 
@@ -158,24 +163,45 @@ export function buildThunder(scene) {
   const flash = new THREE.PointLight(0xfff6c0, 0, 90); flash.position.set(0, 20, 0); decor.add(flash);
   const flashState = { next: 3, until: 0 };
 
-  // 번개 제단 (북쪽): 한 단 높은 둥근 바위 단 + 둘레 번개 기둥 + 가운데 피뢰침
+  // 번개 제단 = 수정 고원 (북쪽, 번개 호수 앞): 굵은 육각 수정 기둥이 벌집처럼 빽빽이 모여 평평한 윗면을 이루고(높이 3.5),
+  // 둘레는 높이가 들쭉날쭉한 기둥 치마, 가장자리에 키 큰 수정 첨탑(끝끼리 전기 아크), 남쪽엔 쓰러진 거대 수정이 비탈로 걸쳐 있다.
+  const spireTips = [];
   {
-    const A = THUNDER.altar;
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(A.r / 0.866, (A.r + 2.5) / 0.866, 1.25, 6), new THREE.MeshStandardMaterial({ color: 0xfffbea, emissive: 0xfff0c0, emissiveIntensity: 0.3, roughness: 0.2 })); /* 육각이 둥근 제단 지형을 다 덮게 (꼭짓점 반지름 = 변 반지름 / cos30°) */ /* 가장 큰 수정의 윗면 (육각 셀레나이트) */
-    top.position.set(A.x, 0.6, A.z); top.receiveShadow = true;
-    decor.add(top);
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2, x = A.x + Math.cos(a) * (A.r - 1.2), z = A.z + Math.sin(a) * (A.r - 1.2);
-      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 3.6, 6), beamMat); pillar.position.set(x, 1.2 + 1.8, z); pillar.rotation.set(Math.cos(a) * 0.25, a, -Math.sin(a) * 0.25); /* 바깥으로 살짝 기운 수정 기둥 */
-      decor.add(pillar); block(x, z, 0.7);
+    const A = THUNDER.altar, R = THUNDER.ramp, cols = [], skirt = [];
+    for (let gx = -A.r; gx <= A.r; gx += 1.75) for (let gz = -A.r; gz <= A.r; gz += 1.52) {
+      const x = gx + ((Math.round(gz / 1.52) & 1) ? 0.875 : 0), d = Math.hypot(x, gz);
+      if (d < A.r - 0.4) { const hh = A.h + 0.05 + rand(0, 0.04); cols.push({ x: A.x + x, y: hh / 2, z: A.z + gz, sx: 1, sy: hh, sz: 1 }); } // 윗면 기둥 (거의 평평)
     }
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 6, 8), metal); rod.position.set(A.x, 1.2 + 3, A.z - 6);
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffe36b, emissiveIntensity: 1.5 })); tip.position.set(A.x, 1.2 + 6.1, A.z - 6);
-    decor.add(rod, tip); block(A.x, A.z - 6, 0.3);
-    const altarLight = new THREE.PointLight(0xffd23f, 4, 24); altarLight.position.set(A.x, 4, A.z); decor.add(altarLight);
-    const sign = makePillSprite('⚡ 번개 제단 · 보스', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.3);
-    sign.position.set(A.x, 6.5, A.z + 4); decor.add(sign);
+    for (let i = 0; i < 40; i++) { // 치마: 고원 둘레 기둥들 (바깥으로 갈수록 낮게)
+      const a = (i / 40) * Math.PI * 2, x = Math.cos(a), z = Math.sin(a);
+      if (z > 0 && Math.abs(x * (A.r + 1)) < R.half + 0.6) continue; // 쓰러진 수정 비탈 자리는 비운다
+      for (const [rr, hh] of [[A.r - 0.2, A.h + rand(-0.1, 0.4)], [A.r + 0.9, A.h * rand(0.45, 0.8)]]) skirt.push({ x: A.x + x * rr, y: hh / 2, z: A.z + z * rr, sx: rand(0.8, 1.1), sy: hh, sz: rand(0.8, 1.1), ry: rand(0, 1) });
+    }
+    const hexCol = new THREE.CylinderGeometry(1.0, 1.0, 1, 6);
+    const topMat = new THREE.MeshStandardMaterial({ color: 0xfffbea, emissive: 0xfff0c0, emissiveIntensity: 0.3, roughness: 0.2 });
+    decor.add(makeInstanced(hexCol, topMat, cols, { shadow: false }), makeInstanced(hexCol, beamMat, skirt, { shadow: true }));
+    for (let i = 0; i < 7; i++) { // 가장자리 첨탑 일곱 (남쪽 비탈 쪽은 비운다): 끝에 전기 구슬, 이웃끼리 아크
+      const a = -Math.PI / 2 + (i - 3) * 0.62, x = A.x + Math.cos(a) * (A.r - 1.2), z = A.z + Math.sin(a) * (A.r - 1.2), h = 4.5 + (3 - Math.abs(i - 3)) * 1.1;
+      const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.75, h, 6), beamMat); sp.position.set(x, A.h + h / 2 - 0.1, z); sp.rotation.set(Math.sin(a) * -0.12, 0, Math.cos(a) * 0.12); sp.castShadow = true;
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 6), beamMat); cap.position.set(0, h / 2 + 0.6, 0); sp.add(cap);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff6b0 })); orb.position.set(0, h / 2 + 1.3, 0); sp.add(orb);
+      decor.add(sp); block(x, z, 0.75);
+      spireTips.push(new THREE.Vector3(x, A.h + h + 1.2, z));
+    }
+    // 쓰러진 거대 수정: 땅(z1)에서 고원 끝(z0)까지 비스듬히 걸친 육각 기둥. 윗면(납작한 면)이 걷는 비탈
+    const run = R.z1 - R.z0, len = Math.hypot(run, A.h) + 1.2, ang = Math.atan2(A.h, run), rr = R.half / 0.866;
+    const rampGeo = new THREE.CylinderGeometry(rr, rr, len, 6); rampGeo.rotateY(Math.PI / 6); // 납작한 면이 지오메트리 +z 쪽 (회전하면 위쪽)
+    const ramp = new THREE.Mesh(rampGeo, beamMat); ramp.rotation.x = ang - Math.PI / 2; // 기둥 축 +y → 비탈 방향 (위로, -z 쪽)
+    ramp.position.set(A.x, A.h / 2 - Math.cos(ang) * R.half + 0.08, (R.z0 + R.z1) / 2 - Math.sin(ang) * R.half); /* +0.08: 같은 높이의 땅(비탈)과 겹쳐 깜빡이지 않게 */ // 축은 걷는 비탈(윗면)보다 변 반지름만큼 아래
+    decor.add(ramp); /* 그림자는 끈다: 비스듬한 면에 자기 그림자 줄무늬가 졌다 */
+    const altarLight = new THREE.PointLight(0xffe6a0, 5, 26); altarLight.position.set(A.x, A.h + 4, A.z); decor.add(altarLight);
+    const sign = makePillSprite('⚡ 번개 제단 · 수정 고원 · 보스', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 1.3);
+    sign.position.set(A.x, A.h + 5.5, A.z + 5); decor.add(sign);
+    const rampSign = makePillSprite('💎 쓰러진 수정을 타고 올라가요', { bg: '#20232e', fg: '#fff1c8', border: '#ffd93d' }, 0.7);
+    rampSign.position.set(A.x + 2.6, 2.2, R.z1 - 1); decor.add(rampSign);
   }
+  const spireArcs = [];
+  for (let i = 0; i + 1 < spireTips.length; i++) { const geo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 10 }, () => new THREE.Vector3())); const line = new THREE.Line(geo, arcMat); line.userData = { a: spireTips[i], b: spireTips[i + 1], phase: rand(0, 6) }; decor.add(line); spireArcs.push(line); }
 
   // 카타툼보 호수: 북쪽 벽의 뚫린 곳 너머 넓은 호수와 낮은 폭풍 구름, 번개가 쉬지 않고 친다 (호수는 벽 밖이라 못 간다)
   const M = THUNDER.mouth, lakeZ = -THUNDER.wallR - 45;
@@ -245,6 +271,7 @@ export function buildThunder(scene) {
     for (const l of poolLights) l.intensity = 2.2 + Math.sin(t * 5 + l.position.x) * 0.9;
     for (const r of poolRings) { r.rotation.z = t * 0.8; r.material.opacity = 0.5 + Math.sin(t * 9 + r.position.x) * 0.5; }
     for (const l of crystalLights) l.intensity = 1.2 + Math.max(0, Math.sin(t * 3 + l.userData.phase)) * 1.4;
+    for (const a of spireArcs) { const u = a.userData; a.visible = Math.sin(t * 3 + u.phase) > 0; if (a.visible) zigzag(a, u.a, u.b, 0.35, t + u.phase); } // 수정 첨탑 끝끼리 튀는 전기
     for (const a of arcs) { const u = a.userData; a.visible = Math.sin(t * 2 + u.phase) > -0.2; if (a.visible) zigzag(a, u.a, u.b, 0.7, t + u.phase); }
     // 천장 번개
     if (t > flashState.next) {
