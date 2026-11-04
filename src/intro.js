@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { instantiate, onModelLoaded } from './models.js';
-import { buildNumberblockMesh } from './numberblocks.js';
 import { PLAYER_MODEL, PLAYER_HEIGHT } from './player.js';
 import { waterMaterial, tickFx } from './fx.js';
 
@@ -72,15 +71,11 @@ export function buildIntro(creatures, featured = null) {
     const glow = new THREE.MeshBasicMaterial({ color: 0x9ff8ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
     for (let k = 0; k < 14; k++) { const d = add(new THREE.Mesh(new THREE.CircleGeometry(0.07, 6).rotateX(-Math.PI / 2), glow), 0, 0.06, 0, g); const a = k * 0.45, r = 1.25 + (k % 3) * 0.25; anim.push((t) => { d.position.set(Math.cos(a + t * 0.1) * r, 0.06, 0.2 + Math.sin(a + t * 0.1) * r); d.scale.setScalar(0.6 + 0.6 * Math.sin(t * 2 + k)); }); }
   }
-  { // 꿈의우주: 하얀 소금 판 + 두 눈(샘) + 보라 수정 + 위에 떠 있는 UFO
+  { // 꿈의우주: 하얀 소금 판 + 두 눈(샘) + 보라 수정
     const g = spot(Math.PI * 0.2);
     add(new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.8, 0.12, 20), std(0xf6f3ee)), 0, 0.06, 0, g);
     for (const [x, z, r] of [[-0.6, 0.15, 0.42], [0.55, -0.1, 0.36]]) add(new THREE.Mesh(new THREE.CircleGeometry(r, 18).rotateX(-Math.PI / 2), waterMaterial({ color: 0x2a8fb0, emissive: 0x0b3f55, emissiveIntensity: 0.5, roughness: 0.05 }, { scale: 3, speed: 1.5 })), x, 0.13, z, g);
     add(new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), std(0xc38bff, { emissive: 0x7a3fd0, emissiveIntensity: 0.6 })), 1.1, 0.5, 0.8, g).scale.y = 1.6;
-    const ufo = new THREE.Group(); add(ufo, 0, 4.2, 0, g); ufo.scale.setScalar(0.75);
-    add(new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 6), std(0xd8dde8, { metalness: 0.6, roughness: 0.3 })), 0, 0, 0, ufo).scale.y = 0.28;
-    add(new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), std(0x9fe8ff, { emissive: 0x2a8ab0, emissiveIntensity: 0.4 })), 0, 0.12, 0, ufo);
-    anim.push((t) => { ufo.position.y = 4.2 + Math.sin(t * 1.4) * 0.25; ufo.rotation.y = t * 0.8; });
   }
 
   // 섬 둘레를 천천히 흐르는 구름 (아래쪽에도)
@@ -105,15 +100,6 @@ export function buildIntro(creatures, featured = null) {
     actors.push({ mesh: m, x, z, phase: i, height: c.height || 1.2, pop: 0 }); // 도착한 순서대로 "뿅" 등장
   }));
 
-  // 광장 뒤의 숫자블록 1~3 (통통 뛰며 손님 맞이)
-  const blocks = [];
-  for (let n = 1; n <= 3; n++) {
-    const b = buildNumberblockMesh({ number: n });
-    b.scale.setScalar(0.42);
-    add(b, (n - 2) * 1.5, 0, -1.6);
-    blocks.push({ mesh: b, n });
-  }
-
   const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 140);
   let t = 0;
   function update(dt) {
@@ -133,7 +119,6 @@ export function buildIntro(creatures, featured = null) {
       const s = 1 + (1 - hop) * 0.04;
       a.mesh.scale.set(a.height * popS * (2 - s), a.height * popS * s, a.height * popS * (2 - s));
     }
-    for (const b of blocks) { b.mesh.position.y = Math.abs(Math.sin(t * 2.6 + b.n)) * 0.3; b.mesh.rotation.y = Math.atan2(camera.position.x - b.mesh.position.x, camera.position.z - b.mesh.position.z); }
     for (const f of anim) f(t);
   }
   function resize(aspect = window.innerWidth / window.innerHeight) { camera.aspect = aspect; camera.updateProjectionMatrix(); }
