@@ -11,7 +11,8 @@ const THEMES = {
   cave:    { stone: 0x6b7280, accent: 0x39ffb0, glow: 0x5dffc8, name: '동굴 진주 웅덩이' }, // 손둥 동굴의 동굴 진주가 가득한 석회 웅덩이 (buildPearlPools)
   volcano: { stone: 0x6b4038, accent: 0xff6b1a, glow: 0xffb347, name: '푸우오오 분석구' }, // 킬라우에아의 분석구 (buildPuuOo)
   sea:     { stone: 0xbfae86, accent: 0x3fb8e8, glow: 0x9fe8ff, name: '별빛 해변' }, // 몰디브 바두섬의 빛나는 바다 (buildStarBeach)
-  space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '소금사막의 눈' }, // 우유니 소금사막의 오호스 델 살라르 (buildSalarEyes)
+  space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '소금사막의 눈' },
+  thunder: { stone: 0xf3ead8, accent: 0xffc93d, glow: 0xfff3b0, name: '빛의 돌기둥 숲' }, // 번개동굴(루디옌 동굴)의 원시림: 무지개 돌기둥 숲 (buildLightForest) // 우유니 소금사막의 오호스 델 살라르 (buildSalarEyes)
 };
 
 /**
@@ -24,6 +25,7 @@ export function buildMegaShrine(zoneName, x, groundY, z, decor = null) {
   if (zoneName === 'sea') return buildStarBeach(x, groundY, z);
   if (zoneName === 'volcano') return buildPuuOo(x, groundY, z);
   if (zoneName === 'space') return buildSalarEyes(x, groundY, z);
+  if (zoneName === 'thunder') return buildLightForest(x, groundY, z);
   const T = THEMES[zoneName] || THEMES.forest;
   const g = new THREE.Group();
   g.position.set(x, groundY, z);
@@ -404,4 +406,55 @@ export function buildSalarEyes(x, groundY, z) {
   const heightAt = (dx, dz) => (Math.hypot(dx, dz) < E.crust ? E.top : 0);
   const blockedAt = (dx, dz) => inPool(dx, dz);
   return { group: g, reveal, animate, spot: { x, z }, label: '소금사막의 눈', radius: E.crust + 2, heightAt, blockedAt, pillars, megaAt: { x: 0.2, z: -4.6 } };
+}
+
+// ---------- 번개동굴 = 루디옌 동굴의 "원시림" (빛의 돌기둥 숲) ----------
+// 천장까지 닿는 석회 돌기둥이 숲처럼 둥글게 서 있고, 무지갯빛이 기둥을 따라 빙글빙글 돈다 (전기 포켓몬의 전기로 켜진 조명).
+// 가운데 낮은 석회 단(두 단) 위에 메가전룡. 전룡은 "등대 포켓몬"이라 머리 위에 빛줄기가 도는 등대 빛 구슬이 떠 있다. 남쪽이 입구.
+const FOREST = { ring: 8.5, n: 14, gap: 0.42, tall: 17, dais: [[4, 0.3], [2.6, 0.6]] };
+const RAINBOW = [0xff4d6d, 0xff8a3d, 0xffc93d, 0x3dff8a, 0x3dfff0, 0x3da8ff, 0xb46bff];
+export function buildLightForest(x, groundY, z) {
+  const F = FOREST, g = new THREE.Group(); g.position.set(x, groundY, z); g.visible = false;
+  const cream = new THREE.MeshStandardMaterial({ color: 0xf3ead8, roughness: 0.8 });
+  const colGeo = new THREE.CylinderGeometry(0.6, 1.1, 1, 10, 6);
+  { const p = colGeo.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i), w = 1 - 0.4 * Math.sin((y + 0.5) * Math.PI) + 0.08 * Math.sin(y * 23 + i); p.setX(i, p.getX(i) * w); p.setZ(i, p.getZ(i) * w); } colGeo.computeVertexNormals(); } // 울퉁불퉁 잘록한 돌기둥
+  const cols = [], pillars = [];
+  for (let i = 0; i < F.n; i++) {
+    const a = (i / F.n) * Math.PI * 2; if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < F.gap) continue; // 각 0 = 남쪽(+z): 입구
+    const px = Math.sin(a) * F.ring, pz = Math.cos(a) * F.ring, h = F.tall * (0.85 + (i % 3) * 0.08), r = 0.9 + (i % 2) * 0.35;
+    const mat = new THREE.MeshStandardMaterial({ color: 0xf3ead8, roughness: 0.7, emissive: RAINBOW[i % RAINBOW.length], emissiveIntensity: 0.5 });
+    const m = new THREE.Mesh(colGeo, mat); m.position.set(px, h / 2, pz); m.scale.set(r, h, r); m.rotation.y = a; m.castShadow = true; g.add(m);
+    cols.push({ m, mat, k: i, h }); pillars.push({ x: px, z: pz, r: r + 0.3 });
+  }
+  // 가운데 석회 단 (두 단, 가장자리에 빛 띠)
+  F.dais.forEach(([r, h], k) => {
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.3, h + 0.2, 32), cream); d.position.y = (h + 0.2) / 2 - 0.2; d.receiveShadow = true; g.add(d);
+    const edge = new THREE.Mesh(new THREE.TorusGeometry(r + 0.05, 0.07, 6, 48), new THREE.MeshBasicMaterial({ color: k ? 0xfff3b0 : 0xffc93d })); edge.rotation.x = Math.PI / 2; edge.position.y = h; g.add(edge);
+  });
+  // 등대 빛 구슬 + 도는 빛줄기 둘
+  const orbY = 7.5, orb = new THREE.Mesh(new THREE.SphereGeometry(0.9, 20, 14), new THREE.MeshBasicMaterial({ color: 0xfff6c8 }));
+  orb.position.y = orbY; g.add(orb);
+  const beam = new THREE.Group(); beam.position.y = orbY; g.add(beam);
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0xffe9a0, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  for (const s of [1, -1]) { const c = new THREE.Mesh(new THREE.ConeGeometry(1.6, 12, 16, 1, true), beamMat); c.rotation.z = s * Math.PI / 2; c.position.x = s * 6; beam.add(c); }
+  const light = new THREE.PointLight(0xffe6a0, 4, 24); light.position.y = orbY - 1; g.add(light);
+  const label = makePillSprite('✨ 빛의 돌기둥 숲', { bg: '#20232e', fg: '#ffffff', border: '#ffc93d' }, 1.5); label.position.set(0, orbY + 2.6, 0); g.add(label);
+  const hint = makePillSprite('💡 전룡은 등대 포켓몬! 돌기둥 숲 가운데 빛의 단으로', { bg: '#20232e', fg: '#fff3b0', border: '#ffc93d' }, 0.6); hint.position.set(0, 2.2, F.ring + 2); g.add(hint);
+  let riseT = -1; const tmp = new THREE.Color();
+  function reveal() { if (g.visible) return; g.visible = true; riseT = 0; }
+  function animate(t, dt = 0) {
+    if (!g.visible) return;
+    let e = 1;
+    if (riseT >= 0 && riseT < 1) { riseT = Math.min(1, riseT + dt * 0.4); e = 1 - Math.pow(1 - riseT, 3); } // 돌기둥이 바닥에서 자라 오른다
+    for (const c of cols) {
+      c.m.scale.y = c.h * Math.max(0.02, e); c.m.position.y = (c.h * Math.max(0.02, e)) / 2;
+      const chase = 0.5 + 0.5 * Math.sin(t * 2.2 - c.k * 0.9); // 빛이 기둥을 따라 빙글빙글
+      c.mat.emissive.copy(tmp.setHex(RAINBOW[(c.k + Math.floor(t * 0.5)) % RAINBOW.length])); c.mat.emissiveIntensity = (0.25 + chase * 0.75) * e;
+    }
+    beam.rotation.y = t * 0.9; beamMat.opacity = 0.1 + Math.sin(t * 3) * 0.03;
+    orb.scale.setScalar((0.9 + Math.sin(t * 2.6) * 0.08) * Math.max(0.01, e));
+    light.intensity = 4 * e; label.position.y = orbY + 2.6 + Math.sin(t * 1.3) * 0.3;
+  }
+  const heightAt = (dx, dz) => { const d = Math.hypot(dx, dz); for (let k = F.dais.length - 1; k >= 0; k--) if (d < F.dais[k][0]) return F.dais[k][1]; return 0; };
+  return { group: g, reveal, animate, spot: { x, z }, label: '빛의 돌기둥 숲', radius: F.ring + 2, heightAt, pillars, megaAt: { x: 0, z: -0.4 } };
 }

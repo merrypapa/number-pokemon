@@ -15,14 +15,15 @@ export const THUNDER = {
   portal: { x: 0, z: 56 },
   palace: { x: 0, z: -44, lake: 15, island: 5, h: 0.8 }, // 수정궁: 거울 호수(반지름 15) 가운데 돌섬(반지름 5, 높이 0.8)
   bridge: { half: 1.3, z0: -40, z1: -27 }, // 남쪽 물가 → 돌섬을 잇는 돌다리 (x = palace.x ± half)
-  pools: [{ x: -30, z: 20, r: 6 }, { x: 34, z: 2, r: 5.5 }, { x: -38, z: -24, r: 5 }, { x: 40, z: -30, r: 5 }, { x: 12, z: -6, r: 3.5 }, { x: -12, z: 36, r: 4 }, { x: 50, z: 34, r: 5 }],
+  pools: [{ x: -30, z: 20, r: 6 }, { x: 34, z: 2, r: 5.5 }, { x: -50, z: -34, r: 5 }, { x: 40, z: -30, r: 5 }, { x: 12, z: -6, r: 3.5 }, { x: -12, z: 36, r: 4 }, { x: 50, z: 34, r: 5 }],
   bumps: [{ x: -24, z: -8, r: 12, h: 1.3 }, { x: 26, z: 24, r: 13, h: 1.1 }, { x: -50, z: 10, r: 11, h: 1.5 }, { x: 48, z: -12, r: 12, h: 1.2 }, { x: -20, z: 50, r: 10, h: 0.9 }],
   wallR: 66,
   ceil: 22, // 천장 높이 (종유석이 매달린다)
+  shrineSpot: { x: -40, z: -6 }, // 메가 성역(빛의 돌기둥 숲) 자리: 웅덩이·석순·포켓몬 자리를 두지 않는 서쪽 빈터 (main SHRINE_HINT.thunder)
 };
 const LIGHTS = [0xff4d6d, 0x3dff8a, 0x3da8ff, 0xb46bff, 0xffc93d, 0x3dfff0, 0xff8a3d]; // 루디옌의 조명 색 (빨강·초록·파랑·보라·금·청록·주황)
 const THUNDER_WILD = [[-22, 30], [24, 34], [-44, 20], [44, 14], [-18, -18], [22, -16], [-52, -14], [52, -8], [-30, -46], [30, -48], [0, -14], [-56, 36], [56, 44], [10, 16]];
-const THUNDER_PICKUPS = [[-12, 28], [14, 22], [-36, 2], [38, -18], [-6, -4], [-24, 56], [26, 56], [-58, 8], [58, 24], [6, 2], [-22, -36], [46, 0]];
+const THUNDER_PICKUPS = [[-12, 28], [14, 22], [-26, 6], [38, -18], [-6, -4], [-24, 56], [26, 56], [-58, 8], [58, 24], [6, 2], [-22, -36], [46, 0]];
 
 function onBridge(x, z) { const B = THUNDER.bridge; return Math.abs(x - THUNDER.palace.x) < B.half && z > B.z0 && z < B.z1; }
 function thunderHeight(x, z) {
@@ -81,15 +82,15 @@ export function buildThunder(scene) {
   const block = (x, z, r) => obstacles.push({ x, z, r });
   const P = THUNDER.palace, B = THUNDER.bridge;
 
-  scene.background = new THREE.Color(0x07060f);
-  scene.fog = new THREE.Fog(0x07060f, 24, 85);
-  scene.add(new THREE.HemisphereLight(0x8a7fb0, 0x1a1428, 0.7));
+  scene.background = new THREE.Color(0x151228);
+  scene.fog = new THREE.Fog(0x151228, 30, 100); // 너무 어둡지 않게 (예전 0x07060f·85)
+  scene.add(new THREE.HemisphereLight(0xb0a6d8, 0x3a3050, 1.5));
   const sun = new THREE.DirectionalLight(0xc8b8ff, 0.3);
   sun.position.set(10, 30, 10);
   scene.add(sun, sun.target);
 
   // 바닥: 젖은 석회 바닥 (크림·회갈)
-  const floorA = new THREE.Color(0x4a4252), floorB = new THREE.Color(0x544a5a), poolBed = new THREE.Color(0x0e1a3a), stoneC = new THREE.Color(0x8a7f74);
+  const floorA = new THREE.Color(0x6e6480), floorB = new THREE.Color(0x7a6e8a), poolBed = new THREE.Color(0x0e1a3a), stoneC = new THREE.Color(0x8a7f74);
   buildGround(scene, S, 120, thunderHeight, (x, z) => {
     if (THUNDER.pools.some((p) => Math.hypot(x - p.x, z - p.z) < p.r)) return poolBed;
     if (Math.hypot(x - P.x, z - P.z) < P.lake) return Math.hypot(x - P.x, z - P.z) < P.island || onBridge(x, z) ? stoneC : poolBed;
@@ -97,7 +98,7 @@ export function buildThunder(scene) {
   });
 
   // 동굴 벽 + 둥근 천장
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x3a3340, roughness: 1 });
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x564c62, roughness: 1 });
   const wallItems = [];
   for (let i = 0; i < 64; i++) {
     const a = (i / 64) * Math.PI * 2, r = THUNDER.wallR + rand(0, 4);
@@ -105,12 +106,12 @@ export function buildThunder(scene) {
     wallItems.push({ x: Math.cos(a) * r, y: h / 2 - 1, z: Math.sin(a) * r, sx: cr, sy: h, sz: cr, ry: rand(0, 3) });
   }
   decor.add(makeInstanced(new THREE.ConeGeometry(1, 1, 6), rockMat, wallItems));
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(THUNDER.wallR + 6, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x1c1822, roughness: 1, side: THREE.BackSide }));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(THUNDER.wallR + 6, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a2436, roughness: 1, side: THREE.BackSide }));
   dome.scale.y = THUNDER.ceil / (THUNDER.wallR + 6); decor.add(dome);
 
   // 종유석·석순·돌기둥 (루디옌의 무지개 조명). 무리마다 한 색, 무리 안에서 이웃 색이 조금 섞인다
   const stone = neonStone(), tites = [], mites = [], cols = [];
-  const keepOut = [...THUNDER_WILD, ...THUNDER_PICKUPS].map(([x, z]) => ({ x, z, r: 2.6 })).concat([{ x: 5, z: 44, r: 4 }, { x: P.x, z: P.z, r: P.lake + 1.5 }, { x: P.x, z: (B.z0 + B.z1) / 2, r: 4 }]);
+  const keepOut = [...THUNDER_WILD, ...THUNDER_PICKUPS].map(([x, z]) => ({ x, z, r: 2.6 })).concat([{ x: 5, z: 44, r: 4 }, { x: P.x, z: P.z, r: P.lake + 1.5 }, { x: P.x, z: (B.z0 + B.z1) / 2, r: 4 }, { x: THUNDER.shrineSpot.x, z: THUNDER.shrineSpot.z, r: 13 }]);
   const free = (x, z, m = 1) => Math.hypot(x, z) < THUNDER.wallR - 4 && !(Math.abs(x) < 6 && z > -27) && Math.hypot(x - THUNDER.spawn.x, z - THUNDER.spawn.z) > 9 && !thunderBlocked(x, z) && !THUNDER.pools.some((p) => Math.hypot(x - p.x, z - p.z) < p.r + 1.2) && !keepOut.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + m);
   const ceilAt = (x, z) => THUNDER.ceil * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / ((THUNDER.wallR + 6) ** 2)));
   for (let g = 0; g < 46; g++) {
@@ -210,12 +211,12 @@ export function buildThunder(scene) {
     const on = t < flashState.until, k = on ? Math.max(0, Math.sin((flashState.until - t) / 0.45 * Math.PI)) : 0;
     stone.u.uTime.value = t; stone.u.uFlash.value = k * 0.4; /* 번개가 치면 빛이 하얗게 (너무 세면 무지개가 다 사라진다) */
     flash.intensity = k * 8;
-    scene.fog.color.setHex(on ? 0x1a1630 : 0x07060f);
+    scene.fog.color.setHex(on ? 0x2a2448 : 0x151228);
     portal.animate(t);
   }
 
   return {
-    sun, animate, terrain: THUNDER_TERRAIN, decor, portal: THUNDER.portal, spawn: THUNDER.spawn, dark: true, noShrine: true,
+    sun, animate, terrain: THUNDER_TERRAIN, decor, portal: THUNDER.portal, spawn: THUNDER.spawn, dark: true,
     portalTo: 'cave', // 이 지역의 포탈은 푸른숲이 아니라 지하동굴로 간다
     npcs: [{ x: guideAt.x, z: guideAt.z, mesh: guide, name: '코리', warp: true, lines: (c) => [
       `번개동굴에 온 걸 환영해, ${c.name}! 난 우주비행사 코리야. 로켓 전기 회로를 공부하다 보니 전기 포켓몬에 빠졌지 뭐야.`,
@@ -225,6 +226,7 @@ export function buildThunder(scene) {
       '전기는 땅에 통하지 않아. 땅 포켓몬(디그다·탕구리)이 있으면 전기 공격을 하나도 안 맞는단다. 바위·땅 포켓몬으로 상대해 봐!',
       `여기 포켓몬은 세. 공격 ${c.zone.atkRange}쯤은 돼야 편하게 이겨. 지하동굴에서 레벨을 충분히 올리고 오렴.`,
       c.conquered.thunder ? '보스 라이츄를 이겼구나! 수정궁이 조용해졌어. 대단해!' : `등불 길 끝, 북쪽 수정궁 호수 가운데 돌섬에 보스 라이츄가 있어. 돌다리로 건너가. 체력 ${c.zone.bossHp || 100}에 공격이 세니까 공격 ${c.zone.targetAtk + 3} 이상, 체력 40쯤 되면 도전해 봐!`,
+      c.conquered.thunder ? '서쪽 빛의 돌기둥 숲에 메가전룡이 나타났어! 전룡은 등대 포켓몬이라 꼬리 구슬로 멀리까지 빛을 비춘대.' : '라이츄를 이기면 서쪽 어딘가에 숨은 메가 성역이 솟아오른대. 무지갯빛 돌기둥 숲이라나?',
       '수정궁 호수는 거울처럼 잔잔해서 둘레 돌기둥이 물에 거꾸로 비쳐. 물에는 못 들어가니 다리로만 건너!',
       '남쪽의 노란 포탈로 나가면 지하동굴의 번개 굴 앞이야.',
     ] }],

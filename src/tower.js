@@ -131,9 +131,9 @@ export function buildTower(scene) {
   obstacles.length = 0;
   const block = (x, z, r) => obstacles.push({ x, z, r });
 
-  scene.background = new THREE.Color(0x141a26);
-  scene.fog = new THREE.Fog(0x141a26, 24, 80); // 위아래가 까마득하게 보이지 않게 (계단은 가장자리 금빛 띠가 안개 너머로도 보인다)
-  scene.add(new THREE.HemisphereLight(0xaab4d4, 0x2a2d3a, 1.6));
+  scene.background = new THREE.Color(0x232a3a);
+  scene.fog = new THREE.Fog(0x232a3a, 30, 95); // 위아래가 까마득하게 보이지 않게 (계단은 가장자리 금빛 띠가 안개 너머로도 보인다)
+  scene.add(new THREE.HemisphereLight(0xbcc6e4, 0x40445a, 2.1)); // 너무 어둡지 않게
   const baseLight = new THREE.PointLight(0xffd9a0, 4, 36); baseLight.position.set(0, 6, 0); scene.add(baseLight); // 바닥은 밝게 (위층은 횃불과 주인공의 등불)
   // 처음 두 바퀴의 계단을 비추는 등불 셋씩 (1층에서 올려다봤을 때 계단이 보이게)
   for (let k = 0; k < 2; k++) for (const a of [Math.PI * 0.6, Math.PI * 1.2, Math.PI * 1.8]) { const l = new THREE.PointLight(0xffd9a0, 2.4, 20); l.position.set((R_IN + R_OUT) / 2 * Math.cos(a), LAP_H * (k + ramp(a)) + 2.5, (R_IN + R_OUT) / 2 * Math.sin(a)); scene.add(l); }
