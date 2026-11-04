@@ -594,6 +594,8 @@ function getZone(name) {
     const outer = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => b.d - a.d);
     const sp0 = z.world.spawn || { x: 0, z: 0 };
     rares.forEach((c, k) => {
+      const fixed = z.world.rareSpots?.[c.id];
+      if (fixed) { const cr = spawnCreature(z, c.id, fixed.x, fixed.z, { ...wildOnly, catchable: true }); cr.rare = true; addSpotGlow(z, cr, fixed); return; } // 지역이 정해 둔 잘 보이는 자리 (지하동굴 루카리오)
       const s = outer[k % outer.length], dx = s.x - sp0.x, dz = s.z - sp0.z, L = Math.hypot(dx, dz) || 1;
       let x = s.x + (dx / L) * 4, zz = s.z + (dz / L) * 4;
       if (Math.abs(x) > z.terrain.size / 2 - 3 || Math.abs(zz) > z.terrain.size / 2 - 3 || isBlocked(x, zz, 0) || insideObstacle(x, zz, 1)) { x = s.x + (dz / L) * 3; zz = s.z - (dx / L) * 3; } // 비켜 선다
@@ -610,12 +612,7 @@ function getZone(name) {
   for (const c of creatureData.creatures.filter((c) => c.zone === z.name && c.special)) {
     const spot = z.world.specialSpots?.[c.special];
     if (!spot) continue;
-    const cr = spawnCreature(z, c.id, spot.x, spot.z);
-    if (spot.glow && cr) { // 어두운 곳에서도 잘 보이게: 위에서 비추는 은은한 빛 + 발밑의 빛나는 고리 (동굴 입구 앞 리올루)
-      const lamp = new THREE.PointLight(spot.glow, 6, 9); lamp.position.set(spot.x, terrainHeight(spot.x, spot.z) + 3, spot.z); z.scene.add(lamp);
-      const sc = cr.data.scale || 1, ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: spot.glow, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
-      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true; cr.mesh.add(ring);
-    }
+    addSpotGlow(z, spawnCreature(z, c.id, spot.x, spot.z), spot);
   }
   for (const [x, zz] of z.world.pickupSpots.slice(0, PICKUP_CAP[name] ?? 16)) spawnPickup(z, x, zz);
   buildShrine(z); // 메가 성역 (정복 전에는 숨어 있다)
@@ -628,6 +625,13 @@ function getZone(name) {
   if (name === 'cave' && state.glow) z.scene.fog.far = 110;
   if (zone) setActiveTerrain(zone.terrain);
   return z;
+}
+/** 정해 둔 자리의 포켓몬을 어두운 곳에서도 잘 보이게 (spot.glow 가 있을 때): 위에서 비추는 은은한 빛 + 발밑의 빛나는 고리 (지하동굴 리올루·루카리오) */
+function addSpotGlow(z, cr, spot) {
+  if (!spot.glow || !cr) return;
+  const lamp = new THREE.PointLight(spot.glow, 6, 9); lamp.position.set(spot.x, terrainHeight(spot.x, spot.z) + 3, spot.z); z.scene.add(lamp);
+  const sc = cr.data.scale || 1, ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: spot.glow, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true; cr.mesh.add(ring);
 }
 /** 저장에서 "이미 잡은" 몬스터를 그 지역에서 뺀다 (지역을 만들 때, 그리고 미리 만들어 둔 지역에 불러올 때) */
 /** 야생 자리 열쇠: 종 id + 집 자리 (불러올 때마다 같은 자리에 같은 종이 서므로 번호 대신 이걸로 '잡은 포켓몬'을 기억한다) */
