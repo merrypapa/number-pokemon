@@ -509,14 +509,7 @@ function spawnUnlocked(z, sp) {
   const prev = zone?.terrain;
   setActiveTerrain(z.terrain);
   const c = spawnCreature(z, sp.id, spot[0], spot[1]);
-  if (c) {
-    c.isMega = true;
-    // 발밑에 은은한 금빛 고리 (포켓몬을 따라다니고, 잡히면 같이 사라진다). 과하지 않게 — 빛기둥은 보기 안 좋아 뺐다
-    const sc = c.data.scale || 1;
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
-    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true;
-    c.mesh.add(ring); c.ring = ring;
-  }
+  if (c) c.isMega = true; // 발밑 고리는 오박사님 미션 포켓몬에만 (refreshQuestRings) — 숨은 메가 포켓몬의 금빛 고리는 뺐다
   if (prev) setActiveTerrain(prev);
   return c;
 }
@@ -626,12 +619,10 @@ function getZone(name) {
   if (zone) setActiveTerrain(zone.terrain);
   return z;
 }
-/** 정해 둔 자리의 포켓몬을 어두운 곳에서도 잘 보이게 (spot.glow 가 있을 때): 위에서 비추는 은은한 빛 + 발밑의 빛나는 고리 (지하동굴 리올루·루카리오) */
+/** 정해 둔 자리의 포켓몬을 어두운 곳에서도 잘 보이게 (spot.glow 가 있을 때): 위에서 비추는 은은한 빛 (지하동굴 리올루·루카리오). 발밑 고리는 오박사님 미션 포켓몬에만 */
 function addSpotGlow(z, cr, spot) {
   if (!spot.glow || !cr) return;
   const lamp = new THREE.PointLight(spot.glow, 6, 9); lamp.position.set(spot.x, terrainHeight(spot.x, spot.z) + 3, spot.z); z.scene.add(lamp);
-  const sc = cr.data.scale || 1, ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: spot.glow, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
-  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true; cr.mesh.add(ring);
 }
 /** 저장에서 "이미 잡은" 몬스터를 그 지역에서 뺀다 (지역을 만들 때, 그리고 미리 만들어 둔 지역에 불러올 때) */
 /** 야생 자리 열쇠: 종 id + 집 자리 (불러올 때마다 같은 자리에 같은 종이 서므로 번호 대신 이걸로 '잡은 포켓몬'을 기억한다) */
