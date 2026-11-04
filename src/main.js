@@ -428,7 +428,7 @@ function toggleFly() { flying ? dismountFly() : mountFly(); }
 flyBtn.onclick = toggleFly;
 
 // ---------- 메가 성역: 지역을 정복하면 나타나는 숨은 장소 + 그곳을 지키는 메가 포켓몬 ----------
-const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -37, z: -27 }, /* 동굴: 예전 자리(-44,34)는 지하 강과 겹쳐 늘 다른 곳으로 밀렸다 */ volcano: { x: -110, z: -40 } /* volcano.js VOLCANO.shrineSpot: 빈 용암 벌판 (예전 자리는 오히아 숲 속이라 나무가 분석구 경사로를 막았다) */, sea: { x: 110, z: 114 }, space: { x: 85, z: 79 } }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
+const SHRINE_HINT = { forest: WORLD.shrineSpot, cave: { x: -37, z: -27 }, /* 동굴: 예전 자리(-44,34)는 지하 강과 겹쳐 늘 다른 곳으로 밀렸다 */ volcano: { x: -110, z: -40 } /* volcano.js VOLCANO.shrineSpot: 빈 용암 벌판 (예전 자리는 오히아 숲 속이라 나무가 분석구 경사로를 막았다) */, sea: { x: 110, z: 114 }, space: { x: 92, z: 32 } /* uyuni.js OJOS: 소금사막 가장자리 */ }; // 푸른숲·물의길은 맵을 넓히며 함께 옮겼다 (물의길은 배로 나가는 먼바다 위)
 /** 성역을 놓을 만한 넓고 평평한 자리를 찾는다 (바다 지역은 탁 트인 물 위) */
 function findShrineSpot(z) {
   const onWater = !!z.world.waterY;
@@ -1820,13 +1820,13 @@ function talkTo(npc) {
     }
     homeworkNote = S.hwDone ? ' (오늘 숙제는 이미 끝냈구나. 내일 숙제도 기대할게!)' : ` 📒 오늘의 숙제는 ${hw.emoji} ${hw.name}! ⭐ 내 자리에 앉아서 열심히 하렴.`;
   }
-  // 꿈의우주에서 행성으로 가는 UFO 는 별의 문을 지키는 메가팬텀을 잡아야 띄울 수 있다 (관리자 모드는 예외)
+  // 꿈의우주에서 행성으로 가는 UFO 는 소금사막의 눈을 지키는 메가팬텀을 잡아야 띄울 수 있다 (관리자 모드는 예외)
   const spaceMega = creatureData.creatures.find((c) => c.zone === 'space' && c.shrine);
   const ufoLocked = !!(npc.ufo && zone.world.ufo && !zone.world.ufo.to && spaceMega && !(state.dex[spaceMega.id] > 0) && !state.admin);
   const prof = npc.name === '오박사' && npc.heal && zone.name === 'lab' ? profTalk() : null; // 연구소 오박사: 상성 이야기 + 의뢰 (대표가 없으면 보통 대사)
   const text = prof ? `${npc.name}: ${prof}${healed ? ' (포켓몬들도 치료해 줬단다!)' : ''}`
     : ufoLocked
-    ? `${npc.name}: UFO 는 별의 문의 힘으로 나는 거야. ${state.conquered.space ? `별의 문을 지키는 ${josa(spaceMega.name, '을를')} 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 별의 문을 열고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
+    ? `${npc.name}: UFO 는 소금사막의 눈에서 솟는 힘으로 나는 거야. ${state.conquered.space ? `소금사막의 눈을 지키는 ${josa(spaceMega.name, '을를')} 잡아 오면 태워 줄게!` : `먼저 북쪽 제단의 보스를 잡아 소금사막의 눈을 깨우고, 그곳을 지키는 ${spaceMega.name}까지 잡아 오면 태워 줄게!`}`
     : `${npc.name}: ${lines[npc.line]}${healed ? ' (포켓몬들을 치료해 줬단다!)' : ''}${homeworkNote}`;
   say(text, { sec: prof ? 12 : ufoLocked || homeworkNote ? 8 : 6, faceImg: npcFace(npc) });
   // 데려다줄 수 있는 안내원과 이야기하는 동안은 대화 버튼 위에 "연구소 가기" 버튼이 켜진다
