@@ -609,7 +609,13 @@ function getZone(name) {
   // 특별한 자리에만 나오는 몬스터 (잠만보의 잠자는 곳 등)
   for (const c of creatureData.creatures.filter((c) => c.zone === z.name && c.special)) {
     const spot = z.world.specialSpots?.[c.special];
-    if (spot) spawnCreature(z, c.id, spot.x, spot.z);
+    if (!spot) continue;
+    const cr = spawnCreature(z, c.id, spot.x, spot.z);
+    if (spot.glow && cr) { // 어두운 곳에서도 잘 보이게: 위에서 비추는 은은한 빛 + 발밑의 빛나는 고리 (동굴 입구 앞 리올루)
+      const lamp = new THREE.PointLight(spot.glow, 6, 9); lamp.position.set(spot.x, terrainHeight(spot.x, spot.z) + 3, spot.z); z.scene.add(lamp);
+      const sc = cr.data.scale || 1, ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 48), new THREE.MeshBasicMaterial({ color: spot.glow, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06 / sc; ring.scale.setScalar(1 / sc); ring.userData.noHide = true; cr.mesh.add(ring);
+    }
   }
   for (const [x, zz] of z.world.pickupSpots.slice(0, PICKUP_CAP[name] ?? 16)) spawnPickup(z, x, zz);
   buildShrine(z); // 메가 성역 (정복 전에는 숨어 있다)

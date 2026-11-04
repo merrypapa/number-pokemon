@@ -303,7 +303,7 @@ export function buildCave(scene) {
   }
 
   return {
-    sun, animate, terrain: CAVE_TERRAIN, portal: P, portalTo: 'town', spawn: CAVE.spawn, // 포탈은 마을(지하동굴 입구가 마을에 있다)
+    sun, animate, terrain: CAVE_TERRAIN, portal: P, portalTo: 'town', spawn: CAVE.spawn, specialSpots: { rioluSpot: { x: 3, z: 5, glow: 0x7fc8ff } } /* 리올루: 입구에서 10m 앞 평평한 빈터 (안쪽 깊은 곳에선 아이가 못 찾았다) */, // 포탈은 마을(지하동굴 입구가 마을에 있다)
     decor,
     dark: true,
     thunderGate: { x: TG.x + 1.5, z: TG.z }, // 번개 굴 안쪽 (들어서면 main 이 번개동굴로 보낸다)

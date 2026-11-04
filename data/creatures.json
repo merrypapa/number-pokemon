@@ -5268,6 +5268,7 @@
    "name": "리올루",
    "type": "격투",
    "zone": "cave",
+   "special": "rioluSpot",
    "catchable": true,
    "model": "리올루.glb",
    "scale": 0.8,
