@@ -17,13 +17,11 @@
    "wild": [
     "m51",
     "m52",
-    "m06",
     "m36",
     "m51e",
     "m31",
     "m28",
-    "m01",
-    "m69"
+    "m01"
    ],
    "wildOverride": {
     "swim": false,
@@ -503,7 +501,10 @@
      "kind": "bug"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m69",
+    "level": 12
+   },
    "favoriteNumber": 6,
    "personality": "무뚝뚝",
    "story": "초록 애벌레 포켓몬. 머리의 더듬이에서 냄새를 내서 적을 쫓아. 나뭇잎을 아주 많이 먹고 무럭무럭 자라.",
@@ -5224,7 +5225,7 @@
    "id": "m69",
    "name": "버터플",
    "type": "벌레",
-   "zone": "hive",
+   "zone": "forest",
    "catchable": true,
    "model": "버터플.glb",
    "scale": 1.0,
@@ -5234,7 +5235,8 @@
    },
    "baseHp": 20,
    "baseAtk": 4,
-   "grade": 1,
+   "grade": 2,
+   "evolvedFrom": "m06",
    "skills": [
     {
      "name": "날개치기",
