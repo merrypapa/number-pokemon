@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
 import { buildWorld, buildTown, terrainHeight, inHole, isBlocked, insideObstacle, setActiveTerrain, waterLevel, canSail, WORLD } from './world.js';
+import { tickFx } from './fx.js';
 import { buildMegaShrine, shrineName, shrineHeightAt, SHRINE_PILLARS } from './mega.js';
 import { buildArena, ARENA } from './arena.js';
 import { buildGym } from './gym.js';
@@ -3306,6 +3307,7 @@ function frame() {
     updateEvolution(dt);
     updateCtxButton();
     zone.world.animate?.(t);
+    tickFx(t);
     zone.shrine?.animate(t, dt);
     particles.update(dt); confetti.update(dt);
     if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
@@ -3771,6 +3773,7 @@ function frame() {
     if (list.length) zone.world.setScreenSubjects(list);
   }
   zone.world.animate?.(t);
+  tickFx(t); /* 물 셰이더·바람 흔들림 시계 */
   zone.shrine?.animate(t, dt); // 메가 성역·명소 움직임 (예전엔 진화 연출 중에만 돌아 솟아오르기·빛점·포자가 멈춰 있었다)
   const sun = zone.world.sun;
   if (sun) { sun.position.set(player.position.x + 20, 30, player.position.z + 10); sun.target.position.copy(player.position); }

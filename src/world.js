@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial, windMaterial } from './fx.js';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
 import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
@@ -514,7 +515,7 @@ export function buildWorld(scene, layout = 'forest') {
   // ---------- 연못 ----------
   const water = new THREE.Mesh(
     new THREE.CircleGeometry(L.pond.r + 1, 40),
-    new THREE.MeshStandardMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.75, roughness: 0.2 })
+    waterMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.75, roughness: 0.2 }, { scale: 0.3 })
   );
   water.rotation.x = -Math.PI / 2;
   water.position.set(L.pond.x, -0.3, L.pond.z);
@@ -1068,8 +1069,8 @@ export function buildWorld(scene, layout = 'forest') {
     }
   }
   const trunkInst = makeInstanced(new THREE.CylinderGeometry(0.25, 0.35, 1, 8), trunkMat, trunkItems, { shadow: true });
-  const crownInst = makeInstanced(new THREE.SphereGeometry(1, 12, 10), WHITE_MAT, crownItems, { shadow: true });
-  const coneInst = makeInstanced(new THREE.ConeGeometry(1.6, 1.6, 8), WHITE_MAT, coneItems, { shadow: true });
+  const crownInst = makeInstanced(new THREE.SphereGeometry(1, 12, 10), windMaterial(WHITE_MAT, { amp: 0.07 }), crownItems, { shadow: true }); /* 잎 덩어리는 통째로 살랑 */
+  const coneInst = makeInstanced(new THREE.ConeGeometry(1.6, 1.6, 8), windMaterial(WHITE_MAT, { amp: 0.09, y0: -0.8, y1: 0.8 }), coneItems, { shadow: true }); /* 침엽수 잎은 끝이 더 흔들린다 */
   decor.add(trunkInst, crownInst, coneInst);
   const camTreeSet = { trees: camTrees, meshes: [trunkInst, coneInst, crownInst] };
   camTreeSet.orig = camTreeSet.meshes.map((m) => m.instanceMatrix.array.slice()); // 감췄다 되돌릴 원래 자리
@@ -1084,8 +1085,8 @@ export function buildWorld(scene, layout = 'forest') {
     block(x, z, rr * 0.9);
   }
   decor.add(makeInstanced(new THREE.DodecahedronGeometry(1, 0), rockMat, rockItems, { shadow: true }));
-  const bushMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
-  const grassMat = new THREE.MeshStandardMaterial({ color: 0x3e9e3e, side: THREE.DoubleSide });
+  const bushMat = windMaterial(new THREE.MeshStandardMaterial({ color: 0x4caf50 }), { amp: 0.04 });
+  const grassMat = windMaterial(new THREE.MeshStandardMaterial({ color: 0x3e9e3e, side: THREE.DoubleSide }), { amp: 0.22, y0: -0.5, y1: 0.5, speed: 1.8 }); /* 풀잎 끝이 바람에 눕는다 */
   const bladeTransforms = []; // 풀 블레이드는 한 번에 그린다 (InstancedMesh)
   const bushes = [];
   const bushItems = [];
@@ -1116,7 +1117,7 @@ export function buildWorld(scene, layout = 'forest') {
       const y = meadowGround(x, z), sc = rand(0.7, 1.3), a0 = rand(0, 6.28);
       for (let k = 0; k < 5; k++) fronds.push({ x, y: y + 0.35 * sc, z, rz: 1.05, ry: a0 + k * 1.256, sx: sc, sy: sc, sz: sc * 0.35, color: k % 2 ? 0x4f8f36 : 0x5fa43f });
     }
-    decor.add(makeInstanced(new THREE.ConeGeometry(0.2, 1.2, 3), WHITE_MAT, fronds));
+    decor.add(makeInstanced(new THREE.ConeGeometry(0.2, 1.2, 3), windMaterial(WHITE_MAT, { amp: 0.08, y0: -0.6, y1: 0.6, speed: 1.5 }), fronds));
   }
   {
     const inst = new THREE.InstancedMesh(new THREE.ConeGeometry(0.12, 1, 4), grassMat, bladeTransforms.length);
@@ -1128,7 +1129,7 @@ export function buildWorld(scene, layout = 'forest') {
     decor.add(inst);
   }
   const petalColors = [0xff6b9d, 0xffd93d, 0xffffff, 0xff8c42, 0xb388ff, 0x4fc3f7];
-  const stemMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
+  const stemMat = windMaterial(new THREE.MeshStandardMaterial({ color: 0x2e8b57 }), { amp: 0.06, y0: -0.2, y1: 0.2, speed: 1.7 });
   const flowerSpots = [];
   for (let i = 0; i < 2000; i++) {
     const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
@@ -1142,7 +1143,7 @@ export function buildWorld(scene, layout = 'forest') {
   }
   {
     const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 5), stemMat, flowerSpots.length);
-    const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 6, 4), new THREE.MeshStandardMaterial({ color: 0xffffff }), flowerSpots.length);
+    const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 6, 4), windMaterial(new THREE.MeshStandardMaterial({ color: 0xffffff }), { amp: 0.06, speed: 1.7 }), flowerSpots.length); /* 꽃송이는 줄기 끝과 같이 흔들린다 */
     const m = new THREE.Matrix4(), col = new THREE.Color();
     flowerSpots.forEach(([x, y, z], i) => {
       stems.setMatrixAt(i, m.makeTranslation(x, y + 0.2, z));

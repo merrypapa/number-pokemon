@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial, windMaterial } from './fx.js';
 import { makeNpc } from './npc.js';
 import { buildShip } from './boat.js';
 import { rand } from './util.js';
@@ -97,7 +98,7 @@ export function buildSea(scene) {
     return Math.random() < 0.5 ? grass : grassB;
   });
   // 바다 (반투명 수면, 파도처럼 살짝 출렁)
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(S + 40, S + 40, 1, 1), new THREE.MeshStandardMaterial({ color: 0x2fb5e0, transparent: true, opacity: 0.6, roughness: 0.12, metalness: 0.1 }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(S + 40, S + 40, 1, 1), waterMaterial({ color: 0x2fb5e0, transparent: true, opacity: 0.6, roughness: 0.12, metalness: 0.1 }, { scale: 0.22, strength: 0.55, shine: 0.22 }));
   water.rotation.x = -Math.PI / 2;
   water.position.y = SEA.waterY;
   scene.add(water);
@@ -107,7 +108,7 @@ export function buildSea(scene) {
 
   // 야자수 (장애물, 인스턴스), 바위, 조개, 파라솔
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0xa57c52 });
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide });
+  const leafMat = windMaterial(new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), { amp: 0.18, y0: 0, y1: 2.4, speed: 1.4 }); /* 야자 잎 끝이 바닷바람에 */
   const onLand = (x, z, margin = 0.9) => seaHeight(x, z) > margin && !SEA_BRIDGES.some((b) => onBridge(b, x, z));
   const trunkItems = [], leafItems = [], nutItems = [];
   let palms = 0;

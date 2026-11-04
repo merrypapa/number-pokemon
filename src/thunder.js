@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial } from './fx.js';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
 import { buildGround, makePortal, makeInstanced, makePillSprite } from './world.js';
@@ -67,7 +68,7 @@ export function buildThunder(scene) {
   // 전기 웅덩이: 푸른 빛이 흐르는 물 + 위에서 지직거리는 번개 고리
   const poolLights = [], poolRings = [];
   for (const P of THUNDER.pools) {
-    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r + 0.6, 28), new THREE.MeshStandardMaterial({ color: 0x1e9bff, emissive: 0x0a5fd0, emissiveIntensity: 0.9, transparent: true, opacity: 0.85, roughness: 0.1 }));
+    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r + 0.6, 28), waterMaterial({ color: 0x1e9bff, emissive: 0x0a5fd0, emissiveIntensity: 0.9, transparent: true, opacity: 0.85, roughness: 0.1 }, { scale: 0.6 }));
     water.rotation.x = -Math.PI / 2;
     water.position.set(P.x, thunderHeight(P.x, P.z) + 0.1, P.z);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(P.r * 0.7, 0.06, 6, 40), new THREE.MeshBasicMaterial({ color: 0xbfe9ff }));

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterMaterial } from './fx.js';
 import { makeNpc } from './npc.js';
 import { makeLabelTexture, makePillSprite, makeInstanced } from './world.js';
 import { olyHeight, olyBlocked, olyCeiling, olyClear, buildOlympia, OLIVE_SPOTS } from './olympia.js';
@@ -102,7 +103,7 @@ export function buildGym(scene) {
   // 모래 테두리는 물 밑에 깔지 않고 **고리**로만 (물 판과 8mm 차이로 겹쳐 있어 멀리서 깊이 싸움(z-fighting)이 나면 연못이 살구색 모래로 깜빡였다 — "연못이 살색으로 바뀐다")
   const sand = new THREE.Mesh(new THREE.RingGeometry(0.985, 1, 64), new THREE.MeshStandardMaterial({ color: 0xe8d9a8, roughness: 1, side: THREE.DoubleSide }));
   sand.rotation.x = -PI2; sand.scale.set(P.rx + 2.2, P.rz + 2.2, 1); sand.position.set(P.x, 0.05, P.z); sand.userData.noHide = true; decor.add(sand);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshStandardMaterial({ color: 0x3fb8e8, roughness: 0.3 })); // 불투명: 반투명이면 물에 잠긴 주인공의 몸이 물 너머로 비쳐 깜빡였다
+  const water = new THREE.Mesh(new THREE.CircleGeometry(1, 48), waterMaterial({ color: 0x3fb8e8, roughness: 0.3 }, { scale: 0.5 })); // 불투명: 반투명이면 물에 잠긴 주인공의 몸이 물 너머로 비쳐 깜빡였다
   water.rotation.x = -PI2; water.scale.set(P.rx, P.rz, 1); water.position.set(P.x, 0.08, P.z); water.userData.noHide = true; decor.add(water); // 잔디(0)보다 8cm 위: 깊이 싸움이 안 나게
   const pads = []; for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, r = 0.35 + Math.random() * 0.55; pads.push({ x: P.x + Math.cos(a) * P.rx * r, y: 0.14, z: P.z + Math.sin(a) * P.rz * r, sx: 0.9, sy: 1, sz: 0.9, ry: Math.random() * 3 }); }
   decor.add(makeInstanced(new THREE.CircleGeometry(0.6, 10).rotateX(-PI2), new THREE.MeshStandardMaterial({ color: 0x3f9d3a, side: THREE.DoubleSide }), pads));
