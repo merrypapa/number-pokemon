@@ -6,7 +6,7 @@
 // 새 버전이 설치되면 게임이 "새 버전이 있어요 · 다시 열기" 안내를 띄우고, 누르면 이 워커에게 SKIP_WAITING 을 보내 바로 바꾼다.
 // 버전은 version.js(처음 화면 표시)와 여기 둘 다 올린다. 여기 글자가 바뀌어야 브라우저가 "워커가 달라졌다"고 보고 새로 설치한다
 // (importScripts 로 읽으면 sw.js 가 그대로라 브라우저·HTTP 캐시에 따라 새 버전을 못 알아챈다 — 태블릿이 -9 에 머물렀던 원인)
-const VERSION = 'v2026-11-03-37';
+const VERSION = 'v2026-11-03-38';
 const ASSET_VERSION = '3';
 const SHELL = `np-shell-${VERSION}`, ASSETS = `np-assets-${ASSET_VERSION}`, VENDOR = 'np-vendor'; // VENDOR: gstatic 의 Firebase SDK (주소에 버전이 있어 오래 둬도 된다)
 const SHELL_FILES = [
