@@ -10,7 +10,7 @@ const THEMES = {
   cave:    { stone: 0x6b7280, accent: 0x39ffb0, glow: 0x5dffc8, name: '동굴 진주 웅덩이' }, // 손둥 동굴의 동굴 진주가 가득한 석회 웅덩이 (buildPearlPools)
   volcano: { stone: 0x6b4038, accent: 0xff6b1a, glow: 0xffb347, name: '푸우오오 분석구' }, // 킬라우에아의 분석구 (buildPuuOo)
   sea:     { stone: 0xbfae86, accent: 0x3fb8e8, glow: 0x9fe8ff, name: '별빛 해변' }, // 몰디브 바두섬의 빛나는 바다 (buildStarBeach)
-  space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '별의 문' },
+  space:   { stone: 0x4a3f6b, accent: 0xb026ff, glow: 0xff5cf0, name: '소금사막의 눈' }, // 우유니 소금사막의 오호스 델 살라르 (buildSalarEyes)
 };
 
 /**
@@ -22,6 +22,7 @@ export function buildMegaShrine(zoneName, x, groundY, z, decor = null) {
   if (zoneName === 'cave') return buildPearlPools(x, groundY, z);
   if (zoneName === 'sea') return buildStarBeach(x, groundY, z);
   if (zoneName === 'volcano') return buildPuuOo(x, groundY, z);
+  if (zoneName === 'space') return buildSalarEyes(x, groundY, z);
   const T = THEMES[zoneName] || THEMES.forest;
   const g = new THREE.Group();
   g.position.set(x, groundY, z);
@@ -350,4 +351,56 @@ export function buildPuuOo(x, groundY, z) {
   };
   const blockedAt = (dx, dz) => Math.hypot(dx, dz) < P.lava;
   return { group: g, reveal, animate, spot: { x, z }, label: '푸우오오 분석구', radius: P.rings[0] + 2, heightAt, blockedAt, pillars: [], megaAt: { x: 0, z: -4.4 } };
+}
+
+// ---------- 꿈의우주 = 우유니 소금사막의 눈 (오호스 델 살라르) ----------
+// 하얀 소금 땅 한가운데 나란히 뚫린 동그란 샘 둘. 땅속에서 물이 보글보글 솟아 "소금사막의 눈"이라 부른다.
+// 육각형 금이 간 소금 판 위를 걸어 다니고, 두 눈(샘)에는 못 들어간다. 메가팬텀은 두 눈 뒤(북쪽)에 떠 있다.
+const EYES = { crust: 13, top: 0.3, pools: [{ x: -3.3, z: 0.4, r: 2.6 }, { x: 3.5, z: -0.4, r: 2.2 }], mounds: 7 };
+function saltTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+  x.fillStyle = '#f6f3ee'; x.fillRect(0, 0, 512, 512);
+  x.strokeStyle = '#d9d2c6'; x.lineWidth = 5; const R = 34, w = R * Math.sqrt(3);
+  for (let row = -1; row < 12; row++) for (let col = -1; col < 11; col++) { // 소금 땅의 육각형 금
+    const cx = col * w + (row % 2 ? w / 2 : 0) + (Math.random() - 0.5) * 6, cy = row * R * 1.5 + (Math.random() - 0.5) * 6;
+    x.beginPath(); for (let k = 0; k <= 6; k++) { const a = Math.PI / 6 + (k / 6) * Math.PI * 2, px = cx + Math.cos(a) * R, py = cy + Math.sin(a) * R; k ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+export function buildSalarEyes(x, groundY, z) {
+  const E = EYES, g = new THREE.Group(); g.position.set(x, groundY, z); g.visible = false;
+  let tex = null; try { tex = saltTexture(); } catch { /* 캔버스가 없으면 무늬 없이 */ }
+  const salt = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, roughness: 0.85 }), saltD = new THREE.MeshStandardMaterial({ color: 0xe6dfd2, roughness: 0.95 });
+  const crust = new THREE.Mesh(new THREE.CylinderGeometry(E.crust, E.crust + 0.8, E.top + 0.8, 48), [saltD, salt, saltD]); crust.position.y = (E.top + 0.8) / 2 - 0.8; crust.receiveShadow = true; g.add(crust);
+  const pools = [], bubbles = [], ripples = [];
+  const bubMat = new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.85 });
+  for (const P of E.pools) {
+    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r, 40).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a8fb0, emissive: 0x0b3f55, emissiveIntensity: 0.5, roughness: 0.05, metalness: 0.2 })); water.position.set(P.x, E.top + 0.02, P.z); g.add(water); /* 소금 판 위에 얹는다 (판이 통짜라 아래에 두면 가려진다) */
+    const deep = new THREE.Mesh(new THREE.CircleGeometry(P.r * 0.62, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x0a3550, transparent: true, opacity: 0.85, depthWrite: false })); deep.position.set(P.x, E.top + 0.03, P.z); g.add(deep); /* 가운데가 깊어 보이게 짙게 */
+    const lip = new THREE.Mesh(new THREE.TorusGeometry(P.r + 0.1, 0.2, 6, 40), saltD); lip.rotation.x = Math.PI / 2; lip.position.set(P.x, E.top + 0.04, P.z); g.add(lip);
+    pools.push({ P, water });
+    for (let i = 0; i < 26; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.07 + Math.random() * 0.07, 6, 5), bubMat); m.userData = { P, a: Math.random() * 6.3, d: Math.random() * P.r * 0.6, ph: Math.random() * 2, sp: 0.6 + Math.random() * 0.6 }; g.add(m); bubbles.push(m); }
+    for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false })); m.userData = { P, ph: i / 3 }; m.position.set(P.x, E.top + 0.05, P.z); g.add(m); ripples.push(m); }
+  }
+  // 둘레의 소금 무더기 (우유니에서 소금을 긁어 모아 말리는 작은 원뿔). 남쪽 입구는 비운다
+  const mounds = [], pillars = [];
+  for (let i = 0; i < E.mounds; i++) { const a = 0.6 + (i / (E.mounds - 1)) * (Math.PI * 2 - 1.2), r = 10.4 + (i % 2) * 0.9, h = 1.1 + (i % 3) * 0.3; mounds.push({ x: Math.sin(a) * r, y: E.top + h / 2, z: Math.cos(a) * r, sx: 0.95, sy: h, sz: 0.95, ry: a }); pillars.push({ x: Math.sin(a) * r, z: Math.cos(a) * r, r: 0.9 }); }
+  g.add(instanced(new THREE.ConeGeometry(1, 1, 9), saltD, mounds));
+  const light = new THREE.PointLight(0x8fe8ff, 2.4, 22); light.position.set(0, 3, 0); g.add(light);
+  const label = makePillSprite('✨ 소금사막의 눈', { bg: '#1c2a44', fg: '#ffffff', border: '#8fe8ff' }, 1.5); label.position.set(0, 7, 0); g.add(label);
+  const hint = makePillSprite('👀 하얀 소금 땅의 두 눈 · 물이 보글보글 솟아요!', { bg: '#1c2a44', fg: '#d8f6ff', border: '#8fe8ff' }, 0.6); hint.position.set(0, 2, E.crust - 1); g.add(hint);
+  let riseT = -1;
+  function reveal() { if (g.visible) return; g.visible = true; riseT = 0; }
+  function animate(t, dt = 0) {
+    if (!g.visible) return;
+    if (riseT >= 0 && riseT < 1) { riseT = Math.min(1, riseT + dt * 0.5); g.position.y = groundY - 1.2 * (1 - riseT); }
+    for (const m of bubbles) { const u = m.userData, life = ((t * u.sp + u.ph) % 2) / 2; m.position.set(u.P.x + Math.cos(u.a) * u.d, E.top + 0.04 + Math.sin(life * Math.PI) * 0.12, u.P.z + Math.sin(u.a) * u.d); m.scale.setScalar(0.4 + life * 1.2); m.visible = life < 0.92; } // 물 위로 보글보글 부풀다 톡
+    for (const m of ripples) { const u = m.userData, life = (t * 0.45 + u.ph) % 1; m.scale.setScalar(0.3 + life * (u.P.r - 0.3)); m.material.opacity = 0.55 * (1 - life); }
+    for (const p of pools) p.water.material.emissiveIntensity = 0.45 + Math.sin(t * 1.4 + p.P.x) * 0.12;
+    label.position.y = 7 + Math.sin(t * 1.3) * 0.3;
+  }
+  const inPool = (dx, dz) => E.pools.some((P) => Math.hypot(dx - P.x, dz - P.z) < P.r + 0.15);
+  const heightAt = (dx, dz) => (Math.hypot(dx, dz) < E.crust ? E.top : 0);
+  const blockedAt = (dx, dz) => inPool(dx, dz);
+  return { group: g, reveal, animate, spot: { x, z }, label: '소금사막의 눈', radius: E.crust + 2, heightAt, blockedAt, pillars, megaAt: { x: 0.2, z: -4.6 } };
 }

@@ -11,6 +11,7 @@ import { makeInstanced, makePillSprite } from './world.js';
 const TAU = Math.PI * 2;
 export const MIRROR = { x: 45, z: 10, r: 26, blend: 6 };
 export const SALAR = { x: 45, z: 10, r: 62 }; // 하얀 소금 땅 (거울 둘레)
+export const OJOS = { x: 92, z: 32, r: 16 }; // 메가 성역(소금사막의 눈) 자리: 거울 밖 마른 소금 땅 가장자리 (main SHRINE_HINT.space). 장식·포켓몬을 놓지 않는다
 export const ISLA = { x: -95, z: 40, rings: [14, 10.5, 7, 4], step: 2.2, ramps: [0.3, 2.2, 4.1, 5.6], rampHalf: 1.6, rampRun: 1.8 };
 // 기차 무덤: 상자 = { x, z, len(긴 쪽, x 방향), w, h, ry(보이는 기울기만), kind }
 export const TRAINS = [ // 북서쪽 (메가 성역 자리(85,79)와 겹치지 않게)
@@ -68,6 +69,7 @@ export function uyuniHeight(x, z, gy) {
 }
 /** 포켓몬·블록 자리를 구조물에서 비켜 놓을 때 */
 export function uyuniClear(x, z, m = 3) {
+  if (Math.hypot(x - OJOS.x, z - OJOS.z) < OJOS.r + m) return false;
   if (TRAINS.some((t) => inBox({ x: t.x, z: t.z, len: t.len, w: t.w }, x, z, m))) return false;
   if (CRATES.some((c) => Math.hypot(x - c.x, z - c.z) < c.s + m)) return false;
   if (Math.hypot(x - ISLA.x, z - ISLA.z) < ISLA.rings[0] + 2 + m && Math.hypot(x - ISLA.x, z - ISLA.z) > ISLA.rings[3] - 1) return false; // 섬 비탈 (꼭대기는 괜찮다)
