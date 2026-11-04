@@ -1005,7 +1005,8 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 /* 큰 축하 카드 (마스터 · 도감 완성) */
 #cheer { position: fixed; inset: 0; z-index: 30; background: rgba(20, 10, 40, .55); display: flex; align-items: center; justify-content: center; padding: 16px; }
 #cheer.hidden { display: none; }
-#cheer-card { background: linear-gradient(160deg, #fff8d6, #ffe9a8); border: 6px solid #ffb300; border-radius: 28px; padding: 26px 24px; max-width: 520px; width: 100%; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,.35); animation: lvPop .7s cubic-bezier(.2,1.6,.4,1) both; }
+#cheer-card { box-sizing: border-box; background: linear-gradient(160deg, #fff8d6, #ffe9a8); border: 6px solid #ffb300; border-radius: 28px; padding: 26px 24px; max-width: 520px; width: 100%; text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,.35); animation: cheerPop .7s cubic-bezier(.2,1.6,.4,1) both; } /* lvPop 은 가운데 정렬용 translateX(-50%) 가 들어 있어(레벨업 띠) 이 카드가 왼쪽으로 반만큼 밀렸다 */
+@keyframes cheerPop { 0% { transform: scale(.2); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 #cheer-big { font-size: 72px; line-height: 1; animation: cheerSpin 1.6s ease-in-out infinite alternate; }
 @keyframes cheerSpin { from { transform: rotate(-8deg) scale(1); } to { transform: rotate(8deg) scale(1.12); } }
 #cheer-title { font-size: clamp(22px, 5vw, 34px); font-weight: 900; color: #5a3a08; margin: 10px 0 8px; word-break: keep-all; }
