@@ -77,6 +77,24 @@ renderer.shadowMap.enabled = true;
 setPortraitRenderer(renderer); // 말풍선 얼굴 그림도 이 렌더러로 그린다 (컨텍스트를 따로 만들지 않는다)
 setOffscreenRenderer(renderer); // 도감 액자 그림·360° 보기도 이 렌더러로 (따로 만들면 아이폰에서 도감을 열 때 꺼졌다)
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
+renderer.shadowMap.autoUpdate = false; /* 그림자 지도는 2프레임에 한 번만 다시 그린다 (frame 의 shadowTick). 움직이는 그림자가 1프레임 늦을 뿐 눈에는 거의 안 띄고, 그림자 그리기(물체를 한 번 더 그린다)가 절반으로 준다 */
+// 화면 해상도 자동 조절: 2초마다 프레임 수를 재서 느리면(40fps 밑) 픽셀 배율을 한 단계 내리고, 넉넉하면(57fps 위가 세 번) 한 단계 올린다.
+// 아이폰(배율 3)은 처음 1.5 → 느리면 1.25 → 1.1. 빠른 기기는 1.5 그대로라 그래픽이 그대로다
+const DPR_STEPS = [1.5, 1.25, 1.1].map((v) => Math.min(window.devicePixelRatio || 1, v)).filter((v, i, a) => a.indexOf(v) === i);
+const perf = { last: 0, acc: 0, n: 0, step: 0, good: 0 };
+function perfTick() {
+  const now = performance.now(), d = perf.last ? (now - perf.last) / 1000 : 0; perf.last = now;
+  if (d <= 0 || d > 0.5) return; /* 다른 앱에 갔다 오면 건너뛴다 */
+  perf.acc += d; perf.n++;
+  if (perf.acc < 2) return;
+  const fps = perf.n / perf.acc; perf.acc = 0; perf.n = 0;
+  let next = perf.step;
+  if (fps < 40) { perf.good = 0; next = Math.min(DPR_STEPS.length - 1, perf.step + 1); }
+  else if (fps > 57) { if (++perf.good >= 3) { perf.good = 0; next = Math.max(0, perf.step - 1); } }
+  else perf.good = 0;
+  if (next !== perf.step) { perf.step = next; renderer.setPixelRatio(DPR_STEPS[next]); }
+}
+function shadowTick() { if ((state.frames & 1) === 0) renderer.shadowMap.needsUpdate = true; }
 // 그래픽 1단계: 영화식 색 보정(ACES). 밝은 곳은 부드럽게 눌리고 색이 덜 탁해 보인다. 하늘 그라데이션·환경 조명은 지역마다 skyenv.js
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -3293,7 +3311,7 @@ function frame() {
 
   if (intro || !zone) {
     intro?.update(dt);
-    if (intro) renderer.render(intro.scene, intro.camera);
+    if (intro) { renderer.shadowMap.needsUpdate = true; renderer.render(intro.scene, intro.camera); }
     input.endFrame();
     requestAnimationFrame(frame);
     return;
@@ -3312,6 +3330,7 @@ function frame() {
     zone.shrine?.animate(t, dt);
     particles.update(dt); confetti.update(dt);
     if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
+    shadowTick();
     renderer.render(zone.scene, camera);
     input.endFrame();
     requestAnimationFrame(frame);
@@ -3784,6 +3803,7 @@ function frame() {
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
   if (zoneBannerTimer > 0) { zoneBannerTimer -= dt; if (zoneBannerTimer <= 0) zoneBannerEl.classList.add('hidden'); }
 
+  perfTick(); shadowTick();
   if (!dex.open || (state.frames & 3) === 0) renderer.render(zone.scene, camera); // 도감이 열려 있으면 뒤 게임 화면은 4프레임에 한 번만 (아이폰 GPU·메모리 여유)
   photo.afterRender(renderer); // 그린 직후에만 캔버스를 읽을 수 있다 (preserveDrawingBuffer 가 꺼져 있다)
   input.endFrame();
