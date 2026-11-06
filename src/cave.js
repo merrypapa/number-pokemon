@@ -48,7 +48,7 @@ function caveGround(x, z) {
   return y;
 }
 /** 지하동굴 높이: 맨바닥 + 손둥 구조물 (절벽 고원·오르막·석회 계단·구름다리). refY 로 겹친 층을 고른다 */
-function caveHeight(x, z, refY) { return caveStructHeight(x, z, refY, caveGround(x, z), caveBase(x, z)); }
+function caveHeight(x, z, refY) { return caveStructHeight(x, z, refY, caveGround(x, z), caveBase(x, z), caveBase); }
 function caveBlocked(x, z, refY) {
   if (CAVE.pools.some((P) => Math.hypot(x - P.x, z - P.z) < P.r + 0.3)) return true;
   if (CAVE_BRIDGES.some((b) => onBridge(b, x, z))) return false;

@@ -52,6 +52,7 @@ export class Player {
     this.climbAt = null;   // 지역이 준 함수 (x, z, y) → { top, x, z } : 올라갈 수 있는 나무 줄기 옆이면 (야외 체육관). 점프 버튼을 누르고 있으면 줄기를 타고 오른다
     this.climbing = false;
     this.descend = null;   // 나무에서 내려오는 중: { x, z } (줄기 자리). 줄기를 보고 미끄러져 내려와 땅에 닿으면 끝난다
+    this.swimOk = null;    // (x,z) → 막힌 물이라도 헤엄쳐 들어가도 되나 (마을 호수). main 이 지역마다 넣는다
     this.surface = null;   // 물 위를 헤엄칠 때(체육관 연못): main 이 매 프레임 물 높이를 넣어 준다. 가슴까지 잠긴 채 천천히 헤엄치고 점프는 못 한다
     this.fly = null;       // 날개 있는 포켓몬을 타고 날 때: { mesh, minH, maxH, up, down, speed } — 장애물·물 위를 지나고, 점프 버튼으로 올라가고 놓으면 천천히 내려온다
     this.flying = false;
@@ -138,7 +139,7 @@ export class Player {
     // 턱: 지형이 정한 높이(ledgeStep)보다 높은 곳으로는 걸어 올라갈 수 없고 뛰어서 발이 그 높이 가까이 올라와야 올라선다 (꿀벌집 육각 계단)
     const ledge = ledgeStep();
     const wall = (x, z) => this.fly ? terrainHeight(x, z, p.y) > p.y + 2.5 // 날 때는 지형이 나보다 훨씬 높을 때만 막힌다 (언덕은 저절로 넘고, 물·울타리·나무 위를 지난다)
-      : (this.boat ? !this.boat.canGo(x, z) : isBlocked(x, z, p.y)) || (!this.boat && terrainHeight(x, z, p.y) > p.y + ledge);
+      : (this.boat ? !this.boat.canGo(x, z) : isBlocked(x, z, p.y) && !(this.swimOk && this.swimOk(x, z))) || (!this.boat && terrainHeight(x, z, p.y) > p.y + ledge);
     const blocked = wall;
     const ox = p.x, oz = p.z;
     p.x += this.vx * dt;
