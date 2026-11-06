@@ -91,7 +91,7 @@ export function buildSea(scene) {
 
   // 바닥: 물속은 푸른 모래, 물가는 밝은 모래, 섬 위는 풀
   const shallow = new THREE.Color(0x8fe8dc), shallowB = new THREE.Color(0x9ff0e0), seabed = new THREE.Color(0x3f93b0), sand = new THREE.Color(0xf1e2b0), sandDark = new THREE.Color(0xe3cf92), grass = new THREE.Color(0x7ccf5a), grassB = new THREE.Color(0x5fb648);
-  buildGround(scene, S, 220, seaHeight, (x, z, y) => {
+  buildGround(scene, S, 220, seaGround, /* 다리·구조물 높이는 빼고: 넣으면 다리 밑 바닥이 판자 높이까지 솟아 깊이 싸움으로 판자가 바닥과 번갈아 깜빡였다 */ (x, z, y) => {
     if (y < SEA.waterY - 0.95) return seabed;
     if (y < SEA.waterY - 0.1) return Math.random() < 0.5 ? shallow : shallowB; // 몰디브 석호: 얕은 곳은 하얀 모래가 비쳐 옥빛
     if (y < 0.7) return Math.random() < 0.5 ? sand : sandDark;
