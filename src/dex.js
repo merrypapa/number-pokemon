@@ -402,6 +402,15 @@ export class Dex {
   }
 
   // ----- 선택한 포켓몬 상세 -----
+  /** 진화형을 야생으로 만나는 곳: 사는 지역 + 드물게 나오는 지역(rareIn) + 그 종을 데려다 쓰는 지역(zones[].wild: 금성·목성·번개동굴 …). 그 지역 보스인 곳은 야생으로 안 나오니 뺀다 */
+  wildPlaces(sp) {
+    const out = [];
+    if (sp.zone !== 'evolution') out.push(this.zoneName[sp.zone] || sp.zone);
+    if (sp.rareIn && sp.rareIn !== sp.zone) out.push(`${this.zoneName[sp.rareIn] || sp.rareIn}(드물게)`);
+    for (const [z, ids] of Object.entries(this.zoneRoster)) if (z !== sp.zone && ids.includes(sp.id) && !(sp.boss && bossZoneOf(sp) === z)) out.push(this.zoneName[z] || z);
+    return [...new Set(out)];
+  }
+
   renderDetail(caughtById) {
     const ctx = this.partyCtx;
     const party = ctx?.party;
@@ -413,6 +422,7 @@ export class Dex {
     const t = this.thumbs(sp);
     const zone = this.zoneName[sp.zone] || '???';
     const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
+    const wildAt = from && !sp.mega ? this.wildPlaces(sp).join(' · ') : ''; /* 진화형도 야생으로 잡을 수 있는 곳 */
     const evo = sp.evolution;
     const evoNames = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => x.name).join(' / ') || null; // 여럿이면 '샤미드 / 부스터 / …'
     // 여러 갈래 진화: 어디서 진화하면 어떤 모습인지 (부스터 ← 불의산 …). 장소가 없는 갈래는 확률
@@ -444,8 +454,8 @@ export class Dex {
           ${t ? `<img src="${t.silhouette}" alt="">` : ''}
           <div class="detail-info">
             <div class="detail-name">???</div>
-            <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형${sp.zone !== 'evolution' ? ` · 사는 곳: ${zone}` : ''}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}` : `사는 곳: ${zone}${sp.boss ? ` (${this.zoneName[bossZoneOf(sp)] || ''} 보스)` : ''}`}</div>
-            <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${this.zoneName[bossZoneOf(sp)] || zone}의 보스를 찾아 잡아 보자!` : from && sp.zone !== 'evolution' ? `${zone}에서 찾거나 진화시키면 돼.` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
+            <div class="detail-sub">${from ? `${(caughtById[from.id] || 0) > 0 ? from.name : '???'}의 진화형${wildAt ? ` · 잡는 곳: ${wildAt}` : ''}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}` : `사는 곳: ${zone}${sp.boss ? ` (${this.zoneName[bossZoneOf(sp)] || ''} 보스)` : ''}`}</div>
+            <div class="detail-desc">아직 만나지 못한 포켓몬이야. ${sp.boss ? `${this.zoneName[bossZoneOf(sp)] || zone}의 보스를 찾아 잡아 보자!` : from && wildAt ? `${wildAt}에서 찾거나 진화시키면 돼.` : from ? '진화시키면 알 수 있어.' : `${zone}에서 찾아보자!`}</div>
             ${howLine ? `<ul class="detail-facts">${howLine}</ul>` : ''}
           </div>
         </div>`;
@@ -470,7 +480,7 @@ export class Dex {
         <div class="detail-info">
           <div class="detail-name">${sp.name} <span class="party-type">${sp.type}</span>${sp.boss ? ' <span class="party-badge boss">보스</span>' : ''}${sp.mega ? ' <span class="party-badge mega">✨ 메가</span>' : ''}</div>
           <div class="detail-chips">
-            <span class="chip">🏠 ${from ? `${from.name}의 진화형${sp.zone !== 'evolution' ? ` · ${zone} 야생` : ''}` : zone}</span>
+            <span class="chip">🏠 ${from ? `${from.name}의 진화형${wildAt ? ` · 잡는 곳: ${wildAt}` : ''}` : zone}</span>
             <span class="chip hp">❤ ${sp.baseHp}</span><span class="chip atk">⚔ ${sp.baseAtk}</span>
             <span class="chip gold">${gradeStars(sp.grade || 1)}</span>${ctx?.isAffinity?.(sp) ? `<span class="chip affinity" title="${ctx.trainerInfo?.().name}와 찰떡">💛 찰떡 (공격 1.2배 · 경험치 1.25배)</span>` : ''}
             <span class="chip">잡은 수 ${n}</span>
@@ -571,10 +581,11 @@ export class Dex {
       const zone = this.zoneName[sp.zone] || '???';
       const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
+      const wildAt = from && !sp.mega ? this.wildPlaces(sp).join(' · ') : '';
       const megaTag = sp.mega ? ' · ✨메가' : '';
       const sub = (known
-        ? (from ? `${from.name}의 진화형${sp.zone !== 'evolution' ? ` · ${zone}` : ''}${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
-        : (from ? `${fromKnown ? from.name : '???'}의 진화형${sp.zone !== 'evolution' ? ` · ${zone}` : ''}${megaTag}` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag}`)) + ` · ${gradeStars(sp.grade || 1)}`; // 진화형이면서 야생으로도 나오면(부스터·샤미드·쥬피썬더·블래키) 지역도
+        ? (from ? `${from.name}의 진화형${wildAt ? ` · ${wildAt}` : ''}${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
+        : (from ? `${fromKnown ? from.name : '???'}의 진화형${wildAt ? ` · ${wildAt}` : ''}${megaTag}` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag}`)) + ` · ${gradeStars(sp.grade || 1)}`; // 진화형이면서 야생으로도 나오면(부스터·샤미드·쥬피썬더·블래키) 지역도
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : '<img class="pending" alt="">'}
         ${known ? '' : '<div class="dex-q">?</div>'}
