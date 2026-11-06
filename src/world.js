@@ -88,7 +88,7 @@ export function bridgeHeightAt(bridges, x, z) {
 }
 /** 나무 다리 모델: 판자 + 양쪽 난간. 난간은 장애물로 obstacles 에 추가된다. */
 export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0x7a4d22 } = {}) {
-  const g = new THREE.Group();
+  const g = new THREE.Group(), rails = new THREE.Group(); /* 판자(그림자 O)와 기둥·난간(그림자 X)을 따로 합친다 */
   const plankMat = new THREE.MeshStandardMaterial({ color: plankColor, roughness: 0.9 });
   const railMat = new THREE.MeshStandardMaterial({ color: railColor, roughness: 0.9 });
   const len = Math.hypot(b.x2 - b.x1, b.z2 - b.z1);
@@ -115,18 +115,23 @@ export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0
       const y = bridgeDeckY(b, t);
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.0, 0.16), railMat);
       post.position.set(x, y + 0.5, z);
-      g.add(post);
+      rails.add(post);
       if (prev) {
         const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, Math.hypot(x - prev.x, z - prev.z, y - prev.y)), railMat);
         rail.position.set((x + prev.x) / 2, (y + prev.y) / 2 + 0.9, (z + prev.z) / 2);
         rail.lookAt(x, y + 0.9, z);
-        g.add(rail);
+        rails.add(rail);
         obstacles.push({ ax: prev.x, az: prev.z, bx: x, bz: z, r: 0.12 });
       }
       prev = { x, y, z };
     }
   }
-  return mergeGroup(g); /* 판자·기둥·난간 수십 조각을 한 덩이로: 물의길은 다리만 조각 1000개라 아이폰에서 느렸다 */
+  /* 판자·기둥·난간 수십 조각을 한 덩이로: 물의길은 다리만 조각 1000개라 아이폰에서 느렸다.
+     난간은 그림자를 안 만든다 — 한 덩이로 합쳤더니 가는 난간 그림자가 판자 위에 들쭉날쭉 생겨 걸을 때마다 꿈틀거렸다(다리가 흔들흔들) */
+  const out = mergeGroup(g);
+  const railOut = mergeGroup(rails); railOut.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  out.add(railOut);
+  return out;
 }
 
 // ---------- 활성 지형 (초원/동굴 등 지역이 바뀌면 main 이 교체) ----------
