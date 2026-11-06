@@ -2442,7 +2442,7 @@ function buildSaveData() {
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
     tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
-    returnTo: state.returnTo,
+    returnTo: state.returnTo, grants: { ...(state.grants || {}) },
     carTold: !!state.carTold, flyTold: !!state.flyTold, swimTold: !!state.swimTold,
     gym: { day: state.gym.day, trained: { ...state.gym.trained } }, profQuest: state.profQuest ? { ...state.profQuest } : null, profQuests: state.profQuests || 0,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
@@ -3238,6 +3238,25 @@ function renderGoals(el) {
 }
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
+// 한 번만 주는 보정: 저장이 잘못돼 잃어버린 것을 그 클라우드 계정에 돌려준다 (그 계정으로 불러올 때 한 번, 저장의 grants 에 표시해 다시 안 준다)
+const ONE_TIME_GRANTS = [
+  { id: 'jiu-dex-2026-11-06', account: '지우', fillDex: true }, // 지우: 도감을 다 채웠는데 저장 오류로 일부가 빠졌다 → 못 잡은 종을 모두 잡은 것으로
+];
+function applyOneTimeGrants(d) {
+  state.grants = { ...(d.grants || {}) };
+  const acct = (cloud.user?.uid && cloud.user.name || '').trim().toLowerCase();
+  for (const g of ONE_TIME_GRANTS) {
+    if (state.grants[g.id] || !acct || acct !== g.account.toLowerCase() || (state.name || '').trim().toLowerCase() !== acct) continue;
+    let added = 0;
+    if (g.fillDex) for (const sp of dex.species) {
+      if (!party.members.some((m) => m.speciesId === sp.id)) { party.add(sp.id, buildDraftMesh(sp)); added++; }
+      if (!(state.dex[sp.id] > 0)) { state.dex[sp.id] = 1; state.caught += 1; }
+    }
+    state.grants[g.id] = dayKey();
+    if (added) queueSay(`🎁 저장이 안 됐던 포켓몬 ${added}마리를 돌려받았어! 도감을 봐.`, { sec: 7 });
+    refreshHud(); setTimeout(() => doSave(false), 3000); /* 지역이 준비된 뒤 저장 (클라우드에도 올라간다) */
+  }
+}
 function applySave(d) {
   state.name = d.name;
   state.admin = accountAdmin(d.name || '') || (DEBUG_ADMIN && !!d.admin);
@@ -3296,6 +3315,7 @@ function applySave(d) {
   setBlocks(d.blocks || 0, { quiet: true, mission: false }); // 불러오기: 금빛 블록 축하도, 오늘의 미션 셈도 하지 않는다
   for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
   if (state.admin) { adminGrantAll(); showAdminPanel(); }
+  applyOneTimeGrants(d);
   sound.fanfare();
   say(`다시 만나서 반가워, ${state.name}! ${leader ? party.name(leader) + '와 ' : ''}모험을 이어서 하자!`, { sec: 6 });
   refreshHud();
