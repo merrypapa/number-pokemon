@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { makeNpc } from './npc.js';
 import { rand } from './util.js';
+import { mergeGroup } from './hallstatt.js';
 import { buildGround, makePortal, makeInstanced, makePillSprite } from './world.js';
 
 // 꿀벌집 (160x160). 푸른숲 서남쪽 큰 나무에 매달린 벌집 입구로 들어온다. 벌·풀 포켓몬이 산다.
@@ -150,7 +151,10 @@ function makeBee(scale = 1) {
     g.add(pivot); wings.push({ pivot, side });
   }
   const sting = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 6), stripeMat); sting.rotation.z = Math.PI / 2; sting.position.x = -0.55;
-  g.add(body, head, sting);
+  const solid = new THREE.Group(); /* 몸·줄무늬·머리·눈·침은 안 움직이니 한 덩이로 (벌 44마리 × 7조각 → 1조각: 꿀벌집이 가벼워진다) */
+  for (const o of [...g.children]) if (o.isMesh) solid.add(o);
+  solid.add(body, head, sting);
+  g.add(mergeGroup(solid));
   g.scale.setScalar(scale);
   g.userData.wings = wings;
   return g;

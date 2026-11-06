@@ -77,6 +77,24 @@ renderer.shadowMap.enabled = true;
 setPortraitRenderer(renderer); // 말풍선 얼굴 그림도 이 렌더러로 그린다 (컨텍스트를 따로 만들지 않는다)
 setOffscreenRenderer(renderer); // 도감 액자 그림·360° 보기도 이 렌더러로 (따로 만들면 아이폰에서 도감을 열 때 꺼졌다)
 renderer.shadowMap.type = THREE.PCFShadowMap; // Soft 보다 가볍다
+renderer.shadowMap.autoUpdate = false; /* 그림자 지도는 2프레임에 한 번만 다시 그린다 (frame 의 shadowTick). 움직이는 그림자가 1프레임 늦을 뿐 눈에는 거의 안 띄고, 그림자 그리기(물체를 한 번 더 그린다)가 절반으로 준다 */
+// 화면 해상도 자동 조절: 2초마다 프레임 수를 재서 느리면(40fps 밑) 픽셀 배율을 한 단계 내리고, 넉넉하면(57fps 위가 세 번) 한 단계 올린다.
+// 아이폰(배율 3)은 처음 1.5 → 느리면 1.25 → 1.1. 빠른 기기는 1.5 그대로라 그래픽이 그대로다
+const DPR_STEPS = [1.5, 1.25, 1.1].map((v) => Math.min(window.devicePixelRatio || 1, v)).filter((v, i, a) => a.indexOf(v) === i);
+const perf = { last: 0, acc: 0, n: 0, step: 0, good: 0 };
+function perfTick() {
+  const now = performance.now(), d = perf.last ? (now - perf.last) / 1000 : 0; perf.last = now;
+  if (d <= 0 || d > 0.5) return; /* 다른 앱에 갔다 오면 건너뛴다 */
+  perf.acc += d; perf.n++;
+  if (perf.acc < 2) return;
+  const fps = perf.n / perf.acc; perf.acc = 0; perf.n = 0;
+  let next = perf.step;
+  if (fps < 40) { perf.good = 0; next = Math.min(DPR_STEPS.length - 1, perf.step + 1); }
+  else if (fps > 57) { if (++perf.good >= 3) { perf.good = 0; next = Math.max(0, perf.step - 1); } }
+  else perf.good = 0;
+  if (next !== perf.step) { perf.step = next; renderer.setPixelRatio(DPR_STEPS[next]); }
+}
+function shadowTick() { if ((state.frames & 1) === 0) renderer.shadowMap.needsUpdate = true; }
 // 그래픽 1단계: 영화식 색 보정(ACES). 밝은 곳은 부드럽게 눌리고 색이 덜 탁해 보인다. 하늘 그라데이션·환경 조명은 지역마다 skyenv.js
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -1164,23 +1182,33 @@ function spawnGymPets() {
   const place = (m, home, water) => {
     const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
     mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
-    const label = petLabel(m); zone.scene.add(label);
-    const p = { m, mesh, label, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6) }; p.target = gymSpot(p); gymPets.push(p);
+    const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: true }; p.target = gymSpot(p); gymPets.push(p); /* 이름표는 가까이 갈 때 만든다 (gymTick) */
   };
   landM.forEach((m, i) => place(m, H.land[i], false));
   waterM.forEach((m, i) => place(m, H.water[i], true));
 }
-function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); p.label.parent?.remove(p.label); } gymPets = []; }
+function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
+function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); } gymPets = []; }
+const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
 function gymTick(dt) {
   if (!zone?.world?.gym || !gymPets.length) return;
   const pp = player.position;
   let nearest = null, nd = Infinity;
   const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있거나 같이 헤엄치고 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
   let closestWater = null, cwd = Infinity;
+  // 아이폰이 체육관에서 꺼지던 문제: 포켓몬 모델(뼈로 움직이는 모델은 화면 밖이어도 늘 그려진다)이 전부 그려지고 그림자도 전부 그려졌다.
+  // 화면에 안 보이는 포켓몬은 숨기고, 그림자는 가까운(30m) 포켓몬만, 이름표는 가까이(25m) 갈 때만 만든다 (멀어지면 버려 메모리를 돌려준다)
+  gymFrustum.setFromProjectionMatrix(gymMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
-    const far = Math.hypot(pp.x - mp.x, pp.z - mp.z) > 45; // 멀리 있는 포켓몬은 애니메이션·이름표를 쉬게 한다 (130마리여도 태블릿이 버티게)
-    p.label.visible = !far;
+    const dist = Math.hypot(pp.x - mp.x, pp.z - mp.z), sc = p.mesh.scale.x || 1;
+    gymSphere.center.set(mp.x, mp.y + sc * 0.6, mp.z); gymSphere.radius = sc * 1.3 + 0.5;
+    p.mesh.visible = gymFrustum.intersectsSphere(gymSphere);
+    const shadow = dist < 30;
+    if (shadow !== p.shadow) { p.shadow = shadow; p.mesh.traverse((o) => { if (o.isMesh) o.castShadow = shadow; }); }
+    if (dist < 25 && !p.label) { p.label = petLabel(p.m); p.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(p.label); }
+    else if (dist > 32 && p.label) dropPetLabel(p);
+    const far = dist > 45 || !p.mesh.visible; // 멀리 있거나 화면 밖이면 애니메이션을 쉬게 한다 (130마리여도 버티게)
     if (far) { if (p.wait > 0) p.wait -= dt; else p.wait = rand(2, 6); continue; }
     const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
     if (p.hop > 0) { p.hop -= dt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
@@ -1191,7 +1219,7 @@ function gymTick(dt) {
       else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
       mp.y = base;
     }
-    p.label.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
+    p.label?.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
     const d = Math.hypot(pp.x - mp.x, pp.z - mp.z);
     if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1 && pp.y > -2) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
     if (p.water && d < cwd) { cwd = d; closestWater = p; }
@@ -1215,7 +1243,7 @@ function trainPet(p) {
   if (r.to > r.from) {
     sound.fanfare(); bump('levelup', null, r.to - r.from);
     m.mesh.position.copy(p.mesh.position); showLevelUp(m, r); checkMaster(m);
-    zone.scene.remove(p.label); p.label = petLabel(m); zone.scene.add(p.label);
+    dropPetLabel(p); p.label = petLabel(m); zone.scene.add(p.label);
     note += ` ⬆ Lv.${r.to}! (❤ ${m.maxHp} · ⚔ ${m.atk})`;
   }
   say(note, { sec: 4 }); refreshHud();
@@ -3293,7 +3321,7 @@ function frame() {
 
   if (intro || !zone) {
     intro?.update(dt);
-    if (intro) renderer.render(intro.scene, intro.camera);
+    if (intro) { renderer.shadowMap.needsUpdate = true; renderer.render(intro.scene, intro.camera); }
     input.endFrame();
     requestAnimationFrame(frame);
     return;
@@ -3312,6 +3340,7 @@ function frame() {
     zone.shrine?.animate(t, dt);
     particles.update(dt); confetti.update(dt);
     if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
+    shadowTick();
     renderer.render(zone.scene, camera);
     input.endFrame();
     requestAnimationFrame(frame);
@@ -3784,6 +3813,7 @@ function frame() {
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) msgEl.classList.add('hidden'); }
   if (zoneBannerTimer > 0) { zoneBannerTimer -= dt; if (zoneBannerTimer <= 0) zoneBannerEl.classList.add('hidden'); }
 
+  perfTick(); shadowTick();
   if (!dex.open || (state.frames & 3) === 0) renderer.render(zone.scene, camera); // 도감이 열려 있으면 뒤 게임 화면은 4프레임에 한 번만 (아이폰 GPU·메모리 여유)
   photo.afterRender(renderer); // 그린 직후에만 캔버스를 읽을 수 있다 (preserveDrawingBuffer 가 꺼져 있다)
   input.endFrame();

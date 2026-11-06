@@ -126,7 +126,7 @@ export function buildBridge(b, obstacles, { plankColor = 0xb07a3c, railColor = 0
       prev = { x, y, z };
     }
   }
-  return g;
+  return mergeGroup(g); /* 판자·기둥·난간 수십 조각을 한 덩이로: 물의길은 다리만 조각 1000개라 아이폰에서 느렸다 */
 }
 
 // ---------- 활성 지형 (초원/동굴 등 지역이 바뀌면 main 이 교체) ----------
