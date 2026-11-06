@@ -1182,23 +1182,33 @@ function spawnGymPets() {
   const place = (m, home, water) => {
     const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
     mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
-    const label = petLabel(m); zone.scene.add(label);
-    const p = { m, mesh, label, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6) }; p.target = gymSpot(p); gymPets.push(p);
+    const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: true }; p.target = gymSpot(p); gymPets.push(p); /* 이름표는 가까이 갈 때 만든다 (gymTick) */
   };
   landM.forEach((m, i) => place(m, H.land[i], false));
   waterM.forEach((m, i) => place(m, H.water[i], true));
 }
-function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); p.label.parent?.remove(p.label); } gymPets = []; }
+function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
+function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); } gymPets = []; }
+const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
 function gymTick(dt) {
   if (!zone?.world?.gym || !gymPets.length) return;
   const pp = player.position;
   let nearest = null, nd = Infinity;
   const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있거나 같이 헤엄치고 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
   let closestWater = null, cwd = Infinity;
+  // 아이폰이 체육관에서 꺼지던 문제: 포켓몬 모델(뼈로 움직이는 모델은 화면 밖이어도 늘 그려진다)이 전부 그려지고 그림자도 전부 그려졌다.
+  // 화면에 안 보이는 포켓몬은 숨기고, 그림자는 가까운(30m) 포켓몬만, 이름표는 가까이(25m) 갈 때만 만든다 (멀어지면 버려 메모리를 돌려준다)
+  gymFrustum.setFromProjectionMatrix(gymMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
-    const far = Math.hypot(pp.x - mp.x, pp.z - mp.z) > 45; // 멀리 있는 포켓몬은 애니메이션·이름표를 쉬게 한다 (130마리여도 태블릿이 버티게)
-    p.label.visible = !far;
+    const dist = Math.hypot(pp.x - mp.x, pp.z - mp.z), sc = p.mesh.scale.x || 1;
+    gymSphere.center.set(mp.x, mp.y + sc * 0.6, mp.z); gymSphere.radius = sc * 1.3 + 0.5;
+    p.mesh.visible = gymFrustum.intersectsSphere(gymSphere);
+    const shadow = dist < 30;
+    if (shadow !== p.shadow) { p.shadow = shadow; p.mesh.traverse((o) => { if (o.isMesh) o.castShadow = shadow; }); }
+    if (dist < 25 && !p.label) { p.label = petLabel(p.m); p.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(p.label); }
+    else if (dist > 32 && p.label) dropPetLabel(p);
+    const far = dist > 45 || !p.mesh.visible; // 멀리 있거나 화면 밖이면 애니메이션을 쉬게 한다 (130마리여도 버티게)
     if (far) { if (p.wait > 0) p.wait -= dt; else p.wait = rand(2, 6); continue; }
     const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
     if (p.hop > 0) { p.hop -= dt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
@@ -1209,7 +1219,7 @@ function gymTick(dt) {
       else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
       mp.y = base;
     }
-    p.label.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
+    p.label?.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
     const d = Math.hypot(pp.x - mp.x, pp.z - mp.z);
     if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1 && pp.y > -2) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
     if (p.water && d < cwd) { cwd = d; closestWater = p; }
@@ -1233,7 +1243,7 @@ function trainPet(p) {
   if (r.to > r.from) {
     sound.fanfare(); bump('levelup', null, r.to - r.from);
     m.mesh.position.copy(p.mesh.position); showLevelUp(m, r); checkMaster(m);
-    zone.scene.remove(p.label); p.label = petLabel(m); zone.scene.add(p.label);
+    dropPetLabel(p); p.label = petLabel(m); zone.scene.add(p.label);
     note += ` ⬆ Lv.${r.to}! (❤ ${m.maxHp} · ⚔ ${m.atk})`;
   }
   say(note, { sec: 4 }); refreshHud();
