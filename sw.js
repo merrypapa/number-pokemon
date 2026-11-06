@@ -6,7 +6,7 @@
 // 새 버전이 설치되면 게임이 "새 버전이 있어요 · 다시 열기" 안내를 띄우고, 누르면 이 워커에게 SKIP_WAITING 을 보내 바로 바꾼다.
 // 버전은 version.js(처음 화면 표시)와 여기 둘 다 올린다. 여기 글자가 바뀌어야 브라우저가 "워커가 달라졌다"고 보고 새로 설치한다
 // (importScripts 로 읽으면 sw.js 가 그대로라 브라우저·HTTP 캐시에 따라 새 버전을 못 알아챈다 — 태블릿이 -9 에 머물렀던 원인)
-const VERSION = 'v2026-11-06-46';
+const VERSION = 'v2026-11-06-47';
 const ASSET_VERSION = '3';
 const SHELL = `np-shell-${VERSION}`, ASSETS = `np-assets-${ASSET_VERSION}`, VENDOR = 'np-vendor'; // VENDOR: gstatic 의 Firebase SDK (주소에 버전이 있어 오래 둬도 된다)
 const SHELL_FILES = [
@@ -20,7 +20,9 @@ self.addEventListener('install', (e) => {
   e.waitUntil((async () => {
     const c = await caches.open(SHELL);
     // 하나가 실패해도 나머지는 넣는다 (파일 목록이 조금 어긋나도 설치가 막히지 않게)
-    await Promise.all(SHELL_FILES.map((f) => c.add(f).catch((err) => console.warn('[sw] 미리 받기 실패', f, err))));
+    // cache: 'reload' — 브라우저 HTTP 캐시(깃허브 페이지 10분)를 건너뛰고 늘 서버에서 받는다. 전에는 버전을 연달아 올리면 새 워커가 HTTP 캐시의 옛 파일로
+    // 새 캐시를 채워, 버전 이름만 바뀌고 화면은 옛 버전에 굳어 버렸다 (업데이트가 안 된다)
+    await Promise.all(SHELL_FILES.map((f) => c.add(new Request(f, { cache: 'reload' })).catch((err) => console.warn('[sw] 미리 받기 실패', f, err))));
     // 설치되면 기다리지 않고 바로 넘겨받는다 — 태블릿이 앱을 몇 주씩 닫지 않아 새 버전이 "대기" 상태로 영영 머무르던 일을 막는다.
     // 게임 중이던 화면은 controllerchange 에서 저장한 뒤 새로고침한다 (main.js)
     self.skipWaiting();
@@ -50,7 +52,7 @@ self.addEventListener('fetch', (e) => {
     const hit = await cache.match(req, { ignoreSearch: isShell }); // index.html?debug 같은 쿼리도 같은 껍데기
     if (hit) return hit;
     try {
-      const res = await fetch(req);
+      const res = await fetch(isShell ? new Request(req.url, { cache: 'no-cache' }) : req); /* 앱 파일은 HTTP 캐시의 옛 파일을 쓰지 않게 서버에 확인 (페이지 이동 요청에 옵션을 붙이면 오류라 주소로 새로 만든다) */
       if (res.ok) cache.put(req, res.clone());
       return res;
     } catch (err) {
