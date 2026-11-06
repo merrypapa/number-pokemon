@@ -2868,7 +2868,7 @@ if ('serviceWorker' in navigator && !location.search.includes('nosw') && locatio
       if (pendingWorker) { applyUpdate(pendingWorker); return; }
       const r = await fetch(`./version.js?t=${Date.now()}`, { cache: 'no-store' }); const txt = await r.text(); const m = txt.match(/'(v[\d-]+)'/); const latest = m ? m[1] : null;
       if (regRef) await regRef.update().catch(() => {});
-      if (latest && latest !== self.NP_VERSION) { checkBtn.textContent = `새 버전 ${latest.slice(1)} 받는 중…`; setTimeout(() => { if (!pendingWorker) { checkBtn.textContent = '서버가 아직 준비 중이에요. 1~2분 뒤 다시 눌러 주세요'; checkBtn.disabled = false; } }, 8000); }
+      if (latest && latest !== self.NP_VERSION) { checkBtn.textContent = `새 버전 ${latest.slice(1)} 받는 중…`; setTimeout(async () => { if (pendingWorker) return; /* 새 워커가 안 온다 = 워커는 최신인데 캐시에 옛 파일이 들어 있다(전의 HTTP 캐시 버그). 앱 파일 캐시를 지우고 새로 받는다 */ checkBtn.textContent = '새 버전으로 고치는 중…'; try { for (const k of await caches.keys()) if (k.startsWith('np-shell-')) await caches.delete(k); } catch (_) { /* 못 지워도 새로고침 */ } if (zone && player) { try { doSave(false); } catch (_) { /* 그래도 새로고침 */ } } location.reload(); }, 8000); }
       else { checkBtn.textContent = '✅ 최신 버전이에요'; setTimeout(() => { checkBtn.textContent = '🔄 업데이트 확인'; checkBtn.disabled = false; }, 2500); }
     } catch (_) { checkBtn.textContent = '인터넷이 안 돼요'; setTimeout(() => { checkBtn.textContent = '🔄 업데이트 확인'; checkBtn.disabled = false; }, 2500); }
   };
