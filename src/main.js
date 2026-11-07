@@ -54,7 +54,7 @@ import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSIO
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite, PHRASES } from './presence.js';
 import { snapshotMon, snapshotTeam, acceptPatch, readyPatch, switchPatch, attackPatch, duelCardHtml, sideOf, teamOf, activeMon, curIdx, DUEL_REWARD, DUEL_KEEP_MS } from './duel.js';
-import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, addBrainwashRing } from './rocket.js';
+import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, removeWhiteFlag, addBrainwashRing, RAID_LINES } from './rocket.js';
 import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
 
 // ---------- 기본 세팅 ----------
@@ -304,7 +304,7 @@ function placeGrunt(z) {
   mesh.userData.radius = 0.9; // 대결 중 시야를 가릴 때만 잠깐 숨기는 크기 (나무·바위와 같은 규칙, src/battle.js)
   (z.world.decor || z.scene).add(mesh); // 다른 NPC 와 같이 장식 그룹에 — 그래야 대결 화면에서 상대를 가리지 않는다
   const npc = { x: at.x, z: at.z, mesh, name: g.name, rocket: g, lines: g.after };
-  if (state.rockets[z.name]) addWhiteFlag(mesh); // 이미 항복시킨 대원은 흰 깃발을 들고 서 있다
+  if (!gruntActive(z.name)) addWhiteFlag(mesh); // 이미 항복시킨 대원은 흰 깃발을 들고 서 있다 (오박사 의뢰로 다시 나타나면 깃발을 내린다)
   (z.world.npcs ||= []).push(npc);
   z.grunt = npc;
 }
@@ -1154,6 +1154,7 @@ function applyZoneEnv() {
   player.climbAt = zone.world.climbAt || null; // 야외 체육관의 올라갈 수 있는 나무
   if (zone.world.gym) spawnGymPets(); else if (gymPets.length) clearGymPets(); // 체육관: 내 포켓몬들이 모두 나와 뛰어논다
   if (!zone.world.gym && !flying) for (const f of chain.followers) f.mesh.visible = true;
+  refreshGruntFlag(zone); // 오박사 의뢰로 다시 나타난 대원은 흰 깃발을 내린다
   const q = state.profQuest;
   if (q && !q.done && q.zone === zone.name) queueSay(`🔬 오박사님이 말한 곳이야! ${questText(q)} (${q.n}/${q.need})`, { sec: 6 });
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
@@ -1265,12 +1266,20 @@ function pickFindTarget(level) {
   const pick = pool.filter((c) => (ZONE_LEVEL[c.zone]?.[0] ?? 99) <= lowest + 6);
   return pick[Math.floor(Math.random() * pick.length)];
 }
+/** "붉은 숫자 반응" 의뢰 지역: 대원이 있고 대표 레벨로 갈 만한 곳 */
+function pickRaidZone(level) {
+  const ok = QUEST_ZONES.filter((z) => GRUNTS[z] && (ZONE_LEVEL[z]?.[0] ?? 99) <= level + 3 && (z !== 'deepsea' || state.conquered.sea) && z !== state.lastRaidZone);
+  return ok.length ? ok[Math.floor(Math.random() * ok.length)] : null;
+}
 function questText(q) {
+  if (q.kind === 'rocket') return `${ZONE_INFO[q.zone]?.name || q.zone}의 붉은 숫자 반응! 넘버로켓단 물리치기`;
   if (q.kind === 'find') return `${ZONE_INFO[q.zone]?.name || q.zone}에서 강력한 기운의 ${speciesById[q.targetId]?.name || '포켓몬'} 잡아 오기`;
   return `${ZONE_INFO[q.zone]?.name || q.zone}에서 포켓몬 ${q.need}마리 잡기`;
 }
 function newProfQuest(a) {
   const tg = pickFindTarget(a.level);
+  const rz = SHOW_ROCKETS && ((state.profQuests || 0) % 2 === 1 || !tg) ? pickRaidZone(a.level) : null; // 의뢰는 "강력한 기운" ↔ "붉은 숫자 반응"(로켓단)을 번갈아
+  if (rz) { const q = { kind: 'rocket', zone: rz, need: 1, n: 0, reward: 50, done: false }; state.profQuest = q; state.lastRaidZone = rz; if (zones[rz]) refreshGruntFlag(zones[rz]); return q; }
   const q = tg ? { kind: 'find', zone: tg.zone, targetId: tg.id, need: 1, n: 0, reward: 40, done: false }
     : { kind: 'catch', zone: QUEST_ZONES[Math.floor(Math.random() * 3)], need: 2, n: 0, reward: 30, done: false }; // 도감을 다 채웠으면 아무 포켓몬이나
   state.profQuest = q; return q;
@@ -1284,6 +1293,7 @@ function profTalk() {
   if (q) return `지금 의뢰는 "${questText(q)}" (${q.n}/${q.need})! ${josa(ZONE_INFO[q.zone]?.name || q.zone, '으로')} 가 보렴. 끝내면 블록 ${q.reward}개를 주마.`;
   if (!a) return null;
   const nq = newProfQuest(a);
+  if (nq.kind === 'rocket') return `큰일이다! 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 🚨 붉은 숫자 반응이 강하게 느껴져! 넘버로켓단이 또 나타났나 봐. 이번엔 포켓몬을 셋이나 데리고 있는 것 같구나. 가서 붉은 숫자를 깨고 포켓몬들을 되돌려 주렴! 블록 ${nq.reward}개를 주마. (로켓단이 숫자를 틀리게 말하면 바로잡아 줘!)`;
   if (nq.kind === 'find') {
     const tg = speciesById[nq.targetId];
     return `${josa(a.sp.name, '과와')} 잘 지내고 있구나! 그런데 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 강력한 포켓몬의 기운이 느껴져! 아직 도감에 없는 ${tg.type || '노말'} 포켓몬 ${josa(tg.name, '이야')}. 잡아 오면 블록 ${nq.reward}개를 주마. (미션 탭에서 볼 수 있어. 어떤 속성이 센지는 학교 상성 수업에서 배우렴!)`;
@@ -2036,9 +2046,41 @@ function winReward(c) {
 // ---------- 넘버로켓단 대원과의 대결 (src/rocket.js) ----------
 // 대원은 직접 싸우지 않는다. 세뇌한 포켓몬을 내보내고, 그 포켓몬 머리 위의 "가짜 숫자"를 0으로 깎으면
 // 포켓몬은 제 좋아하는 숫자를 되찾아 친구가 되고, 대원은 숫자를 못 세며 항복한다. 다치는 사람은 아무도 없다.
+// 대원은 포켓몬 팀(푸른숲 2마리, 다른 곳 3마리)을 차례로 내보낸다: 한 마리를 되돌리면 "다음은 ○○!" 하고 다음이 나오고,
+// 내 포켓몬 체력은 그대로 이어진다 (교체로 누구를 낼지 고르는 재미). 중간에 지거나 물러나면 처음부터 다시.
+// 오박사 의뢰 "붉은 숫자 반응"(kind 'rocket')이 걸린 지역에서는 이미 항복한 대원도 흰 깃발을 내리고 세 마리 팀으로 돌아온다.
+function raidOn(zn) { const q = state.profQuest; return !!q && q.kind === 'rocket' && !q.done && q.zone === zn; }
+/** 이 지역 대원이 지금 싸우려 드나 (처음 만났거나, 오박사 의뢰로 다시 나타났거나) */
+function gruntActive(zn) { return !!GRUNTS[zn] && (!state.rockets[zn] || raidOn(zn)); }
+function refreshGruntFlag(z = zone) { const n = z?.grunt; if (!n) return; if (gruntActive(z.name)) removeWhiteFlag(n.mesh); else addWhiteFlag(n.mesh); }
+/** 대원의 팀: 앞에 그 지역 포켓몬(조금 약하게), 마지막에 원래 대원의 대표 포켓몬. 다시 나타난 대원은 모두 1.15배 */
+function gruntTeam(zn, g) {
+  const raid = state.rockets[zn] && raidOn(zn), size = zn === 'forest' && !raid ? 2 : 3, k = raid ? 1.15 : 1;
+  const zi = ZONE_INFO[zn] || {}, ids = zi.wild || creatureData.creatures.filter((c) => c.zone === zn).map((c) => c.id);
+  const pool = [...new Set(ids)].map((id) => speciesById[id]).filter((c) => c && c.catchable && !c.boss && !c.mega && !c.unlockedBy && !c.special && !c.sleeping && c.id !== g.mon);
+  const picks = [];
+  while (picks.length < size - 1 && pool.length) picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  const team = picks.map((sp, i) => ({ id: sp.id, hp: Math.round(g.hp * (0.55 + 0.1 * i) * k), atk: Math.max(2, Math.round(g.atk * (0.75 + 0.05 * i) * k)) }));
+  team.push({ id: g.mon, hp: Math.round(g.hp * k), atk: Math.round(g.atk * k), ace: true });
+  return team;
+}
+/** 대원의 틀린 숫자: 지역에 맞는 계산 하나를 일부러 틀리게 말한다. 아이가 바로잡으면 첫 포켓몬의 붉은 숫자가 크게 깎인다 */
+function gruntQuizProblem(zn, g) {
+  const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const lv = ZONE_LEVEL[zn]?.[0] ?? 1;
+  let a, b, op, ans;
+  if (lv < 8) { a = R(2, 9); b = R(1, 9); op = '+'; ans = a + b; }
+  else if (lv < 16) { a = R(11, 39); b = R(2, 9); op = Math.random() < 0.5 ? '+' : '-'; ans = op === '+' ? a + b : a - b; }
+  else if (lv < 26) { a = R(12, 59); b = R(11, 39); op = Math.random() < 0.6 ? '+' : '-'; if (op === '-' && b > a) [a, b] = [b, a]; ans = op === '+' ? a + b : a - b; }
+  else { a = R(2, 9); b = R(2, 9); op = '×'; ans = a * b; }
+  const off = [1, 2, 10, -1, -2, -10].filter((d) => ans + d > 0), claim = ans + off[Math.floor(Math.random() * off.length)];
+  const third = [ans + 3, ans - 3, ans + 5, claim + 1].find((v) => v > 0 && v !== ans && v !== claim);
+  const choices = [ans, claim, third].sort(() => Math.random() - 0.5);
+  return { title: `🚀 ${g.name}의 틀린 숫자 바로잡기`, text: `${g.name}: "${a} ${op} ${b} = ${claim}! 내 계산 완벽하지?" — 진짜 답은?`, hint: `맞히면 ${josa(g.name, '이가')} 당황해서 첫 포켓몬의 붉은 숫자가 확 줄어! (틀려도 괜찮아)`, choices, answer: ans, explain: `${a} ${op} ${b} = ${ans}. ${josa(g.name, '은는')} 또 틀렸어!`, okTitle: '🎉 바로잡았다!' };
+}
 function challengeGrunt(npc) {
   const g = npc.rocket;
-  if (!g || state.rockets[zone.name] || battle.active || npc.busy) return;
+  if (!g || !gruntActive(zone.name) || battle.active || npc.busy || quiz.open) return;
   if (zone.creatures.some((c) => c.rocketOf === npc)) return; // 이미 내보낸 포켓몬이 밖에 서 있으면 또 부르지 않는다 (닿으면 대결이 열린다)
   let L = party.leader;
   if (!L || party.isFainted(L)) {
@@ -2046,48 +2088,71 @@ function challengeGrunt(npc) {
     if (!other) { say('포켓몬이 모두 기절했어… 오박사 연구소에서 치료받고 다시 오자!', { sec: 6 }); return; }
     attachLeader(other); L = other;
   }
-  npc.busy = true;
-  npc.talking = true;
-  state.prompt = 8;
-  sound.click();
-  say(`${npc.name}: ${g.taunt}`, { sec: 6, faceImg: npcFace(npc) });
-  input.endFrame();
-  const z = zone;
+  const z = zone, raid = state.rockets[z.name] && raidOn(z.name);
+  npc.team = gruntTeam(z.name, g); npc.teamIdx = 0; npc.weak = false;
+  npc.busy = true; npc.talking = true; state.prompt = 8;
+  sound.click(); input.endFrame();
+  const names = npc.team.map((m) => speciesById[m.id]?.name || '?').join(' · ');
+  say(`${npc.name}: ${raid ? RAID_LINES.taunt(g) : g.taunt} (팀 ${npc.team.length}마리: ${names})`, { sec: 6, faceImg: npcFace(npc) });
+  // 싸우기 전에 대원이 숫자를 틀리게 말한다 → 아이가 바로잡으면 첫 포켓몬이 약해진다
   setTimeout(() => {
-    npc.busy = false;
-    if (zone !== z || battle.active || state.rockets[z.name] || z.creatures.some((c) => c.rocketOf === npc)) return;
-    // 세뇌된 포켓몬은 대원과 지우 사이에 나온다 (막힌 자리면 대원 발밑에)
-    const pp = player.position;
-    const dx = pp.x - npc.x, dz = pp.z - npc.z, d = Math.hypot(dx, dz) || 1;
-    let sx = npc.x + (dx / d) * 1.5, sz = npc.z + (dz / d) * 1.5;
-    if (inHole(sx, sz) || isBlocked(sx, sz) || insideObstacle(sx, sz, 0.8)) { sx = npc.x; sz = npc.z; }
-    const c = spawnCreature(z, g.mon, sx, sz, { boss: false, baseHp: g.hp, baseAtk: g.atk, ...(g.extra || {}) });
-    c.rocketOf = npc;
-    c.hint.visible = true;             // 붉은 가짜 숫자는 처음부터 보인다
-    c.leash = 3;                       // 대원 곁을 떠나지 않는다
-    addBrainwashRing(c.mesh, c.data.scale || 1);
-    particles.cubes(z.scene, c.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 16, 0xe8453c);
-    sound.click();
-  }, 1600);
+    if (zone !== z || battle.active) { npc.busy = false; return; }
+    quiz.askCustom(gruntQuizProblem(z.name, g)).then((res) => {
+      npc.weak = res === 'ok';
+      if (res === 'ok') say(`🎉 ${npc.name}: "어, 어라? 내가 틀렸다고?!" 당황해서 첫 포켓몬의 붉은 숫자가 확 줄었어!`, { sec: 5, faceImg: npcFace(npc) });
+      else if (res === 'wrong') say(`${npc.name}: "거봐, 숫자는 어려운 거라고!" (정답은 ${quiz.last?.answer}) 그래도 싸워서 되돌리자!`, { sec: 5, faceImg: npcFace(npc) });
+      setTimeout(() => { npc.busy = false; if (zone === z) spawnGruntMon(npc, z); }, 900);
+    });
+  }, 1800);
 }
-/** 대원이 내보낸 포켓몬과의 대결이 끝났다. won 이면 대원은 항복하고 그 자리에 남아 지역의 비밀을 알려 준다. */
+/** 대원 팀의 npc.teamIdx 번째 포켓몬을 대원과 지우 사이에 내보낸다 */
+function spawnGruntMon(npc, z) {
+  const g = npc.rocket, m = npc.team?.[npc.teamIdx];
+  if (!m || zone !== z || battle.active || !gruntActive(z.name) || z.creatures.some((c) => c.rocketOf === npc)) return;
+  const pp = player.position;
+  const dx = pp.x - npc.x, dz = pp.z - npc.z, d = Math.hypot(dx, dz) || 1;
+  let sx = npc.x + (dx / d) * 1.5, sz = npc.z + (dz / d) * 1.5;
+  if (inHole(sx, sz) || isBlocked(sx, sz) || insideObstacle(sx, sz, 0.8)) { sx = npc.x; sz = npc.z; }
+  const c = spawnCreature(z, m.id, sx, sz, { boss: false, baseHp: m.hp, baseAtk: m.atk, ...(g.extra || {}), ...(m.ace ? {} : { swim: false }) });
+  c.rocketOf = npc;
+  if (npc.teamIdx === 0 && npc.weak) c.hp = Math.max(1, Math.ceil(m.hp * 0.55)); // 틀린 숫자를 바로잡았다: 첫 포켓몬은 반쯤 깎인 채로 나온다
+  c.hint.visible = true;             // 붉은 가짜 숫자는 처음부터 보인다
+  c.leash = 3;                       // 대원 곁을 떠나지 않는다
+  addBrainwashRing(c.mesh, c.data.scale || 1);
+  particles.cubes(z.scene, c.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 16, 0xe8453c);
+  sound.click();
+}
+/** 대원이 내보낸 포켓몬과의 대결이 끝났다. 이겼는데 팀이 남았으면 다음 포켓몬, 마지막까지 이기면 대원은 항복하고 그 자리에 남아 지역의 비밀을 알려 준다. */
 function beatGrunt(c, won) {
   const npc = c.rocketOf;
   if (!npc) return;
-  const z = zone, g = npc.rocket;
+  const z = zone, g = npc.rocket, raid = state.rockets[z.name] && raidOn(z.name), quest = raidOn(z.name) ? state.profQuest : null;
   c.rocketOf = null;
   c.becomeFriend();       // 다시 대결이 열리지 않게 (자리에는 남지만 움직이지 않는다)
   z.scene.remove(c.mesh);
-  npc.talking = false;
-  if (!won) { setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.hold}`, { sec: 6, faceImg: npcFace(npc) }); }, 2600); return; }
+  if (!won) { npc.talking = false; npc.team = null; setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.hold} (다시 도전하면 첫 포켓몬부터!)`, { sec: 6, faceImg: npcFace(npc) }); }, 2600); return; }
+  const team = npc.team || [];
+  if (npc.teamIdx < team.length - 1) { // 아직 남은 포켓몬이 있다
+    npc.teamIdx++;
+    const nm = speciesById[team[npc.teamIdx].id]?.name || '포켓몬', L = party.leader;
+    const low = L && L.hp < L.maxHp * 0.4 ? ' 대표 체력이 적으면 도감에서 물약을 쓰거나 다른 포켓몬으로 바꿔!' : '';
+    setTimeout(() => { if (zone === z) say(`${npc.name}: ${RAID_LINES.next(g, nm, npc.teamIdx + 1, team.length)}${low}`, { sec: 6, faceImg: npcFace(npc) }); }, 2800);
+    setTimeout(() => spawnGruntMon(npc, z), 4200);
+    return;
+  }
+  npc.talking = false; npc.team = null;
+  const bonus = team.length >= 3 ? Math.round(g.blocks * 0.5) : 0, blocks = g.blocks + bonus;
   state.rockets[z.name] = true;
-  addWhiteFlag(npc.mesh);
   state.balls[g.ball] = (state.balls[g.ball] || 0) + 1;
-  setBlocks(Math.min(MAX_BLOCKS, state.blocks + g.blocks));
+  setBlocks(Math.min(MAX_BLOCKS, state.blocks + blocks));
   confetti.burst(160); sound.fanfare();
+  if (quest) { quest.n = quest.need; quest.done = true; setBlocks(Math.min(MAX_BLOCKS, state.blocks + quest.reward), { quiet: true }); }
+  refreshGruntFlag(z);
   refreshHud();
-  setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.lose}`, { sec: 6, faceImg: npcFace(npc) }); }, 3200);
-  setTimeout(() => { if (zone === z) say(`${z.label}의 넘버로켓단 ${g.chief ? '간부' : '대원'}을 물리쳤어! 블록 ${g.blocks}개와 ${BALL_BY_ID[g.ball].name} 1개를 받았어. 항복한 그 자리에서 말을 걸면 이곳의 비밀을 알려 줄 거야!`, { sec: 9 }); }, 9600);
+  setTimeout(() => { if (zone === z) say(`${npc.name}: ${raid ? RAID_LINES.lose(g) : g.lose}`, { sec: 6, faceImg: npcFace(npc) }); }, 3200);
+  setTimeout(() => { if (zone === z) say(quest
+    ? `🔬 붉은 숫자 반응이 사라졌어! ${npc.name}의 팀 ${team.length}마리를 모두 되돌렸어. 블록 ${blocks + quest.reward}개(의뢰 보상 ${quest.reward} 포함)와 ${BALL_BY_ID[g.ball].name} 1개! 연구소의 오박사님께 알려 드리자!`
+    : `${z.label}의 넘버로켓단 ${g.chief ? '간부' : '대원'}을 물리쳤어! ${team.length}마리를 모두 되돌려서 블록 ${blocks}개와 ${BALL_BY_ID[g.ball].name} 1개를 받았어. 항복한 그 자리에서 말을 걸면 이곳의 비밀을 알려 줄 거야!`, { sec: 9 }); }, 9600);
   autosave();
 }
 
@@ -2440,7 +2505,7 @@ function buildSaveData() {
     items: { ...state.items },
     tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
     returnTo: state.returnTo, grants: { ...(state.grants || {}) },
-    carTold: !!state.carTold, flyTold: !!state.flyTold, swimTold: !!state.swimTold,
+    carTold: !!state.carTold, flyTold: !!state.flyTold, swimTold: !!state.swimTold, lastRaidZone: state.lastRaidZone || null,
     gym: { day: state.gym.day, trained: { ...state.gym.trained } }, profQuest: state.profQuest ? { ...state.profQuest } : null, profQuests: state.profQuests || 0,
     week: state.week, wk: { ...state.wk }, lastWeek: state.lastWeek, lastWk: state.lastWk ? { ...state.lastWk } : null,
     learn: state.learn,
@@ -3288,8 +3353,8 @@ function applySave(d) {
   state.rockets = { ...(d.rockets || {}) };
   state.released = { ...(d.released || {}) };
   state.gym = d.gym && d.gym.trained ? { day: d.gym.day || '', trained: { ...d.gym.trained } } : { day: '', trained: {} };
-  state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold; state.swimTold = !!d.swimTold;
-  for (const z of Object.values(zones)) { applyPendingCaught(z); if (z.grunt && state.rockets[z.name]) addWhiteFlag(z.grunt.mesh); } // 타이틀 중에 미리 만든 푸른숲에도 적용
+  state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold; state.swimTold = !!d.swimTold; state.lastRaidZone = d.lastRaidZone || null;
+  for (const z of Object.values(zones)) { applyPendingCaught(z); refreshGruntFlag(z); } // 타이틀 중에 미리 만든 푸른숲에도 적용
   for (const z of Object.values(zones)) for (const sp of creatureData.creatures.filter((c) => c.zone === z.name && c.unlockedBy)) if (megaUnlocked(sp)) spawnUnlocked(z, sp); // 미리 만든 지역에도 이 저장으로 열린 숨은 포켓몬(칠색조 등)을 세운다
   if (state.conquered.forest) removeBoulder();
   // 파티를 먼저 채운다 — 지역을 만들 때 야생 레벨이 대표 레벨을 본다 (wildBonus)
@@ -3322,7 +3387,7 @@ function applySave(d) {
 }
 
 if (location.search.includes('debug')) {
-  window.__game = { camera, talkTo, get flying() { return flying; }, mountFly, dismountFly, get gymPets() { return gymPets; }, trainPet, profTalk, get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
+  window.__game = { camera, talkTo, challengeGrunt, beatGrunt, gruntActive, get flying() { return flying; }, mountFly, dismountFly, get gymPets() { return gymPets; }, trainPet, profTalk, get player() { return player; }, get switching() { return switching; }, say, state, cloud, presence, ghosts, duels, get parked() { return parked; }, get goingHome() { return goingHome; }, get sailing() { return sailing; }, boardBoat, leaveBoat, landingSpot, renderLearn, zones, getZone, setBlocks, input, renderer, switchZone, startRide, startUfoRide, openPlanetPopup, vehiclesHere, spawnRescue, get zone() { return zone; }, get ride() { return ride; }, battle, bgm, duelStage, duels, cam, dex, party, quiz, study, towerTick, addStarter, attachLeader, evolveMember, conquer, doSave, applySave, listSaves, buildSaveData, showLevelUp };
 }
 
 // ---------- 루프 ----------
@@ -3481,10 +3546,10 @@ function frame() {
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7 && !npc.seated) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8 && (npc.y == null || Math.abs(pp.y - npc.y) < 2)) { // 다른 층(도서관 회랑의 사서)은 같은 층에서만
-        const foe = npc.rocket && !state.rockets[zone.name] ? npc.rocket : null; // 아직 안 이긴 넘버로켓단 대원
+        const foe = npc.rocket && gruntActive(zone.name) ? npc.rocket : null; // 아직 안 이긴 넘버로켓단 대원
         if (foe) offer('⚔ 대결!', () => challengeGrunt(npc), '⚔\n대결');
         else offer('💬 대화', () => talkTo(npc), '💬\n대화');
-        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : npc.prompt || `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
+        if (!npc.talking && !npc.prompted) { npc.prompted = true; say(foe ? `${npc.name}: ${state.rockets[zone.name] ? RAID_LINES.greet(foe) : foe.greet}` : npc.rocket ? `흰 깃발을 든 ${npc.name}이야. 대화 버튼을 누르면 이곳의 비밀을 알려 줘!` : npc.prompt || `${npc.name}님이야! 대화 버튼을 눌러 봐.`, { sec: foe ? 7 : npc.rocket ? 5 : 3, faceImg: npcFace(npc) }); } // 다가갈 때 한 번만
       } else if (npc.talking || npc.prompted) { npc.talking = false; npc.prompted = false; if (warpNpc === npc) { warpBtn.classList.add('hidden'); warpNpc = null; } if (lessonNpc === npc) { lessonBtn.classList.add('hidden'); lessonNpc = null; } if (boardNpc === npc) { boardBtn.classList.add('hidden'); boardNpc = null; } if (ufoNpc === npc) { ufoBtn.classList.add('hidden'); ufoNpc = null; } } // 멀어지면 버튼도 사라진다
     }
     // ----- 넘버볼 아레나: 무대 위 내 자리(1P·2P)에 올라서면 "대결!" 버튼 -----

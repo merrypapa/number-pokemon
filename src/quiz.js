@@ -119,6 +119,22 @@ export class Quiz {
     });
   }
 
+  /** 퀴즈 판에 따로 만든 문제 하나 (로켓단의 틀린 숫자 바로잡기 등): { title, text, hint, choices, answer, explain }. 배움 기록에는 안 남긴다 */
+  askCustom(p) {
+    return new Promise((resolve) => {
+      this.resolve = resolve; this.done = false; this.result = null;
+      this.problem = { ...p, custom: true, noLearn: true }; this.last = this.problem;
+      const P = this.problem;
+      this.titleEl.textContent = P.title; this.titleEl.classList.remove('right', 'wrong');
+      this.hintEl.classList.remove('right', 'wrong'); this.hintEl.textContent = P.hint || '';
+      this.skipBtn.textContent = '그냥 싸울래'; this.skipBtn.classList.remove('confirm'); this.skipBtn.disabled = false;
+      this.textEl.textContent = P.text; this.iconsEl.innerHTML = '';
+      this.choicesEl.innerHTML = '';
+      for (const c of P.choices) { const b = document.createElement('button'); b.textContent = String(c); b.dataset.value = String(c); b.onclick = () => this.answer(c, b); this.choicesEl.appendChild(b); }
+      this.el.classList.remove('hidden'); this.open = true;
+    });
+  }
+
   render(name) {
     const p = this.problem;
     const kindName = p.trivia ? `${this.planet.emoji} ${this.planet.name} 상식` : TIER_NAME[p.tier];
@@ -185,12 +201,12 @@ export class Quiz {
     // 정답이든 오답이든 카드에 "왜 그런지" 풀이를 보여 주고, 확인 버튼(또는 몇 초 뒤 자동)으로 닫는다
     const ok = c === p.answer;
     this.result = ok ? 'ok' : 'wrong';
-    if (this.learn) recordLearn(this.learn, { tier: p.tier, ok, text: p.text, answer: p.answer, zone: this.zone });
+    if (this.learn && !p.noLearn) recordLearn(this.learn, { tier: p.tier, ok, text: p.text, answer: p.answer, zone: this.zone });
     btn.classList.add(ok ? 'right' : 'wrong');
     if (ok) this.sound?.fanfare(); else this.sound?.bounce();
     for (const b of this.choicesEl.children) if (b.dataset.value === String(p.answer)) b.classList.add('right');
     const why = p.explain || p.hint || '';
-    this.titleEl.textContent = ok ? (p.review ? '🎉 이번엔 맞혔어!' : '🎉 정답이야!') : `😢 아쉬워, 정답은 ${p.answer}`;
+    this.titleEl.textContent = ok && p.okTitle ? p.okTitle : ok ? (p.review ? '🎉 이번엔 맞혔어!' : '🎉 정답이야!') : `😢 아쉬워, 정답은 ${p.answer}`;
     this.titleEl.classList.add(ok ? 'right' : 'wrong');
     this.hintEl.textContent = why;
     this.hintEl.classList.add(ok ? 'right' : 'wrong');
