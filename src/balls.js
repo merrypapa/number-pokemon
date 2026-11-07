@@ -5,7 +5,7 @@ export const BALLS = [
   { id: 'silver',  name: '실버볼',   tier: 2, cost: 12, color: 0xc0c0c0, css: '#b8bcc4' },
   { id: 'gold',    name: '골드볼',   tier: 3, cost: 30, color: 0xffc300, css: '#f2b705' },
   { id: 'diamond', name: '메가큐브', tier: 4, cost: 80, color: 0x7fe3ff, css: '#5fd3f5', shape: 'cube' }, // 큐브 퍼즐 모양(포켓몬큐브.glb). id 는 예전 저장과 맞추려고 그대로 둔다
-  { id: 'master',  name: '마스터볼', tier: 5, cost: 200, color: 0xff8fc0, css: '#ff6fa8', shape: 'master' }, // 마스터볼.glb. 어떤 포켓몬이든 반드시 잡힌다
+  { id: 'master',  name: '마스터볼', tier: 5, cost: 120, color: 0xff8fc0, css: '#ff6fa8', shape: 'master' }, // 마스터볼.glb. 어떤 포켓몬이든 반드시 잡힌다
 ];
 export const BALL_BY_ID = Object.fromEntries(BALLS.map((b) => [b.id, b]));
 
