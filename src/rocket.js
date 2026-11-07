@@ -230,14 +230,6 @@ export function removeWhiteFlag(mesh) {
   mesh.remove(f); mesh.userData.flag = null;
 }
 
-/** 오박사 의뢰("붉은 숫자 반응")로 다시 나타난 대원의 말 — 한 번 졌던 대원이 세 마리 팀을 데리고 돌아왔다 */
-export const RAID_LINES = {
-  greet: (g) => `또 만났지! 이번엔 ${g.name}님이 팀을 셋이나 데려왔다고! 하나, 둘, 셋… 넷? 아무튼 셋!`,
-  taunt: (g) => `가라, 우리 팀! 붉은 숫자 셋이면 이번엔 절대 안 진다!`,
-  next: (g, name, i, n) => `크윽! 하지만 아직이다! 다음은 ${name}! (${i}/${n})`,
-  lose: (g) => `세 마리 다 숫자가 깨졌어?! 셋 빼기 셋은… 영?! 후퇴다, 후퇴!`,
-};
-
 /** 세뇌 표시: 발밑의 붉은 고리 (보스의 금빛 고리와 짝. "가짜 숫자를 뒤집어썼다"는 눈에 보이는 표시) */
 export function addBrainwashRing(mesh, scale = 1) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.07, 8, 36), new THREE.MeshStandardMaterial({ color: 0xe8453c, emissive: 0xe8453c, emissiveIntensity: 1 }));

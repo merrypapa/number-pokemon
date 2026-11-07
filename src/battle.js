@@ -233,8 +233,9 @@ export class Battle {
   /** 대결이 벌어지는 바닥 높이. 바다 위(배를 타고 만난 포켓몬)면 수면 위에서 싸운다 */
   groundY(x, z) { const h = terrainHeight(x, z, this.player?.position.y); return this.floorY == null ? h : Math.max(h, this.floorY); } // refY: 층이 겹치는 지형(동굴탑)에서는 주인공이 선 층
 
-  start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, onReleased = null, hideMeshes = [], decor = null, onWater = false }) {
-    Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, onEscaped, onReleased, decor });
+  start({ creature, player, scene, member, onCaught, onLeave, onLost, onEscaped = null, onReleased = null, hideMeshes = [], decor = null, onWater = false, nextFoe = null, onSwapOut = null, onWon = null }) {
+    Object.assign(this, { creature, player, scene, member, onCaught, onLeave, onLost, onEscaped, onReleased, decor, nextFoe, onSwapOut, onWon });
+    // nextFoe: 연속 대결(넘버로켓단 팀). 붉은 숫자를 0으로 깨면 볼 없이 nextFoe(지금 상대)가 돌려준 다음 포켓몬으로 바뀌고, null 이면 다 이긴 것 (end('won') → onWon)
     this.floorY = onWater ? waterLevel() : null; // 물 위 대결: 바닥 대신 수면
     this.active = true;
     this.phase = 'enter';
@@ -400,7 +401,7 @@ export class Battle {
 
     // 기술 버튼: 열린 기술은 이름 + 피해, 아직 안 열린 다음 기술은 잠금 표시. 볼을 고르는 동안은 숨긴다
     this.skillsEl.innerHTML = '';
-    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble' || this.phase === 'released' || this.phase === 'breakout');
+    this.skillsEl.classList.toggle('hidden', this.phase === 'dizzy' || this.phase === 'ball_fly' || this.phase === 'capture' || this.phase === 'wobble' || this.phase === 'released' || this.phase === 'breakout' || this.phase === 'foeOut' || this.phase === 'foeIn' || this.phase === 'victory');
     const unlocked = this.party.skills(m);
     this.sel = Math.max(0, Math.min(this.sel, unlocked.length - 1));
     const choosing = this.phase === 'choose';
@@ -596,6 +597,7 @@ export class Battle {
     if (mult > 1) this.onSuperHit?.(skillType(this.party.species(this.member), this.skill), c.data.type || '노말'); // 상성 스티커 (main)
     this.squash = 0.35;
     this.shakeCam = 0.15;
+    if (c.hp === 0 && this.nextFoe) { this.koFoe(hitPos, eff); this.render(); return; }
     if (c.hp === 0) {
       this.phase = 'dizzy';
       this.msgEl.textContent = `${eff ? eff + ' ' : ''}${c.data.name}의 가짜 숫자가 깨졌어! 넘버볼을 던져 친구가 되자!`;
@@ -612,6 +614,20 @@ export class Battle {
     this.render();
   }
 
+  /** 연속 대결: 상대의 붉은 숫자가 깨졌다. 잡지 않고 다음 포켓몬으로 (없으면 승리) */
+  koFoe(hitPos, eff) {
+    const c = this.creature;
+    this.nextC = this.nextFoe(c) || null;
+    this.phase = 'foeOut'; this.phaseStart = this.timer;
+    this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
+    this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
+    this.sound.fanfare();
+    const word = this.nextC ? '붉은 숫자가 깨졌다!' : '모두 되돌렸다!';
+    if (eff) this.showBanner(eff, word); else this.showBanner(word);
+    this.msgEl.textContent = this.nextC
+      ? `${josa(c.data.name, '이가')} 제 숫자를 되찾고 돌아갔어! 다음은 ${josa(this.nextC.data.name, '이야')}!`
+      : `${josa(c.data.name, '이가')} 제 숫자를 되찾았어! 로켓단의 포켓몬을 모두 되돌렸어!`;
+  }
   /** 이번 대결에서 이 기술을 더 쓸 수 있는 횟수 */
   ppLeft(m, s) { return skillPP(s) - (this.pp.get(`${m.uid}:${s.name}`) || 0); }
 
@@ -770,6 +786,7 @@ export class Battle {
     if (this.phase === 'success') { this.end('caught'); return; } // 성공 연출은 버튼/키로 바로 넘길 수 있다
     if (this.phase === 'lost') { this.end('lost'); return; }
     if (this.phase === 'released') { this.end('released'); return; }
+    if (this.phase === 'victory') { this.end('won'); return; }
     if (this.phase !== 'choose' && this.phase !== 'dizzy' && this.phase !== 'enter') return; // 연출 중엔 못 나감
     this.end('later');
   }
@@ -810,6 +827,7 @@ export class Battle {
     if (this.switched) this.onSwitched?.(this.member, this.firstMember); // 새 포켓몬이 대표로 따라온다
     if (result === 'caught') this.onCaught?.();
     else if (result === 'released') this.onReleased?.();
+    else if (result === 'won') this.onWon?.();
     else if (result === 'lost') this.onLost?.();
     else if (result === 'escaped') this.onEscaped?.();
     else this.onLeave?.();
@@ -856,6 +874,7 @@ export class Battle {
       else if (this.phase === 'dizzy') this.throwBall(this.bestBall());
       else if (this.phase === 'success') this.end('caught');
       else if (this.phase === 'released') this.end('released');
+      else if (this.phase === 'victory') this.end('won');
       else if (this.phase === 'lost') this.end('lost');
     }
     if (this.input.wasPressed('cancel')) this.leave();
@@ -926,6 +945,45 @@ export class Battle {
       if (this.squash > 0) { this.squash -= dt; const s = 1 + Math.sin(this.squash * 9) * 0.25; m.scale.set(base * (2 - s), base * s, base * (2 - s)); }
       else m.scale.setScalar(base);
       if (this.phase === 'lost') m.position.y = ground + Math.abs(Math.sin(this.timer * 8)) * 0.5; // 이겼다고 폴짝폴짝
+    } else if (this.phase === 'foeOut') { // 붉은 숫자가 깨진 상대: 빙글 돌며 작아져 사라진다 → 다음 상대가 위에서 내려온다
+      const t = Math.min(1, (this.timer - this.phaseStart) / 1.1);
+      m.position.copy(this.stageTo); m.position.y = ground + t * 1.2;
+      m.rotation.y = this.enemyYaw + t * Math.PI * 4;
+      m.scale.setScalar(base * Math.max(0.01, 1 - t));
+      if (t >= 1) {
+        m.visible = false;
+        this.onSwapOut?.(c);
+        const n = this.nextC; this.nextC = null;
+        if (n) {
+          this.creature = n;
+          if (n.hp == null) n.hp = n.data.baseHp;
+          this.enemyPP = new Map();
+          n.mesh.visible = true; n.mesh.scale.setScalar(0.01); n.mesh.position.copy(this.stageTo);
+          this.tagNameEl.textContent = `${n.data.name} Lv.${n.level || 5}`;
+          this.tagNameEl.style.color = colorForCount(n.data.favoriteNumber || n.data.baseHp);
+          this.phase = 'foeIn'; this.phaseStart = this.timer;
+          this.sound.throw_();
+        } else {
+          this.phase = 'victory';
+          this.tagEl.classList.add('hidden');
+          this.runBtn.textContent = '계속하기 ▶';
+          this.runBtn.classList.add('primary');
+        }
+        this.render();
+      }
+    } else if (this.phase === 'foeIn') {
+      const t = Math.min(1, (this.timer - this.phaseStart) / 0.7);
+      m.visible = true;
+      m.position.copy(this.stageTo); m.position.y = ground + (1 - easeOut(t)) * 2.5;
+      m.scale.setScalar(base * Math.max(0.01, easeOut(t)));
+      if (t >= 1) {
+        m.scale.setScalar(base);
+        this.phase = 'choose';
+        this.msgEl.textContent = `${c.data.name} 등장! 체력 ${c.hp}, 공격력 ${c.data.baseAtk}. 가라, ${this.party.name(this.member)}!`;
+        this.render();
+      }
+    } else if (this.phase === 'victory') {
+      mine.position.y = mineGround + Math.abs(Math.sin(this.timer * 8)) * 0.4; // 내 포켓몬은 기뻐서 폴짝폴짝
     } else if (this.phase === 'enemyWind') {
       // 반격 준비: 살짝 웅크렸다가
       const t = Math.min(1, (this.timer - this.phaseStart) / 0.55);
