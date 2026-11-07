@@ -522,6 +522,7 @@ body.intro #btn-save { display: none !important; }
 
 /* 넘버볼 고르기 (대결) */
 #battle-balls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; } /* 볼 넷은 늘 2×2 */
+#battle-balls .ball-btn.master { grid-column: 1 / -1; } /* 마스터볼(가지고 있을 때만)은 아래 한 줄 가득 */
 .ball-btn { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 8px 10px; border-radius: 999px; border: 3px solid var(--ball); background: #fff; cursor: pointer; box-shadow: 0 3px 0 #ccc; }
 .ball-col { display: flex; flex-direction: column; gap: 2px; }
 .ball-line { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
@@ -762,6 +763,7 @@ body.intro #btn-save { display: none !important; }
 .ball-dot.big { width: 34px; height: 34px; }
 /* 메가큐브: 3×3 색 칸 큐브 퍼즐 */
 .ball-dot.cube { border-radius: 5px; background: conic-gradient(#ff3b30 0 25%, #ffd60a 0 50%, #34c759 0 75%, #007aff 0), #fff; background-image: linear-gradient(#20232e 0 2px, transparent 2px), linear-gradient(90deg, #20232e 0 2px, transparent 2px), conic-gradient(#ff3b30 0 25%, #ffd60a 0 50%, #34c759 0 75%, #007aff 0); background-size: 100% 33.4%, 33.4% 100%, 100% 100%; }
+.ball-dot.master { background: linear-gradient(#ff8fc0 0 48%, #20232e 48% 56%, #9cc8f2 56%); }
 .ball-row .ball-name { font-weight: 900; font-size: 17px; width: 84px; }
 .ball-row .ball-count { font-weight: 900; font-size: 24px; color: #333; flex: 1; white-space: nowrap; }
 .ball-row .ball-count small { font-size: 13px; color: #888; margin-left: 2px; }

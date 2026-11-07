@@ -182,7 +182,7 @@ export class Dex {
     let html = `<div class="shop-title">🏪 상점 · 내 블록 ${blocks}개</div><div class="shop-title">🔮 넘버볼</div>${megaB > 0 ? `<div class="shop-note">💠 메가블럭 ${megaB}개 · 최종 진화한 포켓몬을 메가 진화시킬 때 1개씩 써요</div>` : ''}<div class="ball-rows">`;
     for (const b of BALLS) {
       html += `<div class="ball-row" style="--ball:${b.css}">
-        <span class="ball-dot big${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name}</span>
+        <span class="ball-dot big${b.shape ? ' ' + b.shape : ''}"></span><span class="ball-name">${b.name}</span>
         <span class="ball-count">${stock[b.id] || 0}<small>개</small></span>
         <button data-ball="${b.id}" ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>
       </div>`;
@@ -203,7 +203,7 @@ export class Dex {
       const grades = Object.keys(GRADES).map(Number).filter((g) => catchChance(g, b.tier) >= 90);
       const top = grades[grades.length - 1] || 1;
       const where = top >= 6 ? '모든 지역의 보스까지' : `${this.zoneName[GRADE_ZONE[top]] || ''} 포켓몬까지`;
-      html += `<div class="ball-info" style="--ball:${b.css}"><span class="ball-dot${b.shape === 'cube' ? ' cube' : ''}"></span><b>${b.name}</b><span>블록 ${b.cost}개 · ${gradeStars(top)} ${where} 잘 잡혀</span></div>`;
+      html += `<div class="ball-info" style="--ball:${b.css}"><span class="ball-dot${b.shape ? ' ' + b.shape : ''}"></span><b>${b.name}</b><span>블록 ${b.cost}개 · ${gradeStars(top)} ${where} 잘 잡혀</span></div>`;
     }
     html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가! (다시 만나면 잡힐 확률이 15%씩 올라)</div>`;
     this.ballsEl.innerHTML = html;
