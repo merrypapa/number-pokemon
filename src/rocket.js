@@ -230,6 +230,12 @@ export function removeWhiteFlag(mesh) {
   mesh.remove(f); mesh.userData.flag = null;
 }
 
+/** 예전 버전(v2026-11-07-50)의 main.js 가 가져가던 이름. 지금은 쓰지 않지만 지우지 않는다:
+ *  업데이트 때 기기의 캐시에 옛 main.js 와 새 rocket.js 가 섞이면 import 오류로 게임이 아예 안 켜진다 */
+export const RAID_LINES = {
+  greet: (g) => g.greet, taunt: (g) => g.taunt, next: (g, name, i, n) => `다음은 ${name}! (${i}/${n})`, lose: (g) => g.lose,
+};
+
 /** 세뇌 표시: 발밑의 붉은 고리 (보스의 금빛 고리와 짝. "가짜 숫자를 뒤집어썼다"는 눈에 보이는 표시) */
 export function addBrainwashRing(mesh, scale = 1) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.07, 8, 36), new THREE.MeshStandardMaterial({ color: 0xe8453c, emissive: 0xe8453c, emissiveIntensity: 1 }));
