@@ -6425,8 +6425,148 @@
    "evolution": null,
    "favoriteNumber": 3,
    "personality": "다정함",
-   "story": "호수 바닥에 사는 전설의 감정 요정. 사람에게 기쁨과 슬픔을 가르쳐 줬대. 스이쿤을 친구로 만들면 물의길에 나타나.",
+   "story": "호수 바닥에 사는 전설의 감정 요정. 사람에게 기쁨과 슬픔을 가르쳐 줬대. 스이쿤을 친구로 만들면 물의길에 나타나. 유크시·아그놈과 함께 '호수의 세 수호신'이야.",
    "unlockedBy": "b09"
+  },
+  {
+   "id": "m80",
+   "name": "야부엉",
+   "type": "노말",
+   "zone": "cave",
+   "catchable": true,
+   "model": "야부엉.glb",
+   "scale": 1.1,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8B5E3C",
+    "ears": 2
+   },
+   "baseHp": 30,
+   "baseAtk": 7,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "쪼기",
+     "atk": 1,
+     "power": 1,
+     "kind": "peck"
+    },
+    {
+     "name": "최면술",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "에스퍼"
+    },
+    {
+     "name": "에어슬래시",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "wind"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "똑똑함",
+   "story": "깜깜한 지하동굴에 사는 부엉이 포켓몬. 빨간 눈은 어둠 속에서도 다 보이고, 고개를 빙글 거꾸로 돌려 뒤쪽도 살펴. 아주 똑똑해서 동굴 천장의 돌을 하나, 둘 세며 밤을 보낸대. 지하동굴 바깥쪽 어두운 곳에서 만날 수 있어."
+  },
+  {
+   "id": "b17",
+   "name": "유크시",
+   "type": "에스퍼",
+   "zone": "thunder",
+   "catchable": true,
+   "unlockedBy": "b07",
+   "model": "유크시.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F2CF5B",
+    "glow": true
+   },
+   "baseHp": 115,
+   "baseAtk": 21,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "번개펀치",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bolt",
+     "type": "전기"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "기억의파동",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "차분함",
+   "story": "호수 바닥에 잠들어 있던 전설의 지식 요정. 사람에게 생각하고 기억하는 힘을 주었대. 그래서 늘 눈을 꼭 감고 있어 — 눈이 마주치면 기억이 사라진다는 전설이 있거든. 번개동굴의 라이코를 친구로 만들면 번개동굴에 나타나. 엠라이트·아그놈과 함께 '호수의 세 수호신'이야."
+  },
+  {
+   "id": "b18",
+   "name": "아그놈",
+   "type": "에스퍼",
+   "zone": "volcano",
+   "catchable": true,
+   "unlockedBy": "b08",
+   "model": "아그놈.glb",
+   "scale": 1.6,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#4FA3D9",
+    "glow": true
+   },
+   "baseHp": 125,
+   "baseAtk": 23,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "불꽃펀치",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "의지의폭발",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "용감함",
+   "story": "전설의 의지 요정. 사람에게 '포기하지 않는 마음'을 주었대. 엄청 빨라서 하늘을 휙휙 날아다니고, 머리의 빨간 보석이 반짝일 때 가장 힘이 세져. 불의산의 엔테이를 친구로 만들면 불의산에 나타나. 엠라이트·유크시와 함께 '호수의 세 수호신'이야."
   }
  ]
 }

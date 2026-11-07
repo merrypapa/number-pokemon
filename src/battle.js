@@ -19,7 +19,7 @@ import { View3D } from './view3d.js';
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const SKILL_KEYS = ['skill1', 'skill2', 'skill3', 'skill4'];
 
-export const BALL_MODEL = '포켓몬볼.glb', CUBE_MODEL = '포켓몬큐브.glb';
+export const BALL_MODEL = '포켓몬볼.glb', CUBE_MODEL = '포켓몬큐브.glb', MASTER_MODEL = '마스터볼.glb';
 const BALL_R = 0.32; // 볼 반지름(m). 모델도 이 크기로 맞춘다 (가운데가 원점)
 /** 몬스터볼 모델: 텍스처의 빨간 부분(뚜껑)만 그 볼 색으로 칠한다 (브론즈·실버·골드). 재질은 복제해서 볼마다 따로 */
 function tintRed(root, color) {
@@ -87,14 +87,14 @@ function ballOnTop(ball, on) {
   });
 }
 export function makeBall(color, spec = null) {
-  const file = spec?.shape === 'cube' ? CUBE_MODEL : BALL_MODEL;
+  const file = spec?.shape === 'cube' ? CUBE_MODEL : spec?.shape === 'master' ? MASTER_MODEL : BALL_MODEL;
   if (hasModel(file)) { // 진짜 모델: 높이 1m·발바닥 원점으로 맞춰져 있으니 볼 크기로 줄이고 가운데를 원점에
     const g = new THREE.Group();
     const m = instantiate(file);
     const s = BALL_R * 2 * (spec?.shape === 'cube' ? 0.95 : 1);
     m.scale.setScalar(s); m.position.y = -BALL_R;
     m.userData.popT = 1; m.userData.targetScale = s;
-    if (spec?.shape !== 'cube') tintRed(m, color);
+    if (!spec?.shape) tintRed(m, color);
     else m.traverse((o) => { if (o.isMesh) o.material = o.material.clone(); });
     m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     g.add(m);
@@ -188,7 +188,7 @@ export class Battle {
     this.ballBtn = document.getElementById('btn-ball');
     this.ballsEl = document.getElementById('battle-balls');
     this.onUseBall = null;   // (ballId) => true/false  main 이 재고를 관리한다
-    this.getBalls = () => ({ bronze: 0, silver: 0, gold: 0, diamond: 0 });
+    this.getBalls = () => ({ bronze: 0, silver: 0, gold: 0, diamond: 0, master: 0 });
     this.runBtn = document.getElementById('btn-run');
     this.ballBtn.onclick = () => this.throwBall();
     this.runBtn.onclick = () => this.leave();
@@ -494,7 +494,7 @@ export class Battle {
       const row = document.createElement('div');
       row.className = 'ball-row';
       row.style.setProperty('--ball', b.css);
-      row.innerHTML = `<span class="ball-dot big${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name}</span><span class="ball-count">${stock[b.id] || 0}<small>개</small></span><span class="ball-pct-sm">${this.chanceFor(b.tier)}%</span><button ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>`;
+      row.innerHTML = `<span class="ball-dot big${b.shape ? ' ' + b.shape : ''}"></span><span class="ball-name">${b.name}</span><span class="ball-count">${stock[b.id] || 0}<small>개</small></span><span class="ball-pct-sm">${this.chanceFor(b.tier)}%</span><button ${blocks < b.cost ? 'disabled' : ''}>블록 ${b.cost}개로 만들기</button>`;
       row.querySelector('button').onclick = () => { if (this.onBuyBall?.(b.id)) { this.sound.pickup?.(); this.renderCraft(); } };
       this.craftRowsEl.appendChild(row);
     }
@@ -696,10 +696,11 @@ export class Battle {
     const stock = this.getBalls();
     for (const b of BALLS) {
       const n = stock[b.id] || 0, pct = this.chanceFor(b.tier);
+      if (b.id === 'master' && !n) continue; // 마스터볼은 가지고 있을 때만 (볼 넷은 2×2, 마스터볼은 그 아래 한 줄 가득)
       const btn = document.createElement('button');
-      btn.className = 'ball-btn' + (n ? '' : ' none');
+      btn.className = 'ball-btn' + (n ? '' : ' none') + (b.id === 'master' ? ' master' : '');
       btn.style.setProperty('--ball', b.css);
-      btn.innerHTML = `<span class="ball-dot${b.shape === 'cube' ? ' cube' : ''}"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
+      btn.innerHTML = `<span class="ball-dot${b.shape ? ' ' + b.shape : ''}"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
       btn.title = `잡힐 확률 ${pct}%`;
       btn.disabled = !n;
       btn.onclick = () => this.throwBall(b.id);
