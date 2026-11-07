@@ -535,7 +535,7 @@ export function buildWorld(scene, layout = 'forest') {
   }
   // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  for (const b of L.bridges) scene.add(isTown ? buildDeck(b, townGround) : buildBridge(b, obstacles)); // 마을 잔교: 난간 없는 넓은 나무 길 (난간 끝에 걸려 잔교에 못 오르던 버그)
+  for (const b of L.bridges) scene.add(isTown ? buildDeck(b === PIER ? { ...b, x2: PIER_DECK.x1 } : b, townGround) : buildBridge(b, obstacles)); /* 잔교는 창고 둘레 판이 시작하는 곳까지만 그린다 (두 판이 같은 높이로 겹치면 끝이 이글이글 깜빡였다. 걷는 높이는 그대로 이어진다) */ // 마을 잔교: 난간 없는 넓은 나무 길 (난간 끝에 걸려 잔교에 못 오르던 버그)
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = L.village;
@@ -1425,6 +1425,8 @@ export function buildWorld(scene, layout = 'forest') {
     spawn: isTown ? { x: 0, z: 14 } : { x: 0, z: 12 }, dark: false, // 마을: 광장 남쪽 / 숲: 마을 문 바로 북쪽
     // 몬스터 자리 (야생·보스), 블록 자리
     wildSpots: isTown ? [] : WILD_SPOTS, town: isTown, camTrees: camTreeSet,
+    // 마을 호수에서 헤엄치기 (main 이 체육관 연못처럼 쓴다): 주인공만 물에 들어간다 (야생·사람은 여전히 물가에서 멈춘다)
+    ...(isTown ? { inPond: (x, z, k = 1) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r * k, onDock: (x, z) => TOWN.bridges.some((b) => onBridge(b, x, z)), swimY: -0.7, swimOk: (x, z) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 1.5, lake: true } : {}),
     bossSpot: { x: L.arena.x, z: L.arena.z },
     specialSpots: { sleepSpot: { x: L.sleepSpot.x, z: L.sleepSpot.z } }, // creatures.json 의 special 이름 → 자리
     pickupSpots: isTown ? [] : PICKUP_SPOTS,
@@ -1440,7 +1442,7 @@ export function buildWorld(scene, layout = 'forest') {
     hiveDoor: { x: ht.x + 11, z: ht.z - 6 }, // 매달린 벌집의 바로 아래 (꿀의 길 끝. 어느 쪽에서 와도 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [{ x: guideAt.x, z: guideAt.z, mesh: guide, name: '인하', lines: (c) => [
       `안녕, ${c.name}! 난 마을 길잡이 인하야. 여기가 포켓몬 마을이고, 모든 길은 이 광장에서 시작해!`,
-      '우리 마을은 오스트리아 할슈타트를 닮았대. 동북쪽 호수엔 백조가 살고, 잔교 끝에 보트 창고가 있어. 호수 뒤 언덕 마을은 돌계단으로 한 단씩 올라가!',
+      '우리 마을은 오스트리아 할슈타트를 닮았대. 동북쪽 호수엔 백조가 살고, 잔교 끝에 보트 창고가 있어. 호수에 들어가면 헤엄도 칠 수 있어! 호수 뒤 언덕 마을은 돌계단으로 한 단씩 올라가!',
       '언덕 첫째 단엔 뾰족 탑 교회, 맨 윗단엔 허공으로 쑥 나온 스카이워크 전망대가 있어. 거기서 보면 마을이랑 호수가 한눈에 보여!',
       '북쪽 끝 케이블카를 타면 푸른숲 — 야생 포켓몬이 사는 숲이야. 숲에서 더 가면 꿀벌집·메가 성역도 있어.',
       '북서쪽 바위 언덕의 굴로 들어가면 지하동굴이야. 거기서 번개동굴과 동굴탑으로도 갈 수 있어.',

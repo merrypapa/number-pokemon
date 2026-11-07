@@ -1157,6 +1157,7 @@ function applyZoneEnv() {
   const q = state.profQuest;
   if (q && !q.done && q.zone === zone.name) queueSay(`🔬 오박사님이 말한 곳이야! ${questText(q)} (${q.n}/${q.need})`, { sec: 6 });
   player.swim = zone.world.swim || null;  // 심해에서는 점프 버튼으로 헤엄친다
+  player.swimOk = zone.world.swimOk || null; // 마을 호수: 물가에서 막히지 않고 헤엄쳐 들어간다
   chain.swim = !!zone.world.swim;         // 따라오는 친구들도 함께 떠오른다
 }
 // ---------- 야외 체육관 (src/gym.js): 내가 잡은 포켓몬들이 모두 나와 뛰어논다 + 훈련 ----------
@@ -2528,7 +2529,7 @@ function acctShowForm(mode) {
 document.getElementById('btn-acct-choose-login').onclick = () => acctShowForm('login');
 document.getElementById('btn-acct-choose-signup').onclick = () => acctShowForm('signup');
 document.getElementById('btn-acct-back').onclick = acctShowChoice;
-const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]'), feedbackTabBtn = document.querySelector('#dex-tabs button[data-tab="feedback"]'), rankTabBtn = document.querySelector('#dex-tabs button[data-tab="rank"]');
+const friendsTabBtn = document.querySelector('#dex-tabs button[data-tab="friends"]'), feedbackTabBtn = document.querySelector('#dex-tabs button[data-tab="feedback"]');
 function acctError(msg) { acctErr.textContent = msg || ''; acctErr.classList.toggle('hidden', !msg); }
 function refreshAccountUi() {
   const u = cloud.user;
@@ -2539,7 +2540,6 @@ function refreshAccountUi() {
   if (u) document.getElementById('acct-me-name').textContent = u.name;
   friendsTabBtn.hidden = !cloud.enabled; // 친구 탭은 클라우드가 켜져 있으면 늘 보인다 (로그인 전에는 로그인 버튼)
   feedbackTabBtn.hidden = !cloud.enabled;
-  rankTabBtn.hidden = !cloud.enabled;
   document.getElementById('btn-rank').hidden = !cloud.enabled; // 처음 화면의 이번 주 순위 (로그인 없이도 본다)
   dexLogoutBtn.hidden = !u;
   // 로그인해 있으면 "시작하기" 하나가 이어서 해 준다. 로그인 전(클라우드가 꺼진 오프라인 포함)에는
@@ -2599,10 +2599,14 @@ async function logoutAndRestart() {
 document.getElementById('btn-acct-logout').onclick = logoutAndRestart;
 dexLogoutBtn.onclick = logoutAndRestart;
 // 친구 탭: 이름으로 친구 요청 → 상대가 수락하면 서로 친구. 받은 요청은 수락/거절
+let friendView = 'list'; // 친구 탭 안: 'list' 친구 목록 · 'rank' 이번 주 순위 (따로 있던 순위 탭을 여기로 옮겼다)
 async function renderFriends() {
   const box = dex.friendsEl;
-  if (!cloud.user) { box.innerHTML = '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = openAccount; return; }
-  box.innerHTML = `<div class="friend-me">☁️ 나: ${cloud.user.name}</div>
+  const sw = `<div class="rank-switch" data-top><button data-v="list" class="${friendView === 'list' ? 'on' : ''}">👫 친구</button><button data-v="rank" class="${friendView === 'rank' ? 'on' : ''}">🏆 순위</button></div>`;
+  const wire = () => box.querySelectorAll('.rank-switch[data-top] button').forEach((b) => { b.onclick = () => { if (friendView === b.dataset.v) return; sound.click(); friendView = b.dataset.v; renderFriends(); }; });
+  if (friendView === 'rank') { box.innerHTML = `${sw}<div id="friend-rank"></div>`; wire(); renderRank(box.querySelector('#friend-rank'), true); return; }
+  if (!cloud.user) { box.innerHTML = sw + '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = openAccount; wire(); return; }
+  box.innerHTML = `${sw}<div class="friend-me">☁️ 나: ${cloud.user.name}</div>
     <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 요청</button></div>
     <div class="friend-note">친구가 만든 계정 이름을 적어 요청을 보내면, 친구가 수락한 뒤부터 서로의 도감·정복 상황이 보여요.</div>
     <div id="friend-requests"></div><div id="friend-duels"></div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
@@ -2612,6 +2616,7 @@ async function renderFriends() {
     const n = input.value.trim(); if (!n) return;
     try { const p = await cloud.requestFriend(n); input.value = ''; say(`📨 ${p.name}에게 친구 요청을 보냈어! 수락하면 친구 목록에 나타나.`, { sec: 5 }); } catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
   };
+  wire();
   renderFriendList();
 }
 const friendsOpen = new Set(); // 펼쳐 둔 친구 (다시 그려도 유지)
@@ -2779,7 +2784,7 @@ async function renderAdminFeedback() {
     sec.appendChild(el);
   }
 }
-dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; takeGifts().then(() => renderFriends()); } if (tab === 'feedback') renderFeedback(); if (tab === 'rank') renderRank(dex.rankEl, true); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
+dex.onTab = (tab) => { if (tab === 'friends') { presence.refreshT = 0; takeGifts().then(() => renderFriends()); } if (tab === 'feedback') renderFeedback(); if (tab === 'learn') renderLearn(dex.learnEl); if (tab === 'goals') renderGoals(dex.goalsEl); if (tab === 'admin' && state.admin) renderAdminFeedback(); };
 // ---------- PWA: 서비스 워커(오프라인·모델 캐시·새 버전 안내)와 "홈 화면에 추가" 안내 ----------
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; // 홈 화면에서 열었나
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드는 Mac 인 척 한다
@@ -3128,7 +3133,7 @@ async function challengeFriend(f) {
   try { const team = snapshotTeam(party); const id = await cloud.createDuel(f, team); duels.created.add(id); sound.click(); say(`⚔ ${f.name}에게 ${team.map((m) => m.name).join('·')}(으)로 대결을 신청했어! 수락하면 알려 줄게.`, { sec: 6 }); }
   catch (e) { say(`😢 ${e.message}`, { sec: 5 }); }
 }
-// ---------- 주간 순위표: 도감 "순위" 탭과 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
+// ---------- 주간 순위표: 도감 친구 탭의 "🏆 순위"와 처음 화면의 "이번 주 순위" 버튼이 같은 그림을 그린다 ----------
 const rankModal = document.getElementById('rank-modal');
 document.getElementById('btn-rank').onclick = () => { sound.ensure(); rankModal.classList.remove('hidden'); renderRank(document.getElementById('rank-modal-body'), false); };
 document.getElementById('btn-rank-close').onclick = () => rankModal.classList.add('hidden');
@@ -3209,29 +3214,28 @@ function renderGoals(el) {
       <span class="goal-num">${Math.min(t.n, t.need)}/${t.need}</span>
     </div>`;
   }).join('');
-  const got = stickerCount(G);
+  const got = stickerCount(G), nDone = G.tasks.filter((t) => t.n >= t.need).length;
+  // 스티커는 받은 것만 크게, 아직 못 받은 건 ❔ 한 칸 (설명은 눌러서 펼칠 때만)
   const board = STICKERS.map((st) => {
     const on = G.stickers[st.id];
-    return `<div class="stk${on ? ' on' : ''}" title="${escHtml(st.how)}">
-      <span class="stk-face">${on ? st.emoji : '❔'}</span>
-      <span class="stk-name">${escHtml(on ? st.name : '???')}</span>
-      <span class="stk-how">${escHtml(on ? st.how : '아직 못 받았어')}</span>
-    </div>`;
+    return `<div class="stk${on ? ' on' : ''}" title="${escHtml(st.how)}"><span class="stk-face">${on ? st.emoji : '❔'}</span><span class="stk-name">${escHtml(on ? st.name : st.how)}</span></div>`;
   }).join('');
-  const A = state.attend, idx = A.streak > 0 ? (A.streak - 1) % ATTEND_GIFTS.length : -1;
-  const stamps = ATTEND_GIFTS.map((g, i) => `<div class="att${i <= idx ? ' on' : ''}${i === idx ? ' today' : ''}"><span class="att-day">${i + 1}일</span><span class="att-gift">${g.emoji}</span><span class="att-name">${escHtml(g.name)}</span></div>`).join('');
+  const A = state.attend, idx = A.streak > 0 ? (A.streak - 1) % ATTEND_GIFTS.length : -1, next = ATTEND_GIFTS[(idx + 1) % ATTEND_GIFTS.length];
+  const stamps = ATTEND_GIFTS.map((g, i) => `<div class="att${i <= idx ? ' on' : ''}${i === idx ? ' today' : ''}"><span class="att-day">${i + 1}일</span><span class="att-gift">${g.emoji}</span></div>`).join('');
   const q = state.profQuest;
-  const quest = q ? `<div class="rank-head">🔬 오박사의 의뢰</div><div class="goal-rows"><div class="goal-row${q.done ? ' done' : ''}"><span class="goal-emoji">${q.done ? '✅' : '🔬'}</span><span class="goal-text">${escHtml(questText(q))}${q.done ? ' — 연구소의 오박사님께 가자!' : ''}</span><div class="goal-bar"><i style="width:${Math.min(100, Math.round((q.n / q.need) * 100))}%"></i></div><span class="goal-num">${Math.min(q.n, q.need)}/${q.need}</span></div></div><div class="rank-how">연구소의 오박사님께 말을 걸면 대표 포켓몬의 상성 이야기와 함께 의뢰를 줘요. 완료 ${state.profQuests || 0}번.</div>` : '<div class="rank-head">🔬 오박사의 의뢰</div><div class="rank-how">연구소의 오박사님께 말을 걸면 대표 포켓몬의 상성 이야기와 "강하게 반응하는 곳"의 의뢰를 줘요.</div>';
-  el.innerHTML = `${quest}<div class="rank-head">📅 출석 도장 <span class="rank-how">(연속 ${A.streak}일 · 모두 ${A.total}일 · 날마다 처음 들어오면 선물)</span></div>
+  const quest = q ? `<div class="goal-row${q.done ? ' done' : ''}"><span class="goal-emoji">${q.done ? '✅' : '🔬'}</span><span class="goal-text">${escHtml(questText(q))}${q.done ? ' → 오박사님께!' : ''}</span><div class="goal-bar"><i style="width:${Math.min(100, Math.round((q.n / q.need) * 100))}%"></i></div><span class="goal-num">${Math.min(q.n, q.need)}/${q.need}</span></div>` : '';
+  // 한눈에: ① 오늘 할 일(미션 셋 + 오박사 의뢰) ② 출석 도장 한 줄 ③ 스티커는 접어 둔다
+  el.innerHTML = `<div class="rank-head">🎯 오늘 할 일 <span class="goal-count">${nDone}/${G.tasks.length}</span></div>
+    <div class="goal-rows">${tasks}${quest}</div>
+    <div class="goal-gift">${allDone(G) ? '🏅 오늘 미션 끝! 내일 새 미션이 나와요.' : `하나 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)}, 셋 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 더!`}</div>
+    <div class="rank-head">📅 출석 <span class="goal-count">🔥 ${A.streak}일 연속</span></div>
     <div class="att-row">${stamps}</div>
-    <div class="rank-how">7일 연속이면 🥈 실버볼! 8일째부터는 다시 1일 선물부터. 하루 건너뛰면 연속이 1일부터 시작해요.</div>
-    <div class="rank-head">🎯 오늘의 미션 <span class="rank-how">(${escHtml(G.day)} · 날마다 새로 나와요)</span></div>
-    <div class="goal-rows">${tasks}</div>
-    <div class="rank-how">미션 하나를 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)} 1개, 셋을 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 1개를 더 받아요.</div>
-    ${allDone(G) ? '<div class="lrn-tip good">🏅 오늘 미션을 다 했어! 내일 새 미션으로 또 만나자.</div>' : ''}
-    <div class="lrn-head2">🏅 스티커 <span class="rank-how">(${got} / ${STICKERS.length})</span></div>
-    <div class="stk-board">${board}</div>`;
+    <div class="goal-gift">내일 오면 ${next.emoji} ${escHtml(next.name)}</div>
+    <button class="stk-toggle" type="button">🏅 스티커 ${got} / ${STICKERS.length} <span>${goalsStickersOpen ? '접기 ▲' : '보기 ▼'}</span></button>
+    <div class="stk-board${goalsStickersOpen ? '' : ' hidden'}">${board}</div>`;
+  el.querySelector('.stk-toggle').onclick = () => { sound.click(); goalsStickersOpen = !goalsStickersOpen; renderGoals(el); };
 }
+let goalsStickersOpen = false;
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
 
 // 한 번만 주는 보정: 저장이 잘못돼 잃어버린 것을 그 클라우드 계정에 돌려준다 (그 계정으로 불러올 때 한 번, 저장의 grants 에 표시해 다시 안 준다)
@@ -3324,6 +3328,7 @@ if (location.search.includes('debug')) {
 // ---------- 루프 ----------
 const clock = new THREE.Clock();
 let prevBattle = false;
+let lakeTold = false; // 마을 호수에 처음 들어갔을 때 한 번 알려 준다 (켤 때마다)
 let whirlToldAt = 0; // 잠긴 소용돌이를 마지막으로 알려 준 때 (다른 안내에 막히지 않게 따로 센다)
 let bgmInBattle = false; // 대결이 시작·끝날 때 곡을 바꾼다 (대결 → 대결곡/보스곡, 끝나면 지역 곡)
 function frame() {
@@ -3389,7 +3394,7 @@ function frame() {
     if (input.wasPressed('view') && !battle.active && !dex.open && !quiz.open && !study.open) { sound.click(); setView(!cam.fp); }
 
     { const w = zone.world, q = player.position; const inWater = !!w.inPond && w.inPond(q.x, q.z, 0.98) && !w.onDock(q.x, q.z) && !flying; // 체육관 연못: 들어가면 헤엄친다
-      if (inWater && player.surface == null) { particles.stars(zone.scene, q.clone().add(new THREE.Vector3(0, 0.3, 0)), 14, 0x9fe8ff, 0.45); sound.throw_(); if (!state.swimTold) { state.swimTold = true; say('💦 첨벙! 연못에서 헤엄쳐. 물 포켓몬들이 같이 놀아 줄 거야. 물에서는 천천히 움직이고 점프는 못 해.', { sec: 6 }); } }
+      if (inWater && player.surface == null) { particles.stars(zone.scene, q.clone().add(new THREE.Vector3(0, 0.3, 0)), 14, 0x9fe8ff, 0.45); sound.throw_(); if (w.lake) { if (!lakeTold) { lakeTold = true; say('💦 첨벙! 호수에서 헤엄쳐. 백조랑 같이 놀자! 물에서는 천천히 움직이고 점프는 못 해. 잔교나 물가로 나오면 다시 걸어.', { sec: 6 }); } } else if (!state.swimTold) { state.swimTold = true; say('💦 첨벙! 연못에서 헤엄쳐. 물 포켓몬들이 같이 놀아 줄 거야. 물에서는 천천히 움직이고 점프는 못 해.', { sec: 6 }); } }
       player.surface = inWater ? w.swimY : null; }
     player.update(dt, input, cam.yaw);
     const pp = player.position;

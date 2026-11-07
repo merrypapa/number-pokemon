@@ -61,16 +61,18 @@ export function riverCarve(x, z) { const n = riverNear(x, z); if (!n || n.d >= R
 export function riverDist(x, z) { return inBox(RIVER, x, z, 30) ? polyNear(RIVER, x, z).d : Infinity; }
 function inRiver(x, z) { const n = riverNear(x, z); return !!n && n.d < RIVER.half && !onRiverCrossing(x, z); }
 function ropeH(x, z) { if (!inBox(ROPE, x, z, 2)) return null; const n = polyNear(ROPE, x, z); if (n.d > ROPE.half) return null; return ROPE.H * Math.min(1, n.s / ROPE.ramp, (ROPE.L - n.s) / ROPE.ramp); }
-function wallH(x, z) {
-  if (Math.hypot(x - WALL.x, z - WALL.z) < WALL.r) return WALL.top;
-  const R = WALL.ramp; if (Math.abs(x - R.x) < R.half && z <= R.z0 && z >= R.z1) return WALL.top * (R.z0 - z) / (R.z0 - R.z1); // 남쪽(z 큰 쪽)에서 오른다
+/** 보스 고원·오르막 높이 (절대 높이). 고원은 가운데 바닥 높이 + top 으로 평평하다 — 그린 뚜껑과 같게 (예전엔 자리마다 울퉁불퉁한 바닥을 더해 고원 위에서 발이 1m 가까이 묻혀 보였다) */
+export function wallTopY(baseAt) { return baseAt(WALL.x, WALL.z) + WALL.top; }
+function wallH(x, z, baseAt) {
+  if (Math.hypot(x - WALL.x, z - WALL.z) < WALL.r) return wallTopY(baseAt);
+  const R = WALL.ramp; if (Math.abs(x - R.x) < R.half && z <= R.z0 && z >= R.z1) { const y0 = baseAt(R.x, R.z0); return y0 + (wallTopY(baseAt) - y0) * (R.z0 - z) / (R.z0 - R.z1); } // 남쪽(z 큰 쪽) 바닥에서 고원 위까지 곧게
   return null;
 }
-function rimH(x, z) { const d = Math.hypot(x - RIMS.x, z - RIMS.z); if (d >= RIMS.r) return null; return RIMS.h * Math.min(RIMS.steps, Math.floor((RIMS.r - d) / (RIMS.r / RIMS.steps)) + 1); }
+function rimH(x, z, baseAt) { const d = Math.hypot(x - RIMS.x, z - RIMS.z); if (d >= RIMS.r) return null; return baseAt(RIMS.x, RIMS.z) + RIMS.h * Math.min(RIMS.steps, Math.floor((RIMS.r - d) / (RIMS.r / RIMS.steps)) + 1); } // 그린 단처럼 가운데 바닥 기준
 
-export function caveStructHeight(x, z, refY, ground, base) {
+export function caveStructHeight(x, z, refY, ground, base, baseAt) {
   let best = ground;
-  for (const h of [wallH(x, z), rimH(x, z)]) if (h != null) best = Math.max(best, base + h);
+  for (const h of [wallH(x, z, baseAt), rimH(x, z, baseAt)]) if (h != null) best = Math.max(best, h);
   const r = ropeH(x, z), lim = (refY ?? ground) + 0.7;
   if (r != null && r > 0.02 && base + r <= lim) best = Math.max(best, base + r);
   return best;
@@ -177,11 +179,11 @@ export function buildCaveStructures(scene, decor, { ground, base, obstacles }) {
   // ----- 만리장성 절벽: 보스 고원(높이 4.5) + 남쪽 오르막 + 뒤의 거대한 흰 절벽 -----
   {
     const { x, z, r, top } = WALL, gy = base(x, z);
-    const cliff = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.4, top, 28, 3), calcite); cliff.position.set(x, gy + top / 2, z); cliff.castShadow = cliff.receiveShadow = true; add(cliff, r);
+    const cliff = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.4, top + 1.5, 28, 3), calcite); cliff.position.set(x, gy + (top - 1.5) / 2, z); /* 아래로 1.5m 더 묻는다: 가장자리 바닥이 가운데보다 낮아도 절벽 밑이 뜨지 않게 */ cliff.castShadow = cliff.receiveShadow = true; add(cliff, r);
     const lid = new THREE.Mesh(new THREE.CircleGeometry(r, 28), new THREE.MeshStandardMaterial({ color: 0x9a927e, roughness: 1 })); lid.rotation.x = -Math.PI / 2; lid.position.set(x, gy + top + 0.01, z); lid.userData.noHide = true; decor.add(lid);
-    const R = WALL.ramp, len = Math.hypot(R.z0 - R.z1, top);
+    const R = WALL.ramp, y0 = base(R.x, R.z0), rise = gy + top - y0, len = Math.hypot(R.z0 - R.z1, rise), ang = Math.atan2(rise, R.z0 - R.z1); /* 걷는 높이(wallH)와 같은 비탈: 아래 끝 바닥 → 고원 위 */
     const ramp = new THREE.Mesh(new THREE.BoxGeometry(R.half * 2, 0.5, len), new THREE.MeshStandardMaterial({ color: 0x8c8572, roughness: 1 }));
-    ramp.position.set(R.x, gy + top / 2 - 0.25, (R.z0 + R.z1) / 2); ramp.rotation.x = Math.atan2(top, R.z0 - R.z1); add(ramp, 3);
+    ramp.position.set(R.x, y0 + rise / 2 - 0.25 / Math.cos(ang), (R.z0 + R.z1) / 2); ramp.rotation.x = ang; add(ramp, 3);
     const backWall = new THREE.Mesh(new THREE.CylinderGeometry(r + 12, r + 14, 26, 32, 4, true, Math.PI * 0.5, Math.PI), calcite.clone()); /* 고원 북쪽 반원 (원기둥 각도 θ: x=sinθ, z=cosθ → θ=π 가 북쪽) */ backWall.material.side = THREE.DoubleSide; backWall.position.set(x, gy + 13, z - 4); backWall.userData.noHide = true; decor.add(backWall);
     for (let i = 0; i < 12; i++) { const th = Math.PI * 0.5 + (i / 11) * Math.PI; obstacles.push({ x: x + Math.sin(th) * (r + 12.5), z: z - 4 + Math.cos(th) * (r + 12.5), r: 2.5 }); }
     const sign = makePillSprite('🧗 만리장성 절벽 · 오르막길로 보스에게', { bg: '#20232e', fg: '#ffd93d', border: '#ffd93d' }, 0.8); sign.position.set(R.x + 2.6, gy + 2.6, R.z0 + 1); decor.add(sign);

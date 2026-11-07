@@ -688,6 +688,9 @@ body.intro #btn-save { display: none !important; }
 .friend-decline { font: inherit; font-size: 13px; font-weight: 900; padding: 8px 10px; border-radius: 10px; border: 0; background: #eee; color: #888; cursor: pointer; white-space: nowrap; }
 #dex-friends { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 #dex-friends.hidden { display: none; }
+#friend-rank { display: flex; flex-direction: column; gap: 10px; } /* 친구 탭 안의 이번 주 순위 */
+#dex-friends > .rank-switch[data-top] { align-self: stretch; justify-content: center; } /* 친구 | 순위 */
+#dex-friends > .rank-switch[data-top] button { flex: 1; font-size: 16px; }
 #dex-tabs button[data-tab="friends"][hidden], #dex-tabs button[data-tab="feedback"][hidden] { display: none; }
 /* 요청 탭: 개발자에게 글·목소리·사진 보내기 */
 #dex-feedback { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
@@ -901,6 +904,11 @@ body.touch #btn-ufo { bottom: calc(var(--ctx-bottom) + 64px); }
 .goal-row.done .goal-bar i { background: #57b947; }
 .goal-num { font-size: 13px; font-weight: 900; color: #888; text-align: right; }
 .goal-row.done .goal-num { color: #57b947; }
+.goal-count { font-size: 14px; font-weight: 900; color: #e8453c; background: #fff3c4; border-radius: 999px; padding: 2px 10px; margin-left: 4px; vertical-align: middle; }
+.goal-gift { font-size: 13px; font-weight: 800; color: #6a5a2a; margin: -2px 0 6px; }
+.stk-toggle { font: inherit; font-size: 16px; font-weight: 900; color: #20232e; background: #fff8e1; border: 3px solid #ffd93d; border-radius: 14px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-top: 4px; }
+.stk-toggle span { font-size: 13px; color: #8a6d00; }
+.stk-board.hidden { display: none; }
 .stk-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
 .stk { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; background: #f6f6f6; border: 3px dashed #ddd; border-radius: 16px; padding: 9px 6px; opacity: .65; }
 .stk.on { background: #fff8e1; border: 3px solid #ffd93d; opacity: 1; box-shadow: 0 2px 0 #e7c02f; }
