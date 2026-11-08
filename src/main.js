@@ -1180,13 +1180,52 @@ function spawnGymPets() {
   const place = (m, home, water) => {
     const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
     mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
-    const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: true }; p.target = gymSpot(p); gymPets.push(p); /* 이름표는 가까이 갈 때 만든다 (gymTick) */
+    const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: true }; p.target = gymSpot(p); setGymLod(p, false); gymPets.push(p); /* 처음엔 작은 텍스처로 (첫 프레임에 큰 텍스처가 올라가지 않게). 이름표는 가까이 갈 때 만든다 (gymTick) */
   };
   landM.forEach((m, i) => place(m, H.land[i], false));
   waterM.forEach((m, i) => place(m, H.water[i], true));
 }
 function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
-function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); } gymPets = []; }
+// 아이폰이 체육관에서 좀 있다가 꺼지던 문제: 포켓몬이 모두 나와 둘러볼수록 종마다 다른 1024² 텍스처(밉맵까지 5.6MB)가 GPU 에 쌓였다.
+// 멀리 있는 포켓몬은 256² 작은 텍스처(1/16)로 그리고, 가까이(GYM_HI_DIST) 오면 그 포켓몬만 원래 텍스처로 바꾼다. 재질은 포켓몬마다 복제해서 바깥 모델에는 영향이 없다
+const GYM_LO = 256, GYM_HI_DIST = 9, GYM_LO_DIST = 12;
+const gymLoTex = new Map(); // 원래 텍스처 → 작은 텍스처
+function loTexture(t) {
+  let lo = gymLoTex.get(t);
+  if (lo) return lo;
+  const img = t.image;
+  if (!img || !(img.width > GYM_LO)) return t; // 아직 없거나 이미 작다
+  const c = document.createElement('canvas'); c.width = c.height = GYM_LO;
+  c.getContext('2d').drawImage(img, 0, 0, GYM_LO, GYM_LO);
+  lo = t.clone(); lo.source = new THREE.Source(c); lo.needsUpdate = true;
+  gymLoTex.set(t, lo);
+  return lo;
+}
+function setGymLod(p, hi) {
+  const model = p.mesh.userData.model;
+  if (!model) return;
+  if (p.lodModel !== model) { // 모델이 (처음·새로) 붙었다: 재질을 복제하고 원래 텍스처를 기억
+    p.lodModel = model; p.lodMats = [];
+    model.traverse((o) => {
+      if (!o.isMesh) return;
+      const mats = [].concat(o.material).map((m) => { const c = m.clone(); c.userData.hiMap = m.map || null; p.lodMats.push(c); return c; });
+      o.material = Array.isArray(o.material) ? mats : mats[0];
+    });
+    p.lodHi = null;
+  }
+  if (p.lodHi === hi) return;
+  p.lodHi = hi;
+  for (const m of p.lodMats) { const h = m.userData.hiMap; if (!h) continue; m.map = hi ? h : loTexture(h); m.needsUpdate = true; }
+}
+function clearGymPets() {
+  // 체육관을 나가면 작은 텍스처는 버리고, 원래 텍스처도 GPU 에서 내려 메모리를 돌려준다 (다시 그릴 일이 생기면 three 가 알아서 다시 올린다)
+  const tex = new Set();
+  for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); for (const m of p.lodMats || []) { if (m.userData.hiMap) tex.add(m.userData.hiMap); m.dispose(); } }
+  for (const t of tex) t.dispose();
+  for (const lo of gymLoTex.values()) lo.dispose();
+  gymLoTex.clear();
+  gymPets = [];
+}
 const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
 function gymTick(dt) {
   if (!zone?.world?.gym || !gymPets.length) return;
@@ -1202,6 +1241,7 @@ function gymTick(dt) {
     const dist = Math.hypot(pp.x - mp.x, pp.z - mp.z), sc = p.mesh.scale.x || 1;
     gymSphere.center.set(mp.x, mp.y + sc * 0.6, mp.z); gymSphere.radius = sc * 1.3 + 0.5;
     p.mesh.visible = gymFrustum.intersectsSphere(gymSphere);
+    if (p.lodHi !== (p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST) || p.lodModel !== p.mesh.userData.model) setGymLod(p, p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST); // 가까우면 원래 텍스처, 멀면 작은 텍스처 (경계에서 깜빡이지 않게 9m/12m)
     const shadow = dist < 30;
     if (shadow !== p.shadow) { p.shadow = shadow; p.mesh.traverse((o) => { if (o.isMesh) o.castShadow = shadow; }); }
     if (dist < 25 && !p.label) { p.label = petLabel(p.m); p.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(p.label); }
