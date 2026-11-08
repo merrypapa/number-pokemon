@@ -3566,7 +3566,16 @@ cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]',
 // 한 번만 주는 보정: 저장이 잘못돼 잃어버린 것을 그 클라우드 계정에 돌려준다 (그 계정으로 불러올 때 한 번, 저장의 grants 에 표시해 다시 안 준다)
 const ONE_TIME_GRANTS = [
   { id: 'jiu-dex-2026-11-06', account: '지우', fillDex: true }, // 지우: 도감을 다 채웠는데 저장 오류로 일부가 빠졌다 → 못 잡은 종을 모두 잡은 것으로
+  { id: 'jiu-levels-2026-11-08', account: '지우', fixLevels: true }, // 위에서 돌려받은 포켓몬이 모두 Lv.1 이라 키우기 어려웠다 → 아직 손대지 않은 Lv.1 포켓몬을 그 종이 사는 곳의 레벨로
 ];
+/** 그 종을 보통 만나는 레벨: 사는 지역의 야생 레벨(보스·전설·메가는 더 높게), 진화형은 진화 레벨, 행성 종은 32 */
+function typicalLevel(sp) {
+  const band = ZONE_LEVEL[sp.zone] || ZONE_LEVEL[sp.rareIn];
+  const from = creatureData.creatures.find((c) => c.evolution?.to === sp.id || (Array.isArray(c.evolution) && c.evolution.some((e) => e.to === sp.id)));
+  const evo = from && (Array.isArray(from.evolution) ? from.evolution.find((e) => e.to === sp.id) : from.evolution);
+  const byZone = band ? (sp.boss || sp.unlockedBy || sp.mega ? band[1] + 3 : band[0]) : String(sp.zone || '').startsWith('p_') ? 32 : 0;
+  return Math.max(byZone, evo?.level || 0) || 10; // 진화형은 적어도 진화 레벨
+}
 function applyOneTimeGrants(d) {
   state.grants = { ...(d.grants || {}) };
   const acct = (cloud.user?.uid && cloud.user.name || '').trim().toLowerCase();
@@ -3577,8 +3586,13 @@ function applyOneTimeGrants(d) {
       if (!party.members.some((m) => m.speciesId === sp.id)) { party.add(sp.id, buildDraftMesh(sp)); added++; }
       if (!(state.dex[sp.id] > 0)) { state.dex[sp.id] = 1; state.caught += 1; }
     }
+    if (g.fixLevels) for (const m of party.members) { // 아직 한 번도 안 키운 Lv.1 (경험치 0) 포켓몬만 — 이미 키운 포켓몬은 그대로
+      if ((m.level || 1) > 1 || (m.exp || 0) > 0 || (m.lv0 || 1) > 1) continue;
+      const sp = party.species(m), to = Math.min(40, typicalLevel(sp));
+      if (to > 1 && party.raiseTo(m, to)) { m.hp = m.maxHp; added++; }
+    }
     state.grants[g.id] = dayKey();
-    if (added) queueSay(`🎁 저장이 안 됐던 포켓몬 ${added}마리를 돌려받았어! 도감을 봐.`, { sec: 7 });
+    if (added) queueSay(g.fixLevels ? `⬆ 돌려받은 포켓몬 ${added}마리가 원래 사는 곳의 레벨로 올라갔어! 도감을 봐.` : `🎁 저장이 안 됐던 포켓몬 ${added}마리를 돌려받았어! 도감을 봐.`, { sec: 7 });
     refreshHud(); setTimeout(() => doSave(false), 3000); /* 지역이 준비된 뒤 저장 (클라우드에도 올라간다) */
   }
 }
@@ -3955,6 +3969,9 @@ function frame() {
               already.maxHp = hp; already.hp = hp; already.atk = atk;
               if (party.raiseTo(already, c.level)) { upgraded = true; checkMaster(already); } // 레벨도 보스 레벨로
               party.rebase(already); // 올라간 스탯이 다음 레벨업 때 되돌아가지 않게
+            } else if (already && c.level > (already.level || 1) && party.raiseTo(already, c.level)) { // 이미 있는 같은 종이 더 낮은 레벨이면, 잡은 포켓몬의 레벨로 올라간다 (지우 계정처럼 Lv.1 로 들어온 종이 야생보다 약하게 남지 않게)
+              checkMaster(already);
+              setTimeout(() => say(`⬆ 이미 있던 ${josa(party.name(already), '이가')} 잡은 포켓몬처럼 Lv.${already.level}로 올라갔어! (❤ ${already.maxHp} · ⚔ ${already.atk})`, { sec: 6 }), 2600);
             }
             if (c.isBoss && !c.data.floorBoss) state.bossDex[c.data.id] = (state.bossDex[c.data.id] || 0) + 1; // 보스로 잡은 기록 (뮤·메가망나뇽 조건)
             zone.scene.remove(c.mesh); // 볼 안으로. 도감에서 대표로 고르면 다시 나온다
