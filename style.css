@@ -1094,3 +1094,46 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 @keyframes rkMark { from { opacity: 1; } to { opacity: .35; } }
 .map-title .badge.rk-on { background: #e8453c; color: #fff; }
 .map-title .badge.rk-won { background: #eaf7e2; color: #2f6f2a; }
+/* 친구 대결: 아레나 자리에서 팀 고르기 */
+.team-pick .tp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin: 10px 0; max-height: 52vh; overflow-y: auto; padding: 2px; }
+.tp-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; border-radius: 14px; border: 3px solid #eee; background: #fff; font-family: inherit; cursor: pointer; color: #20232e; }
+.tp-card img { width: 76px; height: 76px; object-fit: contain; }
+.tp-card b { font-size: 13px; word-break: keep-all; }
+.tp-card small { font-size: 11px; color: #666; }
+.tp-card.on { border-color: #e8453c; background: #fff4f2; }
+.tp-card.out { opacity: .4; cursor: default; }
+.tp-num { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #e8453c; color: #fff; font-weight: 900; line-height: 24px; font-size: 14px; }
+.tp-go { font-size: 17px; }
+/* 친구 대결: 무대 위 화면 (맵 대결처럼) */
+#duel-modal.stage .menu-card { max-height: 60vh; background: #fffbe6; }
+.duel-stage-ui { display: flex; flex-direction: column; gap: 6px; }
+.duel-stage-ui .ds-foe, .duel-stage-ui .ds-mine { background: #fff; border: 2px solid #20232e; border-radius: 14px; padding: 6px 10px; }
+.duel-stage-ui .ds-foe { border-color: #e8453c; }
+.duel-stage-ui .ds-mine { border-color: #3fa9f5; }
+.duel-stage-ui .ds-name { font-weight: 900; font-size: 15px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.duel-stage-ui .ds-name small { font-weight: 700; color: #666; font-size: 12px; }
+.duel-stage-ui .tag-bar { height: 14px; border-radius: 999px; border: 2px solid #20232e; background: #eee; overflow: hidden; margin: 4px 0 2px; }
+.duel-stage-ui .tag-bar > div { transition: width .5s; }
+.duel-stage-ui .ds-stat { font-size: 12px; font-weight: 800; color: #444; }
+.ds-dots { display: inline-flex; gap: 3px; margin-left: auto; }
+.ds-dots i { width: 10px; height: 10px; border-radius: 50%; background: #57b947; border: 1.5px solid #20232e; }
+.ds-dots i.cur { background: #ffd93d; }
+.ds-dots i.out { background: #bbb; }
+.ds-status { text-align: center; font-weight: 900; font-size: 15px; }
+.ds-status small { display: block; font-weight: 700; color: #666; font-size: 12px; }
+.ds-skills { display: flex; gap: 6px; }
+.ds-skills .skill { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 8px 6px; border-radius: 14px; border: 0; background: #ffd93d; box-shadow: 0 3px 0 #c99400; font-weight: 900; color: #20232e; font-family: inherit; cursor: pointer; }
+.ds-skills .skill:disabled { opacity: .5; cursor: default; }
+.ds-skills .skill-top { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.ds-skills .skill-icon { font-size: 18px; }
+.ds-skills .skill-name { font-size: 14px; word-break: keep-all; }
+.ds-skills .skill-dmg { font-size: 12px; color: #fff; background: #e8453c; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.ds-skills .skill-dmg.good { background: #ff8a1f; }
+.ds-skills .skill-dmg.bad { background: #888; }
+.ds-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ds-actions button { font-family: inherit; font-weight: 900; border-radius: 12px; border: 0; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 4px; background: #e8f4ff; box-shadow: 0 3px 0 #9cc8f2; color: #20232e; }
+.ds-actions button:disabled { opacity: .45; cursor: default; }
+.ds-actions .duel-potion { background: #eaffe6; box-shadow: 0 3px 0 #9fd59a; }
+.ds-actions img { width: 28px; height: 28px; object-fit: contain; }
+.ds-actions .ds-sw span { display: flex; flex-direction: column; font-size: 12px; line-height: 1.1; text-align: left; }
+.ds-actions small { font-size: 11px; color: #555; }
