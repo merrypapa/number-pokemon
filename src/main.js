@@ -1191,19 +1191,27 @@ function spawnGymPets() {
 function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
 // 아이폰이 체육관에서 좀 있다가 꺼지던 문제: 포켓몬이 모두 나와 둘러볼수록 종마다 다른 1024² 텍스처(밉맵까지 5.6MB)가 GPU 에 쌓였다.
 // 멀리 있는 포켓몬은 256² 작은 텍스처(1/16)로 그리고, 가까이(GYM_HI_DIST) 오면 그 포켓몬만 원래 텍스처로 바꾼다. 재질은 포켓몬마다 복제해서 바깥 모델에는 영향이 없다
-const GYM_LO = 256, GYM_HI_DIST = 9, GYM_LO_DIST = 12;
-const gymLoTex = new Map(); // 원래 텍스처 → 작은 텍스처
-function loTexture(t) {
-  let lo = gymLoTex.get(t);
-  if (lo) return lo;
+// 걸을 때 뚝뚝 끊기던 문제: 가까워진 포켓몬의 1024² 원래 텍스처를 그 순간 GPU 에 올렸고, 여러 마리가 한꺼번에 가까워지면 한 프레임에 몰렸다.
+// 그래서 체육관의 "가까운" 그림은 512² 사본(올리는 양 1/4)으로 하고, 바꾸기는 0.15초에 한 마리씩(가까운 순), 미리 올려 둔다(initTexture).
+// 멀어지면 512² 사본은 아무도 안 쓸 때 GPU 에서 내린다 (오래 돌아다녀도 메모리가 쌓이지 않게). 작은 256² 그림은 체육관에 있는 동안 둔다.
+const GYM_LO = 256, GYM_MID = 512, GYM_HI_DIST = 9, GYM_LO_DIST = 12, GYM_SWAP_GAP = 0.15;
+const gymLoTex = new Map(), gymMidTex = new Map(); // 원래 텍스처 → 작은(256²) · 가까운(512²) 사본
+const gymMidUse = new Map(); // 512² 사본 → 쓰는 포켓몬 수
+let gymSwapT = 0;
+function sizedTexture(t, size, cache) {
+  let c2 = cache.get(t);
+  if (c2) return c2;
   const img = t.image;
-  if (!img || !(img.width > GYM_LO)) return t; // 아직 없거나 이미 작다
-  const c = document.createElement('canvas'); c.width = c.height = GYM_LO;
-  c.getContext('2d').drawImage(img, 0, 0, GYM_LO, GYM_LO);
-  lo = t.clone(); lo.source = new THREE.Source(c); lo.needsUpdate = true;
-  gymLoTex.set(t, lo);
-  return lo;
+  if (!img || !(img.width > size)) return t; // 아직 없거나 이미 작다
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  c.getContext('2d').drawImage(img, 0, 0, size, size);
+  c2 = t.clone(); c2.source = new THREE.Source(c); c2.needsUpdate = true;
+  cache.set(t, c2);
+  return c2;
 }
+const loTexture = (t) => sizedTexture(t, GYM_LO, gymLoTex);
+function midTexture(t) { const m = sizedTexture(t, GYM_MID, gymMidTex); if (m !== t) gymMidUse.set(m, (gymMidUse.get(m) || 0) + 1); return m; }
+function releaseMid(m) { if (!gymMidUse.has(m)) return; const n = gymMidUse.get(m) - 1; if (n > 0) { gymMidUse.set(m, n); return; } gymMidUse.delete(m); for (const [k, v] of gymMidTex) if (v === m) gymMidTex.delete(k); m.dispose(); }
 function setGymLod(p, hi) {
   const model = p.mesh.userData.model;
   if (!model) return;
@@ -1218,7 +1226,14 @@ function setGymLod(p, hi) {
   }
   if (p.lodHi === hi) return;
   p.lodHi = hi;
-  for (const m of p.lodMats) { const h = m.userData.hiMap; if (!h) continue; m.map = hi ? h : loTexture(h); m.needsUpdate = true; }
+  for (const m of p.lodMats) {
+    const h = m.userData.hiMap; if (!h) continue;
+    const old = m.map;
+    m.map = hi ? midTexture(h) : loTexture(h);
+    if (hi && m.map !== h) { try { renderer.initTexture(m.map); } catch (_) {} } // 지금 올려 둔다 (그리는 순간에 몰리지 않게)
+    if (old && old !== m.map) releaseMid(old);
+    m.needsUpdate = true;
+  }
 }
 function clearGymPets() {
   // 체육관을 나가면 작은 텍스처는 버리고, 원래 텍스처도 GPU 에서 내려 메모리를 돌려준다 (다시 그릴 일이 생기면 three 가 알아서 다시 올린다)
@@ -1227,6 +1242,8 @@ function clearGymPets() {
   for (const t of tex) t.dispose();
   for (const lo of gymLoTex.values()) lo.dispose();
   gymLoTex.clear();
+  for (const m of gymMidTex.values()) m.dispose();
+  gymMidTex.clear(); gymMidUse.clear();
   gymPets = [];
 }
 const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
@@ -1239,12 +1256,16 @@ function gymTick(dt) {
   // 아이폰이 체육관에서 꺼지던 문제: 포켓몬 모델(뼈로 움직이는 모델은 화면 밖이어도 늘 그려진다)이 전부 그려지고 그림자도 전부 그려졌다.
   // 화면에 안 보이는 포켓몬은 숨기고, 그림자는 가까운(30m) 포켓몬만, 이름표는 가까이(25m) 갈 때만 만든다 (멀어지면 버려 메모리를 돌려준다)
   gymFrustum.setFromProjectionMatrix(gymMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  let upP = null, upD = Infinity; gymSwapT -= dt;
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
     const dist = Math.hypot(pp.x - mp.x, pp.z - mp.z), sc = p.mesh.scale.x || 1;
     gymSphere.center.set(mp.x, mp.y + sc * 0.6, mp.z); gymSphere.radius = sc * 1.3 + 0.5;
     p.mesh.visible = gymFrustum.intersectsSphere(gymSphere);
-    if (p.lodHi !== (p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST) || p.lodModel !== p.mesh.userData.model) setGymLod(p, p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST); // 가까우면 원래 텍스처, 멀면 작은 텍스처 (경계에서 깜빡이지 않게 9m/12m)
+    { const want = p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST; // 가까우면 512² 그림, 멀면 256² (경계에서 깜빡이지 않게 9m/12m)
+      if (p.lodModel !== p.mesh.userData.model) setGymLod(p, false); // 모델이 새로 붙었다: 일단 작은 그림
+      else if (!want && p.lodHi) setGymLod(p, false); // 작게 바꾸기는 바로 (이미 올라가 있는 그림)
+      else if (want && !p.lodHi && p.mesh.visible && dist < upD) { upD = dist; upP = p; } } // 크게 바꾸기는 가장 가까운 하나만, 아래에서
     const shadow = dist < 30;
     if (shadow !== p.shadow) { p.shadow = shadow; p.mesh.traverse((o) => { if (o.isMesh) o.castShadow = shadow; }); }
     if (dist < 25 && !p.label) { p.label = petLabel(p.m); p.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(p.label); }
@@ -1265,6 +1286,7 @@ function gymTick(dt) {
     if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1 && pp.y > -2) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
     if (p.water && d < cwd) { cwd = d; closestWater = p; }
   }
+  if (upP && gymSwapT <= 0) { setGymLod(upP, true); gymSwapT = GYM_SWAP_GAP; } // 0.15초에 한 마리씩 선명하게 (한 프레임에 몰리지 않게)
   if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
   if (nearest && !battle.active) offer(`💪 ${party.name(nearest.m)} 훈련하기`, () => trainPet(nearest), '💪\n훈련');
   // 나무 위 집에서 줄기 가까이 서면 "⬇ 내려가기": 줄기를 타고 미끄러져 내려온다 (올라갈 수 있으면 내려올 수도 있어야지)
