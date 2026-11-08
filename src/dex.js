@@ -617,7 +617,12 @@ export class Dex {
         ${known ? '' : '<div class="dex-q">?</div>'}
         <div class="dex-name">${known ? `${ctx?.isMaster?.(sp) ? '👑 ' : ''}${sp.name}` : '???'}</div>
         <div class="dex-sub">${sub}</div>`;
-      item.onclick = () => this.select(sp.id);
+      item.onclick = () => { // 한 번 누르면 위 상세에 고르고, 같은 액자를 빠르게 두 번 누르면(더블 터치) 위의 상세 칸으로 올라간다
+        const now = performance.now(), dbl = this.lastTap && this.lastTap.id === sp.id && now - this.lastTap.t < 450;
+        this.lastTap = dbl ? null : { id: sp.id, t: now };
+        if (this.selectedId !== sp.id) this.select(sp.id);
+        if (dbl) this.partyEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      };
       this.grid.appendChild(item);
       if (!t) this.queueThumb(sp, item.querySelector('img'), known);
     }
