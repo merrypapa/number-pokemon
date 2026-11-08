@@ -391,23 +391,39 @@ export class Dex {
   }
 
   // ----- 내 포켓몬 칩 한 줄 -----
+  // 포켓몬이 많으면(120마리+) 칩마다 3D 그림을 한꺼번에 그리느라 도감이 열릴 때 몇 초씩 멈췄다.
+  // 이제 칩은 이름부터 바로 띄우고, 그림은 화면에 보이는 칩부터 한 프레임에 조금씩(queueThumb) 채운다.
+  // 포켓몬을 고를 때는 줄을 다시 만들지 않고 선택 테두리만 옮긴다 (파티·대표·기절이 바뀌었을 때만 다시 만든다).
+  clearThumbs() { this.cache.clear(); this.membersSig = null; }
   renderMembers() {
     const ctx = this.partyCtx;
-    this.membersEl.innerHTML = '';
-    if (!ctx) return;
+    if (!ctx) { this.membersEl.innerHTML = ''; return; }
     const { party } = ctx;
+    const sig = `${party.leaderUid}|` + party.members.map((m) => `${m.uid}:${m.speciesId}:${m.hp <= 0 ? 0 : 1}`).join(',');
+    if (sig === this.membersSig && this.membersEl.firstChild) { // 같은 줄: 선택 표시만
+      for (const chip of this.membersEl.querySelectorAll('.member-chip')) chip.classList.toggle('sel', chip.dataset.sp === this.selectedId);
+      return;
+    }
+    this.membersSig = sig;
+    this.membersEl.innerHTML = '';
+    this.memberObs?.disconnect();
+    this.memberObs = 'IntersectionObserver' in window ? new IntersectionObserver((ents) => {
+      for (const e of ents) { if (!e.isIntersecting) continue; this.memberObs.unobserve(e.target); const sp = this.byId[e.target.dataset.sp]; const img = e.target.querySelector('img.pending'); if (sp && img) this.queueThumb(sp, img, true); }
+    }, { root: this.membersEl, rootMargin: '0px 300px' }) : null; // 보이는 칩 + 양옆 조금
     const title = document.createElement('span');
     title.className = 'members-title';
     title.textContent = `내 포켓몬 ${party.members.length}마리`;
     this.membersEl.appendChild(title);
     for (const m of party.members) {
       const sp = party.species(m);
-      const t = this.thumbs(sp);
+      const t = this.cache.get(sp.id); // 이미 그린 그림이면 바로, 아니면 나중에 채운다
       const chip = document.createElement('button');
       chip.className = 'member-chip' + (party.isLeader(m) ? ' leader' : '') + (sp.id === this.selectedId ? ' sel' : '');
-      chip.innerHTML = `${t ? `<img src="${t.color}" alt="">` : ''}<span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}${m.hp <= 0 ? '<i>😵</i>' : ''}`;
+      chip.dataset.sp = sp.id;
+      chip.innerHTML = `<img ${t ? `src="${t.color}"` : 'class="pending"'} alt=""><span>${sp.name}</span>${party.isLeader(m) ? '<i>★</i>' : ''}${m.hp <= 0 ? '<i>😵</i>' : ''}`;
       chip.onclick = () => { this.jumpToSelected = true; this.select(sp.id); };
       this.membersEl.appendChild(chip);
+      if (!t) { if (this.memberObs) this.memberObs.observe(chip); else this.queueThumb(sp, chip.querySelector('img'), true); }
     }
   }
 

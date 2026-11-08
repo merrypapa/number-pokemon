@@ -739,7 +739,7 @@ function sitDown() {
   sound.click();
   study.show();
 }
-for (const f of modelFiles) onModelLoaded(f, () => { dex.cache.clear(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
+for (const f of modelFiles) onModelLoaded(f, () => { dex.clearThumbs(); renderStarter(); if (party.leader) refreshHud(); }); // 모델이 오면 도감/선택 그림도 새로
 
 // 주운 블록은 주인공 바로 뒤에 숫자블록 캐릭터로 쌓인다.
 const myStack = { mesh: null, pop: 0 };
