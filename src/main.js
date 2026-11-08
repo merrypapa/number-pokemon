@@ -2847,9 +2847,9 @@ async function renderFriends() {
   const wire = () => box.querySelectorAll('.rank-switch[data-top] button').forEach((b) => { b.onclick = () => { if (friendView === b.dataset.v) return; sound.click(); friendView = b.dataset.v; renderFriends(); }; });
   if (friendView === 'rank') { box.innerHTML = `${sw}<div id="friend-rank"></div>`; wire(); renderRank(box.querySelector('#friend-rank'), true); return; }
   if (!cloud.user) { box.innerHTML = sw + '<div class="friend-note">☁️ 계정으로 로그인하면 어느 기기에서든 이어 하고 친구를 추가할 수 있어요.</div><div class="friend-add"><button id="btn-friend-login">☁️ 로그인 / 계정 만들기</button></div>'; box.querySelector('#btn-friend-login').onclick = openAccount; wire(); return; }
-  box.innerHTML = `${sw}<div class="friend-me">☁️ 나: ${cloud.user.name}</div>
-    <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 이름" autocomplete="off" /><button id="btn-friend-add">➕ 친구 요청</button></div>
-    <div class="friend-note">친구가 만든 계정 이름을 적어 요청을 보내면, 친구가 수락한 뒤부터 서로의 도감·정복 상황이 보여요.</div>
+  const R = state.duelRecord;
+  box.innerHTML = `${sw}<div class="friend-me">☁️ 나: ${cloud.user.name}${R.w + R.l ? ` <small class="friend-note">· ⚔ 전체 ${R.w}승 ${R.l}패</small>` : ''}</div>
+    <div class="friend-add"><input id="friend-name" type="text" maxlength="8" placeholder="친구 계정 이름" autocomplete="off" /><button id="btn-friend-add">➕ 요청</button></div>
     <div id="friend-requests"></div><div id="friend-duels"></div><div id="friend-list"><div class="friend-note">불러오는 중…</div></div>`;
   const input = box.querySelector('#friend-name');
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') box.querySelector('#btn-friend-add').click(); e.stopPropagation(); }); input.addEventListener('keyup', (e) => e.stopPropagation());
@@ -2880,17 +2880,19 @@ async function renderFriendList() {
   }
   renderFriendDuels(duelBox);
   if (!friends.length) { list.innerHTML = '<div class="friend-note">아직 친구가 없어요. 위에 친구 이름을 적어 요청을 보내 봐요!</div>'; return; }
-  list.innerHTML = '<div class="friend-me">👫 내 친구 <small class="friend-note">(이름을 누르면 자세히)</small></div>';
+  list.innerHTML = `<div class="friend-me">👫 내 친구 ${friends.length} <small class="friend-note">(누르면 자세히)</small></div>`;
   const isOn = (f) => { const p = presence.friends.get(f.uid); return p && (!p.at || Date.now() - p.at < 60000) ? p : null; }; // 접속 중이면 presence (지역 포함)
   for (const f of friends.sort((a, b) => (isOn(b) ? 1 : 0) - (isOn(a) ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0))) { // 접속 중인 친구 먼저
     const sp = f.leaderId ? speciesById[f.leaderId] : null, t = sp ? dex.thumbs(sp) : null;
     const on = isOn(f), busy = duels.list.some((x) => x.state !== 'done' && (x.players || []).includes(f.uid));
+    const rec = state.duelRecord.vs[f.uid];
+    const recTxt = rec && rec.w + rec.l ? `<span class="fr-rec ${rec.w > rec.l ? 'up' : rec.w < rec.l ? 'down' : ''}">⚔ ${rec.w}승 ${rec.l}패</span>` : '<span class="fr-rec none">⚔ 아직 대결 전</span>';
     const row = document.createElement('div'); row.className = 'friend-row' + (on ? ' online' : '') + (friendsOpen.has(f.uid) ? ' open' : '');
     row.innerHTML = `${t ? `<img src="${t.color}" alt="">` : '<div class="friend-noimg"></div>'}
-      <div class="save-info"><div class="save-name">${f.name} <span class="friend-status ${on ? 'on' : 'off'}">${on ? `🟢 접속 중 · ${ZONE_INFO[on.zone]?.name || ''}` : '⚪ 로그오프'}</span></div></div>
-      <button class="friend-duel" ${busy ? 'disabled title="이미 대결 중"' : 'title="내 대표 포켓몬으로 대결 신청"'}>⚔ 대결</button><button class="friend-gift" title="물약·열매·넘버볼 선물하기">🎁</button><span class="friend-toggle">▾</span>
+      <div class="fr-main"><div class="fr-name">${f.name} <span class="friend-status ${on ? 'on' : 'off'}">${on ? `🟢 ${ZONE_INFO[on.zone]?.name || '접속 중'}` : '⚪'}</span></div>${recTxt}</div>
+      <div class="fr-btns"><button class="friend-duel" ${busy ? 'disabled title="이미 대결 중"' : 'title="대결 신청"'}>⚔</button><button class="friend-gift" title="물약·열매·넘버볼 선물하기">🎁</button></div>
       <div class="friend-giftmenu hidden">${GIFT_KINDS.map((g) => `<button data-gift="${g.id}" ${giftStock(g) > 0 ? '' : 'disabled'}>${g.label} <small>×${giftStock(g)}</small></button>`).join('')}</div>
-      <div class="friend-detail"><div>${state.duelRecord.vs[f.uid] ? `⚔ 나와의 대결 ${state.duelRecord.vs[f.uid].w}승 ${state.duelRecord.vs[f.uid].l}패 · ` : ''}📍 ${ZONE_INFO[f.zone]?.name || '?'} · 친구 ${f.caught || 0}마리 · 도감 ${f.dexCount || 0}종 · 정복 ${f.conquered || 0}/${ZONE_COUNT} · 블록 ${f.blocks || 0}개${sp ? ` · 대표 ${sp.name}` : ''}${f.updatedAt ? `<br>🕒 마지막 저장 ${formatWhen(f.updatedAt)}` : ''}</div><button class="save-del" title="친구 삭제">✕ 친구 삭제</button></div>`;
+      <div class="friend-detail"><div>📍 ${ZONE_INFO[f.zone]?.name || '?'} · 친구 ${f.caught || 0}마리 · 도감 ${f.dexCount || 0}종 · 정복 ${f.conquered || 0}/${ZONE_COUNT} · 블록 ${f.blocks || 0}개${sp ? ` · 대표 ${sp.name}` : ''}${f.updatedAt ? `<br>🕒 마지막 저장 ${formatWhen(f.updatedAt)}` : ''}</div><button class="save-del" title="친구 삭제">✕ 친구 삭제</button></div>`;
     row.onclick = (e) => { if (e.target.closest('button')) return; row.classList.toggle('open'); if (row.classList.contains('open')) friendsOpen.add(f.uid); else friendsOpen.delete(f.uid); };
     row.querySelector('.friend-duel').onclick = () => challengeFriend(f);
     const giftMenu = row.querySelector('.friend-giftmenu');
@@ -2904,10 +2906,10 @@ async function renderFriendList() {
 function renderFriendDuels(box) {
   if (!box) return;
   const me = cloud.user?.uid; box.innerHTML = '';
-  const list = [...duels.list].sort((a, b) => (duelNeedsMe(b) ? 1 : 0) - (duelNeedsMe(a) ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0));
-  if (!me) return;
-  if (!list.length) { if (state.duelRecord.w + state.duelRecord.l) box.innerHTML = `<div class="friend-me">⚔ 친구 대결 <small class="friend-note">📊 내 전적 ${state.duelRecord.w}승 ${state.duelRecord.l}패</small></div>`; return; }
-  box.innerHTML = `<div class="friend-me">⚔ 친구 대결 <small class="friend-note">📊 내 전적 ${state.duelRecord.w}승 ${state.duelRecord.l}패</small></div>`;
+  // 끝난 대결은 줄로 늘어놓지 않는다 — 결과는 친구 카드마다 "⚔ n승 n패"로 (state.duelRecord.vs)
+  const list = [...duels.list].filter((d) => d.state !== 'done').sort((a, b) => (duelNeedsMe(b) ? 1 : 0) - (duelNeedsMe(a) ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0));
+  if (!me || !list.length) return;
+  box.innerHTML = '<div class="friend-me">⚔ 진행 중인 대결</div>';
   for (const d of list) {
     const side = myDuelSide(d), other = side === 'a' ? 'b' : 'a', name = d.names?.[other] || '친구', mine = duelNeedsMe(d);
     const line = document.createElement('div'); line.className = 'duel-line' + (mine ? ' mine' : '') + (d.state === 'done' ? ' done' : '');

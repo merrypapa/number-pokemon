@@ -1172,3 +1172,22 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .map-title .badge.ch-rocket { background: #e8453c; color: #fff; }
 .map-title .badge.ch-mega { background: #b48cff; color: #fff; }
 .map-title .badge.ch-done { background: #eaf7e2; color: #2f6f2a; }
+/* 친구 탭: 친구 카드 한 줄 (그림 · 이름/접속/나와의 전적 · ⚔ 🎁). 좁은 화면에서도 세로로 쌓이지 않게 */
+#dex-friends .friend-row { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 4px 10px; padding: 6px 8px; flex-wrap: nowrap; }
+#dex-friends .friend-row img, #dex-friends .friend-row .friend-noimg { width: 48px; height: 48px; }
+#dex-friends .fr-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#dex-friends .fr-name { font-size: 16px; font-weight: 900; color: #20232e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dex-friends .fr-rec { align-self: flex-start; font-size: 12px; font-weight: 900; padding: 1px 8px; border-radius: 999px; background: #eef4ff; color: #2a5db0; }
+#dex-friends .fr-rec.up { background: #e3f8e6; color: #1f7a3d; }
+#dex-friends .fr-rec.down { background: #fff0ee; color: #c0392b; }
+#dex-friends .fr-rec.none { background: #f3f3f3; color: #999; }
+#dex-friends .fr-btns { display: flex; gap: 6px; }
+#dex-friends .fr-btns button { font: inherit; font-size: 18px; width: 44px; height: 40px; padding: 0; border-radius: 12px; border: 0; cursor: pointer; }
+#dex-friends .fr-btns .friend-duel { background: #ffd93d; box-shadow: 0 3px 0 #c99400; }
+#dex-friends .fr-btns .friend-duel:disabled { opacity: .4; cursor: default; }
+#dex-friends .fr-btns .friend-gift { background: #ffd6e8; box-shadow: 0 3px 0 #e79bbd; }
+#dex-friends .friend-giftmenu, #dex-friends .friend-detail { grid-column: 1 / -1; }
+#dex-friends .friend-add { margin: 2px 0; }
+#dex-friends .friend-add input { padding: 8px 10px; }
+#dex-friends .friend-add button { padding: 8px 12px; }
+#friend-requests:empty, #friend-duels:empty { display: none; } /* 빈 칸이 사이 간격만 차지하지 않게 */
