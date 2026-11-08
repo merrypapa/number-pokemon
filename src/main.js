@@ -53,7 +53,7 @@ import { emptyLearn, loadLearn, rollWeek, learnSummary, TIER_NAME } from './lear
 import { emptyGoals, loadGoals, rollDay, goalAdd, allDone, checkStickers, MISSION_BY_ID, MISSION_BALL, BONUS_BALL, STICKERS, stickerCount, emptyAttend, loadAttend, stampAttend, ATTEND_GIFTS, dayKey } from './goals.js';
 import { Photo } from './photo.js';
 import { Ghosts, makeEmoteSprite, PHRASES } from './presence.js';
-import { snapshotMon, snapshotTeam, acceptPatch, readyPatch, switchPatch, attackPatch, potionPatch, duelCardHtml, duelStageHtml, sideOf, teamOf, activeMon, curIdx, DUEL_REWARD, DUEL_KEEP_MS, DUEL_TEAM, DUEL_POTIONS } from './duel.js';
+import { snapshotMon, snapshotTeam, acceptPatch, readyPatch, switchPatch, attackPatch, potionPatch, duelCardHtml, duelStageHtml, duelTagHtml, sideOf, teamOf, activeMon, curIdx, DUEL_REWARD, DUEL_KEEP_MS, DUEL_TEAM, DUEL_POTIONS } from './duel.js';
 import { GRUNTS, ROCKETS_ON, buildGruntMesh, addWhiteFlag, removeWhiteFlag, addBrainwashRing } from './rocket.js';
 import { makeBlockMesh, makeNumberSprite, rand, josa } from './util.js';
 
@@ -3181,8 +3181,30 @@ function enterDuelStage(d) {
   input.endFrame();
   say(`⚔ ${myMon.name} vs ${theirMon.name}! ${d.turn === side ? '내 차례야 — 아래에서 기술을 골라! 🔄 교체도 돼.' : '상대 차례야, 잠깐 기다리자.'}`, { sec: 6 });
 }
+// 무대 위 포켓몬 머리 위 체력 이름표 (맵 대결의 #battle-tag 처럼). 내용은 문서가 바뀔 때, 자리는 매 프레임
+const duelTags = { mine: null, theirs: null };
+function ensureDuelTags() { for (const k of ['mine', 'theirs']) if (!duelTags[k]) { const el = document.createElement('div'); el.className = `duel-tag ${k}`; el.hidden = true; document.body.appendChild(el); duelTags[k] = el; } }
+function updateDuelTags(d) {
+  ensureDuelTags();
+  if (!duelStage.active || !duelPlay || !d) { duelTags.mine.hidden = duelTags.theirs.hidden = true; return; }
+  const side = duelPlay.side, other = side === 'a' ? 'b' : 'a';
+  duelTags.mine.innerHTML = duelTagHtml(d, side, ''); duelTags.theirs.innerHTML = duelTagHtml(d, other, d.names?.[other] || '친구');
+}
+const _tagV = new THREE.Vector3();
+function placeDuelTags() {
+  if (!duelTags.mine) return;
+  for (const [k, mineSide] of [['mine', true], ['theirs', false]]) {
+    const el = duelTags[k], p = duelStage.active && duelStage.headPos(mineSide, _tagV);
+    if (!p || !el.innerHTML) { el.hidden = true; continue; }
+    const v = p.project(camera);
+    el.hidden = v.z >= 1;
+    el.style.left = `${((v.x + 1) / 2) * window.innerWidth}px`;
+    el.style.top = `${Math.max(60, ((1 - v.y) / 2) * window.innerHeight)}px`;
+  }
+}
 function leaveDuelStage(msg) {
   if (!duelStage.active) return;
+  if (duelTags.mine) duelTags.mine.hidden = duelTags.theirs.hidden = true;
   duelStage.end();
   duelPlay = null;
   duelModal.classList.remove('stage');
@@ -3210,6 +3232,10 @@ function renderDuelModal() {
     html = (duelStage.active && duelPlay?.id === d.id ? duelStageHtml(d, me, duelThumb) : duelCardHtml(d, me, duelThumb)) + ((d.state === 'active' || d.state === 'ready') && zone?.name !== 'arena' ? '<div class="duel-actions"><button class="duel-go">🏟 아레나로 가기</button></div>' : '');
   }
   duelModalBody.innerHTML = html;
+  if (duelStage.active && duelPlay?.id === d.id) { // 체력표는 공격 연출이 맞을 때 바뀌게 (새 공격이 쌓였으면 연출이 끝난 뒤)
+    const wait = (duelPlay.tagAt || 0) - Date.now();
+    if (wait > 0) { clearTimeout(duelPlay.tagTimer); duelPlay.tagTimer = setTimeout(() => { const cur = duels.list.find((x) => x.id === d.id); if (duelStage.active && cur) updateDuelTags(cur); }, wait); } else updateDuelTags(d);
+  }
   bindDuelCard(duelModalBody, d);
 }
 /** 아레나 자리에서 "팀 고르고 대결 시작": 도감처럼 내 포켓몬을 보고 최대 3마리를 고른다 (누른 순서대로 1·2·3번). 고르면 readyPatch 로 팀을 넣는다 */
@@ -3316,6 +3342,7 @@ function onDuelsChanged() {
         setTimeout(() => { if (duelStage.active) duelStage.attack(l.who === duelPlay.side, { dmg: l.dmg, mult: l.mult, kind: skill?.kind || 'tackle' }); }, delay);
         delay += 1500;
       }
+      if (delay > 0) duelPlay.tagAt = Date.now() + delay - 600; // 마지막 공격이 맞는 즈음에 체력표를 바꾼다
       duelPlay.logSeen = log.length;
       if (d.state === 'done') {
         const iWon = d.winner === duelPlay.side;
@@ -3323,11 +3350,12 @@ function onDuelsChanged() {
         setTimeout(() => leaveDuelStage(null), 7500); // 보상 말풍선은 아래 done 처리가 띄운다
       }
     }
-    if (d.state === 'done' && !d.rewarded?.[me] && !d.rewarding) { // 결과 보상은 각자 한 번씩 (문서에 표시)
+    if (d.state === 'done' && !d.rewarded?.[me] && !d.rewarding && !(state.duelRecord.ids || []).includes(d.id)) { // 결과 보상은 각자 한 번씩 (문서에 표시 + 내 저장에도 대결 번호를 적어 두 번 받지 않게)
       d.rewarding = true;
       const won = d.winner === side, gain = won ? DUEL_REWARD.win : DUEL_REWARD.lose, oid = d[other];
       cloud.duelTx(d.id, (cur) => (cur.rewarded?.[me] ? null : { rewarded: { ...(cur.rewarded || {}), [me]: true } })).then((ok) => {
-        if (!ok) return;
+        if (!ok || (state.duelRecord.ids || []).includes(d.id)) return;
+        state.duelRecord.ids = [...(state.duelRecord.ids || []), d.id].slice(-30);
         setBlocks(Math.min(MAX_BLOCKS, state.blocks + gain)); if (won) { state.balls[DUEL_REWARD.winBall] = (state.balls[DUEL_REWARD.winBall] || 0) + 1; wkAdd('duel'); state.goals.stats.duels++; checkNewStickers(); sound.fanfare(); confetti.burst(160); }
         // 개인 전적: 모두 · 친구마다
         const R = state.duelRecord, v = R.vs[oid] || (R.vs[oid] = { n: name, w: 0, l: 0 }); v.n = String(name).slice(0, 8);
@@ -3523,7 +3551,7 @@ function applySave(d) {
   state.trainer = trainerOf(d.trainer).id; // 고른 주인공 (옛 저장은 지우)
   state.rockets = { ...(d.rockets || {}) };
   state.rocketPrize = d.rocketPrize | 0;
-  { const r = d.duelRecord || {}; state.duelRecord = { w: r.w | 0, l: r.l | 0, vs: {} }; for (const [k, v] of Object.entries(r.vs || {})) if (v && typeof v === 'object') state.duelRecord.vs[k] = { n: String(v.n || '').slice(0, 8), w: v.w | 0, l: v.l | 0 }; } // 친구 대결 전적
+  { const r = d.duelRecord || {}; state.duelRecord = { w: r.w | 0, l: r.l | 0, vs: {}, ids: Array.isArray(r.ids) ? r.ids.filter((x) => typeof x === 'string').slice(-30) : [] }; for (const [k, v] of Object.entries(r.vs || {})) if (v && typeof v === 'object') state.duelRecord.vs[k] = { n: String(v.n || '').slice(0, 8), w: v.w | 0, l: v.l | 0 }; } // 친구 대결 전적
   state.released = { ...(d.released || {}) };
   state.gym = d.gym && d.gym.trained ? { day: d.gym.day || '', trained: { ...d.gym.trained } } : { day: '', trained: {} };
   state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold; state.swimTold = !!d.swimTold; state.lastRaidZone = d.lastRaidZone || null;
@@ -3619,7 +3647,7 @@ function frame() {
   } else if (battle.active) {
     battle.update(dt);
   } else if (duelStage.active) {
-    duelStage.update(dt);
+    duelStage.update(dt); placeDuelTags();
     if (input.wasPressed('cancel')) leaveDuelStage('무대에서 내려왔어. 자리에 다시 올라서면 이어서 할 수 있어!');
   } else if (ride) {
     updateRide(dt);
