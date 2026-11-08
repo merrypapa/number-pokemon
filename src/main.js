@@ -1385,7 +1385,7 @@ function towerTick() {
     state.items.potion = (state.items.potion || 0) + 1;
     if (silver) state.balls.silver = (state.balls.silver || 0) + 1;
     sound.fanfare(); confetti.burst(120); particles.stars(z.scene, new THREE.Vector3(ch.x, ch.y + 1, ch.z), 24, 0xffd93d, 0.5);
-    say(`🎁 ${ch.n}층 보상 상자! 블록 ${blocks}개 + 🧪 물약 1개${silver ? ' + 🟡 하이퍼볼 1개' : ''}를 받았어!${merged ? ' ' + merged : ''}`, { sec: 7 });
+    say(`🎁 ${ch.n}층 보상 상자! 블록 ${blocks}개 + 🧪 물약 1개${silver ? ' + 🔵 슈퍼볼 1개' : ''}를 받았어!${merged ? ' ' + merged : ''}`, { sec: 7 });
     bump('chest'); refreshHud(); autosave();
   }
   for (let n = Math.max(1, cur - 1); n <= Math.min(TOWER_TOP, cur + 2); n++) if (!z.towerFloors.has(n)) spawnTowerFloor(z, n);
@@ -3544,8 +3544,8 @@ function applySave(d) {
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
   state.balls = { bronze: 3, silver: 0, gold: 0, master: 0, ...(d.balls || {}) };
-  if (state.balls.diamond > 0) { const n = state.balls.diamond | 0; state.balls.gold = (state.balls.gold || 0) + n * 2; queueSay(`🎁 메가큐브가 없어져서 가지고 있던 메가큐브 ${n}개를 슈퍼볼 ${n * 2}개로 바꿔 줬어!`, { sec: 7 }); }
-  delete state.balls.diamond; // 메가큐브는 없앴다 (옛 저장은 슈퍼볼 2개씩으로)
+  if (state.balls.diamond > 0) { const n = state.balls.diamond | 0; state.balls.gold = (state.balls.gold || 0) + n * 2; queueSay(`🎁 메가큐브가 없어져서 가지고 있던 메가큐브 ${n}개를 하이퍼볼 ${n * 2}개로 바꿔 줬어!`, { sec: 7 }); }
+  delete state.balls.diamond; // 메가큐브는 없앴다 (옛 저장은 하이퍼볼 2개씩으로)
   state.items = { ...emptyItems(), ...(d.items || {}) };
   state.tower = { best: Math.min(TOWER_TOP, Math.max(1, (d.tower?.best | 0) || 1)), chests: { ...(d.tower?.chests || {}) } }; // 옛 94층 저장은 10층으로 맞춘다
   state.attend = loadAttend(d.attend);                          // 출석 도장

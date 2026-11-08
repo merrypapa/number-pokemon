@@ -1,5 +1,5 @@
 // 오늘의 미션 + 스티커(도전과제).
-//  - 미션: 날마다 셋. 하루가 바뀌면 새로 뽑힌다. 하나 끝낼 때마다 몬스터볼, 셋 다 끝내면 하이퍼볼.
+//  - 미션: 날마다 셋. 하루가 바뀌면 새로 뽑힌다. 하나 끝낼 때마다 몬스터볼, 셋 다 끝내면 슈퍼볼.
 //          어떤 셋이 나올지는 날짜와 이름으로 정해서, 껐다 켜도 같은 미션이 나온다.
 //  - 스티커: 한 번 받으면 사라지지 않는 기념 도장. 이미 세고 있던 값(잡은 수·푼 퀴즈·블록·보스…)으로 판단한다.
 // 주간 순위(rank.js)가 "이번 주 점수"라면 이쪽은 "오늘 할 일"과 "지금까지 해낸 일"이다.
@@ -155,7 +155,7 @@ export const ATTEND_GIFTS = [
   { emoji: '🧴', name: '좋은 물약 1개', item: 'superPotion', n: 1 },
   { emoji: '🔴', name: '몬스터볼 2개', ball: 'bronze', n: 2 },
   { emoji: '🍒', name: '기운의 열매 1개', item: 'revive', n: 1 },
-  { emoji: '🟡', name: '하이퍼볼 1개', ball: 'silver', n: 1 },
+  { emoji: '🔵', name: '슈퍼볼 1개', ball: 'silver', n: 1 },
 ];
 export const emptyAttend = () => ({ last: '', streak: 0, total: 0 });
 export function loadAttend(d) { const A = emptyAttend(); if (d && typeof d === 'object') { A.last = typeof d.last === 'string' ? d.last : ''; A.streak = Math.max(0, d.streak | 0); A.total = Math.max(0, d.total | 0); } return A; }

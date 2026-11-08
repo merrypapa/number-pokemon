@@ -21,7 +21,7 @@ const SKILL_KEYS = ['skill1', 'skill2', 'skill3', 'skill4'];
 
 export const BALL_MODEL = '포켓몬볼.glb', CUBE_MODEL = '포켓몬큐브.glb', MASTER_MODEL = '마스터볼.glb';
 const BALL_R = 0.32; // 볼 반지름(m). 모델도 이 크기로 맞춘다 (가운데가 원점)
-/** 몬스터볼 모델: 텍스처의 빨간 부분(뚜껑)만 그 볼 색으로 칠한다 (하이퍼볼·슈퍼볼). 재질은 복제해서 볼마다 따로 */
+/** 몬스터볼 모델: 텍스처의 빨간 부분(뚜껑)만 그 볼 색으로 칠한다 (슈퍼볼·하이퍼볼). 재질은 복제해서 볼마다 따로 */
 function tintRed(root, color) {
   const tint = new THREE.Color(color);
   root.traverse((o) => {
