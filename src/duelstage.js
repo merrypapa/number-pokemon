@@ -77,6 +77,15 @@ export class DuelStage {
     if (iWon) { this.confetti?.burst(180); this.sound?.fanfare(); } else this.sound?.bounce();
   }
 
+  /** 포켓몬 머리 위 한 점 (세계 좌표) — 체력 이름표를 붙인다. 키는 모델이 바뀔 때만 다시 잰다 */
+  headPos(mineSide, out = new THREE.Vector3()) {
+    const o = mineSide ? this.mine : this.theirs;
+    if (!o?.mesh) return null;
+    const key = o.mesh.userData.model || o.mesh.userData.draft;
+    if (o.hKey !== key) { const bob = o.mesh.position.y; const box = new THREE.Box3().setFromObject(o.mesh); o.h = Math.max(0.6, box.max.y - bob); o.hKey = key; }
+    return out.copy(o.mesh.position).setY(o.mesh.position.y + o.h + 0.25);
+  }
+
   update(dt) {
     if (!this.active) return;
     this.t += dt;

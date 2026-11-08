@@ -62,7 +62,7 @@ export function loadGoals(d, name = '') {
   G.stickers = {};
   if (d.stickers && typeof d.stickers === 'object') for (const [k, v] of Object.entries(d.stickers)) if (STICKER_BY_ID[k] && v) G.stickers[k] = v;
   if (d.stats && typeof d.stats === 'object') {
-    for (const k of ['evolved', 'photos', 'duels', 'streak', 'best', 'daily']) G.stats[k] = Math.max(0, d.stats[k] | 0);
+    for (const k of ['evolved', 'photos', 'duels', 'streak', 'best', 'daily', 'rocketEasy']) G.stats[k] = Math.max(0, d.stats[k] | 0);
     G.stats.tower94 = !!d.stats.tower94; // 동굴탑 꼭대기 정복
     if (d.stats.zones && typeof d.stats.zones === 'object') for (const k of Object.keys(d.stats.zones)) G.stats.zones[k] = true;
   }
@@ -125,6 +125,10 @@ export const STICKERS = [
   { id: 'master1', emoji: '👑', name: '첫 마스터', how: '포켓몬 한 마리를 Lv.50 마스터로 키웠어', test: (s) => (s.masters || 0) >= 1 },
   { id: 'master5', emoji: '🏵', name: '마스터 다섯', how: '포켓몬 다섯 마리를 마스터로 키웠어', test: (s) => (s.masters || 0) >= 5 },
   { id: 'dexAll', emoji: '🌟', name: '포켓몬 마스터', how: '도감을 전부 채웠어!', test: (s) => !!s.dexAll },
+  { id: 'rocket1', emoji: '🚀', name: '첫 소탕', how: '넘버로켓단을 처음 물리쳤어', test: (s) => (s.rockets || 0) >= 1 },
+  { id: 'rocket4', emoji: '🛡', name: '반쯤 왔어', how: '넘버로켓단에게서 4곳을 되찾았어', test: (s) => (s.rockets || 0) >= 4 },
+  { id: 'rocket8', emoji: '🦸', name: '넘버 히어로', how: '넘버로켓단에게서 모든 곳을 되찾았어', test: (s) => (s.rockets || 0) >= (s.rocketAll || 8) },
+  { id: 'rocketEasy', emoji: '💯', name: '여유 있는 승리', how: '로켓단 3연전을 체력 절반 넘게 남기고 이겼어', test: (s) => (s.stats.rocketEasy || 0) >= 1 },
   { id: 'attend30', emoji: '🗓', name: '한 달 출석', how: '30일 출석했어', test: (s) => (s.attendTotal || 0) >= 30 },
 ];
 export const STICKER_BY_ID = Object.fromEntries(STICKERS.map((s) => [s.id, s]));
