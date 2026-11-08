@@ -671,7 +671,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0, master: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, rocketPrize: 0, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0, master: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -997,6 +997,7 @@ dex.bindParty({
   getMegaBlocks: () => state.megaBlocks,
   getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, conquered: Object.keys(state.conquered).length, zones: ZONE_COUNT }), // 친구·구출·정복 진행은 도감에서 본다
   getConquered: () => state.conquered,
+  getRockets: () => (SHOW_ROCKETS ? Object.fromEntries(ROCKET_ZONES.map((z) => [z, rocketStatus(z)])) : {}), // 지도 🚨/🏳
   getZoneName: () => zone?.name,
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
   // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
@@ -1307,9 +1308,21 @@ function pickFindTarget(level) {
   return pick[Math.floor(Math.random() * pick.length)];
 }
 /** "붉은 숫자 반응" 의뢰 지역: 대원이 있고 대표 레벨로 갈 만한 곳 */
+// 넘버로켓단 소탕 작전: 대원이 있는 8곳을 쉬운 곳부터 되찾는다. 미션 탭 카드·지도 🚨/🏳·스티커가 같은 정보를 쓴다
+const ROCKET_ZONES = QUEST_ZONES.filter((z) => GRUNTS[z]).sort((a, b) => (ZONE_LEVEL[a]?.[0] ?? 99) - (ZONE_LEVEL[b]?.[0] ?? 99));
+const rocketsWon = () => ROCKET_ZONES.filter((z) => state.rockets[z]).length;
+const rocketReady = (z, level) => (ZONE_LEVEL[z]?.[0] ?? 99) <= level + 3 && (z !== 'deepsea' || !!state.conquered.sea);
+const rocketReward = () => Math.min(120, 50 + 10 * rocketsWon()); // 뒤로 갈수록 의뢰 보상이 커진다 (50 → 120)
+/** 지역마다: won(되찾음) · quest(오박사 의뢰 중) · open(갈 만함) · later(아직 이름, 추천 레벨) */
+function rocketStatus(z, level = party.leader?.level || 1) {
+  if (state.rockets[z]) return 'won';
+  if (raidOn(z)) return 'quest';
+  return rocketReady(z, level) ? 'open' : 'later';
+}
+/** "붉은 숫자 반응" 의뢰 지역: 아직 못 이긴 곳 가운데 대표 레벨로 갈 만한 가장 쉬운 곳 (방금 의뢰한 곳은 다른 데가 있으면 건너뛴다) */
 function pickRaidZone(level) {
-  const ok = QUEST_ZONES.filter((z) => GRUNTS[z] && !state.rockets[z] && (ZONE_LEVEL[z]?.[0] ?? 99) <= level + 3 && (z !== 'deepsea' || state.conquered.sea) && z !== state.lastRaidZone);
-  return ok.length ? ok[Math.floor(Math.random() * ok.length)] : null;
+  const ok = ROCKET_ZONES.filter((z) => !state.rockets[z] && rocketReady(z, level));
+  return ok.find((z) => z !== state.lastRaidZone) || ok[0] || null;
 }
 function questText(q) {
   if (q.kind === 'rocket') return `${ZONE_INFO[q.zone]?.name || q.zone}의 붉은 숫자 반응! 넘버로켓단 물리치기`;
@@ -1319,7 +1332,7 @@ function questText(q) {
 function newProfQuest(a) {
   const tg = pickFindTarget(a.level);
   const rz = SHOW_ROCKETS && ((state.profQuests || 0) % 2 === 1 || !tg) ? pickRaidZone(a.level) : null; // 의뢰는 "강력한 기운" ↔ "붉은 숫자 반응"(로켓단)을 번갈아
-  if (rz) { const q = { kind: 'rocket', zone: rz, need: 1, n: 0, reward: 50, done: false }; state.profQuest = q; state.lastRaidZone = rz; if (zones[rz]) refreshGruntFlag(zones[rz]); return q; }
+  if (rz) { const q = { kind: 'rocket', zone: rz, need: 1, n: 0, reward: rocketReward(), done: false }; state.profQuest = q; state.lastRaidZone = rz; if (zones[rz]) refreshGruntFlag(zones[rz]); return q; }
   const q = tg ? { kind: 'find', zone: tg.zone, targetId: tg.id, need: 1, n: 0, reward: 40, done: false }
     : { kind: 'catch', zone: QUEST_ZONES[Math.floor(Math.random() * 3)], need: 2, n: 0, reward: 30, done: false }; // 도감을 다 채웠으면 아무 포켓몬이나
   state.profQuest = q; return q;
@@ -1333,7 +1346,7 @@ function profTalk() {
   if (q) return `지금 의뢰는 "${questText(q)}" (${q.n}/${q.need})! ${josa(ZONE_INFO[q.zone]?.name || q.zone, '으로')} 가 보렴. 끝내면 블록 ${q.reward}개를 주마.`;
   if (!a) return null;
   const nq = newProfQuest(a);
-  if (nq.kind === 'rocket') return `큰일이다! 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 🚨 붉은 숫자 반응이 강하게 느껴져! 넘버로켓단이 숨어 있나 봐. 포켓몬을 셋이나 데리고 있는 것 같구나. 가서 붉은 숫자를 깨고 포켓몬들을 되돌려 주렴! 블록 ${nq.reward}개를 주마. (로켓단이 숫자를 틀리게 말하면 바로잡아 줘!)`;
+  if (nq.kind === 'rocket') { const w = rocketsWon(); return `큰일이다! 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 🚨 붉은 숫자 반응이 강하게 느껴져! 넘버로켓단이 숨어 있나 봐. 포켓몬을 셋이나 데리고 있는 것 같구나. 가서 붉은 숫자를 깨고 포켓몬들을 되돌려 주렴! 블록 ${nq.reward}개를 주마. 🚨 소탕 작전: 지금까지 ${w}/${ROCKET_ZONES.length}곳을 되찾았어${w < 4 ? ' — 4곳을 되찾으면 마스터볼을 주마!' : w < ROCKET_ZONES.length ? ' — 다 되찾으면 마스터볼 2개를 주마!' : ''} (로켓단이 숫자를 틀리게 말하면 바로잡아 줘!)`; }
   if (nq.kind === 'find') {
     const tg = speciesById[nq.targetId];
     return `${josa(a.sp.name, '과와')} 잘 지내고 있구나! 그런데 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 강력한 포켓몬의 기운이 느껴져! 아직 도감에 없는 ${tg.type || '노말'} 포켓몬 ${josa(tg.name, '이야')}. 잡아 오면 블록 ${nq.reward}개를 주마. (미션 탭에서 볼 수 있어. 어떤 속성이 센지는 학교 상성 수업에서 배우렴!)`;
@@ -2216,6 +2229,11 @@ function finishGrunt(npc, z, expNote = '') {
   const blocks = g.blocks + Math.round(g.blocks * 0.5);
   state.rockets[z.name] = true;
   state.balls[g.ball] = (state.balls[g.ball] || 0) + 1;
+  const won = rocketsWon(), M = battle.member || party.leader;
+  if (M && M.hp >= M.maxHp / 2) state.goals.stats.rocketEasy = (state.goals.stats.rocketEasy || 0) + 1; // 스티커 "여유 있는 승리": 체력 절반 넘게 남기고
+  // 소탕 작전 중간(4곳)·완료(8곳) 보상: 마스터볼 1개·2개. rocketPrize 에 받은 단계를 적어 두어 한 번씩만 (이미 4곳 넘게 이긴 옛 저장도 다음 승리 때 받는다)
+  const prize = state.rocketPrize || 0, milestone = won >= ROCKET_ZONES.length && prize < 2 ? 2 : won >= 4 && prize < 1 ? 1 : 0;
+  if (milestone) { state.balls.master = (state.balls.master || 0) + (milestone === 2 && prize < 1 ? 3 : milestone); state.rocketPrize = milestone; }
   setBlocks(Math.min(MAX_BLOCKS, state.blocks + blocks));
   confetti.burst(160); sound.fanfare();
   if (quest) { quest.n = quest.need; quest.done = true; setBlocks(Math.min(MAX_BLOCKS, state.blocks + quest.reward), { quiet: true }); }
@@ -2223,6 +2241,11 @@ function finishGrunt(npc, z, expNote = '') {
   refreshHud();
   say(`🏆 ${team.length}마리를 모두 되돌렸어! 블록 ${blocks}개와 ${BALL_BY_ID[g.ball].name} 1개!${quest ? ` 오박사 의뢰 보상 블록 ${quest.reward}개도!` : ''}${expNote}`, { sec: 8 });
   setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.lose}`, { sec: 6, faceImg: npcFace(npc) }); }, 8200);
+  if (milestone) setTimeout(() => { confetti.burst(milestone === 2 ? 320 : 200); sound.fanfare(); queueSay(milestone === 2
+    ? `🦸 넘버로켓단 소탕 작전 완료! ${ROCKET_ZONES.length}곳을 모두 되찾았어! 오박사님이 마스터볼 2개를 보내 주셨어!`
+    : `🛡 소탕 작전 절반 성공! 4/${ROCKET_ZONES.length}곳을 되찾았어. 오박사님이 마스터볼 1개를 보내 주셨어!`, { sec: 9 }); }, 24000);
+  else queueSay(`🚨 소탕 작전 ${won}/${ROCKET_ZONES.length}곳 — 도감 🎯 미션 탭과 지도에서 남은 곳을 볼 수 있어!`, { sec: 6 });
+  checkNewStickers();
   setTimeout(() => { if (zone === z) say(quest
     ? `🔬 붉은 숫자 반응이 사라졌어! ${z.label}의 넘버로켓단은 이긴 걸로 기록됐어. 연구소의 오박사님께 알려 드리자!`
     : `${z.label}의 넘버로켓단 ${g.chief ? '간부' : '대원'}을 이겼어! 이제 여기서는 다시 싸울 필요 없어. 항복한 그 자리에서 말을 걸면 이곳의 비밀을 알려 줄 거야!`, { sec: 9 }); }, 14500);
@@ -2308,6 +2331,7 @@ function checkNewStickers() {
     caught: state.caught, rescued: state.rescued, blocks: state.blocks,
     bosses: Object.keys(state.conquered).length,
     dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
+    rockets: ROCKET_ZONES.filter((z) => state.rockets[z]).length, rocketAll: ROCKET_ZONES.length,
     stats: state.goals.stats, attendStreak: state.attend.streak, attendTotal: state.attend.total, masters: Object.keys(state.masters).length, dexAll: !!state.dexAll,
   });
   for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
@@ -2573,7 +2597,7 @@ function buildSaveData() {
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtSpots: { day: state.caughtSpots.day, list: Object.fromEntries(Object.entries(state.caughtSpots.list).map(([k, v]) => [k, [...v]])) }, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
-    balls: { ...state.balls }, rockets: { ...state.rockets }, released: { ...state.released },
+    balls: { ...state.balls }, rockets: { ...state.rockets }, rocketPrize: state.rocketPrize || 0, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
     tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
@@ -3362,10 +3386,26 @@ function renderGoals(el) {
   const stamps = ATTEND_GIFTS.map((g, i) => `<div class="att${i <= idx ? ' on' : ''}${i === idx ? ' today' : ''}"><span class="att-day">${i + 1}일</span><span class="att-gift">${g.emoji}</span></div>`).join('');
   const q = state.profQuest;
   const quest = q ? `<div class="goal-row${q.done ? ' done' : ''}"><span class="goal-emoji">${q.done ? '✅' : '🔬'}</span><span class="goal-text">${escHtml(questText(q))}${q.done ? ' → 오박사님께!' : ''}</span><div class="goal-bar"><i style="width:${Math.min(100, Math.round((q.n / q.need) * 100))}%"></i></div><span class="goal-num">${Math.min(q.n, q.need)}/${q.need}</span></div>` : '';
-  // 한눈에: ① 오늘 할 일(미션 셋 + 오박사 의뢰) ② 출석 도장 한 줄 ③ 스티커는 접어 둔다
+  // 넘버로켓단 소탕 작전 카드: 8곳의 대원, 되찾은 곳·의뢰 중인 곳·갈 만한 곳·아직 이른 곳(추천 레벨)
+  let rocketCard = '';
+  if (SHOW_ROCKETS) {
+    const won = rocketsWon(), N = ROCKET_ZONES.length;
+    const ICON = { won: '✅', quest: '🚨', open: '⬜', later: '🔒' };
+    const rows = ROCKET_ZONES.map((z) => {
+      const st = rocketStatus(z), g = GRUNTS[z], ace = speciesById[g.mon];
+      const note = st === 'won' ? `되찾음 · 에이스 ${escHtml(ace?.name || '')}` : st === 'quest' ? '오박사님 의뢰 중!' : st === 'open' ? '갈 수 있어' : z === 'deepsea' && !state.conquered.sea ? '물의길 정복 뒤' : `Lv.${Math.max(1, (ZONE_LEVEL[z]?.[0] ?? 1) - 3)}부터`;
+      return `<div class="rk-row ${st}"><span class="rk-ic">${ICON[st]}</span><b>${escHtml(ZONE_INFO[z]?.name || z)}</b><span class="rk-who">${escHtml(g.name)}</span><span class="rk-note">${note}</span></div>`;
+    }).join('');
+    rocketCard = `<div class="rank-head">🚨 넘버로켓단 소탕 작전 <span class="goal-count">${won}/${N}</span></div>
+    <div class="goal-bar rk-bar"><i style="width:${Math.round((won / N) * 100)}%"></i></div>
+    <div class="rk-rows">${rows}</div>
+    <div class="goal-gift">${won >= N ? '🦸 모두 되찾았어! 넘버 히어로!' : won >= 4 ? `다 되찾으면 마스터볼 2개!` : '4곳을 되찾으면 마스터볼 1개, 다 되찾으면 2개 더!'} 오박사님께 말을 걸면 다음 곳을 알려 주셔.</div>`;
+  }
+  // 한눈에: ① 오늘 할 일(미션 셋 + 오박사 의뢰) ② 로켓단 소탕 작전 ③ 출석 도장 한 줄 ④ 스티커는 접어 둔다
   el.innerHTML = `<div class="rank-head">🎯 오늘 할 일 <span class="goal-count">${nDone}/${G.tasks.length}</span></div>
     <div class="goal-rows">${tasks}${quest}</div>
     <div class="goal-gift">${allDone(G) ? '🏅 오늘 미션 끝! 내일 새 미션이 나와요.' : `하나 끝낼 때마다 ${escHtml(BALL_BY_ID[MISSION_BALL].name)}, 셋 다 하면 ${escHtml(BALL_BY_ID[BONUS_BALL].name)} 더!`}</div>
+    ${rocketCard}
     <div class="rank-head">📅 출석 <span class="goal-count">🔥 ${A.streak}일 연속</span></div>
     <div class="att-row">${stamps}</div>
     <div class="goal-gift">내일 오면 ${next.emoji} ${escHtml(next.name)}</div>
@@ -3424,6 +3464,7 @@ function applySave(d) {
   state.masters = { ...(d.masters || {}) }; state.dexAll = d.dexAll || null; // 마스터 타이틀 · 도감 완성
   state.trainer = trainerOf(d.trainer).id; // 고른 주인공 (옛 저장은 지우)
   state.rockets = { ...(d.rockets || {}) };
+  state.rocketPrize = d.rocketPrize | 0;
   state.released = { ...(d.released || {}) };
   state.gym = d.gym && d.gym.trained ? { day: d.gym.day || '', trained: { ...d.gym.trained } } : { day: '', trained: {} };
   state.profQuest = d.profQuest && d.profQuest.kind ? { ...d.profQuest } : null; state.profQuests = d.profQuests | 0; state.flyTold = !!d.flyTold; state.swimTold = !!d.swimTold; state.lastRaidZone = d.lastRaidZone || null;
