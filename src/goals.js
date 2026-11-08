@@ -129,6 +129,8 @@ export const STICKERS = [
   { id: 'rocket4', emoji: '🛡', name: '반쯤 왔어', how: '넘버로켓단에게서 4곳을 되찾았어', test: (s) => (s.rockets || 0) >= 4 },
   { id: 'rocket8', emoji: '🦸', name: '넘버 히어로', how: '넘버로켓단에게서 모든 곳을 되찾았어', test: (s) => (s.rockets || 0) >= (s.rocketAll || 8) },
   { id: 'rocketEasy', emoji: '💯', name: '여유 있는 승리', how: '로켓단 3연전을 체력 절반 넘게 남기고 이겼어', test: (s) => (s.stats.rocketEasy || 0) >= 1 },
+  { id: 'chapter1', emoji: '📖', name: '첫 이야기 완료', how: '한 지역의 보스·로켓단·메가를 모두 해냈어', test: (s) => (s.chapters || 0) >= 1 },
+  { id: 'chapterAll', emoji: '👑', name: '넘버랜드의 영웅', how: '여덟 지역의 이야기를 모두 끝냈어', test: (s) => (s.chapters || 0) >= (s.rocketAll || 8) },
   { id: 'attend30', emoji: '🗓', name: '한 달 출석', how: '30일 출석했어', test: (s) => (s.attendTotal || 0) >= 30 },
 ];
 export const STICKER_BY_ID = Object.fromEntries(STICKERS.map((s) => [s.id, s]));

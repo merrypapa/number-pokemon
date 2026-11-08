@@ -223,10 +223,13 @@ export class Dex {
   renderMap(caughtById) {
     const ctx = this.partyCtx;
     const conquered = ctx?.getConquered?.() || {};
-    const rockets = ctx?.getRockets?.() || {}; // 지역 → won | quest | open | later (넘버로켓단 소탕 작전)
-    // 로켓단 표시: 이름표 왼쪽 위 어깨. 못 이긴 곳 🚨(의뢰 중이면 깜빡), 되찾은 곳 🏳
-    const rocketMark = (id, x, y, r = 3) => { const st = rockets[id]; if (!st) return '';
-      return `<g class="rk-mark ${st}" transform="translate(${x},${y})"><circle r="${r}" fill="${st === 'won' ? '#ffffff' : '#e8453c'}" stroke="#20232e" stroke-width=".35"/><text class="rk" y="${r * 0.4}" text-anchor="middle" style="font-size:${r * 1.25}px">${st === 'won' ? '🏳' : '🚨'}</text></g>`; };
+    // 지역 챕터(보스 → 로켓단 → 메가): 지역마다 표시는 하나 — 다음 단계 아이콘(👑 🚨 💠, 다 끝나면 🏅). 오박사 의뢰 중이면 깜빡. 이름표 밑에 진행 점 셋
+    const chapters = ctx?.getChapters?.() || {};
+    const STEP_IC = { boss: '👑', rocket: '🚨', mega: '💠', done: '🏅' }, STEP_BG = { boss: '#ffd93d', rocket: '#e8453c', mega: '#b48cff', done: '#57b947' };
+    const stepMark = (id, x, y, r = 3.4) => { const c = chapters[id]; if (!c) return '';
+      return `<g class="ch-mark ${c.step}${c.quest ? ' quest' : ''}${c.ready || c.step === 'done' ? '' : ' later'}" transform="translate(${x},${y})"><circle r="${r}" fill="${STEP_BG[c.step]}" stroke="#20232e" stroke-width=".35"/><text y="${r * 0.42}" text-anchor="middle" style="font-size:${r * 1.2}px">${STEP_IC[c.step]}</text></g>`; };
+    const pips = (id, y) => { const c = chapters[id]; if (!c) return ''; const k = { boss: 0, rocket: 1, mega: 2, done: 3 }[c.step];
+      return `<g class="ch-dots" transform="translate(0,${y})">${[0, 1, 2].map((i) => `<circle cx="${(i - 1) * 2.4}" r=".85" fill="${i < k ? '#57b947' : i === k ? '#ffd93d' : '#ffffff'}" stroke="#20232e" stroke-width=".25"/>`).join('')}</g>`; };
     const here = ctx?.getZoneName?.();
     if (!this.mapSel) this.mapSel = here || 'forest';
     const R = Object.fromEntries(MAP_REGIONS.map((r) => [r.id, r]));
@@ -340,19 +343,17 @@ export class Dex {
       svg += `<g class="region${done ? ' conquered' : ''}${this.mapSel === r.id ? ' sel' : ''}" data-zone="${r.id}" transform="translate(${r.x},${r.y})" filter="url(#shadow)">
         ${draw[r.id](r)}
         <g transform="translate(0,${r.ry + 1.5})"><rect x="-10" y="-2.6" width="20" height="5.2" rx="2.6" class="label-bg"/><text class="name" y="1.3" text-anchor="middle">${this.zoneName[r.id]}</text></g>
-        ${done
-          ? `<g class="mark" transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3.4" fill="#ffd93d" stroke="#20232e" stroke-width=".35"/><text class="star" y="1.4" text-anchor="middle">★</text></g>`
-          : `<g class="mark" transform="translate(${r.rx - 2},${-r.ry + 2})"><circle r="3.2" fill="#f4f4f8" stroke="#20232e" stroke-width=".35"/><text class="lock" y="1.2" text-anchor="middle">?</text></g>`}
-        ${rocketMark(r.id, -r.rx + 2, -r.ry + 2)}
+        ${chapters[r.id] ? stepMark(r.id, r.rx - 2, -r.ry + 2) + pips(r.id, r.ry + 5.4) : ''}
         ${here === r.id ? `<g class="pin" transform="translate(0,${-r.ry - 2})"><path d="M0,0 L-2.4,-4 A2.6,2.6 0 1 1 2.4,-4 Z" fill="#e8453c" stroke="#20232e" stroke-width=".3"/><circle cy="-4.6" r="1" fill="#fff"/></g>` : ''}
       </g>`;
     }
-    svg += `<g class="legend" transform="translate(84,78)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
+    svg += Object.keys(chapters).length
+      ? `<g class="legend" transform="translate(76,78)"><rect x="0" y="-3" width="62" height="5.4" rx="2.7" class="label-bg"/>
+      <text x="1.6" y="1" style="font-size:3px">👑</text><text x="5.6" y=".9">보스</text><text x="15" y="1" style="font-size:3px">🚨</text><text x="19" y=".9">로켓단</text>
+      <text x="31.6" y="1" style="font-size:3px">💠</text><text x="35.6" y=".9">메가</text><text x="45" y="1" style="font-size:3px">🏅</text><text x="49" y=".9">완료</text></g>`
+      : `<g class="legend" transform="translate(84,78)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
       <circle cx="3.2" cy="-.3" r="1.8" fill="#ffd93d" stroke="#20232e" stroke-width=".25"/><text x="6" y=".9">정복한 곳</text>
       <circle cx="24" cy="-.3" r="1.8" fill="#f4f4f8" stroke="#20232e" stroke-width=".25"/><text x="26.8" y=".9">아직 정복 전</text></g>`;
-    if (Object.keys(rockets).length) svg += `<g class="legend" transform="translate(84,71)"><rect x="0" y="-3" width="46" height="5.4" rx="2.7" class="label-bg"/>
-      <text x="1.4" y="1" style="font-size:3px">🚨</text><text x="6" y=".9">로켓단</text>
-      <text x="22.2" y="1" style="font-size:3px">🏳</text><text x="26.8" y=".9">되찾은 곳</text></g>`;
     svg += '</svg>';
     this.mapEl.innerHTML = svg;
     this.mapEl.querySelectorAll('.region').forEach((g) => { g.onclick = () => { this.mapSel = g.dataset.zone; this.renderMap(caughtById); }; });
@@ -364,8 +365,9 @@ export class Dex {
     const list = [...this.species.filter((sp) => sp.zone === r.id), ...roster.map((id) => this.byId[id]).filter((sp) => sp && sp.zone !== r.id)];
     const known = list.filter((sp) => (caughtById[sp.id] || 0) > 0).length;
     const done = !!conquered[r.id];
-    const rst = rockets[r.id];
-    const rkBadge = !rst ? '' : rst === 'won' ? '<span class="badge rk-won">🏳 로켓단을 물리쳤어</span>' : `<span class="badge rk-on">🚨 넘버로켓단이 있어${rst === 'quest' ? ' · 오박사님 의뢰!' : ''}</span>`;
+    const ch = chapters[r.id];
+    const CH_TXT = { boss: '👑 다음: 보스 잡기', rocket: '🚨 다음: 숨은 로켓단 물리치기', mega: '💠 다음: 메가 성역의 포켓몬', done: '🏅 이 지역 이야기 완료!' };
+    const rkBadge = ch ? `<span class="badge ch-${ch.step}">${CH_TXT[ch.step]}${ch.quest ? ' · 오박사님 의뢰!' : ''}</span>` : '';
     const badge = `${r.planet ? '<span class="badge planet">🛸 UFO 로 가는 행성</span>' : ''}<span class="badge ${done ? 'done' : ''}">${done ? '★ 정복!' : '아직 정복 전'}</span>${rkBadge}`;
     let html = `<div class="map-title">${r.icon} ${this.zoneName[r.id]} ${badge}${here === r.id ? '<span class="badge">지금 여기</span>' : ''}</div>
       <div class="map-desc">${r.desc}</div>

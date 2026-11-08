@@ -1153,3 +1153,22 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .ds-actions img { width: 28px; height: 28px; object-fit: contain; }
 .ds-actions .ds-sw span { display: flex; flex-direction: column; font-size: 12px; line-height: 1.1; text-align: left; }
 .ds-actions small { font-size: 11px; color: #555; }
+/* 📖 모험 일지 (미션 탭) · 지역 챕터 지도 표시 */
+.ch-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; }
+.ch-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; background: #fff; border: 2px solid #eee; font: inherit; font-size: 14px; color: #20232e; cursor: pointer; text-align: left; }
+.ch-row b { white-space: nowrap; min-width: 4.5em; }
+.ch-pips { display: inline-flex; gap: 2px; }
+.ch-pip { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background: #f1f1f1; filter: grayscale(1); opacity: .45; }
+.ch-pip.on { background: #e6f6dd; filter: none; opacity: 1; }
+.ch-pip.now { background: #fff3c4; filter: none; opacity: 1; box-shadow: 0 0 0 2px #ffd93d; }
+.ch-next { margin-left: auto; font-size: 12px; color: #555; text-align: right; line-height: 1.25; }
+.ch-next em { font-style: normal; color: #e8453c; font-weight: 900; }
+.ch-row.done { background: #f0fbe9; border-color: #b6e3a0; }
+.ch-row.quest { border-color: #e8453c; animation: rkBlink 1.2s ease-in-out infinite alternate; }
+.ch-row.later { opacity: .6; }
+#dex-map .ch-mark.quest { animation: rkMark 0.9s ease-in-out infinite alternate; }
+#dex-map .ch-mark.later { opacity: .55; }
+.map-title .badge.ch-boss { background: #ffd93d; color: #333; }
+.map-title .badge.ch-rocket { background: #e8453c; color: #fff; }
+.map-title .badge.ch-mega { background: #b48cff; color: #fff; }
+.map-title .badge.ch-done { background: #eaf7e2; color: #2f6f2a; }

@@ -304,7 +304,8 @@ function placeGrunt(z) {
   mesh.userData.radius = 0.9; // 대결 중 시야를 가릴 때만 잠깐 숨기는 크기 (나무·바위와 같은 규칙, src/battle.js)
   (z.world.decor || z.scene).add(mesh); // 다른 NPC 와 같이 장식 그룹에 — 그래야 대결 화면에서 상대를 가리지 않는다
   const npc = { x: at.x, z: at.z, mesh, name: g.name, rocket: g, lines: g.after };
-  if (!gruntActive(z.name)) addWhiteFlag(mesh); // 이미 항복시킨 대원은 흰 깃발을 들고 서 있다 (오박사 의뢰로 다시 나타나면 깃발을 내린다)
+  if (state.rockets[z.name]) addWhiteFlag(mesh); // 이미 항복시킨 대원은 흰 깃발을 들고 서 있다
+  if (!gruntVisible(z.name)) { mesh.visible = false; npc.hidden = true; } // 보스를 잡기 전에는 숨어 있다 (지역 챕터 ②)
   (z.world.npcs ||= []).push(npc);
   z.grunt = npc;
 }
@@ -506,7 +507,7 @@ function buildShrine(z) {
     z.shrinePillars = (z.shrine.pillars || SHRINE_PILLARS).map((p) => (p.ax != null ? { ax: spot.x + p.ax, az: spot.z + p.az, bx: spot.x + p.bx, bz: spot.z + p.bz, r: 0, pillarR: p.r } : { x: spot.x + p.x, z: spot.z + p.z, r: 0, pillarR: p.r })); // 기둥·벽은 못 지나간다 (드러난 뒤에). 명소(윌슨 그루터기)는 벽 선분
     z.terrain.obstacles.push(...z.shrinePillars);
   }
-  if (state.conquered[z.name]) revealShrine(z, true);
+  if (shrineReady(z.name)) revealShrine(z, true);
 }
 /** 성역을 드러내고 메가 포켓몬을 불러낸다 */
 /** 조건 포켓몬(메가리자몽X·리자풀·뮤 …)을 잡을 수 있게 됐나: unlockedBy 종을 이미 잡았으면 열린다 (배열이면 그 종을 모두 잡아야 한다 — 뮤는 행성 보스 열 마리) */
@@ -671,7 +672,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, rocketPrize: 0, duelRecord: { w: 0, l: 0, vs: {} }, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, master: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, rocketPrize: 0, shrineOpen: {}, chapterV: 1, duelRecord: { w: 0, l: 0, vs: {} }, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, master: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -997,7 +998,8 @@ dex.bindParty({
   getMegaBlocks: () => state.megaBlocks,
   getProgress: () => ({ caught: state.caught, total: totalCreatures, rescued: state.rescued, conquered: Object.keys(state.conquered).length, zones: ZONE_COUNT }), // 친구·구출·정복 진행은 도감에서 본다
   getConquered: () => state.conquered,
-  getRockets: () => (SHOW_ROCKETS ? Object.fromEntries(ROCKET_ZONES.map((z) => [z, rocketStatus(z)])) : {}), // 지도 🚨/🏳
+  getRockets: () => (SHOW_ROCKETS ? Object.fromEntries(ROCKET_ZONES.map((z) => [z, rocketStatus(z)])) : {}), // (예전 지도 🚨/🏳 — 이제는 getChapters)
+  getChapters: () => (SHOW_ROCKETS ? chapterInfo() : {}), // 지도: 지역마다 다음 단계 하나 (👑 → 🚨 → 💠 → 🏅)
   getZoneName: () => zone?.name,
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
   // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
@@ -1321,15 +1323,58 @@ function rocketStatus(z, level = party.leader?.level || 1) {
 }
 /** "붉은 숫자 반응" 의뢰 지역: 아직 못 이긴 곳 가운데 대표 레벨로 갈 만한 가장 쉬운 곳 (방금 의뢰한 곳은 다른 데가 있으면 건너뛴다) */
 function pickRaidZone(level) {
-  const ok = ROCKET_ZONES.filter((z) => !state.rockets[z] && rocketReady(z, level));
+  const ok = ROCKET_ZONES.filter((z) => !state.rockets[z] && state.conquered[z] && rocketReady(z, level));
   return ok.find((z) => z !== state.lastRaidZone) || ok[0] || null;
 }
+// ---------- 지역 챕터 (보스 → 로켓단 → 메가) ----------
+// 지역마다 세 단계: ① 👑 가짜 숫자가 씌워진 보스를 잡아 정복 → ② 🚨 보스를 조종하던 넘버로켓단 대원이 나타난다 (챕터 최종전, 3연전)
+// → ③ 💠 대원을 이겨 숫자를 되찾으면 메가 성역이 열리고 메가 포켓몬. 오박사 의뢰·미션 탭 "모험 일지"·도감 지도가 모두 이 단계를 쓴다.
+// 이 방식 전에 정복한 지역은 성역이 이미 열려 있었으니 그대로 둔다 (state.shrineOpen, applySave 에서 한 번).
+const CHAPTER_ZONES = ROCKET_ZONES; // 대원이 있는 8곳, 지역 레벨 순
+const megaOf = (zn) => creatureData.creatures.find((c) => c.zone === zn && c.shrine) || null;
+const gruntVisible = (zn) => !!state.conquered[zn] || !!state.rockets[zn]; // 대원은 보스를 잡은 뒤에야 모습을 드러낸다 (먼저 이긴 옛 저장은 깃발을 들고 서 있다)
+/** 메가 성역이 열렸나: 정복 + (대원을 이겼거나 · 대원이 없는 지역이거나 · 옛 저장에서 이미 열려 있었거나) */
+function shrineReady(zn) { return !!state.conquered[zn] && (!SHOW_ROCKETS || !GRUNTS[zn] || !!state.rockets[zn] || !!state.shrineOpen?.[zn]); }
+/** 그 지역 챕터의 다음 단계: boss | rocket | mega | done */
+function chapterStep(zn) {
+  if (!state.conquered[zn]) return 'boss';
+  if (SHOW_ROCKETS && GRUNTS[zn] && !state.rockets[zn]) return 'rocket';
+  const m = megaOf(zn);
+  if (m && !(state.dex[m.id] > 0)) return 'mega';
+  return 'done';
+}
+const chaptersDone = () => CHAPTER_ZONES.filter((z) => chapterStep(z) === 'done').length;
+/** 오박사 의뢰로 이끌 챕터: 대표 레벨로 갈 만한 곳 가운데 가장 쉬운, 아직 안 끝난 지역 */
+function pickChapterZone(level) { return CHAPTER_ZONES.find((z) => chapterStep(z) !== 'done' && rocketReady(z, level)) || null; }
+/** 메가 포켓몬을 잡아 그 지역 챕터가 끝났으면 축하 */
+function chapterCaught(id) {
+  const z = CHAPTER_ZONES.find((zn) => megaOf(zn)?.id === id);
+  if (!z || chapterStep(z) !== 'done') return;
+  setTimeout(() => { confetti.burst(240); sound.fanfare(); queueSay(`📖 ${ZONE_INFO[z].name}의 이야기 완료! 보스·로켓단·메가 포켓몬을 모두 해냈어 (${chaptersDone()}/${CHAPTER_ZONES.length} 지역). 도감 🎯 미션 탭의 모험 일지를 봐!`, { sec: 9 }); checkNewStickers(); }, 5000);
+}
+/** 도감 지도·모험 일지용: 지역 → { step, quest(오박사 의뢰 중), ready(레벨로 갈 만함) } */
+function chapterInfo() {
+  const lv = party.leader?.level || 1, q = state.profQuest;
+  return Object.fromEntries(CHAPTER_ZONES.map((z) => [z, { step: chapterStep(z), quest: !!q && !q.done && q.zone === z && (q.kind === 'boss' || q.kind === 'rocket' || q.mega), ready: rocketReady(z, lv) }]));
+}
 function questText(q) {
-  if (q.kind === 'rocket') return `${ZONE_INFO[q.zone]?.name || q.zone}의 붉은 숫자 반응! 넘버로켓단 물리치기`;
+  if (q.kind === 'boss') return `${ZONE_INFO[q.zone]?.name || q.zone}의 보스 ${bossFor(q.zone)?.name || ''} 잡기`;
+  if (q.kind === 'rocket') return `${ZONE_INFO[q.zone]?.name || q.zone}에 숨은 넘버로켓단 물리치기`;
+  if (q.mega) return `${shrineName(q.zone)}의 ${speciesById[q.targetId]?.name || '메가 포켓몬'} 친구로`;
   if (q.kind === 'find') return `${ZONE_INFO[q.zone]?.name || q.zone}에서 강력한 기운의 ${speciesById[q.targetId]?.name || '포켓몬'} 잡아 오기`;
   return `${ZONE_INFO[q.zone]?.name || q.zone}에서 포켓몬 ${q.need}마리 잡기`;
 }
 function newProfQuest(a) {
+  // 지역 챕터가 먼저: 가장 쉬운 안 끝난 지역의 다음 단계 (보스 → 로켓단 → 메가)
+  const cz = SHOW_ROCKETS ? pickChapterZone(a.level) : null;
+  if (cz) {
+    const step = chapterStep(cz), m = megaOf(cz);
+    const q = step === 'boss' ? { kind: 'boss', zone: cz, need: 1, n: 0, reward: 40, done: false }
+      : step === 'rocket' ? { kind: 'rocket', zone: cz, need: 1, n: 0, reward: rocketReward(), done: false }
+      : { kind: 'find', zone: cz, targetId: m.id, mega: true, need: 1, n: 0, reward: 60, done: false };
+    state.profQuest = q; if (q.kind === 'rocket') { state.lastRaidZone = cz; if (zones[cz]) refreshGruntFlag(zones[cz]); }
+    return q;
+  }
   const tg = pickFindTarget(a.level);
   const rz = SHOW_ROCKETS && ((state.profQuests || 0) % 2 === 1 || !tg) ? pickRaidZone(a.level) : null; // 의뢰는 "강력한 기운" ↔ "붉은 숫자 반응"(로켓단)을 번갈아
   if (rz) { const q = { kind: 'rocket', zone: rz, need: 1, n: 0, reward: rocketReward(), done: false }; state.profQuest = q; state.lastRaidZone = rz; if (zones[rz]) refreshGruntFlag(zones[rz]); return q; }
@@ -1346,7 +1391,9 @@ function profTalk() {
   if (q) return `지금 의뢰는 "${questText(q)}" (${q.n}/${q.need})! ${josa(ZONE_INFO[q.zone]?.name || q.zone, '으로')} 가 보렴. 끝내면 블록 ${q.reward}개를 주마.`;
   if (!a) return null;
   const nq = newProfQuest(a);
-  if (nq.kind === 'rocket') { const w = rocketsWon(); return `큰일이다! 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 🚨 붉은 숫자 반응이 강하게 느껴져! 넘버로켓단이 숨어 있나 봐. 포켓몬을 셋이나 데리고 있는 것 같구나. 가서 붉은 숫자를 깨고 포켓몬들을 되돌려 주렴! 블록 ${nq.reward}개를 주마. 🚨 소탕 작전: 지금까지 ${w}/${ROCKET_ZONES.length}곳을 되찾았어${w < 4 ? ' — 4곳을 되찾으면 마스터볼을 주마!' : w < ROCKET_ZONES.length ? ' — 다 되찾으면 마스터볼 2개를 주마!' : ''} (로켓단이 숫자를 틀리게 말하면 바로잡아 줘!)`; }
+  if (nq.kind === 'boss') { const b = bossFor(nq.zone); return `${ZONE_INFO[nq.zone]?.name}에 큰일이 났어! 그곳의 보스 ${josa(b?.name || '보스', '이가')} 🔴 붉은 가짜 숫자에 씌워져 날뛰고 있대. 넘버볼로 잡아서 진짜 숫자를 되찾아 주렴! 블록 ${nq.reward}개를 주마. (📖 모험 일지: ${chaptersDone()}/${CHAPTER_ZONES.length} 지역 완료)`; }
+  if (nq.mega) { const m = speciesById[nq.targetId]; return `${ZONE_INFO[nq.zone]?.name}의 숫자가 돌아오자 ${josa(shrineName(nq.zone), '이가')} 열렸어! 그곳을 지키는 ${josa(m?.name || '메가 포켓몬', '을를')} 친구로 만들면 이 지역 이야기는 끝이야. 아주 세니까 마스터볼을 준비하렴! 블록 ${nq.reward}개를 주마.`; }
+  if (nq.kind === 'rocket') { const w = rocketsWon(); return `보스를 잡았는데도 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 🚨 붉은 숫자 반응이 남아 있어! 보스를 조종하던 넘버로켓단이 숨어 있었던 거야. 포켓몬을 셋이나 데리고 있으니 단단히 준비하렴. 가서 붉은 숫자를 깨고 포켓몬들을 되돌려 주렴! 블록 ${nq.reward}개를 주마. 🚨 소탕 작전: 지금까지 ${w}/${ROCKET_ZONES.length}곳을 되찾았어${w < 4 ? ' — 4곳을 되찾으면 마스터볼을 주마!' : w < ROCKET_ZONES.length ? ' — 다 되찾으면 마스터볼 2개를 주마!' : ''} (로켓단이 숫자를 틀리게 말하면 바로잡아 줘!)`; }
   if (nq.kind === 'find') {
     const tg = speciesById[nq.targetId];
     return `${josa(a.sp.name, '과와')} 잘 지내고 있구나! 그런데 내 계기에 ${ZONE_INFO[nq.zone]?.name}에서 강력한 포켓몬의 기운이 느껴져! 아직 도감에 없는 ${tg.type || '노말'} 포켓몬 ${josa(tg.name, '이야')}. 잡아 오면 블록 ${nq.reward}개를 주마. (미션 탭에서 볼 수 있어. 어떤 속성이 센지는 학교 상성 수업에서 배우렴!)`;
@@ -1426,7 +1473,7 @@ function switchZone(name, spawn, message) {
     const from = zone;
     zone = getZone(name); // 처음 가는 지역은 여기서(페이드 중) 만들어진다
     setActiveTerrain(zone.terrain);
-    if (state.conquered[zone.name]) revealShrine(zone, true); // 정복한 지역에 오면 성역은 이미 떠 있다
+    if (shrineReady(zone.name)) revealShrine(zone, true); // 성역이 열린 지역에 오면 이미 떠 있다
     for (const m of partyMeshes()) { from.scene.remove(m); zone.scene.add(m); }
     player.teleport(spawn.x, spawn.z);
     if (spawn.yaw !== undefined) cam.yaw = spawn.yaw; // 도착 방향이 정해진 곳(연구소 문 앞 등)
@@ -2104,8 +2151,8 @@ function winReward(c) {
 // 한 번 이긴 대원은 그 지역에서 이긴 것으로 기록되고(state.rockets) 다시 싸우지 않는다. 오박사 의뢰 "붉은 숫자 반응"은 아직 못 이긴 대원이 있는 지역으로만.
 function raidOn(zn) { const q = state.profQuest; return !!q && q.kind === 'rocket' && !q.done && q.zone === zn; }
 /** 이 지역 대원이 지금 싸우려 드나 (아직 이기지 않았다) */
-function gruntActive(zn) { return !!GRUNTS[zn] && !state.rockets[zn]; }
-function refreshGruntFlag(z = zone) { const n = z?.grunt; if (!n) return; if (gruntActive(z.name)) removeWhiteFlag(n.mesh); else addWhiteFlag(n.mesh); }
+function gruntActive(zn) { return !!GRUNTS[zn] && !state.rockets[zn] && !!state.conquered[zn]; } // 보스를 잡아야 나타나는 챕터 최종전
+function refreshGruntFlag(z = zone) { const n = z?.grunt; if (!n) return; const show = gruntVisible(z.name); n.hidden = !show; n.mesh.visible = show; if (state.rockets[z.name]) addWhiteFlag(n.mesh); else removeWhiteFlag(n.mesh); }
 /** 대원의 팀 3마리: 앞에 그 지역 포켓몬 둘(조금 약하게), 마지막에 원래 대원의 대표 포켓몬 */
 function gruntTeam(zn, g) {
   const size = 3, k = 1;
@@ -2113,8 +2160,10 @@ function gruntTeam(zn, g) {
   const pool = [...new Set(ids)].map((id) => speciesById[id]).filter((c) => c && c.catchable && !c.boss && !c.mega && !c.unlockedBy && !c.special && !c.sleeping && c.id !== g.mon);
   const picks = [];
   while (picks.length < size - 1 && pool.length) picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  const team = picks.map((sp, i) => ({ id: sp.id, hp: Math.round(g.hp * (0.55 + 0.1 * i) * k), atk: Math.max(2, Math.round(g.atk * (0.75 + 0.05 * i) * k)) }));
-  team.push({ id: g.mon, hp: Math.round(g.hp * k), atk: Math.round(g.atk * k), ace: true });
+  // 챕터 최종전: 에이스는 그 지역 보스와 비슷한 세기 (보스 체력의 90%·공격 같게, 원래 값보다 약해지지는 않는다), 앞의 둘은 에이스의 50·60%
+  const B = bossFor(zn), aceHp = Math.max(g.hp, Math.round((B?.baseHp || 0) * 0.9)), aceAtk = Math.max(g.atk, B?.baseAtk || 0);
+  const team = picks.map((sp, i) => ({ id: sp.id, hp: Math.round(aceHp * (0.5 + 0.1 * i) * k), atk: Math.max(2, Math.round(aceAtk * (0.75 + 0.05 * i) * k)) }));
+  team.push({ id: g.mon, hp: Math.round(aceHp * k), atk: Math.round(aceAtk * k), ace: true });
   return team;
 }
 /** 대원의 틀린 숫자: 지역에 맞는 계산 하나를 일부러 틀리게 말한다. 아이가 바로잡으면 첫 포켓몬의 붉은 숫자가 크게 깎인다 */
@@ -2239,6 +2288,7 @@ function finishGrunt(npc, z, expNote = '') {
   if (quest) { quest.n = quest.need; quest.done = true; setBlocks(Math.min(MAX_BLOCKS, state.blocks + quest.reward), { quiet: true }); }
   refreshGruntFlag(z);
   refreshHud();
+  if (shrineReady(z.name) && z.shrine && !z.shrine.shown) setTimeout(() => { if (zone === z) { revealShrine(z); queueSay(`💠 숫자를 되찾자 ${josa(shrineName(z.name), '이가')} 열렸어! 메가 포켓몬을 찾아가 보자.`, { sec: 8 }); } }, 21000); // 지역 챕터 ③
   say(`🏆 ${team.length}마리를 모두 되돌렸어! 블록 ${blocks}개와 ${BALL_BY_ID[g.ball].name} 1개!${quest ? ` 오박사 의뢰 보상 블록 ${quest.reward}개도!` : ''}${expNote}`, { sec: 8 });
   setTimeout(() => { if (zone === z) say(`${npc.name}: ${g.lose}`, { sec: 6, faceImg: npcFace(npc) }); }, 8200);
   if (milestone) setTimeout(() => { confetti.burst(milestone === 2 ? 320 : 200); sound.fanfare(); queueSay(milestone === 2
@@ -2331,7 +2381,7 @@ function checkNewStickers() {
     caught: state.caught, rescued: state.rescued, blocks: state.blocks,
     bosses: Object.keys(state.conquered).length,
     dexCount: Object.keys(state.dex).filter((k) => state.dex[k] > 0).length,
-    rockets: ROCKET_ZONES.filter((z) => state.rockets[z]).length, rocketAll: ROCKET_ZONES.length,
+    rockets: ROCKET_ZONES.filter((z) => state.rockets[z]).length, rocketAll: ROCKET_ZONES.length, chapters: chaptersDone(),
     stats: state.goals.stats, attendStreak: state.attend.streak, attendTotal: state.attend.total, masters: Object.keys(state.masters).length, dexAll: !!state.dexAll,
   });
   for (const st of got) { sound.fanfare(); confetti.burst(140); queueSay(`🏅 스티커를 받았어! ${st.emoji} ${st.name} — ${st.how}`, { sec: 7 }); }
@@ -2384,7 +2434,14 @@ function conquer(zoneName) {
   showZoneBanner(`${ZONE_INFO[zoneName].name} 정복!`);
   confetti.burst(220);
   const z = zones[zoneName];
-  if (z) setTimeout(() => revealShrine(z), 2200); // 정복 직후 숨어 있던 메가 성역이 나타난다
+  const q = state.profQuest;
+  if (q && !q.done && q.kind === 'boss' && q.zone === zoneName) { q.n = q.need; q.done = true; setTimeout(() => { const merged = setBlocks(Math.min(MAX_BLOCKS, state.blocks + q.reward), { quiet: true }); say(`🔬 오박사의 의뢰 완료! 블록 ${q.reward}개를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 }); refreshHud(); }, 4000); }
+  if (z && shrineReady(zoneName)) setTimeout(() => revealShrine(z), 2200); // 대원이 없거나 이미 이긴 지역: 바로 성역이 나타난다
+  else if (z && SHOW_ROCKETS && GRUNTS[zoneName] && !state.rockets[zoneName]) { // 지역 챕터 ②: 보스를 조종하던 대원이 모습을 드러낸다
+    refreshGruntFlag(z);
+    const g = GRUNTS[zoneName];
+    setTimeout(() => { sound.pickup(); queueSay(`🚨 그런데… 붉은 숫자 반응이 아직 남아 있어! ${josa(ZONE_INFO[zoneName].name, '을를')} 뒤에서 조종하던 넘버로켓단 ${josa(g.name, '이가')} 모습을 드러냈어! 숫자를 되찾으면 메가 성역이 열린대.`, { sec: 9 }); }, 2600);
+  }
   if (n >= ZONE_COUNT) setTimeout(() => say('모든 지역을 정복했어! 넘버랜드의 챔피언이 됐어!', { sec: 10 }), 3000);
   refreshHud();
 }
@@ -2597,7 +2654,7 @@ function buildSaveData() {
     blocks: state.blocks, megaBlocks: state.megaBlocks, glowBlocks: state.glowBlocks, caught: state.caught, rescued: state.rescued,
     conquered: { ...state.conquered }, caughtSpots: { day: state.caughtSpots.day, list: Object.fromEntries(Object.entries(state.caughtSpots.list).map(([k, v]) => [k, [...v]])) }, dex: { ...state.dex }, bossDex: { ...state.bossDex },
     tutorial: state.tutorial, upgradeTold: !!state.upgradeTold, mapTold: !!state.mapTold, glow: state.glow,
-    balls: { ...state.balls }, rockets: { ...state.rockets }, rocketPrize: state.rocketPrize || 0, duelRecord: state.duelRecord, released: { ...state.released },
+    balls: { ...state.balls }, rockets: { ...state.rockets }, rocketPrize: state.rocketPrize || 0, shrineOpen: { ...state.shrineOpen }, chapterV: 1, duelRecord: state.duelRecord, released: { ...state.released },
     party: party.members.map((m) => ({ speciesId: m.speciesId, atk: m.atk, maxHp: m.maxHp, hp: m.hp, level: m.level, exp: m.exp || 0, lv0: m.lv0, atk0: m.atk0, hp0: m.hp0 })),
     items: { ...state.items },
     tower: { ...state.tower, chests: { ...state.tower.chests } }, attend: { ...state.attend }, masters: { ...state.masters }, dexAll: state.dexAll || null, trainer: state.trainer,
@@ -3472,20 +3529,23 @@ function renderGoals(el) {
   const stamps = ATTEND_GIFTS.map((g, i) => `<div class="att${i <= idx ? ' on' : ''}${i === idx ? ' today' : ''}"><span class="att-day">${i + 1}일</span><span class="att-gift">${g.emoji}</span></div>`).join('');
   const q = state.profQuest;
   const quest = q ? `<div class="goal-row${q.done ? ' done' : ''}"><span class="goal-emoji">${q.done ? '✅' : '🔬'}</span><span class="goal-text">${escHtml(questText(q))}${q.done ? ' → 오박사님께!' : ''}</span><div class="goal-bar"><i style="width:${Math.min(100, Math.round((q.n / q.need) * 100))}%"></i></div><span class="goal-num">${Math.min(q.n, q.need)}/${q.need}</span></div>` : '';
-  // 넘버로켓단 소탕 작전 카드: 8곳의 대원, 되찾은 곳·의뢰 중인 곳·갈 만한 곳·아직 이른 곳(추천 레벨)
+  // 📖 모험 일지: 지역 챕터 8곳 — 단계마다 👑 보스 · 🚨 로켓단 · 💠 메가 (✅ 끝 / 지금 단계는 강조 / 🔒 아직 이름). 줄을 누르면 그 지역 지도로
   let rocketCard = '';
   if (SHOW_ROCKETS) {
-    const won = rocketsWon(), N = ROCKET_ZONES.length;
-    const ICON = { won: '✅', quest: '🚨', open: '⬜', later: '🔒' };
-    const rows = ROCKET_ZONES.map((z) => {
-      const st = rocketStatus(z), g = GRUNTS[z], ace = speciesById[g.mon];
-      const note = st === 'won' ? `되찾음 · 에이스 ${escHtml(ace?.name || '')}` : st === 'quest' ? '오박사님 의뢰 중!' : st === 'open' ? '갈 수 있어' : z === 'deepsea' && !state.conquered.sea ? '물의길 정복 뒤' : `Lv.${Math.max(1, (ZONE_LEVEL[z]?.[0] ?? 1) - 3)}부터`;
-      return `<div class="rk-row ${st}"><span class="rk-ic">${ICON[st]}</span><b>${escHtml(ZONE_INFO[z]?.name || z)}</b><span class="rk-who">${escHtml(g.name)}</span><span class="rk-note">${note}</span></div>`;
+    const N = CHAPTER_ZONES.length, done = chaptersDone(), info = chapterInfo();
+    const STEP = { boss: '👑', rocket: '🚨', mega: '💠' };
+    const rows = CHAPTER_ZONES.map((z) => {
+      const it = info[z], st = it.step, order = ['boss', 'rocket', 'mega'], cur = order.indexOf(st), m = megaOf(z), b = bossFor(z), g = GRUNTS[z];
+      const pips = order.map((k, i) => (k === 'mega' && !m) ? '' : `<span class="ch-pip${st === 'done' || i < cur ? ' on' : i === cur ? ' now' : ''}">${STEP[k]}</span>`).join('');
+      const next = st === 'done' ? '🏅 완료!' : !it.ready ? (z === 'deepsea' && !state.conquered.sea ? '🔒 물의길 정복 뒤' : `🔒 Lv.${Math.max(1, (ZONE_LEVEL[z]?.[0] ?? 1) - 3)}부터`)
+        : st === 'boss' ? `→ 보스 ${escHtml(b?.name || '')}` : st === 'rocket' ? `→ 로켓단 ${escHtml(g?.name || '')}` : `→ ${escHtml(m?.name || '메가 포켓몬')}`;
+      return `<button class="ch-row ${st}${it.quest ? ' quest' : ''}${it.ready || st === 'done' ? '' : ' later'}" data-zone="${z}"><b>${escHtml(ZONE_INFO[z]?.name || z)}</b><span class="ch-pips">${pips}</span><span class="ch-next">${next}${it.quest ? ' <em>오박사님 의뢰!</em>' : ''}</span></button>`;
     }).join('');
-    rocketCard = `<div class="rank-head">🚨 넘버로켓단 소탕 작전 <span class="goal-count">${won}/${N}</span></div>
-    <div class="goal-bar rk-bar"><i style="width:${Math.round((won / N) * 100)}%"></i></div>
-    <div class="rk-rows">${rows}</div>
-    <div class="goal-gift">${won >= N ? '🦸 모두 되찾았어! 넘버 히어로!' : won >= 4 ? `다 되찾으면 마스터볼 2개!` : '4곳을 되찾으면 마스터볼 1개, 다 되찾으면 2개 더!'} 오박사님께 말을 걸면 다음 곳을 알려 주셔.</div>`;
+    const won = rocketsWon();
+    rocketCard = `<div class="rank-head">📖 모험 일지 <span class="goal-count">${done}/${N} 지역</span></div>
+    <div class="goal-bar rk-bar"><i style="width:${Math.round((done / N) * 100)}%"></i></div>
+    <div class="ch-rows">${rows}</div>
+    <div class="goal-gift">👑 보스를 잡으면 🚨 숨어 있던 로켓단이 나타나고, 로켓단을 이기면 💠 메가 성역이 열려! (로켓단 ${won}/${ROCKET_ZONES.length} — ${won >= ROCKET_ZONES.length ? '모두 물리쳤어!' : won >= 4 ? '다 물리치면 마스터볼 2개' : '4곳이면 마스터볼 1개'})</div>`;
   }
   // 한눈에: ① 오늘 할 일(미션 셋 + 오박사 의뢰) ② 로켓단 소탕 작전 ③ 출석 도장 한 줄 ④ 스티커는 접어 둔다
   el.innerHTML = `<div class="rank-head">🎯 오늘 할 일 <span class="goal-count">${nDone}/${G.tasks.length}</span></div>
@@ -3498,6 +3558,7 @@ function renderGoals(el) {
     <button class="stk-toggle" type="button">🏅 스티커 ${got} / ${STICKERS.length} <span>${goalsStickersOpen ? '접기 ▲' : '보기 ▼'}</span></button>
     <div class="stk-board${goalsStickersOpen ? '' : ' hidden'}">${board}</div>`;
   el.querySelector('.stk-toggle').onclick = () => { sound.click(); goalsStickersOpen = !goalsStickersOpen; renderGoals(el); };
+  el.querySelectorAll('.ch-row').forEach((b) => { b.onclick = () => { sound.click(); dex.mapSel = b.dataset.zone; dex.setTab?.('map'); }; }); // 모험 일지 줄 → 그 지역 지도
 }
 let goalsStickersOpen = false;
 cloud.init().then(() => refreshAccountUi()).catch((e) => console.warn('[cloud]', e));
@@ -3553,6 +3614,9 @@ function applySave(d) {
   state.trainer = trainerOf(d.trainer).id; // 고른 주인공 (옛 저장은 지우)
   state.rockets = { ...(d.rockets || {}) };
   state.rocketPrize = d.rocketPrize | 0;
+  state.shrineOpen = { ...(d.shrineOpen || {}) };
+  if (!d.chapterV) for (const z of Object.keys(d.conquered || {})) state.shrineOpen[z] = true; // 지역 챕터 전에 정복한 곳: 성역은 이미 열려 있었다 → 그대로
+  state.chapterV = 1;
   { const r = d.duelRecord || {}; state.duelRecord = { w: r.w | 0, l: r.l | 0, vs: {}, ids: Array.isArray(r.ids) ? r.ids.filter((x) => typeof x === 'string').slice(-30) : [] }; for (const [k, v] of Object.entries(r.vs || {})) if (v && typeof v === 'object') state.duelRecord.vs[k] = { n: String(v.n || '').slice(0, 8), w: v.w | 0, l: v.l | 0 }; } // 친구 대결 전적
   state.released = { ...(d.released || {}) };
   state.gym = d.gym && d.gym.trained ? { day: d.gym.day || '', trained: { ...d.gym.trained } } : { day: '', trained: {} };
@@ -3582,7 +3646,8 @@ function applySave(d) {
   for (const m of party.members) checkMaster(m, true); // 이미 Lv.50 인 포켓몬은 조용히 마스터
   setTimeout(() => checkDexComplete(), 4000); // 이미 다 채웠는데 축하를 못 받았으면 지금
   setBlocks(d.blocks || 0, { quiet: true, mission: false }); // 불러오기: 금빛 블록 축하도, 오늘의 미션 셈도 하지 않는다
-  for (const [n, z] of Object.entries(zones)) if (state.conquered[n]) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
+  for (const [n, z] of Object.entries(zones)) if (shrineReady(n)) revealShrine(z, true); // 미리 만들어 둔 지역의 성역도 드러낸다
+  for (const z of Object.values(zones)) refreshGruntFlag(z); // 미리 만들어 둔 지역의 대원: 저장에 맞춰 숨기거나 드러낸다
   if (state.admin) { adminGrantAll(); showAdminPanel(); }
   applyOneTimeGrants(d);
   sound.fanfare();
@@ -3747,6 +3812,7 @@ function frame() {
     if (!moved && zone.world.bed && !sleeping && near(zone.world.bed, 1.6) && (zone.world.bed.y == null || Math.abs(pp.y - zone.world.bed.y) < 1.2)) offer('🛏 자기', sleepInBed, '🛏\n자기');
     // ----- 사람과 이야기하기 (지역 안내 NPC, 오박사) -----
     if (!moved) for (const npc of zone.world.npcs || []) {
+      if (npc.hidden) continue; // 아직 숨어 있는 넘버로켓단 대원
       const d = Math.hypot(pp.x - npc.x, pp.z - npc.z);
       if (d < 7 && !npc.seated) npc.mesh.rotation.y = Math.atan2(pp.x - npc.x, pp.z - npc.z); // 가까이 오면 이쪽을 본다
       if (d < 2.8 && (npc.y == null || Math.abs(pp.y - npc.y) < 2)) { // 다른 층(도서관 회랑의 사서)은 같은 층에서만
@@ -3903,7 +3969,7 @@ function frame() {
             setTimeout(() => checkDexComplete(), 1200); // 도감을 다 채웠나 (잡기 말풍선 뒤에 큰 축하)
             checkUnlocked(c.data.id); // 이 포켓몬을 잡아서 나타나는 특별 포켓몬이 있나 (메가팬텀 → 메가리자몽X)
             wkAdd('caught');
-            bump('catch'); questHit('catch', { id: c.data.id });
+            bump('catch'); questHit('catch', { id: c.data.id }); chapterCaught(c.data.id);
             if (c.isBoss) wkAdd('boss');
             if (c.data.mega) { // 메가 포켓몬을 잡으면 메가블럭을 준다 (메가 진화에 쓴다)
               state.caught++;
