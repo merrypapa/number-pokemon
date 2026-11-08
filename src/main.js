@@ -1152,7 +1152,7 @@ function applyZoneEnv() {
   setupSky(renderer, zone); // 하늘 그라데이션 + 환경 조명 (지역마다 한 번)
   player.gravityScale = zone.world.gravity || 1;
   player.climbAt = zone.world.climbAt || null; // 야외 체육관의 올라갈 수 있는 나무
-  if (zone.world.gym) spawnGymPets(); else if (gymPets.length) clearGymPets(); // 체육관: 내 포켓몬들이 모두 나와 뛰어논다
+  if (zone.world.gym) { spawnGymPets(); if (gymHidden > 0) queueSay(`🏟 체육관에는 대표와 레벨 높은 친구들이 나와서 놀아 (${gymHidden}마리는 쉬는 중)`, { sec: 5 }); } else if (gymPets.length) clearGymPets(); // 체육관: 내 포켓몬들이 모두 나와 뛰어논다
   if (!zone.world.gym && !flying) for (const f of chain.followers) f.mesh.visible = true;
   refreshGruntFlag(zone); // 오박사 의뢰로 다시 나타난 대원은 흰 깃발을 내린다
   const q = state.profQuest;
@@ -1165,6 +1165,7 @@ function applyZoneEnv() {
 // 들어오면 파티의 모든 포켓몬이 운동장에 나와 제멋대로 돌아다니고(목표 자리로 걷기 → 잠깐 쉬기 → 가끔 폴짝), 따라다니던 친구들은 숨긴다.
 // 포켓몬에게 가까이 가면 액션 버튼이 "💪 훈련하기": 경험치(다음 레벨의 30%, 적어도 5)를 받고 폴짝폴짝. 한 마리에 하루 3번 (state.gym).
 let gymPets = []; // { m, mesh, label, target, wait, hop }
+let gymHidden = 0; // 체육관에 안 나온 포켓몬 수 (종 수 제한)
 const GYM_TRAIN_MAX = 3;
 const isWaterSp = (sp) => (sp.type || '노말') === '물' || !!sp.swim; // 물 포켓몬은 연못에서 논다
 function gymSpot(p) { // 집 근처의 새 목표 (땅은 연못 밖, 물은 연못 안)
@@ -1175,7 +1176,13 @@ function petLabel(m) { return makePillSprite(`${party.name(m)} Lv.${m.level}`, {
 function spawnGymPets() {
   clearGymPets();
   for (const f of chain.followers) f.mesh.visible = false;
-  const landM = party.members.filter((m) => !isWaterSp(party.species(m))), waterM = party.members.filter((m) => isWaterSp(party.species(m)));
+  // 아이폰이 체육관에서 좀 있다가 꺼지던 문제: 포켓몬 130마리가 모두 나오면 종마다 다른 텍스처(1024²)를 GPU 에 올려
+  // 둘러볼수록 메모리가 쌓였다. 체육관에는 종 수를 정해 두고(아이폰 14종, 그 밖 28종) 대표 → 레벨 높은 순으로 고른다 (같은 종은 텍스처를 같이 써서 더 나와도 된다)
+  const maxSp = isIOS() ? 14 : 28, L = party.leader, picked = [], kinds = new Set();
+  const ranked = [...party.members].sort((a, b) => (b === L) - (a === L) || (b.level || 1) - (a.level || 1));
+  for (const m of ranked) { const id = m.speciesId; if (!kinds.has(id) && kinds.size >= maxSp) continue; kinds.add(id); picked.push(m); }
+  gymHidden = party.members.length - picked.length;
+  const landM = picked.filter((m) => !isWaterSp(party.species(m))), waterM = picked.filter((m) => isWaterSp(party.species(m)));
   const H = zone.world.homes(landM.length, waterM.length);
   const place = (m, home, water) => {
     const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
@@ -1186,7 +1193,13 @@ function spawnGymPets() {
   waterM.forEach((m, i) => place(m, H.water[i], true));
 }
 function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
-function clearGymPets() { for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); } gymPets = []; }
+function clearGymPets() {
+  // 체육관을 나가면 그 포켓몬들의 텍스처를 GPU 에서 내려 메모리를 돌려준다 (다시 그릴 일이 생기면 three 가 알아서 다시 올린다)
+  const tex = new Set();
+  for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); p.mesh.traverse((o) => { if (o.isMesh) for (const mt of [].concat(o.material)) if (mt?.map) tex.add(mt.map); }); }
+  for (const t of tex) t.dispose();
+  gymPets = [];
+}
 const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
 function gymTick(dt) {
   if (!zone?.world?.gym || !gymPets.length) return;
