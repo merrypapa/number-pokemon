@@ -3641,6 +3641,11 @@ function applySave(d) {
   if (state.conquered.forest) removeBoulder();
   // 파티를 먼저 채운다 — 지역을 만들 때 야생 레벨이 대표 레벨을 본다 (wildBonus)
   const seenSpecies = new Set();
+  // 게임에서 뺀 지어낸 포켓몬(구회·끼북겅·몰라용·토눈·버빨황·에스퍼·용암냥이): 파티·도감에서 빼고 한 마리에 블록 30개씩 돌려준다 (한 번)
+  const REMOVED = { m43: '구회', m44: '끼북겅', m74: '몰라용', m48: '토눈', m49: '버빨황', m50: '에스퍼', m54: '용암냥이' };
+  const gone = (d.party || []).filter((m) => REMOVED[m.speciesId]).map((m) => REMOVED[m.speciesId]);
+  for (const id of Object.keys(REMOVED)) { delete state.dex[id]; delete state.bossDex[id]; }
+  if (gone.length) setTimeout(() => { setBlocks(Math.min(MAX_BLOCKS, state.blocks + gone.length * 30), { quiet: true }); queueSay(`🧹 ${gone.join('·')}${josa(gone.at(-1), '은는').slice(-1)} 이제 넘버랜드를 떠났어. 대신 블록 ${gone.length * 30}개를 받았어!`, { sec: 8 }); refreshHud(); }, 2500);
   for (const m of d.party || []) {
     m.speciesId = ALIAS[m.speciesId] || m.speciesId;
     if (seenSpecies.has(m.speciesId)) continue; // 합쳐진 종이 둘이면 하나만
