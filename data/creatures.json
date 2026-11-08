@@ -183,7 +183,6 @@
    "blockValue": 3,
    "planet": true,
    "wild": [
-    "m48",
     "m11",
     "m05",
     "m01",
@@ -250,10 +249,12 @@
    "blockValue": 3,
    "planet": true,
    "wild": [
-    "m49",
     "m15",
     "m24",
-    "m10"
+    "m10",
+    "m77",
+    "m79",
+    "m11"
    ],
    "wildOverride": {
     "swim": false,
@@ -310,7 +311,6 @@
    "planet": true,
    "wild": [
     "m26",
-    "m50",
     "m45",
     "m24",
     "m15",
@@ -3327,96 +3327,6 @@
    "grade": 4
   },
   {
-   "id": "m43",
-   "name": "구회",
-   "type": "페어리",
-   "zone": "space",
-   "catchable": true,
-   "model": "구회.glb",
-   "scale": 1.0,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#FFD93D",
-    "glow": true
-   },
-   "baseHp": 70,
-   "baseAtk": 15,
-   "skills": [
-    {
-     "name": "반짝임",
-     "atk": 1,
-     "power": 1,
-     "kind": "psychic"
-    },
-    {
-     "name": "별염동력",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "psychic",
-     "type": "에스퍼"
-    },
-    {
-     "name": "유성충돌",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "tackle"
-    },
-    {
-     "name": "소원빌기",
-     "atk": 30,
-     "power": 1.75,
-     "kind": "sing"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 5,
-   "personality": "반짝반짝",
-   "story": "꿈의우주 별하늘에서 떨어진 노란 별 포켓몬. 꼭짓점이 다섯 개라 숫자 5를 제일 좋아해. 만지면 온몸이 반짝이며 소원을 하나 들어준다는 소문이 있어.",
-   "grade": 5
-  },
-  {
-   "id": "m44",
-   "name": "끼북겅",
-   "type": "물",
-   "zone": "sea",
-   "catchable": true,
-   "model": "끼북겅.glb",
-   "scale": 0.7,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#8BE04A",
-    "eyes": 2
-   },
-   "baseHp": 24,
-   "baseAtk": 6,
-   "skills": [
-    {
-     "name": "거품",
-     "atk": 1,
-     "power": 1,
-     "kind": "water"
-    },
-    {
-     "name": "조개껍질던지기",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "rock",
-     "type": "바위"
-    },
-    {
-     "name": "몸통박치기",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "tackle"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 4,
-   "personality": "아장아장",
-   "story": "물의길 모래섬에서 아장아장 걸어 다니는 아기 거북. 큰 눈으로 두리번거리며 조개껍데기를 모아. 물의길에서 가장 약하지만 제일 귀여워.",
-   "grade": 3
-  },
-  {
    "id": "m45",
    "name": "이상해할로윈",
    "type": "고스트",
@@ -3561,138 +3471,6 @@
     "scale": 2.0,
     "grade": 6
    }
-  },
-  {
-   "id": "m48",
-   "name": "토눈",
-   "type": "노말",
-   "zone": "p_earth",
-   "catchable": true,
-   "model": "토눈.glb",
-   "scale": 1.1,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#5BD64A",
-    "eyes": 2
-   },
-   "baseHp": 40,
-   "baseAtk": 8,
-   "skills": [
-    {
-     "name": "혀내밀기",
-     "atk": 1,
-     "power": 1,
-     "kind": "tackle"
-    },
-    {
-     "name": "토끼발차기",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "punch",
-     "type": "격투"
-    },
-    {
-     "name": "엉덩이찍기",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "tackle"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 3,
-   "personality": "명랑함",
-   "story": "지구의 초록 들판을 콩콩 뛰어다니는 초록 공룡. 긴 혀로 과일을 낚아채 먹고 알을 낳아 던져. 코가 크고 잘 웃어.",
-   "grade": 3
-  },
-  {
-   "id": "m49",
-   "name": "버빨황",
-   "type": "노말",
-   "zone": "p_saturn",
-   "catchable": true,
-   "model": "버빨황.glb",
-   "scale": 1.0,
-   "draftShape": {
-    "body": "capsule",
-    "color": "#F2F2F2",
-    "dots": 3
-   },
-   "baseHp": 60,
-   "baseAtk": 15,
-   "skills": [
-    {
-     "name": "버섯던지기",
-     "atk": 1,
-     "power": 1,
-     "kind": "tackle"
-    },
-    {
-     "name": "버섯펀치",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "punch",
-     "type": "격투"
-    },
-    {
-     "name": "버섯점프",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "tackle"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 5,
-   "personality": "수줍음",
-   "story": "빨간 점박이 버섯 모자를 쓴 작은 친구. 토성 고리의 얼음 조각 사이에서 버섯을 키우며 살아. 놀라면 모자 속으로 쏙 숨는대.",
-   "grade": 5
-  },
-  {
-   "id": "m50",
-   "name": "에스퍼",
-   "type": "에스퍼",
-   "zone": "p_pluto",
-   "catchable": true,
-   "model": "에스퍼.glb",
-   "scale": 1.1,
-   "draftShape": {
-    "body": "capsule",
-    "color": "#8E5BD6",
-    "glow": true
-   },
-   "baseHp": 70,
-   "baseAtk": 18,
-   "skills": [
-    {
-     "name": "염동력",
-     "atk": 1,
-     "power": 1,
-     "kind": "psychic"
-    },
-    {
-     "name": "요정의빛",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "sing",
-     "type": "페어리"
-    },
-    {
-     "name": "수정구슬",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "psychic"
-    },
-    {
-     "name": "별의마법",
-     "atk": 30,
-     "power": 1.75,
-     "kind": "psychic"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 7,
-   "personality": "신비로움",
-   "story": "별무늬 마법사 모자를 쓰고 지팡이를 든 초록 도마뱀. 명왕성의 어둠 속에서 수정 구슬로 별빛을 모아 마법을 부려.",
-   "grade": 5
   },
   {
    "id": "x01",
@@ -4324,50 +4102,6 @@
    "favoriteNumber": 8,
    "personality": "흥이 넘침",
    "story": "불의산 메가리자몽Y를 이긴 트레이너 앞에만 나타나는 리자몽. 용암이 보글보글 끓는 소리에 맞춰 박자를 타며 춤을 춰. 불꽃도 비트에 맞춰 터뜨린대."
-  },
-  {
-   "id": "m54",
-   "name": "용암냥이",
-   "type": "불",
-   "zone": "volcano",
-   "catchable": true,
-   "model": "용암냥이.glb",
-   "scale": 0.9,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#FF5A1F",
-    "ears": 2,
-    "paws": 4,
-    "glow": true
-   },
-   "baseHp": 48,
-   "baseAtk": 12,
-   "grade": 4,
-   "skills": [
-    {
-     "name": "할퀴기",
-     "atk": 1,
-     "power": 1,
-     "kind": "scratch"
-    },
-    {
-     "name": "모래긁기",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "sand",
-     "type": "땅"
-    },
-    {
-     "name": "용암구르기",
-     "atk": 18,
-     "power": 1.5,
-     "kind": "fire"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 4,
-   "personality": "장난꾸러기",
-   "story": "불의산 용암 웅덩이 옆에서 사는 고양이. 발바닥이 뜨거워서 한 자리에 오래 못 있고 폴짝폴짝 뛰어다녀. 네 발에 작은 불꽃이 하나씩 붙어 있어."
   },
   {
    "id": "m55",
@@ -5773,48 +5507,6 @@
    "favoriteNumber": 6,
    "personality": "느릿느릿",
    "story": "꼬리를 셀러에게 물린 뒤 느긋해진 물 포켓몬. 뭘 물어보면 6초 뒤에 대답해."
-  },
-  {
-   "id": "m74",
-   "name": "몰라용",
-   "type": "물",
-   "zone": "sea",
-   "catchable": true,
-   "model": "몰라용.glb",
-   "scale": 1.0,
-   "draftShape": {
-    "body": "sphere",
-    "color": "#8FD3F4"
-   },
-   "baseHp": 30,
-   "baseAtk": 7,
-   "grade": 3,
-   "skills": [
-    {
-     "name": "물대포",
-     "atk": 1,
-     "power": 1,
-     "kind": "water"
-    },
-    {
-     "name": "고개갸웃",
-     "atk": 10,
-     "power": 1.25,
-     "kind": "sing",
-     "type": "노말"
-    },
-    {
-     "name": "거품",
-     "atk": 20,
-     "power": 1.5,
-     "kind": "water"
-    }
-   ],
-   "evolution": null,
-   "favoriteNumber": 0,
-   "personality": "몰라",
-   "story": "바다에 떠 있는 작은 용 모양 포켓몬. 뭘 물어도 \"몰라용~\" 하고 고개를 갸웃. 숫자 0처럼 동글동글해.",
-   "swim": true
   },
   {
    "id": "m75",
