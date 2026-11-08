@@ -172,10 +172,10 @@ const CHIEFS = [
   { zone: 'p_neptune', name: '넘버에이트', num: 8, mon: 'm22', hp: 74, atk: 13, ball: 'gold',   blocks: 60,
     quip: '여덟은 눕히면 끝이 없다. 영원이라는 뜻이지.',
     secret: '해왕성은 태양에서 여덟 번째, 가장 먼 행성이다. 한 바퀴 도는 데 165년이 걸린다.' },
-  { zone: 'p_pluto',   name: '넘버나인', num: 9,  mon: 'm55', hp: 118, atk: 20, ball: 'diamond', blocks: 72,
+  { zone: 'p_pluto',   name: '넘버나인', num: 9,  mon: 'm55', hp: 118, atk: 20, ball: 'master', blocks: 72,
     quip: '아홉은 열의 바로 앞. 아무리 가도 열이 되지 못하는 숫자다.',
     secret: '명왕성은 아홉 번째 행성이었다가 왜소행성이 되었다. 아홉에서 밀려난 별이지.' },
-  { zone: 'p_sun',     name: '넘버텐',   num: 10, mon: 'm25', hp: 104, atk: 19, ball: 'diamond', blocks: 90,
+  { zone: 'p_sun',     name: '넘버텐',   num: 10, mon: 'm25', hp: 104, atk: 19, ball: 'master', blocks: 90,
     quip: '열은 단장님의 숫자다. 0 옆에 1이 서면 열이 되니까.',
     secret: '태양 하나에 지구가 109개나 들어간다. 태양계 무게의 99.8%가 태양이다.' },
 ];
