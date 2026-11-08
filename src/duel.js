@@ -9,7 +9,7 @@ import { josa } from './util.js';
 //  - 옛 문서(mons.a 가 포켓몬 하나)는 한 마리 팀으로 읽는다 (teamOf).
 import { effectiveness, effectWord, skillIcon } from './types.js';
 
-export const DUEL_REWARD = { win: 50, lose: 15, winBall: 'gold' }; // 끝나면 받는 블록 (이기면 골드볼 1개도)
+export const DUEL_REWARD = { win: 50, lose: 15, winBall: 'gold' }; // 끝나면 받는 블록 (이기면 슈퍼볼 1개도)
 export const DUEL_POTIONS = 2;      // 대결 한 번에 쓸 수 있는 물약 수 (각자, 가방과 상관없이 공짜)
 export const DUEL_POTION_HEAL = 0.4; // 물약 하나: 최대 체력의 40% 회복
 export const DUEL_SWITCHES = 2;      // 대결 한 번에 직접 교체할 수 있는 횟수 (쓰러져서 저절로 나오는 건 안 센다)

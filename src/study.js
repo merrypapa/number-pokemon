@@ -154,7 +154,7 @@ export const HW_BONUS = 10;    // 숙제를 끝내고 오박사님께 말하면 
 export const TYPE_LEN = 5;     // 상성 퀴즈 다섯 문제
 export const TYPE_BLOCKS = 2;  // 상성 퀴즈 정답마다 블록
 export const TYPE_POTION_AT = 3; // 하루 한 번: 3개 이상 맞히면 물약 1개
-// 다 맞히면 브론즈볼 1개 (하루 한 번)
+// 다 맞히면 몬스터볼 1개 (하루 한 번)
 
 export function emptySchool() { return { day: dayKey(), studied: {}, hwDone: false, hwPaid: false, total: {} }; }
 /** 저장에서 읽은 기록. 하루가 바뀌었으면 오늘 기록(공부 횟수·숙제)은 새로 시작한다 */
@@ -226,7 +226,7 @@ export class Study {
       <div class="study-title">📘 오박사 선생님의 상성 수업</div>
       <div class="study-progress">${CHAPTERS.map((_, i) => `<i class="${i < k ? 'past' : i === k ? 'now' : ''}"></i>`).join('')}</div>
       ${chapterHtml(k, this.getAllSpecies(), this.thumbOf)}
-      ${last ? `<div class="study-hw">🎁 상성 퀴즈 ${TYPE_LEN}문제: 정답마다 블록 ${TYPE_BLOCKS}개. 하루 한 번 ${TYPE_POTION_AT}개 이상 맞히면 🧪 물약, 다 맞히면 ⚪ 브론즈볼도!${today && T.potion ? ' (오늘 물약은 받았어' + (T.ball ? '·브론즈볼도 받았어)' : ')') : ''}</div>` : ''}
+      ${last ? `<div class="study-hw">🎁 상성 퀴즈 ${TYPE_LEN}문제: 정답마다 블록 ${TYPE_BLOCKS}개. 하루 한 번 ${TYPE_POTION_AT}개 이상 맞히면 🧪 물약, 다 맞히면 🔴 몬스터볼도!${today && T.potion ? ' (오늘 물약은 받았어' + (T.ball ? '·몬스터볼도 받았어)' : ')') : ''}</div>` : ''}
       <div class="study-nav"><button class="study-leave">👋 그만 듣기</button>${k > 0 ? '<button class="study-back">◀ 앞 교시</button>' : ''}${last ? '<button class="study-next">🧩 상성 퀴즈 풀기 ▶</button>' : '<button class="study-next">다음 교시 ▶</button>'}</div>`;
     this.card.querySelector('.study-leave').onclick = () => { this.sound?.click(); this.close(); };
     this.card.querySelector('.study-back')?.addEventListener('click', () => { this.sound?.click(); this.chapter--; this.renderTypeLesson(); });
@@ -253,7 +253,7 @@ export class Study {
       <div class="study-title">💥 상성 퀴즈 끝!</div>
       <div class="study-result">${perfect ? '💯' : L.correct >= TYPE_POTION_AT ? '👍' : '💪'}</div>
       <div class="study-q">${L.qs.length}문제 중 <b>${L.correct}</b>개 맞았어!${perfect ? ' 만점이야!' : ''}</div>
-      <div class="study-why right">🟦 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어!</div>
+      <div class="study-why right">🟦 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + 🔴 몬스터볼 1개' : ''}를 받았어!</div>
       ${!potion && L.correct < TYPE_POTION_AT ? `<div class="study-why wrong">${TYPE_POTION_AT}개 이상 맞히면 물약을 줘. 수업을 다시 보고 도전해 봐!</div>` : ''}
       <div class="study-nav"><button class="study-back">📘 수업 다시 보기</button><button class="study-leave2">👋 그만 듣기</button></div>`;
     this.lesson = null;

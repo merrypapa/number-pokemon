@@ -508,7 +508,7 @@ export function buildPlanet(p, scene, { info = {}, speciesName = (id) => id, bos
       p.fact,
       boss ? (c.conquered[p.zone] ? `보스 ${josa(boss.name, '을를')} 이겼구나! ${p.name}은 이제 네 거야.${hidden ? ` 그리고 ${p.name} 어딘가에 숨어 있던 ${josa(hidden.name, '이가')} 나타났대. 체력 ${hidden.baseHp}, 공격 ${hidden.baseAtk}이니 조심해!` : ''}` : `북쪽 아레나에 보스 ${josa(boss.name, '이가')} 있어. 체력 ${boss.baseHp}, 공격 ${boss.baseAtk}! 공격 ${(info.targetAtk || 10) + 3} 이상이면 도전해 봐.${hidden ? ' 보스를 잡으면 이 행성에 숨은 포켓몬이 하나 더 나타난대.' : ''}`) : p.fact,
       `행성마다 넘버로켓단 간부가 하나씩 버티고 있어. ${p.name} 아레나의 보스도 간부가 가짜 숫자로 앞세운 포켓몬이야.`,
-      '보스를 되돌릴 때마다 로켓단이 뺏어 간 숫자가 하나씩 세상에 돌아와. 열 개가 다 모이면 꿈의우주에 전설의 뮤가 나타난대! 아주아주 세니까 메가큐브을 잔뜩 준비해.',
+      '보스를 되돌릴 때마다 로켓단이 뺏어 간 숫자가 하나씩 세상에 돌아와. 열 개가 다 모이면 꿈의우주에 전설의 뮤가 나타난대! 아주아주 세니까 마스터볼을 잔뜩 준비해.',
       '꿈의우주로 돌아가려면 나한테 말을 걸고 빨간 버튼을, 다른 행성으로 가려면 보라 버튼을 눌러!',
     ],
   });

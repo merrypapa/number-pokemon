@@ -210,7 +210,7 @@ const PICKUP_MODEL = { p_sun: '햇님.glb', p_uranus: '보석.glb', space: '황�
 // 줍는 것 중 가끔 섞여 나오는 수수께끼 상자. 주우면 블록 대신 숫자블록 친구가 그 자리에서 튀어나온다 (아래 spawnRescue)
 const CHEST_MODEL = { forest: '수수께끼블록.glb', cave: '수수께끼블록.glb', thunder: '수수께끼블록.glb', tower: '수수께끼블록.glb', volcano: '수수께끼블록.glb', hive: '수수께끼블록.glb', sea: '바다보물상자.glb', deepsea: '바다보물상자.glb' };
 const CHEST_CHANCE = 0.12; // 여덟 개에 하나쯤 — 가끔 만나야 반갑다. 흰 블록이 "블록 한 개"를 눈으로 보여 주는 장치이기도 해서 상자로 다 바꾸지는 않는다
-const ITEM_MODELS = [BALL_MODEL, CUBE_MODEL, MASTER_MODEL, ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
+const ITEM_MODELS = [BALL_MODEL, MASTER_MODEL, /* CUBE_MODEL: 메가큐브를 없애 미리 받지 않는다 */ ...Object.values(PICKUP_MODEL), ...new Set(Object.values(CHEST_MODEL))];
 const modelFiles = [PLAYER_MODEL, CAR_MODEL, ...creatureData.creatures.map((c) => c.model), ...NPC_MODELS, ...ITEM_MODELS];
 const loadingEl = document.getElementById('title-loading');
 let updatingNow = false; // 새 버전으로 바꾸는 중(곧 새로고침): 불러오기 숫자 대신 그 안내를 보여 준다 — 숫자가 올라가다 1부터 다시 세는 게 왜인지 아이가 궁금해했다
@@ -553,7 +553,7 @@ function revealShrine(z, silent = false) {
   }
   if (!silent) {
     showZoneBanner(`✨ ${shrineName(z.name)} 출현!`);
-    setTimeout(() => say(`숨어 있던 ${josa(shrineName(z.name), '이가')} 솟아올랐어! ${mega ? `그곳을 지키는 ${josa(mega.name, '이가')} 나타났어. 메가큐브을 준비해서 도전해 봐!` : ''}`, { sec: 10 }), 1800);
+    setTimeout(() => say(`숨어 있던 ${josa(shrineName(z.name), '이가')} 솟아올랐어! ${mega ? `그곳을 지키는 ${josa(mega.name, '이가')} 나타났어. 마스터볼을 준비해서 도전해 봐!` : ''}`, { sec: 10 }), 1800);
   }
 }
 /** 지역을 만들고(없으면) 몬스터·보스·블록을 채운다. 저장에서 이미 잡은 몬스터는 빼 둔다. */
@@ -671,7 +671,7 @@ const ZONE_COUNT = CONQUERABLE.length;
 // ---------- 게임 상태 ----------
 const MAX_BLOCKS = 1000; // 블록 더미 최대 (50개마다 금빛 한 칸으로 뭉치니 1000개까지 모아도 더미가 넘치지 않는다)
 const MEGA_REWARD = 2;  // 메가 포켓몬 한 마리를 잡으면 받는 메가블럭 수 (메가 진화 1번에 1개)
-const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, rocketPrize: 0, duelRecord: { w: 0, l: 0, vs: {} }, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, diamond: 0, master: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
+const state = { name: PLAYER_NAME, admin: false, blocks: 0, megaBlocks: 0, caught: 0, rescued: 0, conquered: {}, caughtCreatures: {}, caughtSpots: { day: '', list: {} }, tutorial: 0, frames: 0, glow: false, dex: {}, glowBlocks: 0, prompt: 0, autosave: 90, returnTo: null, carTold: false, bossDex: {}, rockets: {}, rocketPrize: 0, duelRecord: { w: 0, l: 0, vs: {} }, released: {}, lastWeek: null, lastWk: null, balls: { bronze: 3, silver: 0, gold: 0, master: 0 }, week: weekKey(), wk: emptyWeek(), learn: emptyLearn(), goals: emptyGoals(), school: emptySchool(), items: emptyItems(), tower: { best: 1, chests: {} }, attend: emptyAttend(), masters: {}, dexAll: null, trainer: DEFAULT_TRAINER.id, gym: { day: '', trained: {} }, profQuest: null, profQuests: 0, flyTold: false }; // gym: 야외 체육관 훈련 횟수(날짜별) // profQuest: 오박사의 의뢰 { kind, zone, type, need, n, reward, done } // flyTold: 날기 안내를 보여 줬나 // trainer: 고른 주인공 (src/trainers.js, 찰떡 속성) // masters: Lv.50 마스터 타이틀 (종 id → 날짜) // dexAll: 도감을 다 채운 날 (축하는 한 번) // attend: 출석 도장 { last, streak, total } (src/goals.js) // tower.chests: 동굴탑 10층마다 연 보상 상자 // tower: 동굴탑에서 가 본 가장 높은 층 (src/tower.js) // items: 상점에서 산 물약·열매 (src/items.js) // school: 포켓몬 학교 공부·숙제 기록 (src/study.js) // week/wk: 이번 주(ISO 주) 순위표 기록 — 퀴즈 정답·잡기·보스 (src/rank.js) // carTold: 이상해꽃 자동차 안내를 한 번 보여 줬나 // released: 한 번 풀어준 포켓몬 종 (id → true): 같은 종을 또 풀어주면 블록은 안 준다 (경험치는 준다) // rockets: 항복시킨 넘버로켓단 대원 (지역 이름 → true, src/rocket.js) // lastWeek/lastWk: 지난주 기록 (순위 화면에서 이번 주와 견줘 본다) // balls: 넘버볼 재고 (처음엔 브론즈 3개) // returnTo: 연구소 워프 패드로 돌아갈 지역 // glowBlocks: 어두운 곳에서 주운 형광 블록 수
 const party = new Party(speciesById);
 party.megaBlocks = () => state.megaBlocks;
 party.onUseMega = (n) => { state.megaBlocks = Math.max(0, state.megaBlocks - n); refreshHud(); };
@@ -698,13 +698,13 @@ const study = new Study({
     autosave();
   },
   onClose: () => { say('자리에서 일어났어. 다시 공부하고 싶으면 ⭐ 내 자리로 와!', { sec: 3 }); },
-  // 상성 수업 퀴즈 보상: 정답마다 블록, 하루 한 번 물약(3개 이상)·브론즈볼(만점)
+  // 상성 수업 퀴즈 보상: 정답마다 블록, 하루 한 번 물약(3개 이상)·몬스터볼(만점)
   onTypeReward: (correct, { blocks, potion, ball }) => {
     const merged = blocks > 0 ? setBlocks(state.blocks + blocks, { quiet: true }) : null;
     if (potion) state.items.potion = (state.items.potion || 0) + 1;
     if (ball) state.balls.bronze = (state.balls.bronze || 0) + 1;
     if (potion || ball) { confetti.burst(100); sound.fanfare(); }
-    say(`💥 상성 퀴즈 ${correct}개 정답! 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + ⚪ 브론즈볼 1개' : ''}를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 });
+    say(`💥 상성 퀴즈 ${correct}개 정답! 블록 ${blocks}개${potion ? ' + 🧪 물약 1개' : ''}${ball ? ' + 🔴 몬스터볼 1개' : ''}를 받았어.${merged ? ' ' + merged : ''}`, { sec: 6 });
     bump('typequiz'); // 오늘의 미션 "상성 퀴즈 풀기"
     refreshHud(); autosave();
   },
@@ -912,8 +912,8 @@ function checkDexComplete(silent = false) {
   if (got < all.length) return false;
   state.dexAll = dayKey();
   if (!silent) {
-    state.balls.diamond = (state.balls.diamond || 0) + 3; state.megaBlocks += 3;
-    cheer('🌟 도감 완성! 포켓몬 마스터!', `넘버랜드의 포켓몬 <b>${all.length}종</b>을 모두 친구로 만들었어!<br>도감에 🌟 포켓몬 마스터 칭호가 붙고, 메가큐브 3개와 메가블럭 3개를 받았어. 정말 대단해!`, '🌟');
+    state.balls.master = (state.balls.master || 0) + 3; state.megaBlocks += 3;
+    cheer('🌟 도감 완성! 포켓몬 마스터!', `넘버랜드의 포켓몬 <b>${all.length}종</b>을 모두 친구로 만들었어!<br>도감에 🌟 포켓몬 마스터 칭호가 붙고, 마스터볼 3개와 메가블럭 3개를 받았어. 정말 대단해!`, '🌟');
     refreshHud(); checkNewStickers(); autosave();
   }
   return true;
@@ -1385,7 +1385,7 @@ function towerTick() {
     state.items.potion = (state.items.potion || 0) + 1;
     if (silver) state.balls.silver = (state.balls.silver || 0) + 1;
     sound.fanfare(); confetti.burst(120); particles.stars(z.scene, new THREE.Vector3(ch.x, ch.y + 1, ch.z), 24, 0xffd93d, 0.5);
-    say(`🎁 ${ch.n}층 보상 상자! 블록 ${blocks}개 + 🧪 물약 1개${silver ? ' + 🥈 실버볼 1개' : ''}를 받았어!${merged ? ' ' + merged : ''}`, { sec: 7 });
+    say(`🎁 ${ch.n}층 보상 상자! 블록 ${blocks}개 + 🧪 물약 1개${silver ? ' + 🟡 하이퍼볼 1개' : ''}를 받았어!${merged ? ' ' + merged : ''}`, { sec: 7 });
     bump('chest'); refreshHud(); autosave();
   }
   for (let n = Math.max(1, cur - 1); n <= Math.min(TOWER_TOP, cur + 2); n++) if (!z.towerFloors.has(n)) spawnTowerFloor(z, n);
@@ -1397,13 +1397,13 @@ function towerTick() {
 /** 10층 뮤츠를 친구로 만들었다: 하늘의 문이 열리고 특별 보상 */
 function towerCleared() {
   state.megaBlocks += 3;
-  state.balls.diamond = (state.balls.diamond || 0) + 2;
+  state.balls.master = (state.balls.master || 0) + 2;
   state.goals.stats.tower94 = true; checkNewStickers();
   state.tower.best = TOWER_TOP;
   const z = zones.tower;
   if (z) { z.world.openSkyDoor?.(); z.world.portal = z.world.skyDoor; z.world.refreshPads?.(TOWER_TOP); }
   confetti.burst(300);
-  setTimeout(() => say('🌌 동굴탑 10층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 💎 다이아볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
+  setTimeout(() => say('🌌 동굴탑 10층 정복! 하늘의 문이 열렸어! 특별 보상으로 💠 메가블럭 3개와 마스터볼 2개를 받았어. 하늘의 문으로 들어가면 지하동굴로 내려가.', { sec: 12 }), 2600);
 }
 function switchZone(name, spawn, message) {
   warpBtn.classList.add('hidden'); warpNpc = null; lessonBtn.classList.add('hidden'); lessonNpc = null; // 지역이 바뀌면 안내원 대화도 끝
@@ -2275,7 +2275,7 @@ function dayTick(dt) {
 }
 // ---------- 친구 선물 (물약·열매·넘버볼): 보내면 내 재고에서 빠지고, 받는 쪽은 30초마다·친구 탭에서 받는다 ----------
 const GIFT_KINDS = [
-  { id: 'potion', label: '🧪 물약', kind: 'item' }, { id: 'superPotion', label: '🧴 좋은 물약', kind: 'item' }, { id: 'revive', label: '🍒 기운의 열매', kind: 'item' }, { id: 'bronze', label: '⚪ 브론즈볼', kind: 'ball' },
+  { id: 'potion', label: '🧪 물약', kind: 'item' }, { id: 'superPotion', label: '🧴 좋은 물약', kind: 'item' }, { id: 'revive', label: '🍒 기운의 열매', kind: 'item' }, { id: 'bronze', label: '🔴 몬스터볼', kind: 'ball' },
 ];
 const giftStock = (g) => (g.kind === 'ball' ? state.balls[g.id] : state.items[g.id]) || 0;
 async function sendGiftTo(f, g) {
@@ -2462,7 +2462,7 @@ function applyAdmin() {
   state.megaBlocks = 30;
   state.glowBlocks = 50;
   state.glow = true;                                      // 어두운 동굴도 처음부터 밝게
-  state.balls = { bronze: 30, silver: 30, gold: 30, diamond: 30, master: 30 };
+  state.balls = { bronze: 30, silver: 30, gold: 30, master: 30 };
   state.tutorial = 5; state.upgradeTold = true; state.mapTold = true; // 처음 안내는 건너뛴다
 }
 function startAdmin() {
@@ -3543,7 +3543,9 @@ function applySave(d) {
   state.school = loadSchool(d.school);                         // 포켓몬 학교 공부·숙제
   state.week = d.week || weekKey(); state.wk = { ...emptyWeek(), ...(d.wk || {}) }; checkWeek(false); // 지난 주 기록이면 0부터 (지난주 점수는 lastWk 로 옮겨 둔다)
   refreshCarBtn();
-  state.balls = { bronze: 3, silver: 0, gold: 0, diamond: 0, master: 0, ...(d.balls || {}) };
+  state.balls = { bronze: 3, silver: 0, gold: 0, master: 0, ...(d.balls || {}) };
+  if (state.balls.diamond > 0) { const n = state.balls.diamond | 0; state.balls.gold = (state.balls.gold || 0) + n * 2; queueSay(`🎁 메가큐브가 없어져서 가지고 있던 메가큐브 ${n}개를 슈퍼볼 ${n * 2}개로 바꿔 줬어!`, { sec: 7 }); }
+  delete state.balls.diamond; // 메가큐브는 없앴다 (옛 저장은 슈퍼볼 2개씩으로)
   state.items = { ...emptyItems(), ...(d.items || {}) };
   state.tower = { best: Math.min(TOWER_TOP, Math.max(1, (d.tower?.best | 0) || 1)), chests: { ...(d.tower?.chests || {}) } }; // 옛 94층 저장은 10층으로 맞춘다
   state.attend = loadAttend(d.attend);                          // 출석 도장

@@ -21,7 +21,7 @@ const SKILL_KEYS = ['skill1', 'skill2', 'skill3', 'skill4'];
 
 export const BALL_MODEL = '포켓몬볼.glb', CUBE_MODEL = '포켓몬큐브.glb', MASTER_MODEL = '마스터볼.glb';
 const BALL_R = 0.32; // 볼 반지름(m). 모델도 이 크기로 맞춘다 (가운데가 원점)
-/** 몬스터볼 모델: 텍스처의 빨간 부분(뚜껑)만 그 볼 색으로 칠한다 (브론즈·실버·골드). 재질은 복제해서 볼마다 따로 */
+/** 몬스터볼 모델: 텍스처의 빨간 부분(뚜껑)만 그 볼 색으로 칠한다 (하이퍼볼·슈퍼볼). 재질은 복제해서 볼마다 따로 */
 function tintRed(root, color) {
   const tint = new THREE.Color(color);
   root.traverse((o) => {
@@ -94,7 +94,7 @@ export function makeBall(color, spec = null) {
     const s = BALL_R * 2 * (spec?.shape === 'cube' ? 0.95 : 1);
     m.scale.setScalar(s); m.position.y = -BALL_R;
     m.userData.popT = 1; m.userData.targetScale = s;
-    if (!spec?.shape) tintRed(m, color);
+    if (!spec?.shape && !spec?.plain) tintRed(m, color); // 몬스터볼(plain)은 원래 빨간 뚜껑 그대로
     else m.traverse((o) => { if (o.isMesh) o.material = o.material.clone(); });
     m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     g.add(m);
@@ -188,7 +188,7 @@ export class Battle {
     this.ballBtn = document.getElementById('btn-ball');
     this.ballsEl = document.getElementById('battle-balls');
     this.onUseBall = null;   // (ballId) => true/false  main 이 재고를 관리한다
-    this.getBalls = () => ({ bronze: 0, silver: 0, gold: 0, diamond: 0, master: 0 });
+    this.getBalls = () => ({ bronze: 0, silver: 0, gold: 0, master: 0 });
     this.runBtn = document.getElementById('btn-run');
     this.ballBtn.onclick = () => this.throwBall();
     this.runBtn.onclick = () => this.leave();
