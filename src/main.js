@@ -1521,6 +1521,7 @@ function switchZone(name, spawn, message) {
     applyZoneEnv();
     camera.position.copy(player.position).add(camOffset());
     snapCam = true;
+    warmZone(zone); // 화면이 까만 동안 셰이더를 미리 만들고, 텍스처는 몇 장씩 미리 올린다
     showZoneBanner(zone.label);
     bgmRefresh(); // 지역마다 다른 곡
     if (message) say(message.text, message);
@@ -2512,6 +2513,20 @@ function renderStarter() {
   }
 }
 // 게임 시작: 지역(푸른숲 또는 저장된 지역)을 준비하고 주인공을 세운다
+// ---------- 지역 데우기: 게임 초반에 끊기던 문제 ----------
+// 처음 보는 포켓몬·건물이 화면에 들어올 때마다 그 텍스처를 그 프레임에 GPU 로 올리고(아이패드는 JPEG 풀기까지) 셰이더도 그때 처음 만들었다.
+// 지역에 들어가면 (1) 셰이더를 한 번에 미리 만들고 (renderer.compile) (2) 텍스처는 줄을 세워 한 프레임에 몇 장씩 미리 올린다 (warmTick)
+let warmQ = [];
+function warmZone(z) {
+  if (!z?.scene) return;
+  try { renderer.compileAsync ? renderer.compileAsync(z.scene, camera).catch(() => {}) : renderer.compile(z.scene, camera); } catch (_) {} // 가능하면 화면을 멈추지 않고 (병렬 셰이더 컴파일)
+  const seen = new Set(); warmQ = [];
+  z.scene.traverse((o) => { if (!o.isMesh && !o.isSprite && !o.isPoints) return; for (const m of [].concat(o.material || [])) for (const k of ['map', 'emissiveMap', 'normalMap', 'alphaMap']) { const t = m?.[k]; if (t && t.isTexture && !seen.has(t)) { seen.add(t); warmQ.push(t); } } });
+}
+function warmTick() {
+  if (!warmQ.length) return;
+  for (let k = isIOS() ? 2 : 4; k > 0 && warmQ.length; k--) { const t = warmQ.shift(); try { renderer.initTexture(t); } catch (_) {} }
+}
 function startGame({ zoneName = 'town', pos = null } = {}) {
   document.body.classList.remove('intro');
   intro?.dispose();
@@ -2527,6 +2542,7 @@ function startGame({ zoneName = 'town', pos = null } = {}) {
   if (state.glow) { player.lamp.distance = 30; }
   camera.position.copy(player.position).add(camOffset());
   snapCam = true;
+  warmZone(zone); // 셰이더·텍스처를 미리 (게임 초반 끊김)
   showZoneBanner(zone.label);
   bgmRefresh();
   refreshHud();
@@ -3728,6 +3744,7 @@ function frame() {
   state.frames++;
   if (player && (state.frames % 12) === 0 && (zone?.name === 'forest' || zone?.name === 'cave')) ambient.setWater(1 - (zone.name === 'forest' ? streamDist : riverDist)(player.position.x, player.position.z) / 24); // 개울·지하 강에 가까울수록 물소리
   fitRenderer();
+  warmTick();
   const fighting = battle.active || duelStage.active;
   if (fighting !== bgmInBattle) { bgmInBattle = fighting; bgmRefresh(); }
   const dt = Math.min(clock.getDelta(), 0.05);
