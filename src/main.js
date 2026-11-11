@@ -2515,13 +2515,21 @@ function renderStarter() {
 // 게임 시작: 지역(푸른숲 또는 저장된 지역)을 준비하고 주인공을 세운다
 // ---------- 지역 데우기: 게임 초반에 끊기던 문제 ----------
 // 처음 보는 포켓몬·건물이 화면에 들어올 때마다 그 텍스처를 그 프레임에 GPU 로 올리고(아이패드는 JPEG 풀기까지) 셰이더도 그때 처음 만들었다.
-// 지역에 들어가면 (1) 셰이더를 한 번에 미리 만들고 (renderer.compile) (2) 텍스처는 줄을 세워 한 프레임에 몇 장씩 미리 올린다 (warmTick)
+// 지역에 들어가면 (1) 셰이더를 한 번에 미리 만들고 (renderer.compile) (2) 주인공 둘레 40m 안 텍스처는 줄을 세워 한 프레임에 몇 장씩 미리 올린다 (warmTick)
 let warmQ = [];
 function warmZone(z) {
   if (!z?.scene) return;
   try { renderer.compileAsync ? renderer.compileAsync(z.scene, camera).catch(() => {}) : renderer.compile(z.scene, camera); } catch (_) {} // 가능하면 화면을 멈추지 않고 (병렬 셰이더 컴파일)
-  const seen = new Set(); warmQ = [];
-  z.scene.traverse((o) => { if (!o.isMesh && !o.isSprite && !o.isPoints) return; for (const m of [].concat(o.material || [])) for (const k of ['map', 'emissiveMap', 'normalMap', 'alphaMap']) { const t = m?.[k]; if (t && t.isTexture && !seen.has(t)) { seen.add(t); warmQ.push(t); } } });
+  // 텍스처는 주인공 둘레 40m 안의 것만, 가까운 것부터 (지역 전체를 미리 올리면 아이폰 메모리가 빨리 찬다 — 먼 곳은 예전처럼 보일 때 올린다)
+  const seen = new Set(), pp = player?.position, wp = new THREE.Vector3(), cand = [];
+  z.scene.updateMatrixWorld();
+  z.scene.traverse((o) => {
+    if (!o.isMesh && !o.isSprite && !o.isPoints) return;
+    let d = 0;
+    if (pp && !o.isInstancedMesh) { o.getWorldPosition(wp); d = Math.hypot(wp.x - pp.x, wp.z - pp.z); if (d > 40) return; } // 여러 곳에 흩어진 인스턴스(나무·풀)는 늘 포함
+    for (const m of [].concat(o.material || [])) for (const k of ['map', 'emissiveMap', 'normalMap', 'alphaMap']) { const t = m?.[k]; if (t && t.isTexture && !seen.has(t)) { seen.add(t); cand.push({ t, d }); } }
+  });
+  warmQ = cand.sort((a, b) => a.d - b.d).map((c) => c.t);
 }
 function warmTick() {
   if (!warmQ.length) return;
