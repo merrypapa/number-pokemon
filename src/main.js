@@ -1180,13 +1180,18 @@ function spawnGymPets() {
   for (const f of chain.followers) f.mesh.visible = false;
   const landM = party.members.filter((m) => !isWaterSp(party.species(m))), waterM = party.members.filter((m) => isWaterSp(party.species(m)));
   const H = zone.world.homes(landM.length, waterM.length);
-  const place = (m, home, water) => {
-    const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
-    mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2); zone.scene.add(mesh);
-    const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: true }; p.target = gymSpot(p); setGymLod(p, false); gymPets.push(p); /* 처음엔 작은 텍스처로 (첫 프레임에 큰 텍스처가 올라가지 않게). 이름표는 가까이 갈 때 만든다 (gymTick) */
-  };
-  landM.forEach((m, i) => place(m, H.land[i], false));
-  waterM.forEach((m, i) => place(m, H.water[i], true));
+  // 들어갈 때 멈추던 문제(아이패드): 120마리의 모델·재질·작은 그림을 한 프레임에 다 만들었다.
+  // 이제 줄을 세워 두고 gymTick 에서 한 프레임에 몇 마리씩(가까운 자리부터) 내보낸다
+  const pp = player.position;
+  gymSpawnQ = [...landM.map((m, i) => ({ m, home: H.land[i], water: false })), ...waterM.map((m, i) => ({ m, home: H.water[i], water: true }))]
+    .sort((a, b) => Math.hypot(a.home.x - pp.x, a.home.z - pp.z) - Math.hypot(b.home.x - pp.x, b.home.z - pp.z));
+}
+let gymSpawnQ = [];
+function placeGymPet({ m, home, water }) {
+  const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
+  mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2);
+  mesh.visible = false; zone.scene.add(mesh); // 작은 그림이 붙기 전에는 숨겨 둔다 (원래 1024² 텍스처가 올라가지 않게) — gymTick
+  const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: false, animAcc: 0 }; p.target = gymSpot(p); gymPets.push(p);
 }
 function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
 // 아이폰이 체육관에서 좀 있다가 꺼지던 문제: 포켓몬이 모두 나와 둘러볼수록 종마다 다른 1024² 텍스처(밉맵까지 5.6MB)가 GPU 에 쌓였다.
@@ -1236,6 +1241,7 @@ function setGymLod(p, hi) {
   }
 }
 function clearGymPets() {
+  gymSpawnQ = [];
   // 체육관을 나가면 작은 텍스처는 버리고, 원래 텍스처도 GPU 에서 내려 메모리를 돌려준다 (다시 그릴 일이 생기면 three 가 알아서 다시 올린다)
   const tex = new Set();
   for (const p of gymPets) { p.mesh.parent?.remove(p.mesh); dropPetLabel(p); for (const m of p.lodMats || []) { if (m.userData.hiMap) tex.add(m.userData.hiMap); m.dispose(); } }
@@ -1248,7 +1254,9 @@ function clearGymPets() {
 }
 const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
 function gymTick(dt) {
-  if (!zone?.world?.gym || !gymPets.length) return;
+  if (!zone?.world?.gym) return;
+  if (gymSpawnQ.length) for (let k = isIOS() ? 5 : 10; k > 0 && gymSpawnQ.length; k--) placeGymPet(gymSpawnQ.shift()); // 한 프레임에 몇 마리씩
+  if (!gymPets.length) return;
   const pp = player.position;
   let nearest = null, nd = Infinity;
   const onDock = zone.world.inPond(pp.x, pp.z); // 잔교 위에 서 있거나 같이 헤엄치고 있으면 가장 가까운 물 포켓몬이 헤엄쳐 온다
@@ -1257,28 +1265,35 @@ function gymTick(dt) {
   // 화면에 안 보이는 포켓몬은 숨기고, 그림자는 가까운(30m) 포켓몬만, 이름표는 가까이(25m) 갈 때만 만든다 (멀어지면 버려 메모리를 돌려준다)
   gymFrustum.setFromProjectionMatrix(gymMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
   let upP = null, upD = Infinity; gymSwapT -= dt;
+  let loBudget = 2, labP = null, labD = Infinity; // 한 프레임에: 작은 그림 만들기 2마리, 이름표 1개 (걸을 때 한꺼번에 몰리지 않게)
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
     const dist = Math.hypot(pp.x - mp.x, pp.z - mp.z), sc = p.mesh.scale.x || 1;
     gymSphere.center.set(mp.x, mp.y + sc * 0.6, mp.z); gymSphere.radius = sc * 1.3 + 0.5;
-    p.mesh.visible = gymFrustum.intersectsSphere(gymSphere);
+    const inView = gymFrustum.intersectsSphere(gymSphere), model = p.mesh.userData.model;
+    if (model && p.lodModel !== model) { // 모델이 (새로) 붙었다: 작은 그림을 붙일 때까지 숨긴다 — 보이는 포켓몬부터 한 프레임에 2마리씩
+      if (inView && loBudget > 0) { loBudget--; setGymLod(p, false); }
+    }
+    p.mesh.visible = inView && (!model || p.lodModel === model);
     { const want = p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST; // 가까우면 512² 그림, 멀면 256² (경계에서 깜빡이지 않게 9m/12m)
-      if (p.lodModel !== p.mesh.userData.model) setGymLod(p, false); // 모델이 새로 붙었다: 일단 작은 그림
+      if (p.lodModel !== model) { /* 아직 작은 그림 전 */ }
       else if (!want && p.lodHi) setGymLod(p, false); // 작게 바꾸기는 바로 (이미 올라가 있는 그림)
       else if (want && !p.lodHi && p.mesh.visible && dist < upD) { upD = dist; upP = p; } } // 크게 바꾸기는 가장 가까운 하나만, 아래에서
-    const shadow = dist < 30;
+    const shadow = dist < 22;
     if (shadow !== p.shadow) { p.shadow = shadow; p.mesh.traverse((o) => { if (o.isMesh) o.castShadow = shadow; }); }
-    if (dist < 25 && !p.label) { p.label = petLabel(p.m); p.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(p.label); }
-    else if (dist > 32 && p.label) dropPetLabel(p);
-    const far = dist > 45 || !p.mesh.visible; // 멀리 있거나 화면 밖이면 애니메이션을 쉬게 한다 (130마리여도 버티게)
+    if (dist < 20 && !p.label && p.mesh.visible && dist < labD) { labD = dist; labP = p; } // 이름표는 한 프레임에 가장 가까운 하나만 (아래에서)
+    else if (dist > 28 && p.label) dropPetLabel(p);
+    const far = dist > 30 || !p.mesh.visible; // 멀리 있거나 화면 밖이면 애니메이션을 쉬게 한다 (130마리여도 버티게)
     if (far) { if (p.wait > 0) p.wait -= dt; else p.wait = rand(2, 6); continue; }
+    if (dist > 16) { p.animAcc += dt; if (p.animAcc < 0.05) continue; } // 조금 먼 포켓몬은 초당 20번만 움직인다
+    const pdt = dist > 16 ? p.animAcc : dt; p.animAcc = 0;
     const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
-    if (p.hop > 0) { p.hop -= dt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, dt, 'jump'); }
-    else if (p.wait > 0) { p.wait -= dt; mp.y = base; tickModel(p.mesh, dt, p.water ? 'swimidle' : 'idle'); if (p.wait <= 0) p.target = gymSpot(p); }
+    if (p.hop > 0) { p.hop -= pdt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, pdt, 'jump'); }
+    else if (p.wait > 0) { p.wait -= pdt; mp.y = base; tickModel(p.mesh, pdt, p.water ? 'swimidle' : 'idle'); if (p.wait <= 0) p.target = gymSpot(p); }
     else {
       const dx = p.target.x - mp.x, dz = p.target.z - mp.z, d = Math.hypot(dx, dz);
       if (d < 0.5) { p.wait = rand(1, 4); if (Math.random() < 0.35) p.hop = 0.8; }
-      else { const st = (p.water ? 2.4 : 3.2) * dt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, dt, p.water ? 'swim' : 'walk'); }
+      else { const st = (p.water ? 2.4 : 3.2) * pdt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, pdt, p.water ? 'swim' : 'walk'); }
       mp.y = base;
     }
     p.label?.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
@@ -1287,6 +1302,7 @@ function gymTick(dt) {
     if (p.water && d < cwd) { cwd = d; closestWater = p; }
   }
   if (upP && gymSwapT <= 0) { setGymLod(upP, true); gymSwapT = GYM_SWAP_GAP; } // 0.15초에 한 마리씩 선명하게 (한 프레임에 몰리지 않게)
+  if (labP) { const sc = labP.mesh.scale.x || 1, mp = labP.mesh.position; labP.label = petLabel(labP.m); labP.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(labP.label); } // 이름표도 한 프레임에 하나
   if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
   if (nearest && !battle.active) offer(`💪 ${party.name(nearest.m)} 훈련하기`, () => trainPet(nearest), '💪\n훈련');
   // 나무 위 집에서 줄기 가까이 서면 "⬇ 내려가기": 줄기를 타고 미끄러져 내려온다 (올라갈 수 있으면 내려올 수도 있어야지)
