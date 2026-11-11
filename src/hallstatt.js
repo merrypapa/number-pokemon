@@ -375,8 +375,8 @@ export function buildHallstatt(scene, decor, { height, obstacles }) {
 // 대리석 계단 기단 위에 코린트식 기둥이 앞뒤로 네 개씩 서고, 그 위에 보(아키트레이브)와 세모 박공, 붉은 기와 지붕.
 // 가운데 기둥 사이(2.8m)로 걸어 지나간다. 양옆은 낮은 돌담(성역 담 페리볼로스), 앞에는 청동 세발솥(트리포드)을 올린 받침 둘과 포석 길.
 // 문이 보는 쪽: -z 가 앞(바깥), +z 가 안. columns: 막을 기둥 자리 (부르는 쪽이 block 한다)
-export const PROPYLON = { colX: [-4.2, -1.4, 1.4, 4.2], colZ: [-1.7, 1.7], colR: 0.36, colH: 4.2, wallX0: 6.0, wallX1: 11.6, wallH: 1.3 };
-export function buildPropylon({ wall = true } = {}) {
+export const PROPYLON = { colX: [-4.2, -1.4, 1.4, 4.2], colZ: [-1.7, 1.7], colR: 0.36, colH: 4.2, wallX0: 6.0, wallX1: 11.6, wallH: 1.3, back: 14 }; // back: 둘러싼 담이 문 뒤로 가는 깊이 (마을 쪽 문)
+export function buildPropylon({ wall = true, enclose = false } = {}) {
   const P = PROPYLON, g = new THREE.Group();
   const marble = new THREE.MeshStandardMaterial({ color: 0xf1ead9, roughness: 0.75 });
   const marble2 = new THREE.MeshStandardMaterial({ color: 0xe3d8bf, roughness: 0.8 });
@@ -423,6 +423,23 @@ export function buildPropylon({ wall = true } = {}) {
     const len = P.wallX1 - P.wallX0, cx = s * (P.wallX0 + len / 2);
     box(len, P.wallH, 0.7, stone, cx, P.wallH / 2, 0);
     box(len + 0.2, 0.12, 0.9, marble2, cx, P.wallH + 0.06, 0);
+  }
+  // 문 뒤를 둘러싼 담 (마을 쪽 문): 양 끝에서 뒤(+z)로 꺾어 back 만큼 가고, 뒤에서 가로로 막는다 — 문을 돌아 뒤로 못 들어가게.
+  // 안쪽 마당에는 사이프러스 나무 (올림피아 성역 둘레에 서 있던 나무)
+  if (enclose) {
+    const B = P.back, X = P.wallX1;
+    for (const s of [-1, 1]) { // 앞줄 옆 칸의 낮은 대리석 난간 (가운데 칸으로만 들어가게)
+      box(2.8 - 2 * P.colR, 0.12, 0.3, marble, s * 2.8, base + 0.95, P.colZ[0]);
+      for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.8, 8), marble2); b.position.set(s * (1.4 + P.colR + 0.35 + k * 0.5), base + 0.45, P.colZ[0]); g.add(b); }
+      box(0.3, 0.9, 3.4 - 2 * P.colR, marble2, s * 4.2, base + 0.45, 0); // 현관 옆 낮은 벽
+    }
+    for (const s of [-1, 1]) { box(0.7, P.wallH, B, stone, s * X, P.wallH / 2, B / 2); box(0.9, 0.12, B + 0.2, marble2, s * X, P.wallH + 0.06, B / 2); }
+    box(2 * X + 0.7, P.wallH, 0.7, stone, 0, P.wallH / 2, B); box(2 * X + 0.9, 0.12, 0.9, marble2, 0, P.wallH + 0.06, B);
+    const cyp = new THREE.MeshStandardMaterial({ color: 0x2f5d3a, roughness: 0.9 }), trunk = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
+    for (const [x, z] of [[-8.5, 6], [8.5, 6], [-8.5, 11], [8.5, 11], [-3.5, 11.5], [3.5, 11.5]]) {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.75, 5.2, 10), cyp); c.position.set(x, 3.0, z); c.castShadow = true; g.add(c);
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.6, 6), trunk); t.position.set(x, 0.3, z); g.add(t);
+    }
   }
   return g;
 }
