@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { waterMaterial } from './fx.js';
 import { makeNpc } from './npc.js';
+import { buildPropylon, PROPYLON, mergeGroup } from './hallstatt.js';
 import { makeLabelTexture, makePillSprite, makeInstanced } from './world.js';
 import { olyHeight, olyBlocked, olyCeiling, olyClear, buildOlympia, OLIVE_SPOTS } from './olympia.js';
 
@@ -71,14 +72,15 @@ export function buildGym(scene) {
   const posts = [], rails = [];
   const run = (ax, az, bx, bz) => { const n = Math.max(2, Math.round(Math.hypot(bx - ax, bz - az) / 3)); for (let i = 0; i <= n; i++) { const t = i / n; posts.push({ x: ax + (bx - ax) * t, y: 0.7, z: az + (bz - az) * t }); } rails.push({ x: (ax + bx) / 2, y: 1.0, z: (az + bz) / 2, ry: Math.atan2(bx - ax, bz - az), sz: Math.hypot(bx - ax, bz - az) }); };
   run(-F.w / 2, -F.d / 2, F.w / 2, -F.d / 2); run(-F.w / 2, -F.d / 2, -F.w / 2, F.d / 2); run(F.w / 2, -F.d / 2, F.w / 2, F.d / 2);
-  run(-F.w / 2, F.d / 2, -2.4, F.d / 2); run(2.4, F.d / 2, F.w / 2, F.d / 2);
+  run(-F.w / 2, F.d / 2, -PROPYLON.wallX0, F.d / 2); run(PROPYLON.wallX0, F.d / 2, F.w / 2, F.d / 2); // 남쪽 울타리는 정문(프로필론) 자리를 비운다
   decor.add(makeInstanced(new THREE.BoxGeometry(0.3, 1.4, 0.3), postMat, posts));
   decor.add(makeInstanced(new THREE.BoxGeometry(0.12, 0.12, 1), railMat, rails));
-  // 문 기둥 + 간판
-  for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.6, 0.6), postMat); p.position.set(s * 2.6, 1.8, F.d / 2); p.castShadow = true; decor.add(p); block(s * 2.6, F.d / 2, 0.5); }
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 0.6), postMat); beam.position.set(0, 3.7, F.d / 2); decor.add(beam);
+  // 정문 = 올림피아 김나시온의 프로필론 (마을 쪽 문과 같은 모양, 앞(-z)이 체육관 안을 본다). 돌담 대신 울타리가 이어진다
+  { const gate = mergeGroup(buildPropylon({ wall: false })); gate.position.set(0, 0, F.d / 2); decor.add(gate);
+    for (const z of PROPYLON.colZ) for (const x of PROPYLON.colX) block(x, F.d / 2 + z, 0.45);
+    for (const s of [-1, 1]) { block(s * 5.6, F.d / 2 - 3.4, 0.7); const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 0.3), postMat); p.position.set(s * PROPYLON.wallX0, 0.7, F.d / 2); decor.add(p); block(s * PROPYLON.wallX0, F.d / 2, 0.4); } }
   const exitSign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('▼ 나가기 (마을)', '#2f6f2a', '#ffffff', 48), transparent: true, depthTest: false }));
-  exitSign.scale.set(6, 1.4, 1); exitSign.position.set(0, 5.0, F.d / 2); decor.add(exitSign);
+  exitSign.scale.set(6, 1.4, 1); exitSign.position.set(0, 8.2, F.d / 2); decor.add(exitSign);
   const title = makePillSprite('🏛 올림피아 체육관 · 첫 올림픽이 열린 곳! 포켓몬에게 가까이 가서 💪 훈련하기', { bg: '#2f6f2a', fg: '#ffffff', border: '#ffd93d' }, 1.3);
   title.position.set(0, 4.5, GYM.spawn.z - 6); decor.add(title);
 
