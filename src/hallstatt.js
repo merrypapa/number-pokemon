@@ -369,3 +369,77 @@ export function buildHallstatt(scene, decor, { height, obstacles }) {
     },
   };
 }
+
+// ---------- 체육관 정문 = 올림피아 김나시온의 프로필론 ----------
+// 고대 올림피아의 김나시온(선수들이 달리기·던지기를 연습하던 큰 마당) 남동쪽 모서리에 있던 정문(기원전 2세기).
+// 대리석 계단 기단 위에 코린트식 기둥이 앞뒤로 네 개씩 서고, 그 위에 보(아키트레이브)와 세모 박공, 붉은 기와 지붕.
+// 가운데 기둥 사이(2.8m)로 걸어 지나간다. 양옆은 낮은 돌담(성역 담 페리볼로스), 앞에는 청동 세발솥(트리포드)을 올린 받침 둘과 포석 길.
+// 문이 보는 쪽: -z 가 앞(바깥), +z 가 안. columns: 막을 기둥 자리 (부르는 쪽이 block 한다)
+export const PROPYLON = { colX: [-4.2, -1.4, 1.4, 4.2], colZ: [-1.7, 1.7], colR: 0.36, colH: 4.2, wallX0: 6.0, wallX1: 11.6, wallH: 1.3, back: 14 }; // back: 둘러싼 담이 문 뒤로 가는 깊이 (마을 쪽 문)
+export function buildPropylon({ wall = true, enclose = false } = {}) {
+  const P = PROPYLON, g = new THREE.Group();
+  const marble = new THREE.MeshStandardMaterial({ color: 0xf1ead9, roughness: 0.75 });
+  const marble2 = new THREE.MeshStandardMaterial({ color: 0xe3d8bf, roughness: 0.8 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xd8b25a, roughness: 0.5, metalness: 0.3 });
+  const tile = new THREE.MeshStandardMaterial({ color: 0xb4583a, roughness: 0.85 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0xc9b48c, roughness: 0.95 });
+  const bronze = new THREE.MeshStandardMaterial({ color: 0x8a6a3a, roughness: 0.45, metalness: 0.6 });
+  const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; g.add(b); return b; };
+  // 기단: 낮은 세 단 (밟고 지나가도 걸리지 않게 한 단 8cm)
+  [[11.2, 6.2], [10.6, 5.6], [10.0, 5.0]].forEach(([w, d], i) => box(w, 0.08, d, i % 2 ? marble2 : marble, 0, 0.04 + i * 0.08, 0));
+  const base = 0.24;
+  // 코린트식 기둥: 홈 판 몸통(각진 24면) + 받침 + 아칸서스 잎처럼 퍼지는 기둥머리 + 네모 판
+  for (const z of P.colZ) for (const x of P.colX) {
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(P.colR * 0.86, P.colR, P.colH, 24, 1), new THREE.MeshStandardMaterial({ color: 0xf4eee0, roughness: 0.7, flatShading: true }));
+    shaft.position.set(x, base + 0.2 + P.colH / 2, z); shaft.castShadow = true; g.add(shaft);
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(P.colR * 1.25, P.colR * 1.35, 0.2, 20), marble); plinth.position.set(x, base + 0.1, z); g.add(plinth);
+    const bell = new THREE.Mesh(new THREE.CylinderGeometry(P.colR * 1.55, P.colR * 0.9, 0.55, 16), marble2); bell.position.set(x, base + 0.2 + P.colH + 0.27, z); g.add(bell);
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2, leaf = new THREE.Mesh(new THREE.SphereGeometry(0.13, 6, 4), new THREE.MeshStandardMaterial({ color: 0xe8e0c8 })); leaf.scale.set(1, 1.5, 0.6); leaf.position.set(x + Math.cos(a) * P.colR * 1.1, base + 0.2 + P.colH + 0.18, z + Math.sin(a) * P.colR * 1.1); leaf.rotation.y = -a; g.add(leaf); }
+    box(P.colR * 3.4, 0.14, P.colR * 3.4, marble, x, base + 0.2 + P.colH + 0.62, z);
+  }
+  const top = base + 0.2 + P.colH + 0.69; // 기둥머리 위
+  // 보(아키트레이브) · 띠(프리즈, 금빛 숫자 원판) · 처마(코니스)
+  box(10.2, 0.5, 4.4, marble, 0, top + 0.25, 0);
+  box(10.2, 0.45, 4.3, marble2, 0, top + 0.72, 0);
+  for (const zf of [-2.16, 2.16]) for (let i = 0; i < 7; i++) { const d = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.04, 14), gold); d.rotation.x = Math.PI / 2; d.position.set(-4.2 + i * 1.4, top + 0.72, zf); g.add(d); }
+  box(10.8, 0.16, 5.0, marble, 0, top + 1.03, 0);
+  // 세모 박공 (앞뒤) + 기와 지붕 두 쪽
+  const tri = new THREE.Shape(); tri.moveTo(-5.4, 0); tri.lineTo(5.4, 0); tri.lineTo(0, 1.5); tri.closePath();
+  const ped = new THREE.Mesh(new THREE.ExtrudeGeometry(tri, { depth: 4.6, bevelEnabled: false }), marble); ped.position.set(0, top + 1.11, -2.3); ped.castShadow = true; g.add(ped);
+  const slope = Math.atan2(1.5, 5.4), half = Math.hypot(5.4, 1.5);
+  for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(half + 0.25, 0.14, 5.2), tile); r.position.set(s * 2.7, top + 1.11 + 0.75 + 0.08, 0); r.rotation.z = -s * slope; r.castShadow = true; g.add(r); }
+  // 박공 가운데 금빛 올리브관 (올림피아 우승자의 관)
+  for (const zf of [-2.33, 2.33]) { const wreath = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 6, 20), gold); wreath.position.set(0, top + 1.62, zf); g.add(wreath); }
+  // 앞쪽 포석 길 + 청동 세발솥 받침 둘
+  for (let i = 0; i < 5; i++) box(3.0, 0.05, 1.1, i % 2 ? stone : marble2, 0, 0.025, -3.6 - i * 1.25);
+  for (const s of [-1, 1]) {
+    box(1.1, 1.1, 1.1, marble, s * 5.6, 0.55, -3.4);
+    const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), bronze); bowl.position.set(s * 5.6, 1.62, -3.4); g.add(bowl);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.05, 6, 18), bronze); rim.rotation.x = Math.PI / 2; rim.position.set(s * 5.6, 1.62, -3.4); g.add(rim);
+    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2, leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.75, 6), bronze); leg.position.set(s * 5.6 + Math.cos(a) * 0.3, 1.45, -3.4 + Math.sin(a) * 0.3); leg.rotation.set(Math.sin(a) * 0.3, 0, -Math.cos(a) * 0.3); g.add(leg); }
+  }
+  // 양옆 낮은 돌담 (페리볼로스) + 위 덮개돌
+  if (wall) for (const s of [-1, 1]) {
+    const len = P.wallX1 - P.wallX0, cx = s * (P.wallX0 + len / 2);
+    box(len, P.wallH, 0.7, stone, cx, P.wallH / 2, 0);
+    box(len + 0.2, 0.12, 0.9, marble2, cx, P.wallH + 0.06, 0);
+  }
+  // 문 뒤를 둘러싼 담 (마을 쪽 문): 양 끝에서 뒤(+z)로 꺾어 back 만큼 가고, 뒤에서 가로로 막는다 — 문을 돌아 뒤로 못 들어가게.
+  // 안쪽 마당에는 사이프러스 나무 (올림피아 성역 둘레에 서 있던 나무)
+  if (enclose) {
+    const B = P.back, X = P.wallX1;
+    for (const s of [-1, 1]) { // 앞줄 옆 칸의 낮은 대리석 난간 (가운데 칸으로만 들어가게)
+      box(2.8 - 2 * P.colR, 0.12, 0.3, marble, s * 2.8, base + 0.95, P.colZ[0]);
+      for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.8, 8), marble2); b.position.set(s * (1.4 + P.colR + 0.35 + k * 0.5), base + 0.45, P.colZ[0]); g.add(b); }
+      box(0.3, 0.9, 3.4 - 2 * P.colR, marble2, s * 4.2, base + 0.45, 0); // 현관 옆 낮은 벽
+    }
+    for (const s of [-1, 1]) { box(0.7, P.wallH, B, stone, s * X, P.wallH / 2, B / 2); box(0.9, 0.12, B + 0.2, marble2, s * X, P.wallH + 0.06, B / 2); }
+    box(2 * X + 0.7, P.wallH, 0.7, stone, 0, P.wallH / 2, B); box(2 * X + 0.9, 0.12, 0.9, marble2, 0, P.wallH + 0.06, B);
+    const cyp = new THREE.MeshStandardMaterial({ color: 0x2f5d3a, roughness: 0.9 }), trunk = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
+    for (const [x, z] of [[-8.5, 6], [8.5, 6], [-8.5, 11], [8.5, 11], [-3.5, 11.5], [3.5, 11.5]]) {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.75, 5.2, 10), cyp); c.position.set(x, 3.0, z); c.castShadow = true; g.add(c);
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.6, 6), trunk); t.position.set(x, 0.3, z); g.add(t);
+    }
+  }
+  return g;
+}

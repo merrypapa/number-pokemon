@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { waterMaterial, windMaterial } from './fx.js';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
-import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut } from './hallstatt.js';
+import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut, buildPropylon, PROPYLON } from './hallstatt.js';
 import { NUMBER_COLORS, RAINBOW } from './palette.js';
 import { makeNpc } from './npc.js';
 
@@ -610,21 +610,30 @@ export function buildWorld(scene, layout = 'forest') {
     block(stad.x, stad.z, stad.r + 0.3);
     block(stad.x - 3.4, stad.z - stad.r - 1.6, 0.9); block(stad.x + 3.4, stad.z - stad.r - 1.6, 0.9);
   }
-  // ---------- 야외 체육관 문: 울타리 한 토막 + 기둥 둘 + 간판 (안은 src/gym.js) ----------
+  // ---------- 야외 체육관 문 = 올림피아 김나시온의 프로필론 (대리석 기단 + 코린트식 기둥 앞뒤 넷 + 박공 + 돌담, src/hallstatt.js buildPropylon). 안은 src/gym.js ----------
   const gy = L.gym;
   {
-    const g = new THREE.Group();
-    const postMat = new THREE.MeshStandardMaterial({ color: 0xd9b077 });
-    for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.6, 0.6), postMat); p.position.set(s * 2.6, 1.8, 0); p.castShadow = true; g.add(p); }
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 0.6), postMat); beam.position.set(0, 3.7, 0); g.add(beam);
-    for (const s of [-1, 1]) for (let i = 1; i <= 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 0.3), postMat); f.position.set(s * (2.6 + i * 2.2), 0.7, 0); g.add(f); const r = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 0.12), postMat); r.position.set(s * (2.6 + i * 2.2 - 1.1), 1.0, 0); g.add(r); }
-    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏃 야외 체육관', '#2f6f2a', '#ffffff', 56), transparent: true, depthTest: false }));
-    sign.scale.set(6.5, 1.6, 1); sign.position.set(0, 5.4, 0); g.add(sign);
-    const grass = new THREE.Mesh(new THREE.CircleGeometry(4, 20), new THREE.MeshStandardMaterial({ color: 0x5db84e })); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.03, 2.5); g.add(grass);
+    const g = mergeGroup(buildPropylon({ enclose: true }));
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeLabelTexture('🏛 올림피아 체육관', '#2f6f2a', '#ffffff', 56), transparent: true, depthTest: false }));
+    sign.scale.set(7, 1.7, 1); sign.position.set(0, 8.4, 0); g.add(sign);
     g.position.set(gy.x, T.height(gy.x, gy.z), gy.z);
     decor.add(g);
-    block(gy.x - 2.6, gy.z, 0.5); block(gy.x + 2.6, gy.z, 0.5);
-    for (const s of [-1, 1]) obstacles.push({ ax: gy.x + s * 3.0, az: gy.z, bx: gy.x + s * 11.6, bz: gy.z, r: 0.3 });
+    for (const z of PROPYLON.colZ) for (const x of PROPYLON.colX) block(gy.x + x, gy.z + z, 0.45); // 기둥 (가운데 기둥 사이로 지나간다)
+    const X = PROPYLON.wallX1, B = PROPYLON.back;
+    for (const s of [-1, 1]) {
+      block(gy.x + s * 5.6, gy.z - 3.4, 0.7); // 세발솥 받침
+      obstacles.push({ ax: gy.x + s * PROPYLON.wallX0, az: gy.z, bx: gy.x + s * X, bz: gy.z, r: 0.45 }); // 앞 돌담
+      obstacles.push({ ax: gy.x + s * X, az: gy.z, bx: gy.x + s * X, bz: gy.z + B, r: 0.45 }); // 옆 담 (뒤로)
+    }
+    obstacles.push({ ax: gy.x - X, az: gy.z + B, bx: gy.x + X, bz: gy.z + B, r: 0.45 }); // 뒤 담 — 문을 돌아 뒤로 못 들어간다
+    // 문은 앞쪽 가운데 기둥 사이로만 들어간다: 앞줄 옆 기둥 사이(난간)·현관 옆·뒷줄·바깥 기둥과 담 사이를 막는다
+    const [fz, bz] = PROPYLON.colZ;
+    for (const s of [-1, 1]) {
+      obstacles.push({ ax: gy.x + s * 1.4, az: gy.z + fz, bx: gy.x + s * 4.2, bz: gy.z + fz, r: 0.3 }); // 앞줄 옆 칸 (낮은 대리석 난간)
+      obstacles.push({ ax: gy.x + s * 4.2, az: gy.z + fz, bx: gy.x + s * 4.2, bz: gy.z + bz, r: 0.3 }); // 현관 옆
+      obstacles.push({ ax: gy.x + s * 4.2, az: gy.z + fz, bx: gy.x + s * PROPYLON.wallX0, bz: gy.z, r: 0.3 }); // 바깥 기둥 ↔ 앞 돌담
+    }
+    obstacles.push({ ax: gy.x - 4.2, az: gy.z + bz, bx: gy.x + 4.2, bz: gy.z + bz, r: 0.3 }); // 뒷줄 (가운데를 지나기 전에 문 판정이 먼저 된다)
   }
   const lab = L.lab;
   {
