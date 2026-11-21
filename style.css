@@ -1191,3 +1191,9 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #dex-friends .friend-add input { padding: 8px 10px; }
 #dex-friends .friend-add button { padding: 8px 12px; }
 #friend-requests:empty, #friend-duels:empty { display: none; } /* 빈 칸이 사이 간격만 차지하지 않게 */
+/* 도감 액자 오른쪽 위 점: 지금 이 지역에 나와 있으면 초록, 아니면 회색 */
+.dex-item .dex-here { position: absolute; top: 6px; right: 6px; width: 12px; height: 12px; border-radius: 50%; background: #c9c9c9; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15); pointer-events: none; }
+.dex-item .dex-here.on { background: #2ecc71; box-shadow: 0 0 0 1px #1e9e55, 0 0 6px rgba(46,204,113,.8); }
+.dex-here-legend { font-weight: 700; color: #888; font-size: 12px; margin-left: 6px; white-space: nowrap; }
+.dex-here-legend .dex-here { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #c9c9c9; vertical-align: -1px; margin: 0 3px 0 6px; }
+.dex-here-legend .dex-here.on { background: #2ecc71; }

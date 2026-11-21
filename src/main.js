@@ -601,13 +601,13 @@ function getZone(name) {
     for (let i = 0; i + 1 < n; i++) if (rnd() < 0.3) { const t = idx[i]; idx[i] = idx[i + 1]; idx[i + 1] = t; }
     spots.forEach((s, i) => { const c = order[idx[i]]; spawnCreature(z, c.id, s.x, s.z, extraFor(c)); });
   }
-  // 진화형 포켓몬도 드물게 (creatures.json `rareIn`: 진화 전용 종이 드물게 나오는 지역 = 기본형이 사는 곳): 지역의 **중간쯤에 한 마리만**, 노란 빛을 받고 나온다 (보통 종은 2~3마리).
+  // 진화형 포켓몬도 드물게 (creatures.json `rareIn`: 진화 전용 종이 드물게 나오는 지역 = 기본형이 사는 곳): 지역의 **중간쯤에 한 마리만** 나온다 (보통 종은 2~3마리).
   // 처음엔 둘 중 하루만 나오게 했는데 아이가 찾다가 "없다"고 해서 날마다 한 마리는 꼭 나오게 바꿨다.
   // 흔치 않으니 직접 진화시키고 싶은 마음도 들게 — 그래도 운이 좋으면 바로 잡을 수 있다
   if (z.world.wildSpots.length > 6) {
     const rares = creatureData.creatures.filter((c) => c.rareIn === z.name && !c.shrine);
     // 예전엔 맨 바깥 구석(+4m 더 바깥)에 세워서 찾기 어렵고, 벽·절벽 너머 닿지 않는 곳에 서기도 했다.
-    // 이제는 야생 자리(닿는 곳으로 고쳐 둔 자리) 가운데 시작 지점에서 중간쯤 떨어진 곳(바깥쪽 정도 30~60%)에, 노란 빛을 비춰 세운다
+    // 이제는 야생 자리(닿는 곳으로 고쳐 둔 자리) 가운데 시작 지점에서 중간쯤 떨어진 곳(바깥쪽 정도 30~60%)에 세운다
     const ring = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => a.d - b.d);
     const mid = ring.filter((s) => s.d >= 0.3 && s.d <= 0.6), pool = mid.length >= rares.length ? mid : ring.slice(Math.floor(ring.length * 0.4));
     rares.forEach((c, k) => {
@@ -617,7 +617,6 @@ function getZone(name) {
       let x = s.x + 2.5, zz = s.z; // 그 자리의 보통 야생과 겹치지 않게 살짝 옆
       if (Math.abs(x) > z.terrain.size / 2 - 3 || isBlocked(x, zz, 0) || insideObstacle(x, zz, 1)) { x = s.x; zz = s.z; }
       const cr = spawnCreature(z, c.id, x, zz, { ...wildOnly, catchable: true }); cr.rare = true;
-      addSpotGlow(z, cr, { x, z: zz, glow: 0xffe08a }); // 노란 빛이 위에서 비춘다 (멀리서도 보이게)
     });
   }
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
@@ -1010,6 +1009,7 @@ dex.bindParty({
   getRockets: () => (SHOW_ROCKETS ? Object.fromEntries(ROCKET_ZONES.map((z) => [z, rocketStatus(z)])) : {}), // (예전 지도 🚨/🏳 — 이제는 getChapters)
   getChapters: () => (SHOW_ROCKETS ? chapterInfo() : {}), // 지도: 지역마다 다음 단계 하나 (👑 → 🚨 → 💠 → 🏅)
   getZoneName: () => zone?.name,
+  getHereIds: () => new Set((zone?.creatures || []).filter((c) => c.state !== 'caught' && !c.rocketOf).map((c) => c.data.id)), // 도감 액자의 초록 점: 지금 이 지역에 나와 있는 종
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
   // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
   isMaster: (sp) => !!state.masters[sp.id], // 👑 Lv.50 마스터 타이틀
@@ -1143,9 +1143,16 @@ function refreshQuestRings(z = zone) {
       g.position.y = 0.08 / sc; g.scale.setScalar(1 / sc); g.userData.noHide = true;
       ring.onBeforeRender = () => { const k = 1 + 0.12 * Math.sin(performance.now() / 260); g.scale.setScalar(k / sc); ring.material.opacity = 0.55 + 0.3 * (k - 0.88) / 0.24; };
       c.mesh.add(g); c.questRing = g;
-    } else if (!want && c.questRing) { c.mesh.remove(c.questRing); c.questRing = null; }
+      // 머리 위 표시 (보스의 👑 이름표처럼): 멀리서도 오박사님 의뢰 포켓몬인 걸 알 수 있게
+      const label = makePillSprite(`🔬 오박사님 의뢰 · ${c.data.name}`, { bg: '#5ee8ff', fg: '#20232e', border: '#1f8fb8' }, 0.95);
+      label.position.y = 1.2 + 0.9 / sc; label.scale.multiplyScalar(1.7 / sc); label.userData.noHide = true; c.mesh.add(label); c.questLabel = label; // 포켓몬 크기와 상관없이 늘 비슷한(크게 읽히는) 크기
+    } else if (!want && c.questRing) { c.mesh.remove(c.questRing); c.questRing = null; if (c.questLabel) { c.mesh.remove(c.questLabel); c.questLabel.material.map?.dispose(); c.questLabel.material.dispose(); c.questLabel = null; } }
     if (want) n++;
   }
+  // 넘버로켓단 의뢰: 숨은 대원 머리 위에도 같은 표시
+  const g = z.grunt, wantG = !!g && !g.hidden && q && !q.done && q.kind === 'rocket' && q.zone === z.name;
+  if (g && wantG && !g.questLabel) { const label = makePillSprite('🔬 오박사님 의뢰 · 넘버로켓단', { bg: '#5ee8ff', fg: '#20232e', border: '#1f8fb8' }, 0.95); label.position.y = 2.7; label.scale.multiplyScalar(1.7); label.userData.noHide = true; g.mesh.add(label); g.questLabel = label; }
+  else if (g && !wantG && g.questLabel) { g.mesh.remove(g.questLabel); g.questLabel.material.map?.dispose(); g.questLabel.material.dispose(); g.questLabel = null; }
   return n;
 }
 function partyMeshes() { return [player.group, ...chain.followers.map((f) => f.mesh)]; }
@@ -1159,7 +1166,7 @@ function applyZoneEnv() {
   }
   const legend = legendHere(); // 조건을 채워 나타난 특별 포켓몬이 이 지역에 있으면 알려 준다 (전설 먼저)
   if (legend) queueSay(`✨ ${josa(legend.data.name, '이가')} 이 지역 어딘가에 있어! 발밑에 금빛 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 });
-  if (refreshQuestRings(zone) > 0) { const tg = speciesById[state.profQuest.targetId]; queueSay(`🔬 오박사님이 찾던 ${josa(tg?.name || '포켓몬', '이가')} 여기 있어! 발밑에 하늘색 고리가 빛나는 포켓몬을 찾아봐.`, { sec: 7 }); }
+  if (refreshQuestRings(zone) > 0) { const tg = speciesById[state.profQuest.targetId]; queueSay(`🔬 오박사님이 찾던 ${josa(tg?.name || '포켓몬', '이가')} 여기 있어! 머리 위에 🔬 표시, 발밑에 하늘색 고리가 있는 포켓몬을 찾아봐.`, { sec: 7 }); }
   zone.world.refreshChests?.(state.tower.chests); // 동굴탑의 연 보상 상자
   setupSky(renderer, zone); // 하늘 그라데이션 + 환경 조명 (지역마다 한 번)
   player.gravityScale = zone.world.gravity || 1;
@@ -2333,7 +2340,7 @@ function finishGrunt(npc, z, expNote = '') {
   if (milestone) { state.balls.master = (state.balls.master || 0) + (milestone === 2 && prize < 1 ? 3 : milestone); state.rocketPrize = milestone; }
   setBlocks(Math.min(MAX_BLOCKS, state.blocks + blocks));
   confetti.burst(160); sound.fanfare();
-  if (quest) { quest.n = quest.need; quest.done = true; setBlocks(Math.min(MAX_BLOCKS, state.blocks + quest.reward), { quiet: true }); }
+  if (quest) { quest.n = quest.need; quest.done = true; setBlocks(Math.min(MAX_BLOCKS, state.blocks + quest.reward), { quiet: true }); refreshQuestRings(z); } // 머리 위 의뢰 표시를 뗀다
   refreshGruntFlag(z);
   refreshHud();
   if (shrineReady(z.name) && z.shrine && !z.shrine.shown) setTimeout(() => { if (zone === z) { revealShrine(z); queueSay(`💠 숫자를 되찾자 ${josa(shrineName(z.name), '이가')} 열렸어! 메가 포켓몬을 찾아가 보자.`, { sec: 8 }); } }, 21000); // 지역 챕터 ③

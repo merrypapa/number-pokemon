@@ -483,7 +483,7 @@ export class Dex {
     } else if (sp.special === 'sleepSpot') {
       howLine = `<li>🔑 ${zone}의 정해진 자리에서 쿨쿨 자고 있어. 가까이 가서 깨워 봐</li>`;
     } else if (sp.rareIn) {
-      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn}</b>에 날마다 딱 한 마리, <b>노란 빛</b>이 비추는 자리에 나와 (시작 지점에서 중간쯤). ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}${from.evolution?.mega ? '💠 메가블럭으로 메가진화' : '진화'}시키는 게 더 빠를 수도!` : ''}</li>`;
+      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn}</b>에 날마다 딱 한 마리 나와 (시작 지점에서 중간쯤). ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}${from.evolution?.mega ? '💠 메가블럭으로 메가진화' : '진화'}시키는 게 더 빠를 수도!` : ''}</li>`;
     } else if (from) { // 진화형: 어디의 누구를 몇 레벨까지 키우면 되는지 (메가블럭·여러 갈래 확률까지)
       howLine = `<li>🧬 <b>얻는 법</b>: ${this.evolveHow(sp, from, wildAt)}</li>`;
     }
@@ -614,6 +614,7 @@ export class Dex {
     this.page = Math.max(0, Math.min(pages - 1, this.page));
     const shown = list.length;
     if (this.thumbQueue) this.thumbQueue.length = 0; // 이전 페이지의 남은 그림 만들기는 버린다
+    const hereIds = ctx?.getHereIds?.() || new Set(); // 지금 이 지역에 나와 있는 종 → 액자 오른쪽 위 초록 점 (없으면 회색 점)
     for (const sp of list.slice(this.page * this.PAGE, (this.page + 1) * this.PAGE)) {
       const n = caughtById[sp.id] || 0, known = n > 0;
       const t = this.cache.get(sp.id) || null; // 이미 만든 그림만 바로 쓰고, 없으면 빈 칸을 두고 나중에 채운다
@@ -630,6 +631,7 @@ export class Dex {
       item.innerHTML = `
         ${t ? `<img src="${known ? t.color : t.silhouette}" alt="">` : '<img class="pending" alt="">'}
         ${known ? '' : '<div class="dex-q">?</div>'}
+        <span class="dex-here${hereIds.has(sp.id) ? ' on' : ''}" title="${hereIds.has(sp.id) ? '지금 이 지역에 나와 있어' : '지금 이 지역에는 없어'}"></span>
         <div class="dex-name">${known ? `${ctx?.isMaster?.(sp) ? '👑 ' : ''}${sp.name}` : '???'}</div>
         <div class="dex-sub">${sub}</div>`;
       item.onclick = () => { // 한 번 누르면 위 상세에 고르고, 같은 액자를 빠르게 두 번 누르면(더블 터치) 위의 상세 칸으로 올라간다
@@ -641,7 +643,7 @@ export class Dex {
       this.grid.appendChild(item);
       if (!t) this.queueThumb(sp, item.querySelector('img'), known);
     }
-    this.countEl.textContent = `${caughtSpecies} / ${this.species.length} 종${ctx?.isDexAll?.() ? ' · 🌟 포켓몬 마스터' : ''}`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
+    this.countEl.innerHTML = `${caughtSpecies} / ${this.species.length} 종${ctx?.isDexAll?.() ? ' · 🌟 포켓몬 마스터' : ''} <small class="dex-here-legend"><i class="dex-here on"></i>지금 이 지역에 있어 <i class="dex-here"></i>없어</small>`; // 포켓몬 탭의 도감 제목 줄에 (머리글에는 안 보인다)
     this.renderPager(pages, shown, caughtById);
     if (!shown) { const empty = document.createElement('div'); empty.className = 'dex-empty'; empty.textContent = F.mode === 'caught' ? (F.type ? '아직 이 속성의 내 포켓몬이 없어. 잡으러 가 보자!' : '아직 잡은 포켓몬이 없어.') : F.mode === 'unknown' ? (F.type ? '이 속성은 다 잡았어! 🎉' : '전부 다 잡았어! 🎉') : '이 속성의 포켓몬은 없어.'; this.grid.appendChild(empty); }
 
