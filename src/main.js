@@ -203,6 +203,13 @@ const [creatureData, nbData] = await Promise.all([
 ]);
 const ZONE_INFO = creatureData.zones; // { forest: { name: '푸른숲', desc }, ... }
 const speciesById = Object.fromEntries(creatureData.creatures.map((c) => [c.id, c]));
+// 진화로만 얻던 포켓몬도 야생에서 만날 수 있게: 드물게 나오는 곳(rareIn)이 없고 어느 지역 야생 목록에도 없는 진화형(zone 'evolution')은
+// 진화 전 포켓몬이 사는 지역 바깥쪽에 드물게(날마다 한 마리) 나온다. 앞으로 새로 넣는 진화형도 데이터에 따로 적지 않아도 저절로 (메가 성역 포켓몬은 빼고)
+{
+  const roster = new Set(Object.values(ZONE_INFO).flatMap((z) => z.wild || []));
+  const homeOf = (c) => { for (let b = speciesById[c.evolvedFrom], i = 0; b && i < 6; b = speciesById[b.evolvedFrom], i++) { if (b.zone && b.zone !== 'evolution') return b.zone; if (b.rareIn) return b.rareIn; } return null; };
+  for (const c of creatureData.creatures) if (c.zone === 'evolution' && !c.rareIn && !c.shrine && !roster.has(c.id)) { const h = homeOf(c); if (h) c.rareIn = h; }
+}
 const starters = creatureData.creatures.filter((c) => c.starter);
 // assets/models/ 의 .glb 는 기다리지 않고 뒤에서 받는다. 도착하면 시작 화면과 게임 안의 드래프트 도형이 그 자리에서 모델로 바뀐다.
 const NPC_MODELS = ['나미.glb', '웅이.glb', '봄이.glb', '리리.glb', '코리.glb', '오박사.glb', '루피.glb', '아이손오공.glb', '손오공.glb', '도토로.glb', '베지터.glb', '벅스버니.glb', '인하.glb', '엄마.glb', '로사.glb', '로이.glb']; // 인하: 포켓몬 학교 당번 친구 · 엄마: 지우네 집 · 로사·로이: 넘버로켓단 대원
@@ -598,7 +605,7 @@ function getZone(name) {
   // 처음엔 둘 중 하루만 나오게 했는데 아이가 찾다가 "없다"고 해서 날마다 한 마리는 꼭 나오게 바꿨다.
   // 흔치 않으니 직접 진화시키고 싶은 마음도 들게 — 그래도 운이 좋으면 바로 잡을 수 있다
   if (z.world.wildSpots.length > 6) {
-    const rares = creatureData.creatures.filter((c) => c.rareIn === z.name && !c.mega);
+    const rares = creatureData.creatures.filter((c) => c.rareIn === z.name && !c.shrine);
     const outer = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => b.d - a.d);
     const sp0 = z.world.spawn || { x: 0, z: 0 };
     rares.forEach((c, k) => {

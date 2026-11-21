@@ -461,7 +461,7 @@ export class Dex {
     const t = this.thumbs(sp);
     const zone = this.zoneName[sp.zone] || '???';
     const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
-    const wildAt = from && !sp.mega ? this.wildPlaces(sp).join(' · ') : ''; /* 진화형도 야생으로 잡을 수 있는 곳 */
+    const wildAt = from && !sp.shrine ? this.wildPlaces(sp).join(' · ') : ''; /* 진화형도 야생으로 잡을 수 있는 곳 */
     const evo = sp.evolution;
     const evoNames = evoTargets(evo).map((t) => this.byId[t.id]).filter(Boolean).map((x) => x.name).join(' / ') || null; // 여럿이면 '샤미드 / 부스터 / …'
     // 여러 갈래 진화: 어디서 진화하면 어떤 모습인지 (부스터 ← 불의산 …). 장소가 없는 갈래는 확률
@@ -483,7 +483,7 @@ export class Dex {
     } else if (sp.special === 'sleepSpot') {
       howLine = `<li>🔑 ${zone}의 정해진 자리에서 쿨쿨 자고 있어. 가까이 가서 깨워 봐</li>`;
     } else if (sp.rareIn) {
-      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn} 바깥쪽 멀리</b>에 딱 한 마리만 살아. ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}진화시키는 게 더 빠를 수도!` : ''}</li>`;
+      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn} 바깥쪽 멀리</b>에 딱 한 마리만 살아. ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}${from.evolution?.mega ? '💠 메가블럭으로 메가진화' : '진화'}시키는 게 더 빠를 수도!` : ''}</li>`;
     } else if (from) { // 진화형: 어디의 누구를 몇 레벨까지 키우면 되는지 (메가블럭·여러 갈래 확률까지)
       howLine = `<li>🧬 <b>얻는 법</b>: ${this.evolveHow(sp, from, wildAt)}</li>`;
     }
@@ -622,7 +622,7 @@ export class Dex {
       const zone = this.zoneName[sp.zone] || '???';
       const from = sp.evolvedFrom ? this.byId[sp.evolvedFrom] : null;
       const fromKnown = !!(from && (caughtById[from.id] || 0) > 0);
-      const wildAt = from && !sp.mega ? this.wildPlaces(sp).join(' · ') : '';
+      const wildAt = from && !sp.shrine ? this.wildPlaces(sp).join(' · ') : '';
       const megaTag = sp.mega ? ' · ✨메가' : '';
       const sub = (known
         ? (from ? `${from.name}의 진화형${wildAt ? ` · ${wildAt}` : ''}${megaTag} · ${n}마리` : `${zone}${sp.boss ? ` · ${this.zoneName[bossZoneOf(sp)] || ''} 보스` : ''}${megaTag} · ${n}마리`)
