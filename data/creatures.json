@@ -254,7 +254,8 @@
     "m10",
     "m77",
     "m79",
-    "m11"
+    "m11",
+    "m11y"
    ],
    "wildOverride": {
     "swim": false,
@@ -592,19 +593,31 @@
     "to": [
      {
       "id": "m11v",
-      "p": 0.3
+      "p": 0.15
      },
      {
       "id": "m11f",
-      "p": 0.3
+      "p": 0.15
      },
      {
       "id": "m11j",
-      "p": 0.3
+      "p": 0.15
      },
      {
       "id": "m11e",
       "p": 0.1
+     },
+     {
+      "id": "m11p",
+      "p": 0.15
+     },
+     {
+      "id": "m11l",
+      "p": 0.15
+     },
+     {
+      "id": "m11y",
+      "p": 0.15
      }
     ],
     "level": 16
@@ -741,7 +754,10 @@
      "kind": "leaf"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "m28e",
+    "level": 16
+   },
    "favoriteNumber": 2,
    "personality": "상냥함",
    "story": "머리의 잎사귀로 날씨를 알아내는 풀 포켓몬. 잎에서 좋은 향기가 나서 마음이 편해져. 햇볕 쬐기를 좋아해.",
@@ -3050,7 +3066,11 @@
      "kind": "bolt"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x14",
+    "level": 30,
+    "mega": 1
+   },
    "favoriteNumber": 3,
    "evolvedFrom": "m03",
    "personality": "씩씩함",
@@ -6260,6 +6280,643 @@
    "favoriteNumber": 2,
    "personality": "용감함",
    "story": "전설의 의지 요정. 사람에게 '포기하지 않는 마음'을 주었대. 엄청 빨라서 하늘을 휙휙 날아다니고, 머리의 빨간 보석이 반짝일 때 가장 힘이 세져. 불의산의 엔테이를 친구로 만들면 불의산에 나타나. 엠라이트·유크시와 함께 '호수의 세 수호신'이야."
+  },
+  {
+   "id": "m81",
+   "name": "수댕이",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "model": "수댕이.glb",
+   "scale": 0.75,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFFFFF"
+   },
+   "baseHp": 14,
+   "baseAtk": 3,
+   "grade": 1,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "물대포",
+     "atk": 8,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "조개껍질칼",
+     "atk": 18,
+     "power": 1.5,
+     "kind": "scratch"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "씩씩함",
+   "story": "물의길 모래섬에 사는 아기 해달 포켓몬. 배에 붙은 조개껍질(가리비)을 떼어 칼처럼 쓰고, 먹을 때는 그릇으로도 써. 숫자 1처럼 언제나 맨 앞에서 용감하게 나서지만, 사실은 물을 조금 무서워한대."
+  },
+  {
+   "id": "m82",
+   "name": "손지브림",
+   "type": "에스퍼",
+   "zone": "space",
+   "catchable": true,
+   "model": "손지브림.glb",
+   "scale": 0.95,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#9FC5E8"
+   },
+   "baseHp": 46,
+   "baseAtk": 10,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "매지컬샤인",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "페어리"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "조용함",
+   "story": "꿈의우주 별빛 아래를 걷는 마녀 모자 포켓몬. 머리의 긴 술로 둘레 사람들의 마음을 느끼는데, 시끄러운 마음을 느끼면 술로 톡톡 두드려 조용히 시켜. 숫자를 셀 때도 속삭이듯 작은 목소리로 센대."
+  },
+  {
+   "id": "m11p",
+   "name": "에브이",
+   "type": "에스퍼",
+   "zone": "space",
+   "catchable": true,
+   "model": "에브이.glb",
+   "scale": 1.1,
+   "baseHp": 72,
+   "baseAtk": 17,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 11,
+   "evolvedFrom": "m11",
+   "personality": "영리함",
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "스피드스타",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "sing",
+     "type": "노말"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    }
+   ],
+   "story": "햇살을 좋아하는 이브이가 진화한 에스퍼 포켓몬. 이마의 붉은 보석으로 공기의 흐름을 읽어서 날씨와 상대의 다음 움직임을 미리 알아. 이브이가 Lv.16 에 진화하면 일곱 가지 중 하나가 되는데, 그중 하나가 에브이야. 꿈의우주에서도 가끔 만날 수 있어."
+  },
+  {
+   "id": "m11l",
+   "name": "리피아",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "model": "리피아.glb",
+   "scale": 1.1,
+   "baseHp": 70,
+   "baseAtk": 17,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 11,
+   "evolvedFrom": "m11",
+   "personality": "상냥함",
+   "skills": [
+    {
+     "name": "잎날가르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "전광석화",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "리프블레이드",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    }
+   ],
+   "story": "숲의 이끼 바위 옆에서 진화한 이브이. 몸이 식물처럼 햇빛으로 양분을 만들고, 리피아가 지나간 자리엔 맑은 공기가 남아. 이브이가 Lv.16 에 진화하면 일곱 가지 중 하나가 되는데, 그중 하나야. 푸른숲에서도 가끔 만날 수 있어."
+  },
+  {
+   "id": "m11y",
+   "name": "님피아",
+   "type": "페어리",
+   "zone": "p_saturn",
+   "catchable": true,
+   "model": "님피아.glb",
+   "scale": 1.1,
+   "baseHp": 74,
+   "baseAtk": 16,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 11,
+   "evolvedFrom": "m11",
+   "personality": "다정함",
+   "skills": [
+    {
+     "name": "요정의바람",
+     "atk": 1,
+     "power": 1,
+     "kind": "wind"
+    },
+    {
+     "name": "전광석화",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "문포스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "sing"
+    }
+   ],
+   "story": "리본 같은 더듬이로 친구를 살며시 감싸는 이브이의 진화형. 더듬이에서 나오는 기분 좋은 파동이 싸우려는 마음을 가라앉혀. 이브이가 Lv.16 에 진화하면 일곱 가지 중 하나가 되는데, 그중 하나야. 반짝이는 토성의 고리 아래에서도 가끔 만날 수 있어."
+  },
+  {
+   "id": "m28e",
+   "name": "메가니움",
+   "type": "풀",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "메가니움.glb",
+   "scale": 1.5,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#9BD65A"
+   },
+   "baseHp": 78,
+   "baseAtk": 16,
+   "grade": 4,
+   "evolution": null,
+   "favoriteNumber": 8,
+   "evolvedFrom": "m28",
+   "personality": "포근함",
+   "skills": [
+    {
+     "name": "잎날가르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "바디프레스",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "꽃잎댄스",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "leaf"
+    },
+    {
+     "name": "솔라빔",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "leaf"
+    }
+   ],
+   "story": "치코리타가 Lv.16 에 진화한 포켓몬. 목둘레에 겹겹이 핀 커다란 꽃잎에서 나는 향기를 맡으면 시든 풀도, 다툰 친구도 기운을 되찾아. 꽃잎을 세어 보면 늘 여덟 장이래."
+  },
+  {
+   "id": "x14",
+   "name": "메가라이츄Y",
+   "type": "전기",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "메가라이츄Y.glb",
+   "scale": 1.8,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F2A33A"
+   },
+   "baseHp": 170,
+   "baseAtk": 34,
+   "grade": 7,
+   "mega": true,
+   "evolution": null,
+   "favoriteNumber": 1,
+   "evolvedFrom": "m03e",
+   "personality": "번쩍번쩍",
+   "skills": [
+    {
+     "name": "10만볼트",
+     "atk": 1,
+     "power": 1,
+     "kind": "bolt"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "번개",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "bolt"
+    },
+    {
+     "name": "볼트태클",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "bolt"
+    }
+   ],
+   "story": "라이츄가 메가블럭의 힘으로 메가진화한 모습. 귀와 꼬리의 번개 모양이 커다랗게 자라 하늘을 날 듯 뛰어오르고, 꼬리 끝으로 번개를 모아 쏴. 라이츄가 Lv.30 이 되고 메가블럭이 있으면 도감에서 메가진화할 수 있어."
+  },
+  {
+   "id": "b19",
+   "name": "세레비",
+   "type": "풀",
+   "zone": "forest",
+   "catchable": true,
+   "unlockedBy": "x01",
+   "model": "세레비.glb",
+   "scale": 1.0,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#B6E07A",
+    "glow": true
+   },
+   "baseHp": 120,
+   "baseAtk": 22,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "잎날가르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "leaf"
+    },
+    {
+     "name": "염동력",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "리프스톰",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "leaf"
+    },
+    {
+     "name": "미래예지",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "psychic",
+     "type": "에스퍼"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 0,
+   "personality": "시간 여행자",
+   "story": "시간을 넘나드는 숲의 수호신. 숲이 건강할 때만 모습을 드러낸다고 해서, 푸른숲의 메가이상해꽃을 친구로 만들어 숲의 이야기를 끝내면 나타나. 어제와 내일 사이를 날아다녀서, 세레비가 지나간 자리엔 미래의 꽃이 먼저 핀대."
+  },
+  {
+   "id": "b20",
+   "name": "레지락",
+   "type": "바위",
+   "zone": "cave",
+   "catchable": true,
+   "unlockedBy": "b02",
+   "model": "레지락.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#B07A5A"
+   },
+   "baseHp": 130,
+   "baseAtk": 22,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "바위떨구기",
+     "atk": 1,
+     "power": 1,
+     "kind": "rock"
+    },
+    {
+     "name": "록블라스트",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "rock"
+    },
+    {
+     "name": "스톤에지",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "rock"
+    },
+    {
+     "name": "대폭발",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "tackle",
+     "type": "노말"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "묵직함",
+   "story": "온몸이 바위로 된 거인. 얼굴에 일곱 개의 점이 빛나는데, 점자로 무언가를 말하고 있대. 지하동굴의 보스 롱스톤을 잡으면 동굴 깊은 곳에서 쿵쿵 걸어 나와. 레지스틸·레지아이스와 함께 세 거인이라 불려."
+  },
+  {
+   "id": "b21",
+   "name": "레지스틸",
+   "type": "바위",
+   "zone": "thunder",
+   "catchable": true,
+   "unlockedBy": "m03e",
+   "model": "레지스틸.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#8D96A8"
+   },
+   "baseHp": 125,
+   "baseAtk": 21,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "메탈클로",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch"
+    },
+    {
+     "name": "러스터캐논",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "bolt",
+     "type": "전기"
+    },
+    {
+     "name": "아이언헤드",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "rock"
+    },
+    {
+     "name": "파괴광선",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "tackle",
+     "type": "노말"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "단단함",
+   "story": "세상의 어떤 금속보다 단단한 강철 거인. 번개를 맞아도 꿈쩍하지 않아서 번개동굴에서 잠들어 있었어. 번개동굴의 보스 라이츄를 되돌리면 눈을 떠. 세 거인 중 가장 단단해."
+  },
+  {
+   "id": "b22",
+   "name": "레지아이스",
+   "type": "물",
+   "zone": "p_uranus",
+   "catchable": true,
+   "unlockedBy": "m47",
+   "model": "레지아이스.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#9FD8F0"
+   },
+   "baseHp": 125,
+   "baseAtk": 21,
+   "grade": 5,
+   "skills": [
+    {
+     "name": "얼음뭉치",
+     "atk": 1,
+     "power": 1,
+     "kind": "water"
+    },
+    {
+     "name": "얼다바람",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "wind"
+    },
+    {
+     "name": "냉동빔",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "water"
+    },
+    {
+     "name": "눈보라",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "wind"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "차가움",
+   "story": "영하 200도의 얼음으로 된 거인. 몸이 너무 차가워서 녹지 않는대. 얼음 행성 천왕성의 보스 이상해물을 이기면 메탄 얼음 호수 위로 걸어 나와. 세 거인 중 하나야."
+  },
+  {
+   "id": "b23",
+   "name": "레지기가스",
+   "type": "노말",
+   "zone": "cave",
+   "catchable": true,
+   "unlockedBy": [
+    "b20",
+    "b21",
+    "b22"
+   ],
+   "model": "레지기가스.glb",
+   "scale": 2.8,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F2F2F2"
+   },
+   "baseHp": 210,
+   "baseAtk": 32,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "누르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle"
+    },
+    {
+     "name": "메가톤펀치",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "punch",
+     "type": "격투"
+    },
+    {
+     "name": "스톤에지",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "rock",
+     "type": "바위"
+    },
+    {
+     "name": "기가임팩트",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 3,
+   "personality": "위엄 있음",
+   "story": "세 거인 레지락·레지스틸·레지아이스를 만들었다고 전해지는 거인의 왕. 대륙을 밧줄로 끌어 옮겼다는 전설이 있어. 세 거인을 모두 친구로 만들면 지하동굴 어딘가에서 잠에서 깨어나."
+  },
+  {
+   "id": "b24",
+   "name": "원시그란돈",
+   "type": "땅",
+   "zone": "volcano",
+   "catchable": true,
+   "unlockedBy": "x03",
+   "model": "원시그란돈.glb",
+   "scale": 3.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C0392B",
+    "glow": true
+   },
+   "baseHp": 220,
+   "baseAtk": 34,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "흙뿌리기",
+     "atk": 1,
+     "power": 1,
+     "kind": "sand"
+    },
+    {
+     "name": "분화",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "단애의칼",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "sand"
+    },
+    {
+     "name": "지진",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "sand"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 4,
+   "personality": "뜨거움",
+   "story": "대지를 넓혔다고 전해지는 전설의 포켓몬 그란돈이 자연의 힘을 되찾은 원시의 모습. 몸의 노란 줄무늬에서 용암처럼 빛이 흘러. 불의산의 메가리자몽Y를 친구로 만들어 불의산 이야기를 끝내면 불의산 어딘가에 나타나."
+  },
+  {
+   "id": "b25",
+   "name": "레쿠쟈",
+   "type": "노말",
+   "zone": "space",
+   "catchable": true,
+   "unlockedBy": "b24",
+   "model": "레쿠쟈.glb",
+   "scale": 3.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#2E8B57"
+   },
+   "baseHp": 240,
+   "baseAtk": 36,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "용의숨결",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "에어슬래시",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "wind"
+    },
+    {
+     "name": "역린",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "tackle"
+    },
+    {
+     "name": "화룡점정",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "wind"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "하늘의 왕",
+   "story": "하늘 높은 곳, 오존층에서 살아가는 전설의 하늘 용. 땅에 내려오는 일이 거의 없지만, 원시그란돈이 날뛰면 그 힘을 잠재우러 내려와. 원시그란돈을 친구로 만들면 꿈의우주에 내려와. 몸의 노란 무늬는 하늘에 그린 지도래."
   }
  ]
 }
