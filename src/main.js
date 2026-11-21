@@ -1009,6 +1009,7 @@ dex.bindParty({
   getRockets: () => (SHOW_ROCKETS ? Object.fromEntries(ROCKET_ZONES.map((z) => [z, rocketStatus(z)])) : {}), // (예전 지도 🚨/🏳 — 이제는 getChapters)
   getChapters: () => (SHOW_ROCKETS ? chapterInfo() : {}), // 지도: 지역마다 다음 단계 하나 (👑 → 🚨 → 💠 → 🏅)
   getZoneName: () => zone?.name,
+  getHereIds: () => new Set((zone?.creatures || []).filter((c) => c.state !== 'caught' && !c.rocketOf).map((c) => c.data.id)), // 도감 액자의 초록 점: 지금 이 지역에 나와 있는 종
   typeInfo: (type) => ({ strong: strongAgainst(type), weak: weakTo(type) }),
   // 도감 카드의 "🔑 나타나는 조건": 조건 포켓몬마다 이름·보스 여부·잡았는지 (unlockedBy 가 있는 종만)
   isMaster: (sp) => !!state.masters[sp.id], // 👑 Lv.50 마스터 타이틀
