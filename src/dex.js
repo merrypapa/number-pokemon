@@ -9,6 +9,7 @@ import { colorForCount } from './palette.js';
 import { skillIcon } from './types.js';
 import { TYPE_EMOJI } from './typelesson.js';
 import { PLANETS } from './planets.js';
+import { josa } from './util.js';
 
 // 몬스터 도감 + 내 포켓몬.
 //  - 위: "내 포켓몬" 칩(잡은 포켓몬 한 줄) + 선택한 포켓몬 한 마리의 상세 카드 (스탯·기술·진화, 내 포켓몬이면 레벨·경험치·아이템/대표/진화 버튼).
@@ -437,6 +438,18 @@ export class Dex {
     return [...new Set(out)];
   }
 
+  /** 진화형을 얻는 법 한 줄: "야생에서는 안 나와. 푸른숲의 치코리타를 Lv.16 까지 키우면 진화해" */
+  evolveHow(sp, from, wildAt = '') {
+    const fe = from.evolution || {}, all = evoTargets(fe), tg = all.find((t) => t.id === sp.id);
+    // 진화 전 포켓몬을 만나는 곳: 야생으로 나오는 곳, 없으면 맨 처음 모습(예: 리자몽 ← 리자드 ← 파이리)이 사는 곳
+    const places = this.wildPlaces(from).filter((z) => z && z !== '???');
+    let who = `${places.length ? `${places.join(' · ')}의 ` : ''}${from.name}`;
+    if (!places.length) { let base = from; while (base.evolvedFrom && this.byId[base.evolvedFrom]) base = this.byId[base.evolvedFrom]; if (base !== from) who = `${from.name}(${this.zoneName[base.zone] || ''}의 ${base.name}에서 진화)`; }
+    const how = `${fe.level ? `Lv.${fe.level}` : '레벨'}${fe.mega ? ' + 💠 메가블럭' : ''}`;
+    const branch = all.length > 1 && tg ? ` (여러 모습 중 하나, ${Math.round((tg.p || 0) * 100)}%)` : '';
+    return `${wildAt ? `${wildAt}에서 야생으로 만나거나, ` : '야생에서는 안 나와. '}${who.endsWith(')') ? who + '를' : josa(who, '을를')} ${how}까지 키우면 ${fe.mega ? '도감에서 메가진화' : '진화'}해${branch}`;
+  }
+
   renderDetail(caughtById) {
     const ctx = this.partyCtx;
     const party = ctx?.party;
@@ -470,7 +483,9 @@ export class Dex {
     } else if (sp.special === 'sleepSpot') {
       howLine = `<li>🔑 ${zone}의 정해진 자리에서 쿨쿨 자고 있어. 가까이 가서 깨워 봐</li>`;
     } else if (sp.rareIn) {
-      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn} 바깥쪽 멀리</b>에 딱 한 마리만 살아. ${from ? `${from.name}을(를) 진화시키는 게 더 빠를 수도!` : ''}</li>`;
+      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn} 바깥쪽 멀리</b>에 딱 한 마리만 살아. ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}진화시키는 게 더 빠를 수도!` : ''}</li>`;
+    } else if (from) { // 진화형: 어디의 누구를 몇 레벨까지 키우면 되는지 (메가블럭·여러 갈래 확률까지)
+      howLine = `<li>🧬 <b>얻는 법</b>: ${this.evolveHow(sp, from, wildAt)}</li>`;
     }
     card.className = 'detail-card' + (known ? '' : ' unknown');
     card.style.borderColor = known ? (sp.draftShape?.color || '#ffd93d') : '#ccc';
