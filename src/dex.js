@@ -483,7 +483,7 @@ export class Dex {
     } else if (sp.special === 'sleepSpot') {
       howLine = `<li>🔑 ${zone}의 정해진 자리에서 쿨쿨 자고 있어. 가까이 가서 깨워 봐</li>`;
     } else if (sp.rareIn) {
-      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn}</b>에 날마다 딱 한 마리, <b>노란 빛</b>이 비추는 자리에 나와 (시작 지점에서 중간쯤). ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}${from.evolution?.mega ? '💠 메가블럭으로 메가진화' : '진화'}시키는 게 더 빠를 수도!` : ''}</li>`;
+      howLine = `<li>🍀 <b>${this.zoneName[sp.rareIn] || sp.rareIn}</b>에 날마다 딱 한 마리 나와 (시작 지점에서 중간쯤). ${from ? `${josa(from.name, '을를')} ${from.evolution?.level ? `Lv.${from.evolution.level}까지 키워 ` : ''}${from.evolution?.mega ? '💠 메가블럭으로 메가진화' : '진화'}시키는 게 더 빠를 수도!` : ''}</li>`;
     } else if (from) { // 진화형: 어디의 누구를 몇 레벨까지 키우면 되는지 (메가블럭·여러 갈래 확률까지)
       howLine = `<li>🧬 <b>얻는 법</b>: ${this.evolveHow(sp, from, wildAt)}</li>`;
     }
