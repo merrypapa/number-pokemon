@@ -601,21 +601,23 @@ function getZone(name) {
     for (let i = 0; i + 1 < n; i++) if (rnd() < 0.3) { const t = idx[i]; idx[i] = idx[i + 1]; idx[i + 1] = t; }
     spots.forEach((s, i) => { const c = order[idx[i]]; spawnCreature(z, c.id, s.x, s.z, extraFor(c)); });
   }
-  // 진화형 포켓몬도 드물게 (creatures.json `rareIn`: 진화 전용 종이 드물게 나오는 지역 = 기본형이 사는 곳): 지역 **바깥쪽 멀리에 한 마리만** 나온다 (보통 종은 2~3마리).
+  // 진화형 포켓몬도 드물게 (creatures.json `rareIn`: 진화 전용 종이 드물게 나오는 지역 = 기본형이 사는 곳): 지역의 **중간쯤에 한 마리만**, 노란 빛을 받고 나온다 (보통 종은 2~3마리).
   // 처음엔 둘 중 하루만 나오게 했는데 아이가 찾다가 "없다"고 해서 날마다 한 마리는 꼭 나오게 바꿨다.
   // 흔치 않으니 직접 진화시키고 싶은 마음도 들게 — 그래도 운이 좋으면 바로 잡을 수 있다
   if (z.world.wildSpots.length > 6) {
     const rares = creatureData.creatures.filter((c) => c.rareIn === z.name && !c.shrine);
-    const outer = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => b.d - a.d);
-    const sp0 = z.world.spawn || { x: 0, z: 0 };
+    // 예전엔 맨 바깥 구석(+4m 더 바깥)에 세워서 찾기 어렵고, 벽·절벽 너머 닿지 않는 곳에 서기도 했다.
+    // 이제는 야생 자리(닿는 곳으로 고쳐 둔 자리) 가운데 시작 지점에서 중간쯤 떨어진 곳(바깥쪽 정도 30~60%)에, 노란 빛을 비춰 세운다
+    const ring = z.world.wildSpots.map(([x, zz]) => ({ x, z: zz, d: outwardness(z, x, zz) })).sort((a, b) => a.d - b.d);
+    const mid = ring.filter((s) => s.d >= 0.3 && s.d <= 0.6), pool = mid.length >= rares.length ? mid : ring.slice(Math.floor(ring.length * 0.4));
     rares.forEach((c, k) => {
       const fixed = z.world.rareSpots?.[c.id];
       if (fixed) { const cr = spawnCreature(z, c.id, fixed.x, fixed.z, { ...wildOnly, catchable: true }); cr.rare = true; addSpotGlow(z, cr, fixed); return; } // 지역이 정해 둔 잘 보이는 자리 (지하동굴 루카리오)
-      const s = outer[k % outer.length], dx = s.x - sp0.x, dz = s.z - sp0.z, L = Math.hypot(dx, dz) || 1;
-      let x = s.x + (dx / L) * 4, zz = s.z + (dz / L) * 4;
-      if (Math.abs(x) > z.terrain.size / 2 - 3 || Math.abs(zz) > z.terrain.size / 2 - 3 || isBlocked(x, zz, 0) || insideObstacle(x, zz, 1)) { x = s.x + (dz / L) * 3; zz = s.z - (dx / L) * 3; } // 비켜 선다
-      if (isBlocked(x, zz, 0) || insideObstacle(x, zz, 1)) { x = s.x; zz = s.z; }
+      const s = pool[Math.floor(((k + 0.5) / rares.length) * pool.length) % pool.length]; // 드문 포켓몬끼리 서로 다른 자리
+      let x = s.x + 2.5, zz = s.z; // 그 자리의 보통 야생과 겹치지 않게 살짝 옆
+      if (Math.abs(x) > z.terrain.size / 2 - 3 || isBlocked(x, zz, 0) || insideObstacle(x, zz, 1)) { x = s.x; zz = s.z; }
       const cr = spawnCreature(z, c.id, x, zz, { ...wildOnly, catchable: true }); cr.rare = true;
+      addSpotGlow(z, cr, { x, z: zz, glow: 0xffe08a }); // 노란 빛이 위에서 비춘다 (멀리서도 보이게)
     });
   }
   // 배를 타야 만나는 헤엄치는 포켓몬 (물 위), 그리고 아주 먼바다에만 사는 포켓몬
