@@ -605,6 +605,7 @@ export class Battle {
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
       this.releaseBtn.classList.remove('hidden');
+      this.autoAim(); // 기본은 휙 던지기: 추천 볼을 바로 손에 쥐어 준다 (볼 고르기·쉬운 던지기·풀어주기는 오른쪽 아래 "볼 바꾸기")
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
       // 머리 위에 씌워져 있던 붉은 숫자가 조각나 흩어진다 (넘버로켓단의 가짜 숫자, docs/02_storyline.md)
       this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
@@ -690,7 +691,7 @@ export class Battle {
   // ----- 넘버볼 던지기 -----
   /** 어질어질할 때 넘버볼 고르기 버튼들 (재고·잡힐 확률) */
   /** 잡힐 확률 (등급·볼 + 이 포켓몬에게 실패한 만큼 보너스) */
-  chanceFor(tier) { return Math.min(100, catchChance(this.creature.data.grade || 1, tier) + (this.creature.catchBonus || 0)); }
+  chanceFor(tier) { return Math.min(100, catchChance(this.creature.data.grade || 1, tier) + (this.creature.catchBonus || 0) + (this.throwBonus || 0)); } // throwBonus: 손으로 던질 때 커브볼·타이밍 보너스 (그 한 번만)
   renderBalls() {
     this.ballsEl.innerHTML = '';
     const stock = this.getBalls();
@@ -703,20 +704,135 @@ export class Battle {
       btn.innerHTML = `<span class="ball-dot${b.shape ? ' ' + b.shape : ''}"></span><span class="ball-name">${b.name.replace('볼', '')}</span><span class="ball-n">×${n}</span><span class="ball-pct">${pct}%</span>`;
       btn.title = `잡힐 확률 ${pct}%`;
       btn.disabled = !n;
-      btn.onclick = () => this.throwBall(b.id);
+      btn.onclick = () => (this.easyThrow() ? this.throwBall(b.id) : this.startAim(b.id));
       this.ballsEl.appendChild(btn);
     }
+    // 던지는 방법 바꾸기: 👆 휙 던지기(손으로) ↔ 🔘 쉬운 던지기(누르면 바로). 기기에 기억
+    const mode = document.createElement('button');
+    mode.className = 'throw-mode';
+    mode.textContent = this.easyThrow() ? '지금: 🔘 쉬운 던지기(누르면 바로) → 👆 휙 던지기로 바꾸기' : '지금: 👆 휙 던지기(손으로) → 🔘 쉬운 던지기로 바꾸기';
+    mode.onclick = () => { try { localStorage.setItem('np-easy-throw', this.easyThrow() ? '0' : '1'); } catch (_) {} this.sound.click(); this.renderBalls(); this.autoAim(); }; // 휙 던지기로 바꾸면 바로 볼을 쥔다
+    this.ballsEl.appendChild(mode);
     this.craftBtn.classList.toggle('hidden', !this.onBuyBall); // 팝업에서 블록을 넘버볼로 바꾼다
   }
-  throwBall(ballId = 'bronze') {
+  /** 휙 던지기 모드면 가진 볼 가운데 추천 볼을 바로 쥐어 준다 (볼이 하나도 없으면 볼 버튼·만들기 화면 그대로) */
+  autoAim() {
+    if (this.easyThrow() || this.phase !== 'dizzy') return;
+    const stock = this.getBalls(), id = this.bestBall();
+    if ((stock[id] || 0) > 0) this.startAim(id);
+  }
+  easyThrow() { try { return localStorage.getItem('np-easy-throw') === '1'; } catch (_) { return false; } }
+
+  // ----- 휙 던지기 (포켓몬고처럼): 볼을 손가락으로 잡고 위로 밀어 던진다 -----
+  // · 잡은 채로 빙글빙글 돌리면 커브볼 (+10%p), 상대 둘레의 원이 작을 때 맞히면 나이스 +5 · 그레이트 +10 · 엑설런트 +20 %p
+  // · 원 색은 지금 잡힐 확률 (초록 쉬움 → 노랑 → 빨강 어려움). 빗나가면 볼은 줄지 않고 다시 던진다
+  startAim(ballId) {
     if (this.phase !== 'dizzy') return;
+    const spec = BALL_BY_ID[ballId] || BALLS[0];
+    if (!((this.getBalls()[spec.id] || 0) > 0)) { this.msgEl.textContent = `${spec.name}이 없어! 블록으로 만들 수 있어.`; return; }
+    if (!this.padEl) {
+      const el = document.createElement('div'); el.id = 'throw-pad'; el.className = 'hidden';
+      el.innerHTML = '<div class="throw-ring"><i></i></div><div class="throw-ball"><span></span></div><div class="throw-hint"></div><button class="throw-cancel">🔄 볼 바꾸기</button>';
+      document.body.appendChild(el); this.padEl = el;
+      this.ringEl = el.querySelector('.throw-ring'); this.tballEl = el.querySelector('.throw-ball'); this.hintEl = el.querySelector('.throw-hint');
+      el.querySelector('.throw-cancel').onclick = (e) => { e.stopPropagation(); this.endAim(); this.renderBalls(); this.ballsEl.classList.remove('hidden'); this.releaseBtn.classList.remove('hidden'); this.craftBtn.classList.toggle('hidden', !this.onBuyBall); this.msgEl.textContent = '던질 볼을 골라! (👆 휙 던지기 / 🔘 쉬운 던지기는 아래에서 바꿔)'; }; // 볼 고르기·쉬운 던지기·풀어주기·만들기
+      el.addEventListener('pointerdown', (e) => this.aimDown(e));
+      el.addEventListener('pointermove', (e) => this.aimMove(e));
+      el.addEventListener('pointerup', (e) => this.aimUp(e));
+      el.addEventListener('pointercancel', () => this.resetAimBall());
+    }
+    this.aim = { spec, drag: null, curve: false, busy: false };
+    this.throwBonus = 0;
+    this.tballEl.style.setProperty('--ball', spec.css);
+    this.tballEl.className = 'throw-ball' + (spec.shape ? ' ' + spec.shape : '');
+    this.resetAimBall();
+    this.hintEl.textContent = `${spec.name}을 잡고 위로 휙! 빙글빙글 돌리면 커브볼 · 원이 작을 때 맞히면 보너스`;
+    this.padEl.classList.remove('hidden');
+    this.ballsEl.classList.add('hidden'); this.craftBtn.classList.add('hidden'); this.releaseBtn.classList.add('hidden');
+    this.msgEl.textContent = '👆 볼을 위로 휙 던져!';
+  }
+  endAim() { this.aim = null; this.padEl?.classList.add('hidden'); }
+  resetAimBall() { if (!this.tballEl) return; if (this.aim) { this.aim.drag = null; this.aim.curve = false; } this.tballEl.style.left = '50%'; this.tballEl.style.top = ''; this.tballEl.style.bottom = '18%'; this.tballEl.classList.remove('curve', 'held'); }
+  aimDown(e) {
+    const A = this.aim; if (!A || A.busy || e.target.closest('.throw-cancel')) return;
+    const r = this.tballEl.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    if (Math.hypot(e.clientX - cx, e.clientY - cy) > Math.max(70, r.width)) return; // 볼 근처를 잡아야
+    A.drag = { cx: e.clientX, cy: e.clientY, pts: [{ x: e.clientX, y: e.clientY, t: performance.now() }], ang: null, turn: 0 };
+    this.padEl.setPointerCapture?.(e.pointerId);
+    this.tballEl.classList.add('held');
+  }
+  aimMove(e) {
+    const A = this.aim, D = A?.drag; if (!D) return;
+    const now = performance.now();
+    D.pts.push({ x: e.clientX, y: e.clientY, t: now }); if (D.pts.length > 40) D.pts.shift();
+    this.tballEl.style.left = `${e.clientX}px`; this.tballEl.style.top = `${e.clientY}px`; this.tballEl.style.bottom = 'auto';
+    // 빙글빙글: 잡은 자리 둘레를 돈 각도를 모은다 (한 바퀴 넘으면 커브볼)
+    const dx = e.clientX - D.cx, dy = e.clientY - D.cy;
+    if (Math.hypot(dx, dy) > 18) { const a = Math.atan2(dy, dx); if (D.ang != null) { let d = a - D.ang; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI; D.turn += d; } D.ang = a; }
+    if (!A.curve && Math.abs(D.turn) > Math.PI * 2) { A.curve = true; A.curveDir = Math.sign(D.turn); this.tballEl.classList.add('curve'); this.sound.pickup(); this.hintEl.textContent = '✨ 커브볼 준비! 이제 위로 휙!'; }
+  }
+  aimUp(e) {
+    const A = this.aim, D = A?.drag; if (!D) return;
+    A.drag = null; this.tballEl.classList.remove('held');
+    // 손을 떼기 직전 0.12초 동안 움직인 만큼이 던진 빠르기. 화면이 잠깐 멈춰 점이 하나뿐이면 바로 앞 점으로 (0.15초로 쳐서)
+    const now = performance.now(), recent = D.pts.filter((p) => now - p.t < 120), p0 = recent.length >= 2 ? recent[0] : (D.pts[D.pts.length - 2] || D.pts[0]);
+    const dt = Math.max(16, Math.min(150, now - p0.t)), vx = (e.clientX - p0.x) / dt, vy = (p0.y - e.clientY) / dt; // px/ms (위로 + )
+    if (vy < 0.5 || p0.y - e.clientY < 40) { this.resetAimBall(); this.hintEl.textContent = '조금 더 세게, 위로 휙 밀어 봐!'; return; }
+    // 상대(원)까지 날아갔을 때의 가로 위치로 맞았는지 본다. 커브볼은 원 쪽으로 반쯤 휘어 준다
+    const rr = this.ringEl.getBoundingClientRect(), tx = rr.left + rr.width / 2, ty = rr.top + rr.height / 2;
+    const tFly = Math.max(0, e.clientY - ty) / (vy || 1);
+    let px = e.clientX + vx * tFly;
+    if (A.curve) px += (tx - px) * 0.5;
+    const tol = Math.max(70, (rr.width / 2) * 1.5) * (A.curve ? 1.25 : 1);
+    const strong = vy > 0.9 || e.clientY - ty < 260; // 너무 약하면 앞에 떨어진다
+    const hit = strong && Math.abs(px - tx) <= tol;
+    const s = this.ringScale || 1, timing = s < 0.45 ? ['엑설런트!', 20] : s < 0.65 ? ['그레이트!', 10] : s < 0.85 ? ['나이스!', 5] : null;
+    if (!hit) return this.aimMiss(px > tx ? 1 : -1, strong);
+    const bonus = (timing ? timing[1] : 0) + (A.curve ? 10 : 0);
+    this.throwBonus = bonus;
+    const spec = A.spec, curve = A.curve, curveDir = A.curveDir || 1;
+    this.endAim();
+    if (bonus) this.showBanner(`${timing ? timing[0] : ''}${curve ? ' 커브볼!' : ''} +${bonus}%`.trim());
+    this.throwBall(spec.id, { curve, curveDir, keepBonus: true });
+  }
+  aimMiss(side, strong) {
+    const A = this.aim; A.busy = true;
+    this.tballEl.style.bottom = '-30%'; this.tballEl.style.top = 'auto';
+    // 3D 로도 볼이 상대 옆으로 빗나가 떨어진다 (볼은 줄지 않는다)
+    const ball = makeBall(A.spec.color, A.spec), perp = new THREE.Vector3(this.dir.z, 0, -this.dir.x);
+    const to = this.targetPoint().clone().addScaledVector(perp, side * 1.8).addScaledVector(this.dir, strong ? 0.8 : -1.6);
+    to.y = this.groundY(to.x, to.z) + 0.2;
+    this.scene.add(ball); this.flying.push({ mesh: ball, from: this.throwFrom.clone(), to, t: 0, dur: 0.75, kind: 'miss', arc: strong ? 1.4 : 0.8 });
+    this.sound.throw_();
+    this.msgEl.textContent = strong ? '아깝다, 옆으로 빗나갔어! 볼은 그대로야. 다시 던져 봐!' : '너무 약했어! 앞에 떨어졌어. 볼은 그대로야.';
+    setTimeout(() => { if (this.aim === A) { A.busy = false; this.resetAimBall(); this.hintEl.textContent = '다시! 원을 향해 위로 휙'; } }, 900);
+  }
+  /** 매 프레임: 상대 둘레 원 (자리·크기·색) */
+  aimTick() {
+    if (!this.aim || !this.ringEl) return;
+    const c = this.creature, sc = c.data.scale || 1;
+    const p = this.targetPoint().clone(); this.camera.updateMatrixWorld();
+    const v = p.project(this.camera), W = window.innerWidth, H = window.innerHeight;
+    const edge = this.targetPoint().clone().add(new THREE.Vector3(0.9 * sc, 0, 0)).project(this.camera);
+    const R = Math.max(40, Math.min(160, Math.abs(edge.x - v.x) * W / 2));
+    this.ringScale = 0.3 + 0.7 * (0.5 + 0.5 * Math.cos(this.timer * 2.4));
+    const pct = this.chanceFor(this.aim.spec.tier || 1);
+    this.ringEl.style.left = `${((v.x + 1) / 2) * W}px`; this.ringEl.style.top = `${((1 - v.y) / 2) * H}px`;
+    this.ringEl.style.width = this.ringEl.style.height = `${R * 2}px`;
+    this.ringEl.style.setProperty('--ring', pct >= 80 ? '#2ecc71' : pct >= 50 ? '#f7cf3e' : '#e8453c');
+    this.ringEl.firstChild.style.transform = `translate(-50%, -50%) scale(${this.ringScale})`;
+  }
+  throwBall(ballId = 'bronze', opt = {}) {
+    if (this.phase !== 'dizzy') return;
+    if (!opt.keepBonus) this.throwBonus = 0;
+    this.endAim();
     const spec = BALL_BY_ID[ballId] || BALLS[0];
     if (this.onUseBall && !this.onUseBall(spec.id)) { this.msgEl.textContent = `${spec.name}이 없어! 도감의 넘버볼 탭에서 블록으로 바꿀 수 있어.`; return; }
     this.ballSpec = spec;
     const ball = makeBall(spec.color, spec);
     const from = this.throwFrom.clone();
     this.scene.add(ball);
-    this.flying.push({ mesh: ball, from, to: this.targetPoint(), t: 0, dur: 0.7, kind: 'ball', arc: 1.6 });
+    this.flying.push({ mesh: ball, from, to: this.targetPoint(), t: 0, dur: 0.7, kind: 'ball', arc: 1.6, curve: opt.curve ? (opt.curveDir || 1) : 0 });
     this.ball = ball;
     this.phase = 'ball_fly';
     this.ballBtn.classList.add('hidden');
@@ -793,6 +909,7 @@ export class Battle {
   }
 
   end(result) {
+    this.endAim();
     this.active = false;
     for (const f of this.flying) this.scene.remove(f.mesh);
     this.flying = [];
@@ -881,12 +998,14 @@ export class Battle {
     if (this.input.wasPressed('cancel')) this.leave();
 
     this.whipUpdate(dt);
+    this.aimTick(); // 휙 던지기: 상대 둘레 타이밍 원
     // 날아가는 것들 (포물선)
     for (const f of this.flying) {
       f.t += dt / f.dur;
       const t = Math.min(1, f.t);
       f.mesh.position.lerpVectors(f.from, f.to, t);
       f.mesh.position.y += Math.sin(t * Math.PI) * (f.arc ?? 1.6);
+      if (f.curve) f.mesh.position.addScaledVector(new THREE.Vector3(this.dir.z, 0, -this.dir.x), f.curve * Math.sin(t * Math.PI) * 1.1); // 커브볼은 옆으로 휘어 날아간다
       if (f.keepRot) { if (f.spin) f.mesh.rotateX(dt * f.spin); }
       else if (f.kind === 'ball') f.mesh.rotation.x += dt * 9; // 넘버볼은 앞으로 구르듯
       else { f.mesh.rotation.x += dt * 6; f.mesh.rotation.y += dt * 4; }
@@ -1098,6 +1217,7 @@ export class Battle {
   /** 볼에서 튀어나왔다: 도망가지 않는다. 기운을 조금(최대 체력의 15%) 되찾고 반격한 뒤 대결이 이어진다.
    *  다시 체력을 0으로 만들면 또 볼을 던질 수 있고, 실패할 때마다 잡힐 확률이 RETRY_BONUS 만큼 올라간다 (catchBonus). */
   startEscape() {
+    this.throwBonus = 0;
     this.phase = 'breakout';
     this.escapeStart = this.timer;
     const c = this.creature;
@@ -1180,6 +1300,7 @@ export class Battle {
     this.catchEl.classList.remove('hidden');
   }
   startSuccess() {
+    this.throwBonus = 0;
     this.phase = 'success';
     this.successStart = this.timer;
     this.catchShown = false;

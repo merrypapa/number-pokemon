@@ -1197,3 +1197,17 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .dex-here-legend { font-weight: 700; color: #888; font-size: 12px; margin-left: 6px; white-space: nowrap; }
 .dex-here-legend .dex-here { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #c9c9c9; vertical-align: -1px; margin: 0 3px 0 6px; }
 .dex-here-legend .dex-here.on { background: #2ecc71; }
+/* 휙 던지기 (포켓몬고처럼): 화면 전체를 덮는 판 + 아래 큰 볼 + 상대 둘레 타이밍 원 */
+#throw-pad { position: fixed; inset: 0; z-index: 25; touch-action: none; user-select: none; -webkit-user-select: none; }
+#throw-pad.hidden { display: none; }
+#throw-pad .throw-ball { position: fixed; left: 50%; bottom: 18%; width: 96px; height: 96px; transform: translate(-50%, 50%); border-radius: 50%; border: 4px solid #20232e; background: linear-gradient(var(--ball, #e8453c) 0 47%, #20232e 47% 53%, #fff 53%); box-shadow: 0 8px 18px rgba(0,0,0,.35); transition: bottom .35s ease; cursor: grab; }
+#throw-pad .throw-ball.held { transition: none; transform: translate(-50%, -50%) scale(1.05); cursor: grabbing; }
+#throw-pad .throw-ball span { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 4px solid #20232e; }
+#throw-pad .throw-ball.master { background: linear-gradient(#ff8fc0 0 47%, #20232e 47% 53%, #9cc8f2 53%); }
+#throw-pad .throw-ball.curve { animation: throwSpin .45s linear infinite; box-shadow: 0 0 0 6px rgba(255,217,61,.55), 0 0 24px #ffd93d; }
+@keyframes throwSpin { from { rotate: 0deg; } to { rotate: 360deg; } }
+#throw-pad .throw-ring { position: fixed; transform: translate(-50%, -50%); border-radius: 50%; border: 4px solid rgba(255,255,255,.85); pointer-events: none; box-shadow: 0 0 10px rgba(0,0,0,.25); }
+#throw-pad .throw-ring i { position: absolute; left: 50%; top: 50%; width: 100%; height: 100%; border-radius: 50%; border: 6px solid var(--ring, #2ecc71); box-sizing: border-box; }
+#throw-pad .throw-hint { position: fixed; left: 50%; bottom: 4%; transform: translateX(-50%); background: rgba(32,35,46,.8); color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+#throw-pad .throw-cancel { position: fixed; right: 14px; bottom: 14px; font: inherit; font-weight: 900; font-size: 15px; padding: 10px 14px; border-radius: 14px; border: 0; background: #fff; box-shadow: 0 3px 0 #bbb; cursor: pointer; }
+#battle-balls .throw-mode { grid-column: 1 / -1; font: inherit; font-size: 13px; font-weight: 800; padding: 6px 10px; border-radius: 10px; border: 0; background: #f1ecd6; color: #555; cursor: pointer; }
