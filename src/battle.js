@@ -782,9 +782,9 @@ export class Battle {
     const rr = this.ringEl.getBoundingClientRect(), tx = rr.left + rr.width / 2, ty = rr.top + rr.height / 2;
     const tFly = Math.max(0, e.clientY - ty) / (vy || 1);
     let px = e.clientX + vx * tFly;
-    if (A.curve) px += (tx - px) * 0.5;
-    const tol = Math.max(70, (rr.width / 2) * 1.5) * (A.curve ? 1.25 : 1);
-    const strong = vy > 0.9 || e.clientY - ty < 260; // 너무 약하면 앞에 떨어진다
+    if (A.curve) px += (tx - px) * 0.3; // 커브볼은 원 쪽으로 조금 휘어 준다
+    const tol = Math.max(34, (rr.width / 2) * 0.85) * (A.curve ? 1.1 : 1); // 맞는 폭: 바깥 원의 85% (예전엔 1.5배라 너무 쉽게 맞았다)
+    const strong = vy > 1.2 || (vy > 0.8 && e.clientY - ty < 220); // 너무 약하면 앞에 떨어진다 (멀리 있을수록 세게)
     const hit = strong && Math.abs(px - tx) <= tol;
     const s = this.ringScale || 1, timing = s < 0.45 ? ['엑설런트!', 20] : s < 0.65 ? ['그레이트!', 10] : s < 0.85 ? ['나이스!', 5] : null;
     if (!hit) return this.aimMiss(px > tx ? 1 : -1, strong);
