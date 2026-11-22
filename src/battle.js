@@ -605,6 +605,7 @@ export class Battle {
       this.ballsEl.classList.remove('hidden');
       this.renderBalls();
       this.releaseBtn.classList.remove('hidden');
+      this.autoAim(); // 기본은 휙 던지기: 추천 볼을 바로 손에 쥐어 준다 (볼 고르기·쉬운 던지기·풀어주기는 오른쪽 아래 "볼 바꾸기")
       this.particles.stars(this.scene, hitPos, 12, 0xffd93d);
       // 머리 위에 씌워져 있던 붉은 숫자가 조각나 흩어진다 (넘버로켓단의 가짜 숫자, docs/02_storyline.md)
       this.particles.cubes(this.scene, this.targetPoint().add(new THREE.Vector3(0, 0.9 * (c.data.scale || 1), 0)), 18, 0xe8453c);
@@ -709,10 +710,16 @@ export class Battle {
     // 던지는 방법 바꾸기: 👆 휙 던지기(손으로) ↔ 🔘 쉬운 던지기(누르면 바로). 기기에 기억
     const mode = document.createElement('button');
     mode.className = 'throw-mode';
-    mode.textContent = this.easyThrow() ? '🔘 쉬운 던지기 (누르면 바로)' : '👆 휙 던지기 (손으로 던져!)';
-    mode.onclick = () => { try { localStorage.setItem('np-easy-throw', this.easyThrow() ? '0' : '1'); } catch (_) {} this.sound.click(); this.renderBalls(); };
+    mode.textContent = this.easyThrow() ? '지금: 🔘 쉬운 던지기(누르면 바로) → 👆 휙 던지기로 바꾸기' : '지금: 👆 휙 던지기(손으로) → 🔘 쉬운 던지기로 바꾸기';
+    mode.onclick = () => { try { localStorage.setItem('np-easy-throw', this.easyThrow() ? '0' : '1'); } catch (_) {} this.sound.click(); this.renderBalls(); this.autoAim(); }; // 휙 던지기로 바꾸면 바로 볼을 쥔다
     this.ballsEl.appendChild(mode);
     this.craftBtn.classList.toggle('hidden', !this.onBuyBall); // 팝업에서 블록을 넘버볼로 바꾼다
+  }
+  /** 휙 던지기 모드면 가진 볼 가운데 추천 볼을 바로 쥐어 준다 (볼이 하나도 없으면 볼 버튼·만들기 화면 그대로) */
+  autoAim() {
+    if (this.easyThrow() || this.phase !== 'dizzy') return;
+    const stock = this.getBalls(), id = this.bestBall();
+    if ((stock[id] || 0) > 0) this.startAim(id);
   }
   easyThrow() { try { return localStorage.getItem('np-easy-throw') === '1'; } catch (_) { return false; } }
 
@@ -725,10 +732,10 @@ export class Battle {
     if (!((this.getBalls()[spec.id] || 0) > 0)) { this.msgEl.textContent = `${spec.name}이 없어! 블록으로 만들 수 있어.`; return; }
     if (!this.padEl) {
       const el = document.createElement('div'); el.id = 'throw-pad'; el.className = 'hidden';
-      el.innerHTML = '<div class="throw-ring"><i></i></div><div class="throw-ball"><span></span></div><div class="throw-hint"></div><button class="throw-cancel">↩ 다른 볼</button>';
+      el.innerHTML = '<div class="throw-ring"><i></i></div><div class="throw-ball"><span></span></div><div class="throw-hint"></div><button class="throw-cancel">🔄 볼 바꾸기</button>';
       document.body.appendChild(el); this.padEl = el;
       this.ringEl = el.querySelector('.throw-ring'); this.tballEl = el.querySelector('.throw-ball'); this.hintEl = el.querySelector('.throw-hint');
-      el.querySelector('.throw-cancel').onclick = (e) => { e.stopPropagation(); this.endAim(); this.renderBalls(); this.ballsEl.classList.remove('hidden'); };
+      el.querySelector('.throw-cancel').onclick = (e) => { e.stopPropagation(); this.endAim(); this.renderBalls(); this.ballsEl.classList.remove('hidden'); this.releaseBtn.classList.remove('hidden'); this.craftBtn.classList.toggle('hidden', !this.onBuyBall); this.msgEl.textContent = '던질 볼을 골라! (👆 휙 던지기 / 🔘 쉬운 던지기는 아래에서 바꿔)'; }; // 볼 고르기·쉬운 던지기·풀어주기·만들기
       el.addEventListener('pointerdown', (e) => this.aimDown(e));
       el.addEventListener('pointermove', (e) => this.aimMove(e));
       el.addEventListener('pointerup', (e) => this.aimUp(e));
