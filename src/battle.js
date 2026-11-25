@@ -6,7 +6,7 @@ import { effectiveness, effectWord, skillIcon } from './types.js';
 import { tickModel, instantiate, hasModel } from './models.js';
 import { partyScale } from './creatures.js';
 import { strongAgainst, weakTo } from './types.js';
-import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS } from './balls.js';
+import { BALLS, BALL_BY_ID, catchChance, GRADES, gradeStars, recommendedBall, RETRY_BONUS, THROW_LEVELS, getThrowLevel, setThrowLevel } from './balls.js';
 import { ITEMS, canUseItem } from './items.js';
 import { skillLevel, skillType, skillPP } from './party.js';
 import { View3D } from './view3d.js';
@@ -710,8 +710,9 @@ export class Battle {
     // 던지는 방법 바꾸기: 👆 휙 던지기(손으로) ↔ 🔘 쉬운 던지기(누르면 바로). 기기에 기억
     const mode = document.createElement('button');
     mode.className = 'throw-mode';
-    mode.textContent = this.easyThrow() ? '지금: 🔘 쉬운 던지기(누르면 바로) → 👆 휙 던지기로 바꾸기' : '지금: 👆 휙 던지기(손으로) → 🔘 쉬운 던지기로 바꾸기';
-    mode.onclick = () => { try { localStorage.setItem('np-easy-throw', this.easyThrow() ? '0' : '1'); } catch (_) {} this.sound.click(); this.renderBalls(); this.autoAim(); }; // 휙 던지기로 바꾸면 바로 볼을 쥔다
+    const lv = getThrowLevel(), next = THROW_LEVELS[(THROW_LEVELS.indexOf(lv) + 1) % THROW_LEVELS.length];
+    mode.textContent = `던지기: ${lv.emoji} ${lv.name} → ${next.emoji} ${next.name}로 바꾸기`; // 도감 상점에서도 바꿀 수 있다
+    mode.onclick = () => { setThrowLevel(next.id); this.sound.click(); this.renderBalls(); this.autoAim(); }; // 휙 던지기로 바꾸면 바로 볼을 쥔다
     this.ballsEl.appendChild(mode);
     this.craftBtn.classList.toggle('hidden', !this.onBuyBall); // 팝업에서 블록을 넘버볼로 바꾼다
   }
@@ -721,7 +722,7 @@ export class Battle {
     const stock = this.getBalls(), id = this.bestBall();
     if ((stock[id] || 0) > 0) this.startAim(id);
   }
-  easyThrow() { try { return localStorage.getItem('np-easy-throw') === '1'; } catch (_) { return false; } }
+  easyThrow() { return getThrowLevel().id === 'button'; }
 
   // ----- 휙 던지기 (포켓몬고처럼): 볼을 손가락으로 잡고 위로 밀어 던진다 -----
   // · 잡은 채로 빙글빙글 돌리면 커브볼 (+10%p), 상대 둘레의 원이 작을 때 맞히면 나이스 +5 · 그레이트 +10 · 엑설런트 +20 %p
@@ -777,14 +778,15 @@ export class Battle {
     // 손을 떼기 직전 0.12초 동안 움직인 만큼이 던진 빠르기. 화면이 잠깐 멈춰 점이 하나뿐이면 바로 앞 점으로 (0.15초로 쳐서)
     const now = performance.now(), recent = D.pts.filter((p) => now - p.t < 120), p0 = recent.length >= 2 ? recent[0] : (D.pts[D.pts.length - 2] || D.pts[0]);
     const dt = Math.max(16, Math.min(150, now - p0.t)), vx = (e.clientX - p0.x) / dt, vy = (p0.y - e.clientY) / dt; // px/ms (위로 + )
+    const L = getThrowLevel(); // 던지기 난이도 (맞는 폭·커브 보정·세기)
     if (vy < 0.5 || p0.y - e.clientY < 40) { this.resetAimBall(); this.hintEl.textContent = '조금 더 세게, 위로 휙 밀어 봐!'; return; }
     // 상대(원)까지 날아갔을 때의 가로 위치로 맞았는지 본다. 커브볼은 원 쪽으로 반쯤 휘어 준다
     const rr = this.ringEl.getBoundingClientRect(), tx = rr.left + rr.width / 2, ty = rr.top + rr.height / 2;
     const tFly = Math.max(0, e.clientY - ty) / (vy || 1);
     let px = e.clientX + vx * tFly;
-    if (A.curve) px += (tx - px) * 0.3; // 커브볼은 원 쪽으로 조금 휘어 준다
-    const tol = Math.max(34, (rr.width / 2) * 0.85) * (A.curve ? 1.1 : 1); // 맞는 폭: 바깥 원의 85% (예전엔 1.5배라 너무 쉽게 맞았다)
-    const strong = vy > 1.2 || (vy > 0.8 && e.clientY - ty < 220); // 너무 약하면 앞에 떨어진다 (멀리 있을수록 세게)
+    if (A.curve) px += (tx - px) * (L.curve ?? 0.3); // 커브볼은 원 쪽으로 조금 휘어 준다
+    const tol = Math.max(34, (rr.width / 2) * (L.tol ?? 0.85)) * (A.curve ? 1.1 : 1); // 맞는 폭: 바깥 원의 85% (예전엔 1.5배라 너무 쉽게 맞았다)
+    const pw = L.power ?? 1.2, strong = vy > pw || (vy > pw * 0.67 && e.clientY - ty < 220); // 너무 약하면 앞에 떨어진다 (멀리 있을수록 세게)
     const hit = strong && Math.abs(px - tx) <= tol;
     const s = this.ringScale || 1, timing = s < 0.45 ? ['엑설런트!', 20] : s < 0.65 ? ['그레이트!', 10] : s < 0.85 ? ['나이스!', 5] : null;
     if (!hit) return this.aimMiss(px > tx ? 1 : -1, strong);
