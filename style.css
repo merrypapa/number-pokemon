@@ -1218,3 +1218,9 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 .throw-levels button small { font-size: 11px; color: #777; line-height: 1.25; word-break: keep-all; text-align: center; }
 .throw-levels button.on { border-color: #e8453c; background: #fff3f0; }
 @media (max-width: 560px) { .throw-levels { grid-template-columns: repeat(2, 1fr); } }
+
+/* 체육관 문 앞 봄이: 친구들 마을로 불러오기 / 체육관으로 보내기 */
+#btn-townpets { position: fixed; right: 16px; bottom: calc(var(--ctx-bottom) + 64px); z-index: 8; font-size: 17px; font-weight: 900; padding: 12px 20px; border-radius: 999px; border: 0; background: #57b947; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #3a8a2e, 0 6px 14px rgba(0,0,0,.25); white-space: nowrap; animation: ctxPop .25s ease-out; }
+#btn-townpets:active { transform: translateY(3px); box-shadow: 0 1px 0 #3a8a2e; }
+body.touch #btn-townpets { bottom: var(--ctx-bottom); }
+@media (max-width: 600px) { #btn-townpets { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 54px); } body.touch #btn-townpets { bottom: var(--ctx-bottom); } }

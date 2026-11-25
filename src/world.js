@@ -1378,6 +1378,11 @@ export function buildWorld(scene, layout = 'forest') {
   const guide = makeNpc({ outfit: 'ranger', name: '인하', model: '인하.glb' });
   guide.position.set(guideAt.x, T.height(guideAt.x, guideAt.z), guideAt.z); guide.rotation.y = -0.5;
   decor.add(guide); if (isTown) block(guideAt.x, guideAt.z, 0.6);
+  // ---------- 체육관 문 앞의 봄이: "포켓몬 친구들을 마을로 불러오기" (main 이 체육관처럼 마을에 내 포켓몬을 풀어 놓는다) ----------
+  const keeperAt = isTown ? { x: L.gym.x + 7, z: L.gym.z - 6.5 } : { x: FAR, z: FAR };
+  const keeper = makeNpc({ outfit: 'professor', name: '봄이', model: '봄이.glb' });
+  keeper.position.set(keeperAt.x, T.height(keeperAt.x, keeperAt.z), keeperAt.z); keeper.rotation.y = Math.PI * 0.85; // 광장 쪽을 본다
+  decor.add(keeper); if (isTown) block(keeperAt.x, keeperAt.z, 0.6);
 
   // ---------- 구름, 나비 ----------
   const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
@@ -1449,7 +1454,11 @@ export function buildWorld(scene, layout = 'forest') {
     gymDoor: { x: gy.x, z: gy.z }, // 야외 체육관 문 (기둥 사이. 닿으면 main 이 체육관으로 보낸다)
     cablecar, // 마을 ↔ 푸른숲 케이블카 (곤돌라 문 앞에 서면 main 이 태워 보낸다)
     hiveDoor: { x: ht.x + 11, z: ht.z - 6 }, // 매달린 벌집의 바로 아래 (꿀의 길 끝. 어느 쪽에서 와도 벌집 아래로 들어서면 꿀벌집 안으로)
-    npcs: [{ x: guideAt.x, z: guideAt.z, mesh: guide, name: '인하', lines: (c) => [
+    npcs: [...(isTown ? [{ x: keeperAt.x, z: keeperAt.z, mesh: keeper, name: '봄이', townPets: true, lines: (c) => [
+      `안녕, ${c.name}! 난 체육관 지기 봄이야. 체육관에서 뛰어노는 네 포켓몬 친구들을 마을로 불러올 수 있어!`,
+      '친구들이 마을에 나오면 광장이랑 길가를 마음대로 돌아다녀. 물 포켓몬은 호수에서 헤엄치고! 가까이 가면 💪 훈련도 할 수 있어.',
+      '다시 체육관으로 돌려보내고 싶으면 나한테 또 말을 걸어 줘.',
+    ] }] : []), { x: guideAt.x, z: guideAt.z, mesh: guide, name: '인하', lines: (c) => [
       `안녕, ${c.name}! 난 마을 길잡이 인하야. 여기가 포켓몬 마을이고, 모든 길은 이 광장에서 시작해!`,
       '우리 마을은 오스트리아 할슈타트를 닮았대. 동북쪽 호수엔 백조가 살고, 잔교 끝에 보트 창고가 있어. 호수에 들어가면 헤엄도 칠 수 있어! 호수 뒤 언덕 마을은 돌계단으로 한 단씩 올라가!',
       '언덕 첫째 단엔 뾰족 탑 교회, 맨 윗단엔 허공으로 쑥 나온 스카이워크 전망대가 있어. 거기서 보면 마을이랑 호수가 한눈에 보여!',

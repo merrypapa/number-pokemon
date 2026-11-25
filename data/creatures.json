@@ -6918,6 +6918,341 @@
    "favoriteNumber": 8,
    "personality": "하늘의 왕",
    "story": "하늘 높은 곳, 오존층에서 살아가는 전설의 하늘 용. 땅에 내려오는 일이 거의 없지만, 원시그란돈이 날뛰면 그 힘을 잠재우러 내려와. 원시그란돈을 친구로 만들면 꿈의우주에 내려와. 몸의 노란 무늬는 하늘에 그린 지도래."
+  },
+  {
+   "id": "m83",
+   "name": "냐오불",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "model": "냐오불.glb",
+   "scale": 0.7,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#E8553A"
+   },
+   "baseHp": 30,
+   "baseAtk": 8,
+   "grade": 3,
+   "skills": [
+    {
+     "name": "할퀴기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch",
+     "type": "노말"
+    },
+    {
+     "name": "불꽃세례",
+     "atk": 8,
+     "power": 1.25,
+     "kind": "fire"
+    },
+    {
+     "name": "화염엄니",
+     "atk": 18,
+     "power": 1.5,
+     "kind": "fire"
+    }
+   ],
+   "evolution": {
+    "to": "m83e",
+    "level": 24
+   },
+   "favoriteNumber": 3,
+   "personality": "새침함",
+   "story": "불의산 바위 틈에서 사는 아기 고양이 포켓몬. 털을 고를 때 빠진 털에 불을 붙여 화르륵 불덩이를 만들어. 친해지기 전엔 새침하지만, 한번 친구가 되면 늘 옆에 붙어 다녀. Lv.24 가 되면 어흥염으로 진화해."
+  },
+  {
+   "id": "m83e",
+   "name": "어흥염",
+   "type": "불",
+   "zone": "evolution",
+   "catchable": true,
+   "model": "어흥염.glb",
+   "scale": 1.35,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C8282A"
+   },
+   "baseHp": 84,
+   "baseAtk": 18,
+   "grade": 4,
+   "evolvedFrom": "m83",
+   "skills": [
+    {
+     "name": "불꽃펀치",
+     "atk": 1,
+     "power": 1,
+     "kind": "punch"
+    },
+    {
+     "name": "지옥찌르기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "punch",
+     "type": "격투"
+    },
+    {
+     "name": "플레어드라이브",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "DD래리어트",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "punch",
+     "type": "격투"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 9,
+   "personality": "멋쟁이",
+   "story": "냐오불이 Lv.24 에 진화한 프로레슬러 포켓몬. 배꼽의 불꽃 벨트가 활활 타오르면 힘이 솟아. 싸움이 끝나면 꼭 상대에게 고개 숙여 인사하는 예의 바른 챔피언이야. 불의산에서도 날마다 한 마리 만날 수 있어."
+  },
+  {
+   "id": "m84",
+   "name": "다태우지네",
+   "type": "불",
+   "zone": "volcano",
+   "catchable": true,
+   "model": "다태우지네.glb",
+   "scale": 1.3,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#7A1F2B"
+   },
+   "baseHp": 58,
+   "baseAtk": 13,
+   "grade": 4,
+   "skills": [
+    {
+     "name": "물기",
+     "atk": 1,
+     "power": 1,
+     "kind": "scratch",
+     "type": "노말"
+    },
+    {
+     "name": "벌레의야단법석",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "bug",
+     "type": "벌레"
+    },
+    {
+     "name": "불꽃채찍",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "fire"
+    },
+    {
+     "name": "화염소용돌이",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "fire"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 10,
+   "personality": "뜨거움",
+   "story": "몸이 길쭉한 불꽃 지네 포켓몬. 다리가 아주 많아서 세어 보면 늘 10의 배수래. 몸의 노란 무늬가 난로처럼 뜨거워서, 추운 날엔 불의산 친구들이 옆에 모여 몸을 녹여."
+  },
+  {
+   "id": "m85",
+   "name": "콘치",
+   "type": "물",
+   "zone": "sea",
+   "catchable": true,
+   "swim": true,
+   "model": "콘치.glb",
+   "scale": 0.75,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#FFFFFF"
+   },
+   "baseHp": 20,
+   "baseAtk": 5,
+   "grade": 2,
+   "skills": [
+    {
+     "name": "쪼기",
+     "atk": 1,
+     "power": 1,
+     "kind": "peck",
+     "type": "노말"
+    },
+    {
+     "name": "물대포",
+     "atk": 8,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "뿔찌르기",
+     "atk": 18,
+     "power": 1.5,
+     "kind": "peck",
+     "type": "노말"
+    }
+   ],
+   "evolution": {
+    "to": "m85e",
+    "level": 20
+   },
+   "favoriteNumber": 2,
+   "personality": "우아함",
+   "story": "물의길에서 지느러미를 드레스처럼 흔들며 헤엄치는 금붕어 포켓몬. 이마의 뿔이 자랑이라 매일 반짝반짝 닦아. 꼬리를 두 번 흔들면 '안녕'이라는 뜻이래. Lv.20 이 되면 왕콘치로 진화해."
+  },
+  {
+   "id": "m85e",
+   "name": "왕콘치",
+   "type": "물",
+   "zone": "evolution",
+   "catchable": true,
+   "swim": true,
+   "model": "왕콘치.glb",
+   "scale": 1.1,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#F07A3A"
+   },
+   "baseHp": 60,
+   "baseAtk": 13,
+   "grade": 3,
+   "evolvedFrom": "m85",
+   "skills": [
+    {
+     "name": "뿔찌르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "peck",
+     "type": "노말"
+    },
+    {
+     "name": "폭포오르기",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "water"
+    },
+    {
+     "name": "드릴라이너",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "peck",
+     "type": "땅"
+    },
+    {
+     "name": "아쿠아테일",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "water"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "든든함",
+   "story": "콘치가 Lv.20 에 진화한 모습. 가을이 되면 강물을 거슬러 올라가는 힘센 물고기 포켓몬이야. 뿔로 바위에 구멍을 파서 알을 지킨대. 물의길에서도 날마다 한 마리 만날 수 있어."
+  },
+  {
+   "id": "b26",
+   "name": "자마젠타",
+   "type": "격투",
+   "zone": "cave",
+   "rareIn": "cave",
+   "catchable": true,
+   "model": "자마젠타.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#2B3F8F"
+   },
+   "baseHp": 200,
+   "baseAtk": 32,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "몸통박치기",
+     "atk": 1,
+     "power": 1,
+     "kind": "tackle",
+     "type": "노말"
+    },
+    {
+     "name": "인파이트",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "punch"
+    },
+    {
+     "name": "철벽",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "rock",
+     "type": "바위"
+    },
+    {
+     "name": "거대방패돌진",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "tackle"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "수호자",
+   "story": "얼굴과 가슴에 붉은 금빛 방패를 두른 전설의 늑대 포켓몬. 친구가 위험하면 맨 앞에 서서 무엇이든 막아 줘. 지하동굴 깊은 곳을 지키며, 날마다 한 마리만 모습을 보여."
+  },
+  {
+   "id": "b27",
+   "name": "무한다이노",
+   "type": "독",
+   "zone": "space",
+   "rareIn": "space",
+   "catchable": true,
+   "model": "무한다이노.glb",
+   "scale": 3.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#5A1F6E"
+   },
+   "baseHp": 230,
+   "baseAtk": 35,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "독찌르기",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "용의파동",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "크로스포이즌",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "poison"
+    },
+    {
+     "name": "무한다이빔",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "psychic",
+     "type": "에스퍼"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 8,
+   "personality": "별빛",
+   "story": "아주 먼 옛날 별똥별을 타고 내려왔다는 전설의 드래곤 포켓몬. 가슴의 분홍 별에서 끝없는 힘이 흘러나와 숫자 8을 옆으로 누인 '무한(∞)'이 이름이 되었대. 꿈의우주를 떠돌며 날마다 한 마리만 나타나."
   }
  ]
 }
