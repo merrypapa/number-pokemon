@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BALLS, GRADES, gradeStars, catchChance } from './balls.js';
+import { BALLS, GRADES, gradeStars, catchChance, THROW_LEVELS, getThrowLevel, setThrowLevel } from './balls.js';
 import { ITEMS } from './items.js';
 import { skillLevel, expNeed, MAX_LEVEL, skillType, skillPP } from './party.js';
 import { buildDraftMesh, dexSizeFactor, bossZoneOf, evoTargets, evoZoneFor } from './creatures.js';
@@ -190,7 +190,10 @@ export class Dex {
     }
     // 가운데: 물약·열매 (도감의 내 포켓몬에서 쓰거나, 대결 중 가방에서 쓴다)
     const items = ctx.getItems?.() || {};
-    html += `</div><div class="shop-title">🧪 아이템</div><div class="ball-rows">`;
+    // 던지기 난이도 (새 탭 없이 상점의 넘버볼 아래에서 고른다)
+    const lv = getThrowLevel();
+    html += `</div><div class="shop-title">🎯 던지기 난이도</div><div class="throw-levels">${THROW_LEVELS.map((l) => `<button data-throw="${l.id}" class="${l.id === lv.id ? 'on' : ''}"><b>${l.emoji} ${l.name}</b><small>${l.desc}</small></button>`).join('')}</div>`;
+    html += `<div class="shop-title">🧪 아이템</div><div class="ball-rows">`;
     for (const it of ITEMS) {
       html += `<div class="item-row"><span class="item-emoji">${it.emoji}</span><span><div class="item-name">${it.name}</div><div class="item-desc">${it.desc}</div></span>
         <span class="ball-count">${items[it.id] || 0}<small>개</small></span>
@@ -209,6 +212,7 @@ export class Dex {
     html += `</div><div class="shop-note">포켓몬의 ★가 많을수록 좋은 볼이 필요해. 실패하면 도망가! (다시 만나면 잡힐 확률이 15%씩 올라)</div>`;
     this.ballsEl.innerHTML = html;
     this.ballsEl.querySelectorAll('button[data-ball]').forEach((btn) => { btn.onclick = () => { ctx.onBuyBall(btn.dataset.ball); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
+    this.ballsEl.querySelectorAll('button[data-throw]').forEach((btn) => { btn.onclick = () => { setThrowLevel(btn.dataset.throw); this.renderBalls(); }; });
     this.ballsEl.querySelectorAll('button[data-item]').forEach((btn) => { btn.onclick = () => { ctx.onBuyItem(btn.dataset.item); this.renderBalls(); this.blocksEl.textContent = `${ctx.getBlocks()}`; }; });
   }
 

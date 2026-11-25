@@ -1211,3 +1211,10 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #throw-pad .throw-hint { position: fixed; left: 50%; bottom: 4%; transform: translateX(-50%); background: rgba(32,35,46,.8); color: #fff; font-weight: 900; font-size: 15px; padding: 8px 14px; border-radius: 999px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 #throw-pad .throw-cancel { position: fixed; right: 14px; bottom: 14px; font: inherit; font-weight: 900; font-size: 15px; padding: 10px 14px; border-radius: 14px; border: 0; background: #fff; box-shadow: 0 3px 0 #bbb; cursor: pointer; }
 #battle-balls .throw-mode { grid-column: 1 / -1; font: inherit; font-size: 13px; font-weight: 800; padding: 6px 10px; border-radius: 10px; border: 0; background: #f1ecd6; color: #555; cursor: pointer; }
+/* 도감 상점: 던지기 난이도 (버튼 · 쉬움 · 보통 · 어려움) */
+.throw-levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 8px; }
+.throw-levels button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; border: 3px solid #eee; background: #fff; color: #20232e; cursor: pointer; }
+.throw-levels button b { font-size: 15px; }
+.throw-levels button small { font-size: 11px; color: #777; line-height: 1.25; word-break: keep-all; text-align: center; }
+.throw-levels button.on { border-color: #e8453c; background: #fff3f0; }
+@media (max-width: 560px) { .throw-levels { grid-template-columns: repeat(2, 1fr); } }

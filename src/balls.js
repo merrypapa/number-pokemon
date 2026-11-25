@@ -31,3 +31,22 @@ export const RETRY_BONUS = 15;
 export function catchChance(grade, tier) { return (CHANCE[Math.min(7, Math.max(1, grade))] || CHANCE[1])[Math.min(5, Math.max(1, tier)) - 1]; }
 /** 이 등급을 확실히(90% 이상) 잡을 수 있는 가장 싼 볼 */
 export function recommendedBall(grade) { return BALLS.find((b) => catchChance(grade, b.tier) >= 80) || BALLS[BALLS.length - 1]; }
+
+// ---------- 넘버볼 던지기 난이도 (도감 상점에서 고른다, 기기에 기억) ----------
+// button: 볼 버튼을 누르면 바로 던진다 (예전 방식) · easy/normal/hard: 손으로 휙 던지기.
+//   tol: 맞는 폭(바깥 원 반지름 배수) · curve: 커브볼이 원 쪽으로 휘어 주는 정도 · power: 이 빠르기(px/ms)보다 약하면 앞에 떨어진다
+export const THROW_LEVELS = [
+  { id: 'button', emoji: '🔘', name: '버튼', desc: '볼 버튼을 누르면 바로 던져' },
+  { id: 'easy',   emoji: '😊', name: '쉬움', desc: '손으로 휙! 넓게 맞아', tol: 1.3, curve: 0.5, power: 0.8 },
+  { id: 'normal', emoji: '🙂', name: '보통', desc: '손으로 휙! 원 안에 던져야 맞아', tol: 0.85, curve: 0.3, power: 1.2 },
+  { id: 'hard',   emoji: '😤', name: '어려움', desc: '손으로 휙! 포켓몬 가운데를 노려', tol: 0.6, curve: 0.2, power: 1.4 },
+];
+export function getThrowLevel() {
+  try {
+    const v = localStorage.getItem('np-throw-level');
+    if (THROW_LEVELS.some((l) => l.id === v)) return THROW_LEVELS.find((l) => l.id === v);
+    if (localStorage.getItem('np-easy-throw') === '1') return THROW_LEVELS[0]; // 예전 "쉬운 던지기" 설정
+  } catch (_) {}
+  return THROW_LEVELS[2];
+}
+export function setThrowLevel(id) { try { localStorage.setItem('np-throw-level', id); } catch (_) {} }
