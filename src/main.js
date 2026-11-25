@@ -1186,7 +1186,7 @@ function applyZoneEnv() {
 let gymPets = []; // { m, mesh, label, target, wait, hop }
 // 마을에도: 체육관 문 앞의 봄이에게 "친구들 불러오기"를 하면 마을(광장·길가·호수)에 체육관처럼 내 포켓몬이 나와 돌아다닌다 (state.townPets).
 // 마을은 건물이 많고 무거워서 한 번에 TOWN_PETS_MAX 마리까지만 (대표·따라다니는 친구 먼저, 그다음 레벨 높은 순)
-const TOWN_PETS_MAX = 40;
+const TOWN_PETS_MAX = 40, TOWN_PETS_MAX_IOS = 24;
 function petsOut() { return !!(zone?.world?.gym || (zone?.world?.town && state.townPets)); }
 /** 마을에서 포켓몬이 놀 자리: 평평한 땅(언덕 마을·건물·호수 밖)과 호수 */
 function townPark(w) {
@@ -1195,7 +1195,9 @@ function townPark(w) {
   const landOk = (x, z, m = 1.2) => Math.abs(x) < 100 && Math.abs(z) < 90 && Math.abs(terrainHeight(x, z)) < 0.05 && !w.inPond(x, z, 1.3) && !insideObstacle(x, z, m) && !isBlocked(x, z, 0);
   const inLake = (x, z) => w.inPond(x, z, 0.8) && !w.onDock(x, z);
   const L = TOWN.pond;
-  w.petBlocked = (x, z) => !landOk(x, z, 0.5);
+  // 느려지던 문제: 걷는 포켓몬마다 매 프레임 건물·담(수백 개)과 부딪히는지 계산했다 → 0.5m 칸마다 한 번만 계산해 기억해 둔다
+  const cache = new Map();
+  w.petBlocked = (x, z) => { const k = Math.round(x * 2) * 4096 + Math.round(z * 2); let v = cache.get(k); if (v === undefined) { v = !landOk(x, z, 0.6); cache.set(k, v); } return v; };
   w.waterY = -0.35;
   w.homes = (nLand, nWater) => {
     const land = [], water = [];
@@ -1229,7 +1231,7 @@ function spawnGymPets() {
   if (!zone.world.gym) { // 마을: 대표·따라다니는 친구 먼저, 그다음 레벨 높은 순으로 TOWN_PETS_MAX 마리
     townPark(zone.world);
     const fm = new Set(chain.followers.map((f) => f.mesh)), first = new Set(mem.filter((m) => m === party.leader || fm.has(m.mesh)));
-    mem = [...mem].sort((a, b) => (first.has(b) - first.has(a)) || (b.level || 1) - (a.level || 1)).slice(0, TOWN_PETS_MAX);
+    mem = [...mem].sort((a, b) => (first.has(b) - first.has(a)) || (b.level || 1) - (a.level || 1)).slice(0, isIOS() ? TOWN_PETS_MAX_IOS : TOWN_PETS_MAX);
   }
   const landM = mem.filter((m) => !isWaterSp(party.species(m))), waterM = mem.filter((m) => isWaterSp(party.species(m)));
   const H = zone.world.homes(landM.length, waterM.length);
@@ -1244,7 +1246,7 @@ function placeGymPet({ m, home, water }) {
   const sp = party.species(m), mesh = buildDraftMesh(sp); mesh.scale.setScalar(partyScale(sp));
   mesh.position.set(home.x, water ? zone.world.waterY : 0, home.z); mesh.rotation.y = rand(0, Math.PI * 2);
   mesh.visible = false; zone.scene.add(mesh); // 작은 그림이 붙기 전에는 숨겨 둔다 (원래 1024² 텍스처가 올라가지 않게) — gymTick
-  const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: false, animAcc: 0 }; p.target = gymSpot(p); gymPets.push(p);
+  const p = { m, mesh, label: null, home, water, wait: rand(0, 3), hop: 0, t: rand(0, 6), shadow: null, animAcc: 0 }; p.target = gymSpot(p); gymPets.push(p);
 }
 function dropPetLabel(p) { if (!p.label) return; p.label.parent?.remove(p.label); p.label.material.map?.dispose(); p.label.material.dispose(); p.label = null; }
 // 아이폰이 체육관에서 좀 있다가 꺼지던 문제: 포켓몬이 모두 나와 둘러볼수록 종마다 다른 1024² 텍스처(밉맵까지 5.6MB)가 GPU 에 쌓였다.
@@ -1274,7 +1276,7 @@ function setGymLod(p, hi) {
   const model = p.mesh.userData.model;
   if (!model) return;
   if (p.lodModel !== model) { // 모델이 (처음·새로) 붙었다: 재질을 복제하고 원래 텍스처를 기억
-    p.lodModel = model; p.lodMats = [];
+    p.lodModel = model; p.lodMats = []; p.shadow = null; // 새 모델은 그림자 설정을 다시 맞춘다
     model.traverse((o) => {
       if (!o.isMesh) return;
       const mats = [].concat(o.material).map((m) => { const c = m.clone(); c.userData.hiMap = m.map || null; p.lodMats.push(c); return c; });
@@ -1308,7 +1310,7 @@ function clearGymPets() {
 const gymFrustum = new THREE.Frustum(), gymMat = new THREE.Matrix4(), gymSphere = new THREE.Sphere();
 function gymTick(dt) {
   if (!petsOut()) return;
-  if (gymSpawnQ.length) for (let k = isIOS() ? 5 : 10; k > 0 && gymSpawnQ.length; k--) placeGymPet(gymSpawnQ.shift()); // 한 프레임에 몇 마리씩
+  if (gymSpawnQ.length) for (let k = zone.world.gym ? (isIOS() ? 5 : 10) : (isIOS() ? 2 : 4); k > 0 && gymSpawnQ.length; k--) placeGymPet(gymSpawnQ.shift()); // 마을은 더 천천히 (원래 무거운 곳) // 한 프레임에 몇 마리씩
   if (!gymPets.length) return;
   const pp = player.position;
   let nearest = null, nd = Infinity;
@@ -1318,6 +1320,8 @@ function gymTick(dt) {
   // 화면에 안 보이는 포켓몬은 숨기고, 그림자는 가까운(30m) 포켓몬만, 이름표는 가까이(25m) 갈 때만 만든다 (멀어지면 버려 메모리를 돌려준다)
   gymFrustum.setFromProjectionMatrix(gymMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
   let upP = null, upD = Infinity; gymSwapT -= dt;
+  // 마을은 건물·나무가 많아 원래 무겁다: 포켓몬 그림자는 안 그리고, 움직임은 더 가까이에서만 (12m 밖은 초당 10번, 24m 밖은 쉬기)
+  const inTown = !zone.world.gym, SHADOW_D = inTown ? 0 : 22, FAR_D = inTown ? 24 : 30, MID_D = inTown ? 12 : 16, MID_GAP = inTown ? 0.1 : 0.05;
   let loBudget = 2, labP = null, labD = Infinity; // 한 프레임에: 작은 그림 만들기 2마리, 이름표 1개 (걸을 때 한꺼번에 몰리지 않게)
   for (const p of gymPets) {
     const mp = p.mesh.position; p.t += dt;
@@ -1328,25 +1332,25 @@ function gymTick(dt) {
       if (inView && loBudget > 0) { loBudget--; setGymLod(p, false); }
     }
     p.mesh.visible = inView && (!model || p.lodModel === model);
-    { const want = p.lodHi ? dist < GYM_LO_DIST : dist < GYM_HI_DIST; // 가까우면 512² 그림, 멀면 256² (경계에서 깜빡이지 않게 9m/12m)
+    { const want = p.lodHi ? dist < (inTown ? 8 : GYM_LO_DIST) : dist < (inTown ? 6 : GYM_HI_DIST); // 마을은 더 가까이 와야 선명하게 (바꾸는 횟수를 줄인다) // 가까우면 512² 그림, 멀면 256² (경계에서 깜빡이지 않게 9m/12m)
       if (p.lodModel !== model) { /* 아직 작은 그림 전 */ }
       else if (!want && p.lodHi) setGymLod(p, false); // 작게 바꾸기는 바로 (이미 올라가 있는 그림)
       else if (want && !p.lodHi && p.mesh.visible && dist < upD) { upD = dist; upP = p; } } // 크게 바꾸기는 가장 가까운 하나만, 아래에서
-    const shadow = dist < 22;
+    const shadow = dist < SHADOW_D;
     if (shadow !== p.shadow) { p.shadow = shadow; p.mesh.traverse((o) => { if (o.isMesh) o.castShadow = shadow; }); }
     if (dist < 20 && !p.label && p.mesh.visible && dist < labD) { labD = dist; labP = p; } // 이름표는 한 프레임에 가장 가까운 하나만 (아래에서)
     else if (dist > 28 && p.label) dropPetLabel(p);
-    const far = dist > 30 || !p.mesh.visible; // 멀리 있거나 화면 밖이면 애니메이션을 쉬게 한다 (130마리여도 버티게)
+    const far = dist > FAR_D || !p.mesh.visible; // 멀리 있거나 화면 밖이면 애니메이션을 쉬게 한다 (130마리여도 버티게)
     if (far) { if (p.wait > 0) p.wait -= dt; else p.wait = rand(2, 6); continue; }
-    if (dist > 16) { p.animAcc += dt; if (p.animAcc < 0.05) continue; } // 조금 먼 포켓몬은 초당 20번만 움직인다
-    const pdt = dist > 16 ? p.animAcc : dt; p.animAcc = 0;
+    if (dist > MID_D) { p.animAcc += dt; if (p.animAcc < MID_GAP) continue; } // 조금 먼 포켓몬은 초당 20번만 움직인다
+    const pdt = dist > MID_D ? p.animAcc : dt; p.animAcc = 0;
     const base = p.water ? zone.world.waterY + Math.sin(p.t * 2) * 0.06 : 0; // 물 포켓몬은 물에 살짝 잠겨 둥실
     if (p.hop > 0) { p.hop -= pdt; mp.y = base + Math.abs(Math.sin(p.hop * 12)) * 0.6; tickModel(p.mesh, pdt, 'jump'); }
     else if (p.wait > 0) { p.wait -= pdt; mp.y = base; tickModel(p.mesh, pdt, p.water ? 'swimidle' : 'idle'); if (p.wait <= 0) p.target = gymSpot(p); }
     else {
       const dx = p.target.x - mp.x, dz = p.target.z - mp.z, d = Math.hypot(dx, dz);
       if (d < 0.5) { p.wait = rand(1, 4); if (Math.random() < 0.35) p.hop = 0.8; }
-      else { const st = (p.water ? 2.4 : 3.2) * pdt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05) || zone.world.petBlocked?.(mp.x, mp.z))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, pdt, p.water ? 'swim' : 'walk'); }
+      else { const st = (p.water ? 2.4 : 3.2) * pdt; mp.x += (dx / d) * st; mp.z += (dz / d) * st; p.mesh.rotation.y = Math.atan2(dx, dz); if (!p.water && (zone.world.petBlocked ? zone.world.petBlocked(mp.x, mp.z) : insideObstacle(mp.x, mp.z, 0.6) || zone.world.inPond(mp.x, mp.z, 1.05))) { mp.x -= (dx / d) * st; mp.z -= (dz / d) * st; p.target = gymSpot(p); p.wait = 0.5; } /* 땅 포켓몬은 연못으로 안 들어간다 */ tickModel(p.mesh, pdt, p.water ? 'swim' : 'walk'); }
       mp.y = base;
     }
     p.label?.position.set(mp.x, 1.1 * p.mesh.scale.x + 1.0, mp.z);
@@ -1354,7 +1358,7 @@ function gymTick(dt) {
     if (d < (p.water ? 3.4 : 2.4) && d < nd && pp.y < 1 && pp.y > -2) { nd = d; nearest = p; } // 물 포켓몬은 잔교에서 조금 멀어도 된다
     if (p.water && d < cwd) { cwd = d; closestWater = p; }
   }
-  if (upP && gymSwapT <= 0) { setGymLod(upP, true); gymSwapT = GYM_SWAP_GAP; } // 0.15초에 한 마리씩 선명하게 (한 프레임에 몰리지 않게)
+  if (upP && gymSwapT <= 0) { setGymLod(upP, true); gymSwapT = inTown ? 0.35 : GYM_SWAP_GAP; } // 0.15초에 한 마리씩 선명하게 (한 프레임에 몰리지 않게)
   if (labP) { const sc = labP.mesh.scale.x || 1, mp = labP.mesh.position; labP.label = petLabel(labP.m); labP.label.position.set(mp.x, 1.1 * sc + 1.0, mp.z); zone.scene.add(labP.label); } // 이름표도 한 프레임에 하나
   if (onDock && closestWater && cwd > 2.6 && closestWater.hop <= 0) { const mp = closestWater.mesh.position, dx = pp.x - mp.x, dz = pp.z - mp.z, d = Math.hypot(dx, dz) || 1; closestWater.target = { x: pp.x - (dx / d) * 2.2, z: pp.z - (dz / d) * 2.2 }; closestWater.wait = 0; }
   if (nearest && !battle.active) offer(`💪 ${party.name(nearest.m)} 훈련하기`, () => trainPet(nearest), '💪\n훈련');
