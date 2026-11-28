@@ -562,6 +562,7 @@ export class Dex {
           <div class="member-actions">
             ${ITEMS.map((it) => `<button data-act="item:${it.id}" ${(items[it.id] || 0) > 0 && (it.revive ? fainted : !fainted && m.hp < m.maxHp) ? '' : 'disabled'} title="${it.desc}">${it.emoji} ${it.name} <small>×${items[it.id] || 0}</small></button>`).join('')}
             ${leader || fainted || mine.length < 2 ? '' : '<button data-act="leader" class="btn-leader">☆ 대표</button>'}
+            ${ctx.inShelter ? `<button data-act="shelter" class="btn-shelter${ctx.inShelter(m) ? ' on' : ''}" title="마을의 포켓몬 쉼터(지베르니 정원)에서 놀게 하기">${ctx.inShelter(m) ? '🌸 쉼터에 있어' : '🌸 쉼터로'}</button>` : ''}
             ${evo ? `<button data-act="evolve" class="btn-evolve${evo.mega ? ' mega' : ''}" ${canEvolve ? '' : 'disabled'} title="Lv.${evo.level ?? 16}${evo.mega ? ` · 메가블럭 ${evo.mega}개 필요` : ''}에 진화">${evo.mega ? '💠 메가 진화!' : '✨ 진화!'}</button>` : ''}
             ${evo?.mega ? `<span class="mega-need${(need?.megaNow || 0) >= evo.mega ? ' ok' : ''}">💠 메가블럭 ${need?.megaNow || 0}/${evo.mega}</span>` : ''}
           </div>`;
@@ -569,6 +570,7 @@ export class Dex {
           b.onclick = () => {
             const act = b.dataset.act;
             if (act === 'leader') ctx.onLeader(m);
+            else if (act === 'shelter') ctx.onShelter(m);
             else if (act === 'evolve') { ctx.onEvolve(m); this.selectedId = m.speciesId; }
             else if (act.startsWith('item:')) ctx.onUseItem(m, act.slice(5));
             this.render(this.lastCaught || {});
