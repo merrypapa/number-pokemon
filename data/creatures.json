@@ -5947,10 +5947,14 @@
      "kind": "psychic"
     }
    ],
-   "evolution": null,
+   "evolution": {
+    "to": "x15",
+    "level": 30,
+    "mega": 1
+   },
    "favoriteNumber": 6,
    "personality": "상냥함",
-   "story": "마음이 통하는 사람 앞에만 모습을 보이는 전설의 용. 깃털로 빛을 꺾어 투명해져. 메가팬텀을 잡으면 꿈의우주에 와.",
+   "story": "마음이 통하는 사람 앞에만 모습을 보이는 전설의 용. 깃털로 빛을 꺾어 투명해져. 오빠 라티오스는 물의길에 살아. 메가팬텀을 잡으면 꿈의우주에 와. Lv.30 에 메가블럭이 있으면 메가라티아스로 메가진화해.",
    "unlockedBy": "x05"
   },
   {
@@ -7253,6 +7257,399 @@
    "favoriteNumber": 8,
    "personality": "별빛",
    "story": "아주 먼 옛날 별똥별을 타고 내려왔다는 전설의 드래곤 포켓몬. 가슴의 분홍 별에서 끝없는 힘이 흘러나와 숫자 8을 옆으로 누인 '무한(∞)'이 이름이 되었대. 꿈의우주를 떠돌며 날마다 한 마리만 나타나."
+  },
+  {
+   "id": "b28",
+   "name": "아르세우스",
+   "type": "노말",
+   "zone": "p_sun",
+   "rareIn": "p_sun",
+   "catchable": true,
+   "model": "아르세우스.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F4F1E6"
+   },
+   "baseHp": 260,
+   "baseAtk": 38,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "심판의뭉치",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "파괴광선",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "tackle"
+    },
+    {
+     "name": "기가임팩트",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "tackle"
+    },
+    {
+     "name": "창세의빛",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "psychic",
+     "type": "에스퍼"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 1,
+   "personality": "창조주",
+   "story": "아주 먼 옛날, 아무것도 없던 곳에서 알을 깨고 나와 세상을 만들었다는 전설의 포켓몬. 허리의 금빛 바퀴에 숫자 1부터 천까지의 비밀이 새겨져 있대. 태양의 빛 속을 걸으며 날마다 한 마리만 모습을 보여."
+  },
+  {
+   "id": "b29",
+   "name": "디아루가",
+   "type": "바위",
+   "zone": "thunder",
+   "rareIn": "thunder",
+   "catchable": true,
+   "model": "디아루가.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#2E4A7A"
+   },
+   "baseHp": 230,
+   "baseAtk": 35,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "용의숨결",
+     "atk": 1,
+     "power": 1,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "러스터캐논",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "스톤엣지",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "rock"
+    },
+    {
+     "name": "시간의포효",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "bolt",
+     "type": "전기"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 7,
+   "personality": "시간의 주인",
+   "story": "가슴의 커다란 다이아몬드가 쿵쿵 뛸 때마다 시간이 흘러간다는 시간의 용. 1초, 1분, 1시간 — 시계 숫자는 디아루가의 심장 소리래. 공간의 용 펄기아와는 오랜 짝꿍이야. 번개동굴에 날마다 한 마리 나타나."
+  },
+  {
+   "id": "b30",
+   "name": "펄기아",
+   "type": "물",
+   "zone": "deepsea",
+   "rareIn": "deepsea",
+   "catchable": true,
+   "model": "펄기아.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#E8DDEB"
+   },
+   "baseHp": 230,
+   "baseAtk": 35,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "용의파동",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic",
+     "type": "에스퍼"
+    },
+    {
+     "name": "하이드로펌프",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "water"
+    },
+    {
+     "name": "파도타기",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "water"
+    },
+    {
+     "name": "공간절단",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "scratch",
+     "type": "노말"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 2,
+   "personality": "공간의 주인",
+   "story": "어깨의 두 진주로 공간을 접었다 폈다 하는 공간의 용. 멀리 있는 곳도 종이처럼 접어 한 걸음에 가 버려. 시간의 용 디아루가와는 오랜 짝꿍이야. 깊은 심해에 날마다 한 마리 나타나."
+  },
+  {
+   "id": "b31",
+   "name": "라티오스",
+   "type": "에스퍼",
+   "zone": "sea",
+   "rareIn": "sea",
+   "catchable": true,
+   "model": "라티오스.glb",
+   "scale": 2.0,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#4A8FE0"
+   },
+   "baseHp": 140,
+   "baseAtk": 26,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "용의숨결",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "러스터퍼지",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 6,
+   "personality": "듬직함",
+   "story": "라티아스의 오빠인 전설의 용. 팔을 접으면 제트기보다 빨리 바다 위를 날아. 본 것을 동생에게 그림으로 보여 줄 수 있대. 물의길 하늘을 날다가 날마다 한 마리만 내려와."
+  },
+  {
+   "id": "b32",
+   "name": "텅비드",
+   "type": "독",
+   "zone": "cave",
+   "rareIn": "cave",
+   "catchable": true,
+   "model": "텅비드.glb",
+   "scale": 1.8,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#EDEDF2"
+   },
+   "baseHp": 160,
+   "baseAtk": 28,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "독침",
+     "atk": 1,
+     "power": 1,
+     "kind": "poison"
+    },
+    {
+     "name": "파워젬",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "rock",
+     "type": "바위"
+    },
+    {
+     "name": "베놈쇼크",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "poison"
+    },
+    {
+     "name": "매지컬샤인",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic",
+     "type": "페어리"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 0,
+   "personality": "수수께끼",
+   "story": "다른 세상의 구멍에서 떨어진 해파리 모양의 울트라비스트. 아이처럼 순수한 마음을 가졌는데, 무엇을 생각하는지는 아무도 몰라. 머리의 별 무늬를 세어 보면 늘 다섯 개래. 지하동굴에서 날마다 한 마리 둥실 떠다녀."
+  },
+  {
+   "id": "b33",
+   "name": "이벨타르",
+   "type": "고스트",
+   "zone": "p_pluto",
+   "rareIn": "p_pluto",
+   "catchable": true,
+   "model": "이벨타르.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#C8282A"
+   },
+   "baseHp": 230,
+   "baseAtk": 36,
+   "grade": 6,
+   "skills": [
+    {
+     "name": "악의파동",
+     "atk": 1,
+     "power": 1,
+     "kind": "ghost"
+    },
+    {
+     "name": "에어슬래시",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "wind",
+     "type": "노말"
+    },
+    {
+     "name": "섀도볼",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "ghost"
+    },
+    {
+     "name": "데스윙",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "wind",
+     "type": "노말"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 0,
+   "personality": "어둠의 날개",
+   "story": "날개와 꼬리를 활짝 펴면 커다란 Y 모양이 되는 전설의 새 포켓몬. 천 년을 잠들었다가 깨어난대. 어둡고 차가운 명왕성 하늘을 날다가 날마다 한 마리만 내려와."
+  },
+  {
+   "id": "b34",
+   "name": "이로치이벨타르",
+   "type": "고스트",
+   "zone": "p_uranus",
+   "rareIn": "p_uranus",
+   "catchable": true,
+   "model": "이로치이벨타르.glb",
+   "scale": 2.6,
+   "draftShape": {
+    "body": "capsule",
+    "color": "#F0ECEC"
+   },
+   "baseHp": 240,
+   "baseAtk": 37,
+   "grade": 7,
+   "skills": [
+    {
+     "name": "악의파동",
+     "atk": 1,
+     "power": 1,
+     "kind": "ghost"
+    },
+    {
+     "name": "에어슬래시",
+     "atk": 12,
+     "power": 1.4,
+     "kind": "wind",
+     "type": "노말"
+    },
+    {
+     "name": "섀도볼",
+     "atk": 22,
+     "power": 1.7,
+     "kind": "ghost"
+    },
+    {
+     "name": "데스윙",
+     "atk": 30,
+     "power": 1.9,
+     "kind": "wind",
+     "type": "노말"
+    }
+   ],
+   "evolution": null,
+   "favoriteNumber": 0,
+   "personality": "반짝반짝",
+   "story": "몸 색이 다르게 태어난 아주 드문 이벨타르(이로치). 검은 날개 대신 하얀 날개에 빨간 무늬가 있어. 얼음 행성 천왕성의 하얀 구름 속에 숨어 살다가 날마다 한 마리만 모습을 보여."
+  },
+  {
+   "id": "x15",
+   "name": "메가라티아스",
+   "type": "에스퍼",
+   "zone": "evolution",
+   "rareIn": "space",
+   "catchable": true,
+   "model": "메가라티아스.glb",
+   "scale": 2.2,
+   "draftShape": {
+    "body": "sphere",
+    "color": "#8E6CD0"
+   },
+   "baseHp": 180,
+   "baseAtk": 32,
+   "grade": 7,
+   "mega": true,
+   "evolution": null,
+   "favoriteNumber": 6,
+   "evolvedFrom": "b14",
+   "personality": "상냥함",
+   "skills": [
+    {
+     "name": "염동력",
+     "atk": 1,
+     "power": 1,
+     "kind": "psychic"
+    },
+    {
+     "name": "용의숨결",
+     "atk": 10,
+     "power": 1.25,
+     "kind": "fire",
+     "type": "불"
+    },
+    {
+     "name": "미스트볼",
+     "atk": 20,
+     "power": 1.5,
+     "kind": "psychic"
+    },
+    {
+     "name": "사이코키네시스",
+     "atk": 30,
+     "power": 1.75,
+     "kind": "psychic"
+    }
+   ],
+   "story": "라티아스가 메가블럭의 힘으로 메가진화한 모습. 몸이 보랏빛으로 물들고 날개가 커져서 하늘을 더 빠르게 날아. 라티아스가 Lv.30 이 되고 메가블럭이 있으면 메가진화할 수 있고, 꿈의우주에서도 날마다 한 마리 만날 수 있어 (메가급이라 마스터볼이 좋아)."
   }
  ]
 }
