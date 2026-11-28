@@ -67,8 +67,9 @@ export function makeProblem(number, species, zone = 'forest', plan = null) {
     const a = rr(RANGE.mulA, lv), b = rr(RANGE.mulB, lv);
     return { ...tag, text: `${josa(A.name, '이가')} ${a}마리씩 ${b}무리 있어. 모두 몇 마리? (${a}×${b})`, groups: Array.from({ length: b }, () => ({ sp: A, count: a })), answer: a * b, choices: [a * b + a, a * b - a > 0 ? a * b - a : a + b], hint: `${a}를 ${b}번 더해 봐: ${Array(b).fill(a).join('+')}`, explain: `${a} × ${b} = ${a * b}. ${a}를 ${b}번 더하면 ${Array(b).fill(a).join('+')} = ${a * b}!` };
   }
+  if (p.tier !== 7) { const t = [1, 2, 3, 4, 5, 6, 8][Math.floor(Math.random() * 7)]; return makeProblem(number, species, zone, { ...p, tier: t }); } // 종류가 정해지지 않은 지역은 아무 문제나 (세제곱만 나오지 않게)
   // 세제곱 (tier 7): n×n×n
-  const n = lv <= 0 ? 2 : lv === 1 ? 3 : 4;
+  const n = lv <= 0 ? 2 : lv === 1 ? ri(2, 3) : ri(3, 4); // 늘 3×3×3 이 아니게
   return { ...tag, text: `${josa(A.name, '이가')} ${n}마리씩 ${n}줄로 서 있고, 그런 층이 ${n}층이야. 모두 몇 마리? (${n}×${n}×${n})`, groups: [...Array.from({ length: n }, () => ({ sp: A, count: n })), { sp: A, count: 0, note: `⬆ 이런 층이 ${n}층!` }], answer: n ** 3, choices: [n * n, n * n * (n - 1) || n * n + n], hint: `한 층은 ${n}×${n}=${n * n}마리. 그걸 ${n}번 더해 봐: ${Array(n).fill(n * n).join('+')}`, explain: `${n} × ${n} × ${n} = ${n ** 3}. 한 층이 ${n * n}마리, 그런 층이 ${n}층이니 ${Array(n).fill(n * n).join('+')} = ${n ** 3}!` };
 }
 
