@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { waterMaterial, windMaterial } from './fx.js';
+import { GARDEN, GARDEN_BRIDGE, GARDEN_KEEPER, inGarden, inGardenPond, gardenDip, GARDEN_WATER_Y, buildGiverny } from './giverny.js';
 import { structHeight, structBlocked, structCeiling, streamCarve, structClear, buildForestStructures, STREAM, VIEW_ROCK, onCrossing } from './yakushima.js';
 import { rand } from './util.js';
 import { LAKE, PIER, PIER_DECK, hallstattHeight, hallstattBlocked, hallstattCeiling, hallstattClear, buildHallstatt, mergeGroup, buildDeck, buildStationTown, alpineHouse, chaletHome, downHouseOut, oxfordSchool, colosseumOut, buildPropylon, PROPYLON } from './hallstatt.js';
@@ -257,17 +258,18 @@ export const TOWN = {
   forestGate: { x: 0, z: -100 },   // 북쪽 케이블카 정거장 → 푸른숲
   // 숲 전용은 맵 밖
   arena: { x: FAR, z: FAR, r: 12 }, cave: { x: FAR, z: FAR }, sleepSpot: { x: FAR, z: FAR, r: 4.5 }, hiveTree: { x: FAR, z: FAR }, shrineSpot: { x: FAR, z: FAR },
-  honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [PIER, PIER_DECK], // 호수 잔교 + 보트 창고 둘레 판 // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
+  honeyPath: [[FAR, FAR], [FAR + 20, FAR + 20]], bridges: [PIER, PIER_DECK, GARDEN_BRIDGE], // GARDEN_BRIDGE: 포켓몬 쉼터(지베르니 정원) 연못의 아치 다리 (src/giverny.js) // 호수 잔교 + 보트 창고 둘레 판 // 꿀의 길도 맵 밖 (길 코드가 점 둘을 기대한다)
   paths: [
     [[0, 8], [0, 46]], [[0, -8], [0, -94]], [[-6, -2], [-22, -12]], [[-10, -6], [-46, -18]], [[-8, 0], [-60, -2], [-84, -4]], [[8, 0], [50, 10], [84, 24]],
     [[6, 6], [40, 30], [66, 34]], [[-6, 6], [-30, 28], [-48, 40]], [[-8, -8], [-34, -50], [-52, -74]], [[-60, -2], [-80, -20], [-95, -36]], // 마지막: 기차역 길 → 불의산 입구 협곡
+    [[30, 51.5], [27, 21.5]], // 아레나 길 → 포켓몬 쉼터 입구
   ],
 };
 /** 마을 맨땅 (호수만 파였다) */
-function townGround(x, z) { const pd = Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z); return pd < TOWN.pond.r + 2 ? -0.9 * Math.min(1, (TOWN.pond.r + 2 - pd) / 3) : 0; }
+function townGround(x, z) { const pd = Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z); return pd < TOWN.pond.r + 2 ? -0.9 * Math.min(1, (TOWN.pond.r + 2 - pd) / 3) : gardenDip(x, z); } // gardenDip: 쉼터 수련 연못
 /** 할슈타트 구조물(언덕 단·돌계단·스카이워크)과 잔교까지 넣은 높이 */
 function townHeight(x, z, refY) { const g = townGround(x, z), by = bridgeHeightAt(TOWN.bridges, x, z); return hallstattHeight(x, z, refY, by === null ? g : Math.max(g, by)); }
-function townBlocked(x, z, refY) { return hallstattBlocked(x, z, refY) || (Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z) < TOWN.pond.r + 1 && !TOWN.bridges.some((b) => onBridge(b, x, z))); }
+function townBlocked(x, z, refY) { return hallstattBlocked(x, z, refY) || (inGardenPond(x, z, 1.05) && !onBridge(GARDEN_BRIDGE, x, z)) || (Math.hypot(x - TOWN.pond.x, z - TOWN.pond.z) < TOWN.pond.r + 1 && !TOWN.bridges.some((b) => onBridge(b, x, z))); }
 export const TOWN_TERRAIN = { height: townHeight, inHole: () => false, blocked: townBlocked, size: TOWN.size, obstacles: [], ledge: 0.9, ceiling: hallstattCeiling };
 
 
@@ -499,7 +501,7 @@ export function buildWorld(scene, layout = 'forest') {
     if (!isTown && Math.sin(x * 0.11) * Math.cos(z * 0.13) + Math.sin((x + z) * 0.05) > 1.1) c = mossBright; // 햇빛 받는 이끼 무늬
     const pd = Math.hypot(x - L.pond.x, z - L.pond.z);
     const ad = Math.hypot(x - L.arena.x, z - L.arena.z);
-    if (pd < L.pond.r) c = pondBed;
+    if (pd < L.pond.r || (isTown && inGardenPond(x, z, 1.1))) c = pondBed;
     else if (pd < L.pond.r + 2.5) c = sand;
     else if (ad < L.arena.r) c = (Math.floor(x / 2) + Math.floor(z / 2)) % 2 === 0 ? stone : stoneDark;
     else if (Math.hypot(x - L.village.x, z - L.village.z) < 7.5) c = (Math.floor(x / 1.5) + Math.floor(z / 1.5)) % 2 === 0 ? sand : dirt; // 마을 광장
@@ -535,7 +537,7 @@ export function buildWorld(scene, layout = 'forest') {
   }
   // 나무 다리 (연못을 가로지름) — 물은 다리로만 건널 수 있다
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b5, roughness: 0.9 });
-  for (const b of L.bridges) scene.add(isTown ? buildDeck(b === PIER ? { ...b, x2: PIER_DECK.x1 } : b, townGround) : buildBridge(b, obstacles)); /* 잔교는 창고 둘레 판이 시작하는 곳까지만 그린다 (두 판이 같은 높이로 겹치면 끝이 이글이글 깜빡였다. 걷는 높이는 그대로 이어진다) */ // 마을 잔교: 난간 없는 넓은 나무 길 (난간 끝에 걸려 잔교에 못 오르던 버그)
+  for (const b of L.bridges) if (b !== GARDEN_BRIDGE) scene.add(isTown ? buildDeck(b === PIER ? { ...b, x2: PIER_DECK.x1 } : b, townGround) : buildBridge(b, obstacles)); /* 잔교는 창고 둘레 판이 시작하는 곳까지만 그린다 (두 판이 같은 높이로 겹치면 끝이 이글이글 깜빡였다. 걷는 높이는 그대로 이어진다) */ // 마을 잔교: 난간 없는 넓은 나무 길 (난간 끝에 걸려 잔교에 못 오르던 버그)
 
   // ---------- 마을: 큰 숫자 나무 + 표지판 + 울타리 ----------
   const v = L.village;
@@ -1045,9 +1047,10 @@ export function buildWorld(scene, layout = 'forest') {
     Math.hypot(x - cv.x, z - cv.z) < 16 || Math.hypot(x - L.volcanoGate.x, z - L.volcanoGate.z) < 16 ||
     Math.hypot(x - L.station.x, z - L.station.z) < 18 || Math.hypot(x - L.rocketPad.x, z - L.rocketPad.z) < 16 || Math.hypot(x - L.hiveTree.x, z - L.hiveTree.z) < 24 || distToHoney(L, x, z) < 4.5 ||
     Math.hypot(x - L.lab.x, z - L.lab.z) < 20 || Math.hypot(x - L.shrineSpot.x, z - L.shrineSpot.z) < 18 || Math.hypot(x - L.stadium.x, z - L.stadium.z) < L.stadium.r + 10 || distToPath(L, x, z) < 2.5 + extra ||
-    WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
+    (isTown && inGarden(x, z, -3 - extra)) || WILD_SPOTS.some(([wx, wz]) => Math.hypot(x - wx, z - wz) < 4) || PICKUP_SPOTS.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.5); // 포켓몬·블록 자리에는 나무를 심지 않는다
   // 숲: 야쿠시마 구조물 (개울·데크길·할아버지 삼나무·쓰러진 고목·이끼 바위·빛줄기)
-  const townFx = isTown ? buildHallstatt(scene, decor, { height: T.height, obstacles }) : null; // 마을: 할슈타트 (호수·언덕 마을·교회·스카이워크·설산)
+  const townFx = isTown ? buildHallstatt(scene, decor, { height: T.height, obstacles }) : null;
+  if (isTown) buildGiverny(scene, decor, { height: T.height, obstacles }); // 포켓몬 쉼터 = 지베르니 모네 정원 (src/giverny.js) // 마을: 할슈타트 (호수·언덕 마을·교회·스카이워크·설산)
   const forestFx = isTown ? null : buildForestStructures(decor, { ground: meadowHills, bed: meadowGround, obstacles });
   const treeSpots = [];
   while (treeSpots.length < (isTown ? 60 : 250)) { // 넓어진 만큼 늘리되 면적 비례(316)보다 적게 — 사이가 트이게
@@ -1147,7 +1150,7 @@ export function buildWorld(scene, layout = 'forest') {
   const flowerSpots = [];
   for (let i = 0; i < 2000; i++) {
     const x = rand(-S / 2 + 2, S / 2 - 2), z = rand(-S / 2 + 2, S / 2 - 2);
-    if (Math.hypot(x - L.caveMouth.x, z - L.caveMouth.z) < 12 || Math.hypot(x - L.school.x, z - L.school.z) < 12 || Math.hypot(x - L.home.x, z - L.home.z) < 7 || Math.hypot(x - L.pond.x, z - L.pond.z) < L.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(L, x, z) < 2 || (!isTown && (!structClear(x, z, 0.8) || Math.random() < 0.6))) continue;
+    if (Math.hypot(x - L.caveMouth.x, z - L.caveMouth.z) < 12 || Math.hypot(x - L.school.x, z - L.school.z) < 12 || Math.hypot(x - L.home.x, z - L.home.z) < 7 || Math.hypot(x - L.pond.x, z - L.pond.z) < L.pond.r + 2 || Math.hypot(x - ar.x, z - ar.z) < ar.r || distToPath(L, x, z) < 2 || (isTown && inGarden(x, z, -1)) || (!isTown && (!structClear(x, z, 0.8) || Math.random() < 0.6))) continue;
     flowerSpots.push([x, T.height(x, z), z]);
   }
   for (const [bx, bz] of flowerBeds) for (let i = 0; i < 40; i++) {
@@ -1378,10 +1381,10 @@ export function buildWorld(scene, layout = 'forest') {
   const guide = makeNpc({ outfit: 'ranger', name: '인하', model: '인하.glb' });
   guide.position.set(guideAt.x, T.height(guideAt.x, guideAt.z), guideAt.z); guide.rotation.y = -0.5;
   decor.add(guide); if (isTown) block(guideAt.x, guideAt.z, 0.6);
-  // ---------- 체육관 문 앞의 봄이: "포켓몬 친구들을 마을로 불러오기" (main 이 체육관처럼 마을에 내 포켓몬을 풀어 놓는다) ----------
-  const keeperAt = isTown ? { x: L.gym.x + 7, z: L.gym.z - 6.5 } : { x: FAR, z: FAR };
+  // ---------- 포켓몬 쉼터 입구의 봄이: 쉼터에서 놀 포켓몬 고르기 (main 이 고른 포켓몬을 정원에 풀어 놓는다) ----------
+  const keeperAt = isTown ? { ...GARDEN_KEEPER } : { x: FAR, z: FAR }; // 포켓몬 쉼터 입구 옆
   const keeper = makeNpc({ outfit: 'professor', name: '봄이', model: '봄이.glb' });
-  keeper.position.set(keeperAt.x, T.height(keeperAt.x, keeperAt.z), keeperAt.z); keeper.rotation.y = Math.PI * 0.85; // 광장 쪽을 본다
+  keeper.position.set(keeperAt.x, T.height(keeperAt.x, keeperAt.z), keeperAt.z); keeper.rotation.y = Math.PI; // 북쪽(아레나 길)을 본다
   decor.add(keeper); if (isTown) block(keeperAt.x, keeperAt.z, 0.6);
 
   // ---------- 구름, 나비 ----------
@@ -1440,6 +1443,7 @@ export function buildWorld(scene, layout = 'forest') {
     // 몬스터 자리 (야생·보스), 블록 자리
     wildSpots: isTown ? [] : WILD_SPOTS, town: isTown, camTrees: camTreeSet,
     // 마을 호수에서 헤엄치기 (main 이 체육관 연못처럼 쓴다): 주인공만 물에 들어간다 (야생·사람은 여전히 물가에서 멈춘다)
+    ...(isTown ? { garden: { ...GARDEN, inGarden, inPond: inGardenPond, onBridge: (x, z) => onBridge(GARDEN_BRIDGE, x, z), waterY: GARDEN_WATER_Y } } : {}),
     ...(isTown ? { inPond: (x, z, k = 1) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r * k, onDock: (x, z) => TOWN.bridges.some((b) => onBridge(b, x, z)), swimY: -0.7, swimOk: (x, z) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 1.5, lake: true } : {}),
     bossSpot: { x: L.arena.x, z: L.arena.z },
     specialSpots: { sleepSpot: { x: L.sleepSpot.x, z: L.sleepSpot.z } }, // creatures.json 의 special 이름 → 자리
@@ -1455,9 +1459,9 @@ export function buildWorld(scene, layout = 'forest') {
     cablecar, // 마을 ↔ 푸른숲 케이블카 (곤돌라 문 앞에 서면 main 이 태워 보낸다)
     hiveDoor: { x: ht.x + 11, z: ht.z - 6 }, // 매달린 벌집의 바로 아래 (꿀의 길 끝. 어느 쪽에서 와도 벌집 아래로 들어서면 꿀벌집 안으로)
     npcs: [...(isTown ? [{ x: keeperAt.x, z: keeperAt.z, mesh: keeper, name: '봄이', townPets: true, lines: (c) => [
-      `안녕, ${c.name}! 난 체육관 지기 봄이야. 체육관에서 뛰어노는 네 포켓몬 친구들을 마을로 불러올 수 있어!`,
-      '친구들이 마을에 나오면 광장이랑 길가를 마음대로 돌아다녀. 물 포켓몬은 호수에서 헤엄치고! 가까이 가면 💪 훈련도 할 수 있어.',
-      '다시 체육관으로 돌려보내고 싶으면 나한테 또 말을 걸어 줘.',
+      `안녕, ${c.name}! 난 포켓몬 쉼터지기 봄이야. 여긴 프랑스 지베르니의 모네 정원을 닮은 쉼터야. 수련 연못이랑 초록 아치 다리 보여?`,
+      '아래 버튼으로 쉼터에서 놀 친구들을 골라 줘. 여러 마리 골라도 돼! 도감의 🌸 버튼으로도 보낼 수 있어.',
+      '물 포켓몬은 수련 연못에서 헤엄치고, 다른 친구들은 꽃밭이랑 버드나무 아래서 놀아. 가까이 가면 💪 훈련도 할 수 있어.',
     ] }] : []), { x: guideAt.x, z: guideAt.z, mesh: guide, name: '인하', lines: (c) => [
       `안녕, ${c.name}! 난 마을 길잡이 인하야. 여기가 포켓몬 마을이고, 모든 길은 이 광장에서 시작해!`,
       '우리 마을은 오스트리아 할슈타트를 닮았대. 동북쪽 호수엔 백조가 살고, 잔교 끝에 보트 창고가 있어. 호수에 들어가면 헤엄도 칠 수 있어! 호수 뒤 언덕 마을은 돌계단으로 한 단씩 올라가!',

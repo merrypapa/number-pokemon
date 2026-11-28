@@ -1224,3 +1224,8 @@ body.touch #btn-lesson { bottom: var(--ctx-bottom); }
 #btn-townpets:active { transform: translateY(3px); box-shadow: 0 1px 0 #3a8a2e; }
 body.touch #btn-townpets { bottom: var(--ctx-bottom); }
 @media (max-width: 600px) { #btn-townpets { font-size: 15px; padding: 10px 16px; right: 12px; bottom: calc(var(--ctx-bottom) + 54px); } body.touch #btn-townpets { bottom: var(--ctx-bottom); } }
+
+/* 도감: 포켓몬 쉼터로 보내기 */
+.member-actions .btn-shelter { background: #fff; color: #2f7a42; border: 2px solid #8cc98a; }
+.member-actions .btn-shelter.on { background: #ffd6e8; color: #b0306a; border-color: #ff9ec7; }
+.team-pick .tp-clear { background: #eee; color: #555; border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 800; margin-right: 8px; cursor: pointer; }
